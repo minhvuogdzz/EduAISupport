@@ -1,6 +1,7 @@
 PY := services/api/.venv/bin/python
+WEB := apps/web
 
-.PHONY: setup test lint fmt api db-ping
+.PHONY: setup test lint fmt api db-ping web web-install web-check
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -23,3 +24,12 @@ api:
 
 db-ping:
 	cd services/api && .venv/bin/python -m cavat.db
+
+web-install: ## Install the web app dependencies from the lockfile (Node >= 22.13, pnpm 10)
+	cd $(WEB) && pnpm install --frozen-lockfile
+
+web: web-install ## Run the web app with the mock API at http://localhost:5173
+	cd $(WEB) && pnpm dev
+
+web-check: web-install ## Lint, type-check, test and build the web app (same as CI)
+	cd $(WEB) && pnpm lint && pnpm test && pnpm build
