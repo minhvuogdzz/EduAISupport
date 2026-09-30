@@ -10,13 +10,40 @@ Nền tảng **AI-managed Learning Session** cho học sinh lớp 5. Ba vai trò
 
 **Scope phiên bản đầu:** Math Grade 5 + English Grade 5 (Reading + Speaking).
 
-**Bối cảnh:** đồ án tốt nghiệp, sản phẩm nội bộ để kiểm thử, ưu tiên dịch vụ miễn phí.
+**Bối cảnh:** đồ án tốt nghiệp, sản phẩm nội bộ để kiểm thử, ưu tiên dịch vụ miễn phí, chạy local, database MongoDB Atlas.
 
 ## Trạng thái
 
-Greenfield, đang ở giai đoạn **thiết kế và kiểm chứng rủi ro**. Chưa có code production.
+Đã có khung repo và đặc tả nháp của bài đầu tiên. Code được làm theo task trong [docs/tasks/BACKLOG.md](docs/tasks/BACKLOG.md).
+
+## Chạy ở máy local
+
+```bash
+make setup
+```
+
+Chép file credentials Atlas thành `.env` của API (file này đã gitignore, không bao giờ commit):
+
+```bash
+cp ~/Downloads/atlas-credentials.env services/api/.env
+```
+
+Kiểm tra kết nối database, chạy test và API:
+
+```bash
+make db-ping
+```
+
+```bash
+make test
+```
+
+```bash
+make api
+```
 
 ## Tài liệu
 
-- **Bắt đầu từ đây:** [docs/blueprint/00-START-HERE.md](docs/blueprint/00-START-HERE.md). Gồm audit, câu trả lời trung tâm, Q1–Q18 và mục lục 48 PART.
-- Quy ước làm việc cho các phiên AI (local/cloud): [CLAUDE.md](CLAUDE.md)
+- **Bắt đầu từ đây:** [docs/blueprint/00-START-HERE.md](docs/blueprint/00-START-HERE.md). Gồm audit, Q1–Q18 và mục lục 48 PART.
+- **Việc cho phiên cloud:** [docs/tasks/BACKLOG.md](docs/tasks/BACKLOG.md).
+- **Quy ước cho phiên AI:** [CLAUDE.md](CLAUDE.md).

@@ -20,3 +20,15 @@ build/
 
 # Logs
 *.log
+
+# Local runtime data (uploads, audio)
+var/
+
+# Generated eval reports
+evals/reports/*
+!evals/reports/.gitkeep
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+*.egg-info/

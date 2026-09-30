@@ -1,0 +1,669 @@
+# Lesson package — Toán 5: So sánh hai số thập phân
+# TRẠNG THÁI: DRAFT — chờ giáo viên kiểm soát (chủ dự án) duyệt. Xem README.md cùng thư mục.
+#
+# Quy ước:
+# - Số viết theo kiểu Việt Nam: dấu phẩy thập phân (0,25).
+# - hint.level: 1..7 tương ứng H1..H7 (blueprint PART 15). target: TASK | CONCEPT | STRATEGY | STEP | SELF_CHECK | FORMAT.
+# - leak_patterns: biểu thức chính quy áp dụng trên văn bản đã bỏ dấu, chữ thường (ví dụ "hoa nhanh hon").
+# - counter_examples có thể dùng {left}, {right} (chỉ điền được với câu hỏi dạng compare).
+# - Câu EXIT_ASSESSMENT: đáp án chỉ bộ chấm đọc, không bao giờ đưa vào prompt của AI.
+
+lesson_id: math-g5-dec-compare
+version: 0.1.0
+status: DRAFT
+subject: math
+grade: 5
+locale: vi-VN
+title: So sánh hai số thập phân
+persona:
+  tutor_self: cô
+  student_address: con
+
+objectives:
+  - id: LO1
+    text: "So sánh được hai số thập phân: so sánh phần nguyên trước, rồi lần lượt từng hàng của phần thập phân."
+    kc_ids: [KC-DEC-CMP]
+  - id: LO2
+    text: "Nhận biết hai số thập phân bằng nhau khi viết thêm hoặc bỏ chữ số 0 ở tận cùng bên phải phần thập phân."
+    kc_ids: [KC-DEC-EQ]
+  - id: LO3
+    text: "Sắp xếp các số thập phân theo thứ tự và vận dụng so sánh trong tình huống thực tế."
+    kc_ids: [KC-DEC-ORDER, KC-DEC-APPLY]
+
+kcs:
+  - id: KC-DEC-PLACE
+    name: Giá trị theo hàng của số thập phân
+    description: "Nhận biết hàng phần mười, phần trăm, phần nghìn và giá trị của mỗi chữ số."
+    prerequisites: []
+  - id: KC-DEC-EQ
+    name: Số thập phân bằng nhau
+    description: "Viết thêm hoặc bỏ chữ số 0 ở tận cùng bên phải phần thập phân thì giá trị không đổi."
+    prerequisites: [KC-DEC-PLACE]
+  - id: KC-DEC-CMP
+    name: So sánh hai số thập phân
+    description: "So sánh phần nguyên, nếu bằng nhau thì so sánh lần lượt từng hàng của phần thập phân."
+    prerequisites: [KC-DEC-PLACE, KC-DEC-EQ]
+  - id: KC-DEC-ORDER
+    name: Sắp xếp thứ tự các số thập phân
+    description: "Xếp các số thập phân theo thứ tự từ bé đến lớn hoặc ngược lại."
+    prerequisites: [KC-DEC-CMP]
+  - id: KC-DEC-APPLY
+    name: Vận dụng so sánh số thập phân
+    description: "Dùng so sánh số thập phân trong bài toán thực tế (thời gian, khối lượng, chiều cao...)."
+    prerequisites: [KC-DEC-CMP]
+
+concepts:
+  - id: C1
+    name: Quy tắc so sánh hai số thập phân
+    explanation: "Muốn so sánh hai số thập phân, ta so sánh phần nguyên trước. Nếu phần nguyên bằng nhau, ta so sánh lần lượt hàng phần mười, hàng phần trăm, hàng phần nghìn... cho đến khi gặp hàng có chữ số khác nhau."
+    representations: [bảng hàng, trục số, tiền, đo độ dài]
+  - id: C2
+    name: Số thập phân bằng nhau
+    explanation: "Nếu viết thêm (hoặc bỏ đi) chữ số 0 ở tận cùng bên phải phần thập phân thì được một số thập phân bằng nó, ví dụ 0,5 = 0,50 = 0,500."
+    representations: [bảng hàng, phân số thập phân]
+
+misconceptions:
+  - id: DEC-M01
+    kc_id: KC-DEC-CMP
+    name: "Dài hơn thì lớn hơn"
+    description: "So sánh phần thập phân như số tự nhiên, ví dụ nghĩ 0,25 > 0,3 vì 25 > 3."
+    bug_rule: longer_is_larger
+    severity: CRITICAL
+    counter_examples:
+      - "Nếu có {left} mét dây và {right} mét dây, con thử đổi cả hai ra xăng-ti-mét rồi xem đoạn nào dài hơn nhé?"
+      - "0,3 mét là 30 xăng-ti-mét, còn 0,25 mét là 25 xăng-ti-mét. Vậy đoạn dây nào dài hơn?"
+  - id: DEC-M02
+    kc_id: KC-DEC-CMP
+    name: "Ngắn hơn thì lớn hơn"
+    description: "Cho rằng số có ít chữ số ở phần thập phân hơn thì lớn hơn, ví dụ nghĩ 0,4 > 0,45."
+    bug_rule: shorter_is_larger
+    severity: CRITICAL
+    counter_examples:
+      - "Con thử viết thêm chữ số 0 vào số ngắn hơn để hai số có cùng số chữ số ở phần thập phân, rồi so sánh lại {left} và {right} nhé?"
+      - "Nếu số có nhiều chữ số hơn luôn bé hơn thì 0,99 phải bé hơn 0,1. Con thấy điều đó có đúng không?"
+  - id: DEC-M03
+    kc_id: KC-DEC-PLACE
+    name: "Bỏ qua chữ số 0 giữ chỗ"
+    description: "Bỏ qua chữ số 0 ngay sau dấu phẩy, ví dụ nghĩ 0,05 = 0,5."
+    bug_rule: ignore_zero_placeholder
+    severity: CRITICAL
+    counter_examples:
+      - "Chữ số ngay sau dấu phẩy thuộc hàng phần mười. Ở {left} và {right}, chữ số hàng phần mười lần lượt là mấy?"
+      - "Nếu 0,05 bằng 0,5 thì 5 xu cũng bằng 50 xu. Con thấy có đúng không?"
+  - id: DEC-M04
+    kc_id: KC-DEC-CMP
+    name: "Bỏ qua phần nguyên"
+    description: "Chỉ so sánh phần thập phân mà quên phần nguyên, ví dụ nghĩ 2,1 < 1,99."
+    bug_rule: ignore_integer_part
+    severity: CRITICAL
+    counter_examples:
+      - "Con so sánh phần nguyên của {left} và {right} trước nhé, phần nguyên nào lớn hơn?"
+      - "Một số có phần nguyên là 2 và một số có phần nguyên là 1, số nào lớn hơn dù phần thập phân của chúng thế nào?"
+  - id: DEC-M05
+    kc_id: KC-DEC-EQ
+    name: "Thêm chữ số 0 ở cuối làm số lớn hơn"
+    description: "Cho rằng viết thêm chữ số 0 ở cuối phần thập phân làm số lớn hơn, ví dụ nghĩ 0,50 > 0,5."
+    bug_rule: trailing_zero_larger
+    severity: NORMAL
+    counter_examples:
+      - "Nếu con có {left} kg gạo và bạn có {right} kg gạo, chữ số 0 ở cuối có làm lượng gạo nhiều hơn không?"
+      - "0,5 là 5 phần mười, còn 0,50 là 50 phần trăm. 50 phần trăm có bằng 5 phần mười không?"
+
+# Gợi ý dự phòng dùng chung (khi câu hỏi chưa có gợi ý đúng mức).
+generic_hints:
+  - {target: TASK, level: 1, text: "Đề bài muốn mình so sánh những số nào? Con đọc to các số đó giúp cô nhé?"}
+  - {target: CONCEPT, level: 2, text: "Khi so sánh hai số thập phân, mình so sánh phần nào trước: phần nguyên hay phần thập phân?"}
+  - {target: STRATEGY, level: 3, text: "Con thử viết các số cho có cùng số chữ số ở phần thập phân, rồi so sánh lần lượt từng hàng xem?"}
+  - {target: STEP, level: 4, text: "Phần nguyên bằng nhau thì mình so sánh tiếp chữ số ở hàng phần mười. Con so sánh hai chữ số đó giúp cô nhé?"}
+  - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Bước 1: phần nguyên của các số là mấy?"}
+  - {target: SELF_CHECK, level: 1, text: "Con kiểm tra lại từng hàng một lần nữa giúp cô nhé?"}
+  - {target: FORMAT, level: 1, text: "Con trả lời đúng theo yêu cầu của đề giúp cô nhé?"}
+
+items:
+  # ------------------------------------------------------------ CONCEPT_CHECK
+  - id: CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-PLACE]
+    cognitive_level: A
+    difficulty: 0.2
+    expected_time_s: 30
+    stem: "Trong số 3,47, chữ số 4 thuộc hàng nào: hàng đơn vị, hàng phần mười hay hàng phần trăm?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "hàng phần mười", correct: true, aliases: ["phần mười"]}
+        - {id: B, text: "hàng phần trăm", aliases: ["phần trăm"], misconceptions: [DEC-M03]}
+        - {id: C, text: "hàng đơn vị", aliases: ["đơn vị"]}
+    hints:
+      - {target: TASK, level: 1, text: "Chữ số 4 đứng ở bên trái hay bên phải dấu phẩy?"}
+      - {target: CONCEPT, level: 2, text: "Chữ số đứng ngay sau dấu phẩy thuộc hàng nào nhỉ?"}
+      - {target: STRATEGY, level: 3, text: "Con thử kẻ bảng hàng: đơn vị, phần mười, phần trăm, rồi đặt từng chữ số của 3,47 vào đúng cột xem?"}
+    worked_solution:
+      - "Chữ số 3 đứng trước dấu phẩy nên thuộc hàng đơn vị."
+      - "Chữ số đứng ngay sau dấu phẩy thuộc hàng phần mười."
+      - "Vậy chữ số 4 thuộc hàng phần mười."
+    explanation: "Chữ số đứng ngay sau dấu phẩy thuộc hàng phần mười. Trong 3,47, chữ số 4 đứng ngay sau dấu phẩy nên thuộc hàng phần mười."
+    leak_patterns: ["4 (thuoc|o|la) hang phan muoi"]
+
+  - id: CC-02
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.4
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,7 … 0,65"
+    answer: {type: compare, left: "0,7", right: "0,65"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh 0,7 và 0,65. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Hai số có cùng phần nguyên là 0. Vậy mình so sánh tiếp hàng nào trước?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,7 thành 0,70 rồi so sánh với 0,65 theo từng hàng được không?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 0."
+      - "Ở hàng phần mười: 0,7 có chữ số 7, còn 0,65 có chữ số 6."
+      - "Vì 7 > 6 nên 0,7 > 0,65."
+    explanation: "Phần nguyên đều là 0. Ở hàng phần mười, 0,7 có chữ số 7 còn 0,65 có chữ số 6. Vì 7 > 6 nên 0,7 > 0,65."
+    rephrase: "Giữa 0,7 và 0,65, con điền dấu >, < hay = giúp cô nhé?"
+
+  - id: CC-03
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: C
+    difficulty: 0.55
+    stem: "Vì sao 0,7 lớn hơn 0,65 dù 65 lớn hơn 7?"
+    answer:
+      type: open
+      rubric: "Nêu được cách so sánh theo hàng: hàng phần mười 7 > 6 (hoặc 0,7 = 0,70 > 0,65)."
+      sample_answer: "Vì ở hàng phần mười, 0,7 có chữ số 7 còn 0,65 có chữ số 6, mà 7 lớn hơn 6."
+    hints:
+      - {target: TASK, level: 1, text: "Khi so sánh 0,7 và 0,65, con nhìn hàng nào trước?"}
+      - {target: CONCEPT, level: 2, text: "Chữ số 7 trong 0,7 và chữ số 6 trong 0,65 cùng thuộc hàng nào?"}
+
+  # ------------------------------------------------------------ GUIDED_PRACTICE
+  - id: GP-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.4
+    isomorphic_group: G1
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,25 … 0,3"
+    answer: {type: compare, left: "0,25", right: "0,3"}
+    rephrase: "Giữa 0,25 và 0,3, con điền dấu >, < hay = giúp cô nhé?"
+    verify_prompt: "Đúng rồi! Con giải thích giúp cô vì sao 0,25 bé hơn 0,3 được không?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh hai số 0,25 và 0,3. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Khi hai số có phần nguyên bằng nhau, mình so sánh hàng nào trước: hàng phần mười hay hàng phần trăm?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,3 thành 0,30 để hai số cùng có hai chữ số ở phần thập phân, rồi so sánh 0,25 và 0,30 được không?"}
+      - {target: STEP, level: 4, text: "Phần nguyên của hai số đều là 0. Ở hàng phần mười, 0,25 có chữ số 2, còn 0,3 có chữ số 3. Chữ số nào lớn hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Bước 1: chữ số hàng phần mười của 0,25 là mấy?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 0, nên mình so sánh phần thập phân."
+      - "Ở hàng phần mười: 0,25 có chữ số 2, còn 0,3 có chữ số 3."
+      - "Vì 2 < 3 nên 0,25 < 0,3."
+    explanation: "Phần nguyên của hai số đều là 0. Ở hàng phần mười, 0,25 có chữ số 2 còn 0,3 có chữ số 3. Vì 2 < 3 nên 0,25 < 0,3."
+
+  - id: GP-01b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.4
+    isomorphic_group: G1
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,36 … 0,4"
+    answer: {type: compare, left: "0,36", right: "0,4"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh hai số 0,36 và 0,4. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Khi hai số có phần nguyên bằng nhau, mình so sánh hàng nào trước?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,36 có chữ số 3, còn 0,4 có chữ số 4. Chữ số nào lớn hơn?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 0."
+      - "Ở hàng phần mười: 0,36 có chữ số 3, còn 0,4 có chữ số 4."
+      - "Vì 3 < 4 nên 0,36 < 0,4."
+    explanation: "Phần nguyên đều là 0. Ở hàng phần mười, 0,36 có chữ số 3 còn 0,4 có chữ số 4. Vì 3 < 4 nên 0,36 < 0,4."
+
+  - id: GP-02
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP, KC-DEC-EQ]
+    cognitive_level: B
+    difficulty: 0.45
+    isomorphic_group: G2
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,4 … 0,45"
+    answer: {type: compare, left: "0,4", right: "0,45"}
+    rephrase: "Giữa 0,4 và 0,45, con điền dấu >, < hay = giúp cô nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh 0,4 và 0,45. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Theo con, mình so sánh hai số thập phân theo từng hàng hay theo số chữ số của chúng?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,4 thành 0,40, rồi so sánh 0,40 và 0,45 theo từng hàng được không?"}
+      - {target: STEP, level: 4, text: "Hai số có cùng phần nguyên là 0 và cùng chữ số 4 ở hàng phần mười. Vậy mình phải so sánh tiếp hàng nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Ở hàng phần trăm, 0,40 có chữ số 0, còn 0,45 có chữ số mấy?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 0, hàng phần mười đều là 4."
+      - "Ở hàng phần trăm: 0,4 = 0,40 có chữ số 0, còn 0,45 có chữ số 5."
+      - "Vì 0 < 5 nên 0,4 < 0,45."
+    explanation: "Hai số có cùng phần nguyên 0 và cùng chữ số 4 ở hàng phần mười. Viết 0,4 thành 0,40 rồi so sánh hàng phần trăm: 0 < 5, nên 0,4 < 0,45."
+
+  - id: GP-02b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP, KC-DEC-EQ]
+    cognitive_level: B
+    difficulty: 0.45
+    isomorphic_group: G2
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,7 … 0,72"
+    answer: {type: compare, left: "0,7", right: "0,72"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh 0,7 và 0,72. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Mình so sánh hai số thập phân theo từng hàng hay theo số chữ số của chúng?"}
+      - {target: STEP, level: 4, text: "Hai số có cùng chữ số 7 ở hàng phần mười. Ở hàng phần trăm, 0,70 có chữ số 0, còn 0,72 có chữ số mấy?"}
+    worked_solution:
+      - "Phần nguyên đều là 0, hàng phần mười đều là 7."
+      - "Ở hàng phần trăm: 0,7 = 0,70 có chữ số 0, còn 0,72 có chữ số 2."
+      - "Vì 0 < 2 nên 0,7 < 0,72."
+    explanation: "Viết 0,7 thành 0,70. Hai số cùng có chữ số 7 ở hàng phần mười; ở hàng phần trăm 0 < 2, nên 0,7 < 0,72."
+
+  - id: GP-03
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-PLACE, KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.5
+    isomorphic_group: G3
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,05 … 0,5"
+    answer: {type: compare, left: "0,05", right: "0,5"}
+    rephrase: "Giữa 0,05 và 0,5, con điền dấu >, < hay = giúp cô nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình so sánh hai số 0,05 và 0,5. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Trong số 0,05, chữ số 0 đứng ngay sau dấu phẩy thuộc hàng nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,5 thành 0,50 để hai số cùng có hai chữ số ở phần thập phân, rồi so sánh 0,05 và 0,50 xem?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,05 có chữ số 0, còn 0,5 có chữ số 5. Chữ số nào lớn hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 0,05 là mấy?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 0."
+      - "Ở hàng phần mười: 0,05 có chữ số 0, còn 0,5 có chữ số 5."
+      - "Vì 0 < 5 nên 0,05 < 0,5."
+    explanation: "Phần nguyên đều là 0. Ở hàng phần mười, 0,05 có chữ số 0 còn 0,5 có chữ số 5. Vì 0 < 5 nên 0,05 < 0,5."
+
+  - id: GP-03b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-PLACE, KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.5
+    isomorphic_group: G3
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,08 … 0,8"
+    answer: {type: compare, left: "0,08", right: "0,8"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình so sánh hai số 0,08 và 0,8. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Trong số 0,08, chữ số 0 đứng ngay sau dấu phẩy thuộc hàng nào?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,08 có chữ số 0, còn 0,8 có chữ số 8. Chữ số nào lớn hơn?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 0."
+      - "Ở hàng phần mười: 0,08 có chữ số 0, còn 0,8 có chữ số 8."
+      - "Vì 0 < 8 nên 0,08 < 0,8."
+    explanation: "Ở hàng phần mười, 0,08 có chữ số 0 còn 0,8 có chữ số 8. Vì 0 < 8 nên 0,08 < 0,8."
+
+  - id: GP-04
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.4
+    isomorphic_group: G4
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 2,1 … 1,99"
+    answer: {type: compare, left: "2,1", right: "1,99"}
+    rephrase: "Giữa 2,1 và 1,99, con điền dấu >, < hay = giúp cô nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình so sánh 2,1 và 1,99. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Khi so sánh hai số thập phân, mình so sánh phần nào trước tiên?"}
+      - {target: STRATEGY, level: 3, text: "Con thử so sánh phần nguyên của hai số trước, chưa cần nhìn phần thập phân. Phần nguyên nào lớn hơn?"}
+      - {target: STEP, level: 4, text: "Phần nguyên của 2,1 là 2, còn phần nguyên của 1,99 là 1. Vậy số nào lớn hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Phần nguyên của 2,1 là mấy?"}
+    worked_solution:
+      - "Mình so sánh phần nguyên trước: 2,1 có phần nguyên là 2, còn 1,99 có phần nguyên là 1."
+      - "Phần nguyên đã khác nhau nên không cần so sánh phần thập phân nữa."
+      - "Vì 2 > 1 nên 2,1 > 1,99."
+    explanation: "Mình so sánh phần nguyên trước. 2,1 có phần nguyên là 2, còn 1,99 có phần nguyên là 1. Vì 2 > 1 nên 2,1 > 1,99, không cần so sánh phần thập phân."
+
+  - id: GP-04b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.4
+    isomorphic_group: G4
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 3,2 … 2,85"
+    answer: {type: compare, left: "3,2", right: "2,85"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình so sánh 3,2 và 2,85. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Khi so sánh hai số thập phân, mình so sánh phần nào trước tiên?"}
+      - {target: STEP, level: 4, text: "Phần nguyên của 3,2 là 3, còn phần nguyên của 2,85 là 2. Vậy số nào lớn hơn?"}
+    worked_solution:
+      - "So sánh phần nguyên trước: 3,2 có phần nguyên là 3, còn 2,85 có phần nguyên là 2."
+      - "Phần nguyên đã khác nhau nên không cần so sánh phần thập phân nữa."
+      - "Vì 3 > 2 nên 3,2 > 2,85."
+    explanation: "So sánh phần nguyên trước: 3 > 2 nên 3,2 > 2,85, không cần so sánh phần thập phân."
+
+  - id: GP-05
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-EQ]
+    cognitive_level: B
+    difficulty: 0.35
+    isomorphic_group: G5
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,50 … 0,5"
+    answer: {type: compare, left: "0,50", right: "0,5"}
+    rephrase: "Giữa 0,50 và 0,5, con điền dấu >, < hay = giúp cô nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình so sánh 0,50 và 0,5. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Nếu viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị của số thay đổi hay giữ nguyên?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,5 và 0,50 thành phân số thập phân xem, hai phân số đó có bằng nhau không?"}
+      - {target: STEP, level: 4, text: "0,5 là 5 phần mười. Còn 0,50 là 50 phần trăm, tức là bao nhiêu phần mười?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. 0,50 có mấy phần mười và mấy phần trăm?"}
+    worked_solution:
+      - "0,5 gồm 5 phần mười."
+      - "0,50 gồm 5 phần mười và 0 phần trăm, tức là cũng 5 phần mười."
+      - "Vậy 0,50 = 0,5."
+    explanation: "Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị không đổi. 0,50 và 0,5 đều là 5 phần mười, nên 0,50 = 0,5."
+
+  - id: GP-05b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-EQ]
+    cognitive_level: B
+    difficulty: 0.35
+    isomorphic_group: G5
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,70 … 0,7"
+    answer: {type: compare, left: "0,70", right: "0,7"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình so sánh 0,70 và 0,7. Con đọc to hai số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Nếu viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị của số thay đổi hay giữ nguyên?"}
+      - {target: STEP, level: 4, text: "0,7 là 7 phần mười. Còn 0,70 là 70 phần trăm, tức là bao nhiêu phần mười?"}
+    worked_solution:
+      - "0,7 gồm 7 phần mười."
+      - "0,70 gồm 7 phần mười và 0 phần trăm, tức là cũng 7 phần mười."
+      - "Vậy 0,70 = 0,7."
+    explanation: "0,70 và 0,7 đều là 7 phần mười. Viết thêm chữ số 0 ở cuối phần thập phân không làm thay đổi giá trị, nên 0,70 = 0,7."
+
+  - id: GP-06
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-ORDER]
+    cognitive_level: B
+    difficulty: 0.6
+    expected_time_s: 90
+    isomorphic_group: G6
+    stem: "Sắp xếp các số sau theo thứ tự từ bé đến lớn: 0,3; 0,25; 0,305; 0,2"
+    answer: {type: order, numbers: ["0,3", "0,25", "0,305", "0,2"], direction: asc}
+    rephrase: "Con viết lại bốn số 0,3; 0,25; 0,305; 0,2 theo thứ tự từ bé đến lớn giúp cô nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần xếp bốn số từ bé đến lớn. Con thử tìm số bé nhất trước được không?"}
+      - {target: CONCEPT, level: 2, text: "Bốn số đều có phần nguyên là 0. Vậy mình so sánh tiếp hàng nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết cả bốn số cho có cùng ba chữ số ở phần thập phân, ví dụ 0,3 thành 0,300, rồi so sánh được không?"}
+      - {target: STEP, level: 4, text: "Viết lại: 0,300; 0,250; 0,305; 0,200. Bây giờ con xếp các số này từ bé đến lớn được không?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Trong 0,300; 0,250; 0,305; 0,200, số nào bé nhất?"}
+    worked_solution:
+      - "Bốn số đều có phần nguyên 0. Viết cho cùng ba chữ số ở phần thập phân: 0,300; 0,250; 0,305; 0,200."
+      - "So sánh phần thập phân: 200 < 250 < 300 < 305."
+      - "Vậy thứ tự từ bé đến lớn là: 0,2; 0,25; 0,3; 0,305."
+    explanation: "Viết các số cho cùng ba chữ số ở phần thập phân: 0,300; 0,250; 0,305; 0,200. Vì 200 < 250 < 300 < 305 nên thứ tự từ bé đến lớn là 0,2; 0,25; 0,3; 0,305."
+
+  - id: GP-06b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-ORDER]
+    cognitive_level: B
+    difficulty: 0.6
+    expected_time_s: 90
+    isomorphic_group: G6
+    stem: "Sắp xếp các số sau theo thứ tự từ bé đến lớn: 0,4; 0,35; 0,405; 0,3"
+    answer: {type: order, numbers: ["0,4", "0,35", "0,405", "0,3"], direction: asc}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần xếp bốn số từ bé đến lớn. Con thử tìm số bé nhất trước được không?"}
+      - {target: CONCEPT, level: 2, text: "Bốn số đều có phần nguyên là 0. Vậy mình so sánh tiếp hàng nào?"}
+      - {target: STEP, level: 4, text: "Viết lại: 0,400; 0,350; 0,405; 0,300. Bây giờ con xếp các số này từ bé đến lớn được không?"}
+    worked_solution:
+      - "Viết cho cùng ba chữ số ở phần thập phân: 0,400; 0,350; 0,405; 0,300."
+      - "So sánh phần thập phân: 300 < 350 < 400 < 405."
+      - "Vậy thứ tự từ bé đến lớn là: 0,3; 0,35; 0,4; 0,405."
+    explanation: "Viết các số cho cùng ba chữ số ở phần thập phân rồi so sánh: 300 < 350 < 400 < 405, nên thứ tự là 0,3; 0,35; 0,4; 0,405."
+
+  - id: GP-07
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: E
+    difficulty: 0.7
+    transfer: near
+    expected_time_s: 120
+    isomorphic_group: G7
+    stem: "Tìm chữ số x bé nhất để 0,x5 > 0,6."
+    answer:
+      type: numeric
+      value: "6"
+      wrong_answers: {"1": DEC-M01}
+    rephrase: "Con tìm giúp cô chữ số x nhỏ nhất sao cho số 0,x5 lớn hơn 0,6 nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần tìm chữ số x sao cho số 0,x5 lớn hơn 0,6. Con thử thay x bằng một chữ số rồi kiểm tra xem?"}
+      - {target: CONCEPT, level: 2, text: "Khi so sánh 0,x5 với 0,6, mình nhìn hàng phần mười trước. Chữ số x đứng ở hàng nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,6 thành 0,60 rồi so sánh 0,x5 với 0,60 theo từng hàng xem?"}
+      - {target: STEP, level: 4, text: "Nếu x = 5 thì 0,55 so với 0,60 thế nào, bé hơn hay lớn hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Với x = 5, số 0,x5 là số nào?"}
+    worked_solution:
+      - "Viết 0,6 thành 0,60 để so sánh với 0,x5."
+      - "Với x = 5 ta được 0,55 < 0,60, nên x phải lớn hơn 5."
+      - "Với x = 6 ta được 0,65 > 0,60, nên chữ số x bé nhất là 6."
+    explanation: "Viết 0,6 thành 0,60. Với x = 5 thì 0,55 < 0,60, còn với x = 6 thì 0,65 > 0,60. Vậy chữ số x bé nhất là 6."
+    leak_patterns: ["x (bang|la|=) ?6\\b", "be nhat la 6"]
+
+  - id: GP-07b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: E
+    difficulty: 0.7
+    transfer: near
+    expected_time_s: 120
+    isomorphic_group: G7
+    stem: "Tìm chữ số x bé nhất để 0,x3 > 0,7."
+    answer:
+      type: numeric
+      value: "7"
+      wrong_answers: {"1": DEC-M01}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần tìm chữ số x sao cho 0,x3 lớn hơn 0,7. Con thử thay x bằng một chữ số rồi kiểm tra xem?"}
+      - {target: CONCEPT, level: 2, text: "Khi so sánh 0,x3 với 0,7, mình nhìn hàng phần mười trước. Chữ số x đứng ở hàng nào?"}
+      - {target: STEP, level: 4, text: "Nếu x = 6 thì 0,63 so với 0,70 thế nào, bé hơn hay lớn hơn?"}
+    worked_solution:
+      - "Viết 0,7 thành 0,70 để so sánh với 0,x3."
+      - "Với x = 6 ta được 0,63 < 0,70, nên x phải lớn hơn 6."
+      - "Với x = 7 ta được 0,73 > 0,70, nên chữ số x bé nhất là 7."
+    explanation: "Viết 0,7 thành 0,70. Với x = 6 thì 0,63 < 0,70, còn với x = 7 thì 0,73 > 0,70. Vậy chữ số x bé nhất là 7."
+    leak_patterns: ["x (bang|la|=) ?7\\b", "be nhat la 7"]
+
+  - id: GP-08
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-APPLY]
+    cognitive_level: D
+    difficulty: 0.55
+    isomorphic_group: G8
+    stem: "Trong cuộc thi chạy 60 m, bạn Lan chạy hết 9,8 giây, bạn Hoa chạy hết 9,75 giây. Bạn nào chạy nhanh hơn?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "Lan", misconceptions: [DEC-M01]}
+        - {id: B, text: "Hoa", correct: true}
+    verify_prompt: "Đúng rồi! Con giải thích giúp cô vì sao con chọn bạn Hoa được không?"
+    hints:
+      - {target: TASK, level: 1, text: "Trong cuộc thi chạy, bạn chạy hết ít thời gian hơn là bạn chạy nhanh hơn hay chậm hơn?"}
+      - {target: CONCEPT, level: 2, text: "Mình cần so sánh 9,8 giây và 9,75 giây. Khi so sánh hai số thập phân, con so sánh phần nào trước?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 9,8 thành 9,80 để có cùng số chữ số với 9,75, rồi xem số nào bé hơn nhé?"}
+      - {target: STEP, level: 4, text: "Hai số có cùng phần nguyên 9. Ở hàng phần mười, 9,8 có chữ số 8, còn 9,75 có chữ số 7. Vậy thời gian của ai ít hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 9,75 là mấy?"}
+    worked_solution:
+      - "Người chạy hết ít thời gian hơn thì chạy nhanh hơn."
+      - "So sánh 9,8 và 9,75: cùng phần nguyên 9; ở hàng phần mười 8 > 7 nên 9,8 > 9,75."
+      - "Vậy Hoa chạy hết ít thời gian hơn, nên Hoa chạy nhanh hơn."
+    explanation: "Người chạy hết ít thời gian hơn thì chạy nhanh hơn. Ở hàng phần mười 7 < 8 nên 9,75 < 9,8. Vậy Hoa chạy nhanh hơn."
+    leak_patterns: ["hoa (chay )?nhanh hon", "lan (chay )?cham hon", "ban hoa (chay )?nhanh"]
+
+  - id: GP-08b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-APPLY]
+    cognitive_level: D
+    difficulty: 0.55
+    isomorphic_group: G8
+    stem: "Trong cuộc thi chạy, bạn Minh chạy hết 12,5 giây, bạn Tuấn chạy hết 12,45 giây. Bạn nào chạy nhanh hơn?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "Minh", misconceptions: [DEC-M01]}
+        - {id: B, text: "Tuấn", correct: true}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn chạy hết ít thời gian hơn là bạn chạy nhanh hơn hay chậm hơn?"}
+      - {target: CONCEPT, level: 2, text: "Mình cần so sánh 12,5 giây và 12,45 giây. Con so sánh phần nào trước?"}
+      - {target: STEP, level: 4, text: "Hai số có cùng phần nguyên 12. Ở hàng phần mười, 12,5 có chữ số 5, còn 12,45 có chữ số 4. Vậy thời gian của ai ít hơn?"}
+    worked_solution:
+      - "Người chạy hết ít thời gian hơn thì chạy nhanh hơn."
+      - "So sánh 12,5 và 12,45: cùng phần nguyên 12; ở hàng phần mười 5 > 4 nên 12,5 > 12,45."
+      - "Vậy Tuấn chạy hết ít thời gian hơn, nên Tuấn chạy nhanh hơn."
+    explanation: "Ở hàng phần mười 4 < 5 nên 12,45 < 12,5, tức là Tuấn chạy hết ít thời gian hơn. Vậy Tuấn chạy nhanh hơn."
+    leak_patterns: ["tuan (chay )?nhanh hon", "minh (chay )?cham hon"]
+
+  - id: GP-09
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: DIAG
+    difficulty: 0.5
+    isomorphic_group: G9
+    stem: "Bạn An nói: \"0,25 > 0,3 vì 25 > 3\". Bạn An nói đúng hay sai?"
+    answer:
+      type: boolean
+      value: false
+      requires_explanation: true
+      wrong_answers: {"true": DEC-M01}
+    verify_prompt: "Đúng rồi! Con giải thích giúp cô bạn An nhầm ở chỗ nào được không?"
+    hints:
+      - {target: TASK, level: 1, text: "Bạn An đang so sánh hai số nào? Con kiểm tra lại phép so sánh của bạn ấy giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Khi so sánh 0,25 và 0,3, mình có được so sánh 25 với 3 như so sánh số tự nhiên không?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,3 thành 0,30 rồi so sánh 0,25 với 0,30 xem kết quả có giống bạn An không?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,25 có chữ số 2, còn 0,3 có chữ số 3. Vậy 0,25 có lớn hơn 0,3 như bạn An nói không?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 0,25 là mấy?"}
+    worked_solution:
+      - "Bạn An so sánh 25 với 3 như số tự nhiên, cách này chưa phù hợp với số thập phân."
+      - "Ở hàng phần mười: 0,25 có chữ số 2, 0,3 có chữ số 3, và 2 < 3."
+      - "Vậy 0,25 < 0,3, nên bạn An nói sai."
+    explanation: "Bạn An so sánh 25 với 3 như số tự nhiên là chưa đúng. Ở hàng phần mười, 2 < 3 nên 0,25 < 0,3. Vậy bạn An nói sai."
+    leak_patterns: ["an (noi )?sai", "an da sai", "an nham", "an noi chua dung"]
+
+  - id: GP-09b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: DIAG
+    difficulty: 0.5
+    isomorphic_group: G9
+    stem: "Bạn Bình nói: \"0,7 < 0,65 vì 7 < 65\". Bạn Bình nói đúng hay sai?"
+    answer:
+      type: boolean
+      value: false
+      requires_explanation: true
+      wrong_answers: {"true": DEC-M01}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn Bình đang so sánh hai số nào? Con kiểm tra lại phép so sánh của bạn ấy giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Khi so sánh 0,7 và 0,65, mình có được so sánh 7 với 65 như số tự nhiên không?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,7 có chữ số 7, còn 0,65 có chữ số 6. Vậy 0,7 có bé hơn 0,65 như bạn Bình nói không?"}
+    worked_solution:
+      - "Bạn Bình so sánh 7 với 65 như số tự nhiên, cách này chưa phù hợp với số thập phân."
+      - "Ở hàng phần mười: 0,7 có chữ số 7, 0,65 có chữ số 6, và 7 > 6."
+      - "Vậy 0,7 > 0,65, nên bạn Bình nói sai."
+    explanation: "Ở hàng phần mười 7 > 6 nên 0,7 > 0,65. Bạn Bình so sánh 7 với 65 như số tự nhiên nên nói sai."
+    leak_patterns: ["binh (noi )?sai", "binh da sai", "binh nham"]
+
+  - id: GP-10
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-APPLY]
+    cognitive_level: E
+    difficulty: 0.5
+    transfer: far
+    isomorphic_group: G10
+    stem: "Gói kẹo A nặng 0,5 kg, gói kẹo B nặng 0,45 kg. Gói kẹo nào nặng hơn?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "gói A", correct: true, aliases: ["gói kẹo A", "kẹo A"]}
+        - {id: B, text: "gói B", aliases: ["gói kẹo B", "kẹo B"], misconceptions: [DEC-M01]}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh khối lượng của hai gói kẹo. Con đọc lại khối lượng của từng gói giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Để biết gói nào nặng hơn, mình so sánh 0,5 và 0,45. Mình so sánh hàng nào trước?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 0,5 thành 0,50 rồi so sánh với 0,45 theo từng hàng được không?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,5 có chữ số 5, còn 0,45 có chữ số 4. Vậy gói nào nặng hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 0,45 là mấy?"}
+    worked_solution:
+      - "Hai gói đều nặng chưa đến 1 kg: phần nguyên đều là 0."
+      - "Ở hàng phần mười: 0,5 có chữ số 5, 0,45 có chữ số 4, và 5 > 4."
+      - "Vậy gói kẹo A nặng hơn."
+    explanation: "So sánh 0,5 và 0,45: phần nguyên đều là 0, ở hàng phần mười 5 > 4 nên 0,5 > 0,45. Vậy gói kẹo A nặng hơn."
+    leak_patterns: ["goi (keo )?a (nang|nhieu) hon", "goi (keo )?b nhe hon"]
+
+  - id: GP-10b
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-APPLY]
+    cognitive_level: E
+    difficulty: 0.5
+    transfer: far
+    isomorphic_group: G10
+    stem: "Chai nước A chứa 1,2 lít, chai nước B chứa 1,15 lít. Chai nào chứa nhiều nước hơn?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "chai A", correct: true, aliases: ["chai nước A"]}
+        - {id: B, text: "chai B", aliases: ["chai nước B"], misconceptions: [DEC-M01]}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh lượng nước trong hai chai. Con đọc lại số lít của từng chai giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Mình so sánh 1,2 và 1,15. Hai số có cùng phần nguyên, vậy mình so sánh tiếp hàng nào?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 1,2 có chữ số 2, còn 1,15 có chữ số 1. Vậy chai nào chứa nhiều nước hơn?"}
+    worked_solution:
+      - "Hai số có cùng phần nguyên là 1."
+      - "Ở hàng phần mười: 1,2 có chữ số 2, 1,15 có chữ số 1, và 2 > 1."
+      - "Vậy chai nước A chứa nhiều nước hơn."
+    explanation: "Cùng phần nguyên 1; ở hàng phần mười 2 > 1 nên 1,2 > 1,15. Vậy chai A chứa nhiều nước hơn."
+    leak_patterns: ["chai (nuoc )?a (chua )?nhieu", "chai (nuoc )?b (chua )?it"]
+
+  # ------------------------------------------------------------ EXIT_ASSESSMENT
+  - id: EX-01
+    purpose: EXIT
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.45
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,6 … 0,58"
+    answer: {type: compare, left: "0,6", right: "0,58"}
+    hints:
+      - {target: TASK, level: 1, text: "Con đọc kỹ hai số 0,6 và 0,58 rồi so sánh theo từng hàng nhé?"}
+
+  - id: EX-02
+    purpose: EXIT
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: C
+    difficulty: 0.55
+    stem: "Vì sao 0,6 lớn hơn 0,58?"
+    answer:
+      type: open
+      rubric: "Nêu được: hàng phần mười 6 > 5 (hoặc 0,6 = 0,60 > 0,58)."
+      sample_answer: "Vì ở hàng phần mười, 0,6 có chữ số 6 còn 0,58 có chữ số 5, mà 6 lớn hơn 5."
+    hints:
+      - {target: TASK, level: 1, text: "Con nghĩ xem mình so sánh hai số này theo hàng nào trước nhé?"}
+
+  - id: EX-03
+    purpose: EXIT
+    kc_ids: [KC-DEC-APPLY]
+    cognitive_level: D
+    difficulty: 0.5
+    stem: "Bạn Minh cao 1,4 m, bạn Nam cao 1,35 m. Bạn nào cao hơn?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "Minh", correct: true}
+        - {id: B, text: "Nam", misconceptions: [DEC-M01]}
+    hints:
+      - {target: TASK, level: 1, text: "Con so sánh chiều cao 1,4 m và 1,35 m theo từng hàng nhé?"}
+    leak_patterns: ["minh cao hon", "nam thap hon"]
+
+  - id: EX-04
+    purpose: EXIT
+    kc_ids: [KC-DEC-PLACE]
+    cognitive_level: DIAG
+    difficulty: 0.45
+    stem: "Bạn Hà nói: \"0,09 = 0,9\". Bạn Hà nói đúng hay sai?"
+    answer:
+      type: boolean
+      value: false
+      requires_explanation: false
+      wrong_answers: {"true": DEC-M03}
+    hints:
+      - {target: TASK, level: 1, text: "Con nhìn chữ số hàng phần mười của hai số nhé?"}
+    leak_patterns: ["ha (noi )?sai", "ha nham"]

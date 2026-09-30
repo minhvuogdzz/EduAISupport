@@ -1,11 +1,11 @@
 # PROJECT AUDIT — GREENFIELD CAVAT GRADE 5
 
 > **CAVAT AI Tutor: Product + Pedagogy + AI + RAG + Data + Engineering Blueprint**
-> Phiên bản blueprint: **v0.2** · Ngày: 2026-09-30 · Trạng thái: **đề xuất, chờ chủ dự án duyệt**
+> Phiên bản blueprint: **v0.3** · Ngày: 2026-09-30 · Trạng thái: **đề xuất, chờ chủ dự án duyệt**
 > Bối cảnh: **đồ án tốt nghiệp**, sản phẩm **nội bộ để kiểm thử**
 > Scope đã chốt: **Math Grade 5 + English Grade 5 (Reading + Speaking)**
 
-## Revision v0.2 — quyết định của chủ dự án (ghi đè v0.1)
+## Revision v0.2–v0.3 — quyết định của chủ dự án (ghi đè v0.1)
 
 | # | Quyết định | Hệ quả trong blueprint |
 |---|---|---|
@@ -13,6 +13,9 @@
 | **D-T2** | **Pháp lý và dữ liệu trẻ em đã được xử lý** (hợp đồng luật sư đã ký) | Track pháp lý/consent **bị gỡ khỏi kế hoạch và critical path**. Không có bước nào chờ pháp lý |
 | **D-T3** | **Được dùng dữ liệu thật**, kể cả giọng nói học sinh, để kiểm thử | POC voice, spike STT và vertical slice dùng học sinh thật ngay khi cần |
 | **D-T4** | **Ưu tiên dịch vụ miễn phí** (free tier, mã nguồn mở, chạy local) | Stack mặc định chuyển sang free-first (ADR-016, PART 12.1, 38). Chi phí mục tiêu **$0/tháng**. Ràng buộc chính đổi từ *tiền* sang *hạn mức request của free tier* (PART 32.0) |
+| **D-T5** | Làm **một mình cùng AI**: phiên local để lên kế hoạch và review, **phiên cloud để code** theo `docs/tasks/BACKLOG.md` | Kế hoạch chia thành task độc lập, mỗi task một nhánh và một PR; mô hình team 5 người chỉ còn là tham chiếu |
+| **D-T6** | **Mọi thứ chạy local, không dùng Docker** | Bỏ Docker Compose và MinIO; file gốc và audio lưu ở `var/storage/`; Cloudflare Tunnel chỉ cần khi học sinh truy cập từ máy khác |
+| **D-T7** | **Database: MongoDB Atlas (M0)** thay PostgreSQL + pgvector | Thay ADR-003 (RLS), ADR-005 (ledger Postgres), ADR-008 (Postgres + pgvector): lọc `school_id` ở repository; mỗi buổi học là một document chứa state và event (M0 không có multi-document transaction); M0 không có Vector Search nên RAG dùng context loading, truy xuất khác làm trong Python. **[FACT]** Giới hạn M0: 0,5 GB, 100 ops/s, không transaction, không Atlas Search/Vector Search, không backup. Task T07 cập nhật ADR và PART 10, 28 |
 
 **Stack free-first mặc định** (chi tiết PART 12.1):
 
@@ -25,8 +28,8 @@
 | TTS | `gemini-3.8-flash-tts`; dự phòng TTS của trình duyệt |
 | STT tiếng Việt (Toán) | Web Speech API (prototype), sau đó `gemini-3.5-transcribe-live` hoặc PhoWhisper/faster-whisper chạy local |
 | Chấm phát âm | Azure Speech gói F0 (5 giờ/tháng, cần xác minh) |
-| Database, storage | PostgreSQL + pgvector, MinIO, chạy bằng Docker Compose |
-| Truy cập kiểm thử | Cloudflare Tunnel (HTTPS miễn phí; trình duyệt chỉ cho dùng micro trên HTTPS) |
+| Database, storage | MongoDB Atlas (M0); file gốc và audio trên ổ đĩa local (v0.3) |
+| Truy cập kiểm thử | Máy local; Cloudflare Tunnel (HTTPS miễn phí) khi học sinh dùng máy khác, vì trình duyệt chỉ cho dùng micro trên HTTPS |
 
 Claude không có free tier cho API, nên chuyển thành **ứng viên so sánh tùy chọn** trong eval. Mọi lời gọi AI đi qua AI Gateway, nên đổi provider rẻ.
 
