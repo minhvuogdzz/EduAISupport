@@ -28,7 +28,7 @@ Nhờ đó, **critical path của vertical slice không phụ thuộc chất lư
 | **Teacher Knowledge** | PDF, PPT, ví dụ, bài tập, notes, homework, preview của giáo viên | content (đã duyệt) | Theo LessonVersion | L3 (lesson hiện tại) + retrieval (bài khác trong scope) |
 | **Curriculum Knowledge** | Chương trình, KC graph, tài nguyên được phép | curriculum + nguồn có bản quyền | Theo năm học | Retrieval (hạn chế) |
 
-**[OPEN — bản quyền]** SGK Việt Nam có bản quyền của nhà xuất bản. Không ingest SGK khi chưa có quyền. MVP dùng: (1) tài liệu giáo viên tự soạn, (2) KC graph và mô tả yêu cầu cần đạt do đội pedagogy viết dựa trên văn bản chương trình công khai.
+*(v0.2: phần bản quyền thuộc phạm vi pháp lý chủ dự án đã xử lý, D-T2.)* Slice đầu vẫn ưu tiên (1) tài liệu giáo viên tự soạn và (2) KC graph cùng mô tả yêu cầu cần đạt do chủ dự án viết, vì đó là nguồn sạch và có cấu trúc nhất. SGK được ingest khi chủ dự án quyết định.
 
 ### 21.3. Source priority và xử lý xung đột (brief §24)
 
@@ -118,7 +118,7 @@ stateDiagram-v2
 |---|---|---|---|---|
 | 1. Validation | Kiểu file (PDF, PPTX, DOCX), kích thước (≤ 50MB), quét malware, trùng lặp (hash) | libmagic, ClamAV (hoặc dịch vụ cloud) | Material UPLOADED | Reject rõ lý do |
 | 2. Parsing | Text theo trang/slide + **ảnh render từng trang** (công thức, hình vẽ, chữ viết tay scan) | PyMuPDF (PDF), python-pptx (PPTX); LibreOffice headless để render PPTX → PDF | MaterialArtifact | Tỉ lệ trang có text; phát hiện PDF scan |
-| 3. Structure Extraction | LLM đa phương thức đọc text + ảnh trang → cấu trúc lesson (mục tiêu, khái niệm, ví dụ, bài tập, đáp án, lỗi thường gặp) | TUTOR_REASONING (có vision; Claude nhận PDF trực tiếp) với structured output `LessonDraft` | LessonDraft | Schema; mỗi trường có `source_ref` (trang/slide) |
+| 3. Structure Extraction | LLM đa phương thức đọc text + ảnh trang → cấu trúc lesson (mục tiêu, khái niệm, ví dụ, bài tập, đáp án, lỗi thường gặp) | TUTOR_REASONING (có vision; Gemini và Claude đều nhận PDF trực tiếp) với structured output `LessonDraft` | LessonDraft | Schema; mỗi trường có `source_ref` (trang/slide) |
 | 4. Metadata | Subject, grade, chapter, topic, KC mapping (đề xuất từ KC graph), độ khó, mức nhận thức item | LLM + luật | Metadata đề xuất | Mọi KC đề xuất phải tồn tại trong curriculum; KC mới cần pedagogy duyệt |
 | 5. Content Validation | Kiểm tra lại đáp án bằng MathChecker; nhất quán khái niệm; phát hiện sai lớp; quét injection; độ phủ (objective nào chưa có item) | Code + LLM | Báo cáo validation | Lỗi nghiêm trọng chặn approve |
 | 6. Teacher Review | Giáo viên xem draft cạnh file gốc, sửa, thêm hint, đánh dấu visibility, approve | UI side-by-side | APPROVED | Bắt buộc, không auto-approve |

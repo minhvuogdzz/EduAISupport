@@ -6,11 +6,11 @@
 
 ## PART 30 — SECURITY / PRIVACY
 
-### 30.1. Bối cảnh pháp lý (cần luật sư xác minh trước pilot)
+### 30.1. Bối cảnh pháp lý (v0.2)
 
-- **[ASSUME — cần tư vấn pháp lý]** Việt Nam có Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân và Luật Bảo vệ dữ liệu cá nhân (thông qua năm 2025, hiệu lực từ 01/01/2026). Dữ liệu của trẻ em được bảo vệ đặc biệt: xử lý dữ liệu trẻ từ 7 tuổi trở lên cần sự đồng ý của **cả trẻ và cha mẹ/người giám hộ**. Chuyển dữ liệu ra nước ngoài (gửi tới AI provider hoặc cloud ngoài Việt Nam) có thể cần **hồ sơ đánh giá tác động chuyển dữ liệu**.
-- **[OPEN]** Giọng nói trẻ em có được xem là dữ liệu sinh trắc học hoặc dữ liệu nhạy cảm không? Câu trả lời ảnh hưởng tới việc lưu audio và chọn provider.
-- **[REC]** Coi track pháp lý là **workstream từ Ngày 1** (PART 40). Không có ý kiến pháp lý bằng văn bản thì không đưa dữ liệu học sinh thật vào hệ thống.
+**Đã được chủ dự án xử lý (D-T2):** hợp đồng luật sư đã ký; sản phẩm là đồ án tốt nghiệp, dùng nội bộ để kiểm thử; được phép dùng dữ liệu thật của học sinh, kể cả giọng nói (D-T3). Pháp lý **không** còn là workstream hay điều kiện chặn trong blueprint.
+
+Các kiểm soát bảo mật bên dưới vẫn được giữ vì chúng **không tốn chi phí**, là một phần của kiến trúc (tenancy, authorization, audit) và thể hiện chất lượng kỹ thuật của đồ án. Không kiểm soát nào trong số đó chặn việc thu thập dữ liệu kiểm thử.
 
 ### 30.2. Authentication
 
@@ -47,11 +47,11 @@ permit(user, action, resource) =
 - Tenant isolation: authorization ở tầng app + **RLS** (`SET app.school_id` theo request). Có test tự động "cross-tenant access" cho mọi endpoint.
 - **AI chỉ thấy những gì cần:** tên gọi (không họ), pseudonym_id; **không** gửi ngày sinh, tên trường, số điện thoại. Lesson package và snapshot đã lọc.
 - Retrieval phía học sinh chỉ trong `ragScope` của contract (PART 21.4).
-- Provider AI: dùng gói trả phí, điều khoản **không dùng dữ liệu để huấn luyện**, có DPA; ưu tiên zero data retention nếu khả dụng. **Không dùng free tier với dữ liệu thật** (PART 12.3).
+- Provider AI (v0.2): dùng free tier theo ADR-016; chủ dự án chấp nhận điều khoản dữ liệu của free tier (PART 12.3). Vẫn chỉ gửi dữ liệu tối thiểu.
 
 ### 30.5. Transcript, voice, retention, deletion, encryption
 
-| Dữ liệu | Lưu | Mã hóa | Retention mặc định **[ASSUME, cần chốt với trường và pháp lý]** | Xóa |
+| Dữ liệu | Lưu | Mã hóa | Retention mặc định **[ASSUME, chủ dự án chốt]** | Xóa |
 |---|---|---|---|---|
 | Event/transcript | Postgres | At rest (cloud KMS) + TLS | Năm học + 1 năm | Theo yêu cầu phụ huynh: xóa hoặc ẩn danh hóa, giữ số liệu tổng hợp đã ẩn danh |
 | Audio | Object storage (bucket riêng, không public) | At rest + URL ký ngắn hạn | 90 ngày, trừ khi bị flag để review | Tự động theo lifecycle rule |
@@ -59,7 +59,7 @@ permit(user, action, resource) =
 | PII định danh (họ tên đầy đủ, ngày sinh) | Postgres, **mã hóa cột** | Envelope encryption | Theo tài khoản | Khi đóng tài khoản |
 | Audit log | Postgres (append-only) + export định kỳ | At rest | ≥ 2 năm | Không xóa trong thời hạn |
 
-- Consent có version, phạm vi và có thể rút. Rút consent `VOICE_RECORDING` thì voice bị tắt ngay và audio chưa hết hạn bị xóa.
+- *(Tùy chọn, v0.2)* Consent có version, phạm vi và có thể rút. Nếu bật, rút consent `VOICE_RECORDING` thì voice bị tắt ngay và audio chưa hết hạn bị xóa.
 - Audit mọi hành động: xem transcript, nghe audio, export, override, thay đổi quyền.
 
 ### 30.6. Bảo mật AI (liên kết Red Team, PART 45)
@@ -94,6 +94,8 @@ Học sinh **không thể** chọn model: request schema không có trường mo
 | RAG | `rag_retrieval_log` | Query, scope, top-k, score |
 | Tutor | Event ledger (`POLICY_DECISION`, `OUTPUT_REJECTED`, `MODEL_FALLBACK`) | Hành vi Socratic |
 
+**v0.2 (free-first):** chạy local bằng Prometheus + Grafana + Loki (mã nguồn mở), hoặc Grafana Cloud free tier; Sentry gói miễn phí; Langfuse self-host nếu cần xem prompt. Giai đoạn đầu, bảng `ai_request_log` và event ledger là đủ.
+
 ### 31.2. Correlation IDs (brief §66)
 
 `user_id`, `student_id`, `session_id`, `tutor_run_id` (một lượt xử lý command), `rag_request_id`, `model_request_id`, `trace_id`. Chúng được gắn vào log, event, `ai_request_log` và OpenTelemetry attributes. Từ một phàn nàn của giáo viên ("AI nói sai ở câu 3") có thể truy tới prompt version, model, input và output.
@@ -105,7 +107,7 @@ Học sinh **không thể** chọn model: request schema không có trường mo
 | Tutor health | TTFT p50/p95, turn latency, validator reject rate, fallback rate, refusal rate | TTFT p95 > 3s trong 5'; reject rate > 10%; fallback > 5% |
 | Session health | Active sessions, INTERRUPTED/FAILED rate, resume success | FAILED > 1% |
 | Socratic quality (hàng ngày) | Leak detections, question ratio, hint level distribution | Bất kỳ leak nào ở item assessment |
-| Cost | $/session, $/student/ngày, token theo model class, cache hit ratio | Chi phí/session > 2× baseline |
+| Cost & quota (v0.2) | Request/ngày theo model so với hạn mức free tier (AI Studio), token theo model class, cache hit ratio; $/session nếu dùng trả phí | Dùng > 80% hạn mức ngày của model tutor; tỉ lệ 429 > 1% |
 | Voice (khi có) | End-of-speech → first audio, ASR confidence, non_scorable rate | p95 > 2s |
 | Data pipeline | Projection lag, ingestion failures | Lag > 5 phút |
 
@@ -118,7 +120,7 @@ Học sinh **không thể** chọn model: request schema không có trường mo
 | Sự cố | Phát hiện | Hành vi | Học sinh thấy gì |
 |---|---|---|---|
 | LLM timeout | Timeout 12s (text) | Retry 1 lần (cùng idempotency) → model dự phòng → HintTemplate đã duyệt | "Cô đang nghĩ…" rồi tin nhắn (có thể từ template) |
-| Model unavailable / 5xx / 429 | Circuit breaker | Chuyển fallback chain; nếu mọi LLM lỗi → **Degraded Mode**: chỉ dùng item + template + checker (vẫn học và ghi evidence được) | Trải nghiệm đơn giản hơn nhưng không dừng |
+| Model unavailable / 5xx / 429 (gồm hết hạn mức free tier) | Circuit breaker; đếm 429 theo model | Chuyển fallback chain; nếu mọi LLM lỗi → **Degraded Mode**: chỉ dùng item + template + checker (vẫn học và ghi evidence được) | Trải nghiệm đơn giản hơn nhưng không dừng |
 | Refusal (`stop_reason = refusal`) | Kiểm tra stop_reason | Server-side fallback hoặc template; log | Như trên |
 | Output không hợp lệ | Validator | Retry có directive sửa (1 lần) → template | Không thấy output lỗi |
 | RAG failure | Exception/timeout | In-session không phụ thuộc retrieval (lesson package có sẵn trong contract); chỉ WARMUP_REVIEW bỏ phần ngữ cảnh bài cũ | Không ảnh hưởng |
@@ -136,7 +138,34 @@ Học sinh **không thể** chọn model: request schema không có trường mo
 
 > Toàn bộ là **ước tính** (±50%) dựa trên giá đã xác minh ở PART 12.2 và các giả định dưới đây. POC 1 và POC 6 phải thay số giả định bằng số đo thực tế. Giá chưa tính chiết khấu khối lượng hay Batch.
 
-### 32.1. Giả định
+### 32.0. Free-first (v0.2, D-T4): chi phí $0, ràng buộc là hạn mức
+
+| Hạng mục | Lựa chọn miễn phí | Chi phí |
+|---|---|---|
+| Tutor, model nhẹ, TTS, embedding, live voice, transcribe | Gemini API free tier | $0 (trong hạn mức) |
+| STT, embedding, LLM dự phòng | Chạy local (faster-whisper/PhoWhisper, `bge-m3`, Ollama) | $0 (dùng máy sẵn có) |
+| Chấm phát âm | Azure Speech F0 (5 giờ/tháng) | $0 (trong hạn mức) |
+| DB, storage, API, worker, web | Docker Compose (Postgres + pgvector, MinIO) | $0 |
+| Truy cập kiểm thử từ xa (HTTPS) | Cloudflare Tunnel | $0 |
+| CI | GitHub Actions (số phút miễn phí hằng tháng; cần kiểm tra hạn mức hiện tại của tài khoản) | $0 |
+| Monitoring | Prometheus/Grafana/Loki chạy local, Sentry gói miễn phí | $0 |
+
+**Ước lượng số buổi học mỗi ngày trong hạn mức:**
+
+```text
+sessions_per_day ≈ min theo từng model m của ( RPD_free(m) / calls_per_session(m) )
+điều kiện RPM:    số học sinh học cùng lúc × request/phút/học sinh ≤ RPM_free(tutor)
+```
+
+Một buổi Toán 30 phút có khoảng 30 lời gọi TUTOR_REASONING (giả định ở 32.1), tức trung bình khoảng 1 request/phút cho mỗi học sinh. **[OPEN]** RPM/RPD thực tế phải đọc trong AI Studio (không công bố trên trang tài liệu) và ghi vào `docs/poc/free-tier-quota.md` ở Ngày 1. Nếu không đủ cho số học sinh kiểm thử, xử lý theo thứ tự:
+
+1. Giảm lời gọi mỗi buổi: template cho lượt đơn giản, gộp phân tích lập luận vào cùng lời gọi tutor.
+2. Chuyển việc nhẹ sang LIGHTWEIGHT.
+3. Rải buổi kiểm thử theo nhiều ngày; chạy eval đầy đủ vào ngày không có buổi kiểm thử.
+4. Fallback sang model local cho phần không cần chất lượng cao nhất.
+5. Cuối cùng mới cân nhắc trả phí; khi đó dùng bảng tham chiếu bên dưới.
+
+### 32.1. Tham chiếu nếu dùng dịch vụ trả phí (v0.1): giả định
 
 | Giả định | Giá trị |
 |---|---|
@@ -176,11 +205,11 @@ Biến đổi mỗi học sinh mỗi tháng: A ≈ $20 (Math 13×0.70 + Reading 
 
 Hạ tầng cố định (ước tính): ≤10 HS: Cloud Run scale-to-zero + Cloud SQL nhỏ + storage ≈ $50. 100 HS: ≈ $175. 1,000 HS: Cloud SQL HA + observability ≈ $700. 10,000 HS: DB HA + replica, Cloud Run nhiều instance, lưu audio (~360 GB/tháng, giữ 90 ngày ≈ 1.1 TB), egress, observability ≈ $4,000.
 
-Ngân sách AI cho 30 ngày đầu (POC + eval): mỗi lần chạy đầy đủ eval POC 1 (≈300 kịch bản × ~10 lượt × 3 model + judge) tốn khoảng $200–300. **Dự trù $1,500–2,500.**
+Ngân sách AI cho 30 ngày đầu, tham chiếu trả phí: mỗi lần chạy đầy đủ eval POC 1 (≈300 kịch bản × ~10 lượt × 3 model + judge) tốn khoảng $200–300. *(v0.2: $0 với free tier. Một lần eval đầy đủ như vậy cần khoảng 10,000 request, vượt xa hạn mức một ngày, nên eval phải thu nhỏ và rải theo ngày; xem 32.0 và POC 1.)*
 
 ### 32.4. Kết luận chi phí
 
 1. **LLM output token của tutor là khoản lớn nhất.** Đòn bẩy chính: câu ngắn (vốn đúng sư phạm), effort thấp, template cho lượt đơn giản.
 2. Prompt caching biến lesson package và constitution thành chi phí rất nhỏ. **Cache hit ratio phải là KPI** (mục tiêu ≥ 80% token input).
 3. Routing off-session sang LIGHTWEIGHT + giới hạn lượt giúp chi phí ngoài giờ không đáng kể.
-4. **[OPEN — O10]** Giá bán cho trường hoặc phụ huynh quyết định kịch bản nào khả thi. Nếu mục tiêu biến đổi < $5/HS/tháng, cần xem lại tần suất buổi học, thời lượng hoặc model trước khi pilot.
+4. *(v0.2)* Với free-first, các đòn bẩy 1–3 giữ nguyên giá trị nhưng đơn vị đổi từ **tiền** sang **request trong hạn mức**. Bảng tham chiếu trả phí chỉ dùng nếu dự án vượt khỏi phạm vi đồ án.

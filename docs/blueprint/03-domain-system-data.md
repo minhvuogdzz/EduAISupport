@@ -61,7 +61,7 @@ Danh sách của brief là điểm bắt đầu. Các entity **còn thiếu** m�
 |---|---|
 | School (tenant) | Tenancy và cách ly dữ liệu |
 | TeachingAssignment | Teacher ↔ Class ↔ Subject (một lớp có thể có hai giáo viên Toán và Anh) |
-| GuardianLink + Consent | Phụ huynh liên kết với con có xác minh; consent có version, phạm vi (voice, transcript, AI) và thời điểm |
+| GuardianLink + Consent | Phụ huynh liên kết với con có xác minh; consent có version, phạm vi (voice, transcript, AI) và thời điểm *(v0.2: chỉ là ghi nhận đơn giản, không chặn luồng nào, D-T2)* |
 | LessonVersion | Lesson là thực thể sống; version là thứ bất biến được dạy |
 | LessonPackage | Gói bất biến đã duyệt mà runtime tiêu thụ (nội dung + items + hints + KC map) |
 | MaterialArtifact | Kết quả từng bước ingestion (raw text, page image, extracted structure) để truy vết |

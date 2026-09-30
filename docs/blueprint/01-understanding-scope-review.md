@@ -106,12 +106,12 @@ Kiến trúc tham số hóa theo `subject × grade` ngay từ schema: `curriculu
 
 ### 3.3. Các yêu cầu ngầm mà brief chưa nêu
 
-1. **Consent của phụ huynh** là điều kiện tiên quyết để xử lý dữ liệu học sinh, nhất là giọng nói. Việc này nằm trên critical path của pilot (PART 30).
+1. **Consent của phụ huynh** cho việc xử lý dữ liệu học sinh, nhất là giọng nói. *(v0.2: phần pháp lý đã được chủ dự án xử lý, D-T2; trong app chỉ giữ ghi nhận đơn giản gắn với tài khoản Parent.)*
 2. **Deterministic math checking.** Tính đúng sai của đáp án Toán không được phụ thuộc vào LLM.
 3. **Item bank có metadata** (KC, cognitive level A–E, difficulty, transfer, expected time, hint content, misconception rules). Không có item bank thì không có assessment có ý nghĩa.
 4. **Tutor persona và ngôn ngữ xưng hô** phù hợp văn hóa: tutor xưng "cô/thầy", gọi học sinh là "con" hoặc "em". Đây là quyết định của nhóm pedagogy, cần nhất quán (**[OPEN]**).
 5. **Thiết bị học sinh** (tablet, Chromebook, điện thoại phụ huynh, máy ở trường) quyết định microphone, trình duyệt và băng thông (**[OPEN]**).
-6. **Bản quyền sách giáo khoa.** Curriculum Knowledge không thể ingest SGK khi chưa có quyền (PART 21).
+6. **Bản quyền sách giáo khoa.** *(v0.2: thuộc phạm vi pháp lý chủ dự án đã xử lý, D-T2.)* Tài liệu giáo viên tự soạn vẫn là nguồn đơn giản nhất cho slice đầu (PART 21).
 
 ---
 
@@ -146,16 +146,16 @@ Phần này audit brief và hai tài liệu đánh giá, chỉ ra chỗ mâu thu
 | R5 | Nghe như RAG tìm kiếm trên toàn bộ tài liệu giáo viên | Một lesson package của lớp 5 chỉ vài nghìn token, **vừa trọn trong context** | **[REC]** In-session grounding dùng **nạp nguyên Approved Lesson Package vào prompt, có cache**. Vector retrieval dùng cho curriculum rộng, ôn bài cũ và câu hỏi ngoài giờ (PART 21, Q4) |
 | R6 | Math voice ví dụ "x bình phương", "âm năm" | **[ASSUME]** Theo CT 2018, số nguyên âm học ở lớp 6 và lũy thừa biến không có trong Toán 5 | Speech normalizer vẫn parse được nhưng gắn cờ `out_of_grade_scope`. Tutor chuyển hướng nhẹ nhàng |
 | R7 | Tiếng Việt dùng **dấu phẩy thập phân** ("0,5" đọc "không phẩy năm") | **[FACT]** Parser, checker và UI phải dùng locale vi-VN. Nếu không, "0,5" dễ bị hiểu thành danh sách hai số | Chuẩn hóa nội bộ bằng số hữu tỉ chính xác (Fraction/Decimal), hiển thị theo vi-VN |
-| R8 | Có lightweight chat ngoài giờ học | Chat tự do với trẻ 10 tuổi là **bề mặt rủi ro an toàn trẻ em** (nội dung, thu thập dữ liệu cá nhân, phụ thuộc) | **[REC]** Xây **cơ chế routing** trong MVP. Off-session chat để sau feature flag, cần consent của phụ huynh, giới hạn chủ đề và số lượt/ngày |
-| R9 | Có tier "Free" của provider | **[FACT]** Trang giá Gemini API ghi free tier có "Content used to improve our products: Yes" | **[REC]** Tuyệt đối không đưa dữ liệu học sinh thật lên free tier. Free tier chỉ dùng cho POC với dữ liệu tổng hợp |
+| R8 | Có lightweight chat ngoài giờ học | Chat tự do với trẻ 10 tuổi là **bề mặt rủi ro an toàn trẻ em** (nội dung, thu thập dữ liệu cá nhân, phụ thuộc) | **[REC]** Xây **cơ chế routing** trong MVP. Off-session chat để sau feature flag, giới hạn chủ đề và số lượt/ngày (cũng giúp giữ hạn mức free tier) |
+| R9 | Có tier "Free" của provider | **[FACT]** Trang giá Gemini API ghi free tier có "Content used to improve our products: Yes"; hạn mức free tier tính theo project và chỉ xem được trong AI Studio | *(v0.2, D-T3, D-T4)* Chủ dự án chấp nhận dùng free tier với dữ liệu thật cho kiểm thử nội bộ. Thiết kế phải chịu được giới hạn hạn mức: template cho lượt đơn giản, routing sang model nhẹ, fallback local (PART 12.6, 32.0) |
 | R10 | Event list tối thiểu | Thiếu các event cần cho replay và audit: `ACTIVITY_COMPLETED`, `STEP_SUBMITTED`, `EXPLANATION_SUBMITTED`, `ANSWER_CHANGED`, `TUTOR_MESSAGE_SENT`, `POLICY_DECISION`, `STATE_TRANSITIONED`, `CONTRACT_BOUND`, `MODEL_FALLBACK`, `TIME_WARNING`, `TEACHER_OVERRIDE`, `EVIDENCE_RECORDED`, `ASSESSMENT_COMPUTED`, `SESSION_INTERRUPTED`, `SESSION_MISSED`, `SESSION_FAILED` | Bổ sung (PART 10) |
 | R11 | Realtime voice (speech-to-speech) cho English | Model realtime là thứ "nói", nên orchestrator mất quyền kiểm soát từng lượt, trái với nguyên tắc "LLM không tự quản lý" | **[REC]** POC so sánh *speech-to-speech có orchestrator điều khiển qua instruction và tool call* với *pipeline cascade STT→LLM→TTS* (PART 20) |
-| R12 | "Team phải làm gì trước" chỉ nói về kỹ thuật | Thiếu hai track có lead time dài: **pháp lý/consent** và **tuyển trường, giáo viên pilot** | Hai track này bắt đầu từ Ngày 1 (PART 41) |
-| R13 | Team 5 người | Không có **chuyên gia sư phạm/giáo viên lớp 5** có trách nhiệm chính thức, dù pedagogy là nền của toàn bộ dự án | **[REC]** Có ít nhất 1 giáo viên cố vấn (bán thời gian, có hợp đồng) ký duyệt pedagogy spec |
+| R12 | "Team phải làm gì trước" chỉ nói về kỹ thuật | Thiếu track có lead time dài: **sắp xếp học sinh kiểm thử** (track pháp lý/consent *đã được chủ dự án xử lý, D-T2*) | Sắp xếp học sinh kiểm thử từ Tuần 1 (PART 41) |
+| R13 | Team 5 người | Không có **chuyên gia sư phạm/giáo viên lớp 5** có trách nhiệm chính thức, dù pedagogy là nền của toàn bộ dự án | *(v0.2, D-T1)* **Chủ dự án là giáo viên kiểm soát** và ký duyệt pedagogy spec |
 
 ### 4.4. Giả định lớn nhất của dự án (phải kiểm chứng sớm)
 
-> **[ASSUME-0]** Một LLM hiện đại, khi được một policy engine tất định điều khiển, có thể dạy Socratic cho trẻ lớp 5 bằng tiếng Việt với chất lượng giáo viên chấp nhận được, trong độ trễ và chi phí chấp nhận được.
+> **[ASSUME-0]** Một LLM hiện đại, khi được một policy engine tất định điều khiển, có thể dạy Socratic cho trẻ lớp 5 bằng tiếng Việt với chất lượng giáo viên chấp nhận được, trong độ trễ chấp nhận được và **trong hạn mức free tier** (v0.2, D-T4).
 
 Nếu giả định này sai, mọi thứ còn lại đều vô nghĩa. Vì vậy **POC 1 bắt đầu từ Ngày 2**, trước cả database.
 
@@ -169,14 +169,14 @@ Phân loại theo "phải biết trước khi viết code production", "phải p
 
 | # | Cần biết | Vì sao | Hình thức chốt | Deadline |
 |---|---|---|---|---|
-| K1 | Lesson đầu tiên của vertical slice (Toán 5) + bộ SGK tham chiếu | Mọi item, KC, misconception, eval đều phụ thuộc | Quyết định với giáo viên cố vấn | Ngày 2 |
+| K1 | Lesson đầu tiên của vertical slice (Toán 5) + bộ SGK tham chiếu | Mọi item, KC, misconception, eval đều phụ thuộc | Chủ dự án (giáo viên kiểm soát) quyết định | Ngày 2 |
 | K2 | Pedagogy spec cho lesson đó: objectives, KC graph, misconception catalog, item bank A–E, hint content, session flow | Là input của POC 1, Tutor Contract, Assessment | Tài liệu `docs/pedagogy/math-g5/<lesson>/` được ký duyệt | Ngày 5 |
 | K3 | Assessment Spec Grade 5 v1: chiều, trọng số, dải, gate, xử lý thiếu dữ liệu, mapping ladder → independence | Assessment phải deterministic, có version | ADR + `mastery_policy v1` | Ngày 7 |
 | K4 | Tenancy model (School → Class → Enrollment) và identity model cho trẻ em (không email) | Khó đảo ngược | ADR | Ngày 7 |
 | K5 | Event và Evidence schema v1 (append-only, versioned) | Khó đảo ngược, là nền của replay | ADR + JSON Schema | Ngày 10 |
 | K6 | Tutor Contract schema v1 | Là API giữa Teacher Design và Runtime | ADR + JSON Schema | Ngày 10 |
 | K7 | AI Gateway abstraction (interface theo *model class*, không theo vendor) | Khó đảo ngược nếu business logic gọi SDK trực tiếp | ADR + interface | Ngày 10 |
-| K8 | Cloud, region lưu trữ và chiến lược chuyển dữ liệu xuyên biên giới | Pháp lý, khó đảo ngược | ADR + ý kiến pháp lý | Ngày 14 (tạm), trước pilot (chính thức) |
+| K8 | Nơi chạy hệ thống (local + tunnel hay hosting miễn phí) | *(v0.2)* Không còn ràng buộc pháp lý (D-T2); chỉ ảnh hưởng vận hành | ADR-011 (free-first) | Ngày 7 |
 
 ### 5.2. Phải prototype (không quyết bằng suy luận)
 

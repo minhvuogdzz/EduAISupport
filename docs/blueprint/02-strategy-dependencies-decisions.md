@@ -18,13 +18,13 @@
 ### 6.2. Bốn track song song ngay từ Ngày 1
 
 ```text
-Track A — Pedagogy & Assessment Spec   (UX/Product + Teacher advisor + AI Eng)
+Track A — Pedagogy & Assessment Spec   (chủ dự án = giáo viên kiểm soát + AI Eng)
 Track B — AI Risk POCs                 (AI Eng, Tech Lead review)
 Track C — Foundation                   (Tech Lead + Backend: repo, CI, env, schema lõi, auth)
-Track D — Legal/Consent & Pilot Ops    (Product + chủ dự án, cần tư vấn pháp lý)
+Track D — Test Ops                     (chủ dự án: sắp xếp học sinh và lịch kiểm thử)
 ```
 
-Track D không viết code, nhưng có lead time dài nhất (hợp đồng trường, consent, đánh giá tác động chuyển dữ liệu). Bắt đầu muộn thì pilot bị trễ dù code đã xong.
+Track D không viết code. *(v0.2: phần pháp lý/consent đã được chủ dự án xử lý, D-T2.)* Việc còn lại là sắp xếp học sinh và lịch kiểm thử; nên bắt đầu sớm để không phải chờ khi code xong.
 
 ### 6.3. Thứ tự làm việc thực tế
 
@@ -38,7 +38,7 @@ Track D không viết code, nhưng có lead time dài nhất (hợp đồng trư
 7. POC 2/3 ingestion + grounding (song song bước 3–4)
 8. Runtime production: orchestrator + policy + hint engine + gateway + ledger
 9. Vertical slice end-to-end + report
-10. Pilot readiness (consent, red team, observability, runbook)
+10. Sẵn sàng kiểm thử với học sinh thật (red team, observability, runbook)
 ```
 
 ---
@@ -74,8 +74,8 @@ flowchart TD
     PKG --> POC3["POC 3 Grounding"]
     POC3 --> RAG["RAG design"]
     RAG --> ORC
-    L0["Legal / consent / data transfer"] --> CLOUD["Cloud + region ADR"]
-    CLOUD --> PILOT["Pilot with real students"]
+    L0["Test Ops<br/>(sắp xếp học sinh kiểm thử)"] --> PILOT["Internal testing<br/>with real students"]
+    CLOUD["Hosting ADR<br/>(free-first)"] --> PILOT
     VS --> PILOT
 ```
 
@@ -101,7 +101,7 @@ Lesson choice (D2) → Pedagogy spec (D5) → Eval dataset v0 (D6) → POC 1 dec
 → Vertical slice integration (D22–28) → Slice demo & gate (D30)
 ```
 
-Song song và **có thể trở thành critical path** nếu bắt đầu muộn: Legal/consent → Pilot. Chuỗi này **không** nằm trên critical path của vertical slice nội bộ, nhưng **là** critical path của pilot với học sinh thật.
+*(v0.2)* Chuỗi Legal/consent → Pilot đã bị gỡ (D-T2). Kiểm thử với học sinh thật chỉ còn phụ thuộc vertical slice ổn định và việc sắp xếp học sinh (Track D).
 
 ### 7.4. Không được song song hóa khi dependency chưa giải quyết
 
@@ -165,7 +165,7 @@ Mỗi ADR sẽ có file riêng trong `docs/adr/` khi được chốt chính th�
 - **When:** Ngày 10–14.
 
 ### ADR-007 — AI Gateway theo *model class*, không theo vendor
-- **Recommended:** Interface `ModelClass = {TUTOR_REASONING, LIGHTWEIGHT, REALTIME_VOICE, EMBEDDING, STT, TTS, PRONUNCIATION}`. Router ánh xạ class → provider/model qua config có version. Business logic chỉ thấy `gateway.tutor_turn(request) -> TutorTurn`.
+- **Recommended:** Interface `ModelClass = {TUTOR_REASONING, LIGHTWEIGHT, EVAL_JUDGE, REALTIME_VOICE, EMBEDDING, STT, TTS, PRONUNCIATION}`. Router ánh xạ class → provider/model qua config có version. Business logic chỉ thấy `gateway.tutor_turn(request) -> TutorTurn`.
 - **Trade-offs:** Mất một số tính năng riêng của vendor nếu interface quá chung → cho phép *capability flags* (ví dụ `supports_prompt_cache`, `supports_structured_output`).
 - **Reversibility:** **Khó nếu không làm từ đầu**, dễ nếu làm đúng.
 - **When:** Ngày 10.
@@ -185,12 +185,12 @@ Mỗi ADR sẽ có file riêng trong `docs/adr/` khi được chốt chính th�
 - **Recommended:** `MathChecker` dùng số hữu tỉ chính xác, so sánh tương đương (0,5 = 1/2 = 50% nếu item cho phép), nhận diện misconception bằng luật "buggy rules" (ví dụ đáp án = (a+c)/(b+d) → cộng tử với tử, mẫu với mẫu). LLM phân tích lời giải thích mở và *đề xuất* nhãn. Nhãn phải qua validation layer mới thành evidence.
 - **Reversibility:** Dễ.
 
-### ADR-011 — Cloud và region
-- **Options:** GCP (asia-southeast1 Singapore), AWS (ap-southeast-1), cloud trong nước (Viettel/VNPT/FPT).
-- **Recommended tạm thời:** GCP asia-southeast1. Lý do: Cloud Run + Cloud SQL + GCS gọn cho team nhỏ; Vertex AI cung cấp cả Claude và Gemini trong cùng hợp đồng và DPA; Google STT hỗ trợ tiếng Việt.
-- **[OPEN]:** Yêu cầu pháp lý về lưu trữ dữ liệu trẻ em trong nước và hồ sơ chuyển dữ liệu ra nước ngoài → có thể buộc DB đặt tại Việt Nam, chỉ gửi dữ liệu đã tối thiểu hóa sang AI provider.
-- **Reversibility:** **Khó** khi đã có dữ liệu thật. Dễ trước pilot.
-- **When:** Tạm ngày 14. Chính thức trước khi thu dữ liệu học sinh thật.
+### ADR-011 — Nơi chạy hệ thống (v0.2: free-first)
+- **Options:** (a) Docker Compose trên máy của chủ dự án + **Cloudflare Tunnel** (miễn phí, có HTTPS; trình duyệt chỉ cho dùng micro trên HTTPS) khi kiểm thử; (b) một VM miễn phí (ví dụ Oracle Cloud Always Free, cần kiểm tra điều kiện hiện tại) để chạy 24/7; (c) các PaaS free tier (Render, Supabase/Neon cho Postgres, Cloudflare Pages/Vercel cho frontend), thường ngủ khi không dùng và giới hạn dung lượng; (d) cloud trả phí (GCP Cloud Run + Cloud SQL, phương án v0.1).
+- **Recommended:** (a) cho phát triển và các buổi kiểm thử; (b) khi cần demo hoặc kiểm thử không phụ thuộc máy cá nhân. Cùng một `docker-compose.yml` chạy được ở cả hai.
+- **Trade-offs:** (a) máy phải bật trong giờ kiểm thử; (b) cấu hình ban đầu lâu hơn; (c) giới hạn tài nguyên, cold start.
+- **Reversibility:** Dễ (container hóa từ đầu). Không còn ràng buộc pháp lý về nơi lưu dữ liệu (D-T2).
+- **When:** Ngày 7.
 
 ### ADR-012 — Voice English: kiến trúc quyết định bởi POC 6
 - Xem PART 20. Mặc định tạm: speech-to-speech có orchestrator điều khiển (instructions + tool calls báo evidence), fallback cascade.
@@ -207,11 +207,20 @@ Mỗi ADR sẽ có file riêng trong `docs/adr/` khi được chốt chính th�
 - **Recommended:** `services/api/tutor/prompts/*.md`, `policies/*.yaml`, `mastery_policy/*.yaml` có `version`. Mọi AI request log ghi version. Mọi thay đổi chạy eval regression.
 - **Reversibility:** Dễ, nhưng phải làm từ đầu để có lịch sử.
 
+### ADR-016 — Free-first provider policy (v0.2, D-T4)
+- **Decision:** Mỗi model class mặc định dùng lựa chọn **miễn phí** (free tier, mã nguồn mở, chạy local). Dịch vụ trả phí chỉ dùng làm mốc so sánh trong eval, hoặc khi mọi lựa chọn miễn phí không đạt ngưỡng của POC.
+- **Why:** Đồ án tốt nghiệp, ngân sách $0.
+- **Options:** free tier cloud (Gemini API); mô hình mở chạy local (Ollama, faster-whisper/PhoWhisper, `bge-m3`); trả phí (Claude, OpenAI).
+- **Trade-offs:** Hạn mức request tính theo project (xem trong AI Studio) và có thể thay đổi; dữ liệu free tier được Google dùng để cải thiện sản phẩm (chủ dự án chấp nhận, D-T3); model local cần phần cứng.
+- **Risk:** Hết hạn mức giữa buổi kiểm thử → fallback chain (model free khác → model local → template đã duyệt) và theo dõi mức tiêu thụ hạn mức trên dashboard.
+- **Reversibility:** Dễ, nhờ AI Gateway (ADR-007).
+- **When:** Đã chốt (v0.2).
+
 ### Phân loại khả năng đảo ngược
 
 | Khó đảo ngược (quyết chậm, có bằng chứng) | Dễ đảo ngược (quyết nhanh, mặc định) |
 |---|---|
-| Tenancy (ADR-003), Identity trẻ em (ADR-004), Event/Evidence schema (ADR-005), Tutor Contract (ADR-006), AI Gateway abstraction (ADR-007), Cloud/region và data residency (ADR-011), Ngôn ngữ backend (ADR-002), Domain model và data ownership | UI library, chart library, SSE/WS cho text (ADR-009), embedding model, TTS provider, email/SMS provider, LLM tracing tool, cấu trúc thư mục FE |
+| Tenancy (ADR-003), Identity trẻ em (ADR-004), Event/Evidence schema (ADR-005), Tutor Contract (ADR-006), AI Gateway abstraction (ADR-007), Ngôn ngữ backend (ADR-002), Domain model và data ownership | UI library, chart library, SSE/WS cho text (ADR-009), embedding model, TTS provider, email/SMS provider, LLM tracing tool, cấu trúc thư mục FE, nơi chạy hệ thống (ADR-011, v0.2), provider free tier cụ thể (ADR-016) |
 
 ---
 
@@ -221,15 +230,15 @@ Mỗi ADR sẽ có file riêng trong `docs/adr/` khi được chốt chính th�
 
 | # | Unknown | Why it matters | How to validate | Temporary default | Deadline |
 |---|---|---|---|---|---|
-| O1 | Model nào làm Tutor Reasoning in-session | Chất lượng Socratic, độ trễ, chi phí (yếu tố chi phí lớn nhất) | POC 1: cùng eval dataset, so ≥3 ứng viên (Claude Opus 5.5, Claude Sonnet 5.5, 1 ứng viên ngoài Anthropic) | `claude-opus-5-5`, effort `low`/`medium` | Ngày 12 |
-| O2 | Voice English: speech-to-speech hay cascade | Kiểm soát sư phạm và độ trễ | POC 6: đo latency, tỉ lệ tuân thủ instruction, khả năng log evidence, chi phí/phút | Speech-to-speech + orchestrator điều khiển | Trước phase English Speaking |
-| O3 | Provider STT tiếng Việt cho Toán | Evidence từ voice phải chính xác | Corpus 200–300 phát ngôn toán lớp 5 (thu từ giáo viên/người lớn trước, trẻ em sau khi có consent), đo WER + tỉ lệ parse đúng biểu thức | Google STT (Chirp) hoặc gpt-4o-transcribe | Phase MVP (tuần 6–8) |
-| O4 | Pronunciation assessment cho trẻ em | Tránh chấm sai và bias | Chấm song song với giáo viên, đo agreement | Azure Pronunciation Assessment (giá cần xác minh) | Phase English Speaking |
-| O5 | Có được lưu dữ liệu ngoài Việt Nam không, cần hồ sơ gì | Có thể buộc đổi cloud/region | Tư vấn pháp lý chuyên về dữ liệu cá nhân | Tối thiểu hóa: gửi AI provider chỉ tên gọi (không họ), không PII khác | Trước pilot |
+| O1 | Model nào làm Tutor Reasoning in-session | Chất lượng Socratic, độ trễ, hạn mức free tier | POC 1: cùng eval dataset, so các model free tier (`gemini-3.8-flash`, `gemini-3.5-flash`, `gemini-2.5-pro`); Claude làm mốc nếu có credit | `gemini-3.8-flash` (v0.2) | Ngày 12 |
+| O2 | Voice English: speech-to-speech hay cascade | Kiểm soát sư phạm và độ trễ | POC 6: đo latency, tỉ lệ tuân thủ instruction, khả năng log evidence, mức dùng hạn mức/phút | Speech-to-speech (`gemini-3.8-live`, free tier) + orchestrator điều khiển | Trước phase English Speaking |
+| O3 | Provider STT tiếng Việt cho Toán | Evidence từ voice phải chính xác | Corpus 200–300 phát ngôn toán lớp 5 (học sinh thật và người lớn, D-T3), đo WER + tỉ lệ parse đúng biểu thức | Miễn phí: Web Speech API (prototype), `gemini-3.5-transcribe-live`, PhoWhisper/faster-whisper local | Phase MVP (tuần 6–8) |
+| O4 | Pronunciation assessment cho trẻ em | Tránh chấm sai và bias | Chấm song song với giáo viên, đo agreement | Azure Speech gói F0 miễn phí (5 giờ/tháng; cần xác minh pronunciation assessment có trong F0) | Phase English Speaking |
+| O5 | ~~Có được lưu dữ liệu ngoài Việt Nam không~~ | **Đã đóng (v0.2, D-T2):** chủ dự án đã xử lý pháp lý | — | Vẫn tối thiểu hóa PII gửi AI (không tốn chi phí) | Đã đóng |
 | O6 | Thời lượng session mặc định | Hiệu quả học, chi phí | Pilot: đo drop-off theo phút, hỏi ý kiến giáo viên | 30 phút | Cuối pilot |
 | O7 | Recommendation bands (C2) | Tutor action phụ thuộc band | Pedagogy lead quyết + dữ liệu pilot | Căn theo ranh giới 6 mức hiểu | Ngày 7 |
-| O8 | Tutor xưng hô và persona | Trải nghiệm và văn hóa | Test với 3–5 giáo viên, vài học sinh (có consent) | "Cô" – "con" | Ngày 5 |
-| O9 | Thiết bị học sinh | Mic, trình duyệt, UI | Khảo sát trường pilot | Chrome trên tablet/laptop | Ngày 10 |
-| O10 | Giá sản phẩm/ngân sách per-student | Quyết định model routing | Business | Mục tiêu chi phí biến đổi < 30% giá bán | Trước pilot |
-| O11 | Bộ SGK và quyền dùng nội dung | Curriculum Knowledge layer | Hỏi NXB/trường, dùng tài liệu giáo viên tự soạn trước | Chỉ Teacher Knowledge (tài liệu giáo viên tự soạn) | Trước MVP |
+| O8 | Tutor xưng hô và persona | Trải nghiệm và văn hóa | Chủ dự án quyết định, thử với vài học sinh | "Cô" – "con" | Ngày 5 |
+| O9 | Thiết bị học sinh | Mic, trình duyệt, UI | Khảo sát thiết bị của học sinh kiểm thử | Chrome trên tablet/laptop | Ngày 10 |
+| O10 | Hạn mức free tier có đủ cho số học sinh kiểm thử không | Quyết định số buổi kiểm thử/ngày | Đọc hạn mức trong AI Studio; đo số request thực mỗi buổi ở POC 1 | Ngân sách $0 (v0.2, D-T4) | Ngày 12 |
+| O11 | Bộ SGK tham chiếu | Curriculum Knowledge layer | Chủ dự án chọn (phần pháp lý đã xử lý, D-T2) | Tài liệu giáo viên tự soạn trước, SGK sau | Trước MVP |
 | O12 | Thuật toán knowledge tracing | Chất lượng mastery về dài hạn | So sánh Beta-Bernoulli theo chiều vs BKT trên dữ liệu pilot | Beta-Bernoulli theo chiều + công thức M | Sau pilot |

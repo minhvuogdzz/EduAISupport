@@ -10,6 +10,8 @@ Nền tảng **AI-managed Learning Session** cho học sinh lớp 5. Ba vai trò
 
 **Scope phiên bản đầu:** Math Grade 5 + English Grade 5 (Reading + Speaking).
 
+**Bối cảnh:** đồ án tốt nghiệp, sản phẩm nội bộ để kiểm thử, ưu tiên dịch vụ miễn phí.
+
 ## Trạng thái
 
 Greenfield, đang ở giai đoạn **thiết kế và kiểm chứng rủi ro**. Chưa có code production.
