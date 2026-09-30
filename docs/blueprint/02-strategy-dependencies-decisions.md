@@ -137,14 +137,14 @@ Mỗi ADR sẽ có file riêng trong `docs/adr/` khi được chốt chính th�
 - **When:** Ngày 5, dựa trên kỹ năng thực tế của team (**[OPEN]**: nếu team mạnh TypeScript hơn hẳn thì đảo lại).
 - **Migration:** Không dự kiến.
 
-### ADR-003 — Tenancy: shared DB, `school_id` trên mọi bảng dữ liệu người học + Postgres RLS
+### ADR-003 — Tenancy: shared DB, `school_id` trên mọi document dữ liệu người học, lọc bắt buộc ở repository (v0.3, D-T7)
 - **Why:** Trẻ em → cách ly dữ liệu là bắt buộc. Pilot bắt đầu với 1 trường nhưng sản phẩm hướng tới nhiều trường.
-- **Options:** DB per tenant; schema per tenant; shared + RLS.
-- **Recommended:** Shared + `school_id` + RLS làm lớp phòng thủ thứ hai (lớp thứ nhất là authorization ở application).
-- **Trade-offs:** RLS thêm độ phức tạp cho migration và test. Đổi lại vận hành rẻ.
-- **Risk:** Quên `school_id` ở bảng mới → CI test: mọi bảng có `student_id` phải có `school_id` và RLS policy.
+- **Options:** DB per tenant; collection per tenant; shared + `school_id`. *(v0.1 chọn shared + Postgres RLS; v0.3 bỏ Postgres, MongoDB không có RLS.)*
+- **Recommended:** Shared database + `school_id` trên mọi document dữ liệu người học và nội dung trường. Lớp phòng thủ thứ nhất là authorization ở application; lớp thứ hai (thay RLS) là **`TenantScopedRepository`** (`cavat/core/repository.py`): repository được khởi tạo với một `school_id`, tự thêm `school_id` vào mọi filter, từ chối filter hoặc document tham chiếu trường khác, và cấm đổi `school_id` qua update. Code module không truy cập collection trực tiếp. Collection `schools` là gốc tenant nên không bị scope (`_id` chính là `school_id`).
+- **Trade-offs:** Bảo vệ nằm ở code, không nằm ở database: một đoạn code bỏ qua repository vẫn đọc được dữ liệu trường khác. Bù lại bằng quy ước (chỉ repository được chạm collection) và test.
+- **Risk:** Quên `school_id` ở collection mới → CI test: mọi repository ngoài `schools` phải là `TenantScopedRepository`, mọi `TenantDocument` bắt buộc có `school_id`, và test quét mọi document đã ghi đều mang đúng `school_id` (`tests/test_repository_core.py`, `tests/test_module_repositories.py`).
 - **Reversibility:** **Khó.**
-- **When:** Ngày 7.
+- **When:** Đã làm ở T07.
 
 ### ADR-004 — Identity cho học sinh lớp 5: tài khoản do giáo viên cấp, không cần email
 - **Recommended:** Student đăng nhập bằng *class code + username + PIN/picture password*, do giáo viên cấp và reset. Parent đăng nhập bằng email/số điện thoại + OTP, liên kết với con qua lời mời của giáo viên. Teacher đăng nhập bằng email + mật khẩu, có thể thêm Google SSO.
@@ -152,12 +152,17 @@ Mỗi ADR sẽ có file riêng trong `docs/adr/` khi được chốt chính th�
 - **Reversibility:** Khó (luồng người dùng + dữ liệu).
 - **When:** Ngày 7.
 
-### ADR-005 — Event và Evidence: append-only ledger trong Postgres, có version, projection tất định
+### ADR-005 — Event và Evidence: event nằm trong document của session, copy sang ledger; projection tất định (v0.3, D-T7)
 - **Why:** Replay, audit, knowledge tracing về sau, và yêu cầu "mọi kết luận có evidence".
-- **Options:** (a) full event sourcing; (b) state tables + append-only event ledger (event-first cho learning data); (c) chỉ log.
-- **Recommended:** (b). Session, Activity, Item state là bảng trạng thái (source of truth cho runtime). Mọi thay đổi đều ghi event trong cùng transaction (transactional outbox). Evidence và Mastery là **projection** tái tạo được từ ledger + policy version.
+- **Options:** (a) full event sourcing; (b) state + append-only event ledger ghi cùng transaction (v0.1, Postgres); (c) chỉ log. **[FACT]** Atlas M0 không có multi-document transaction, nên (b) theo kiểu v0.1 không làm được.
+- **Recommended:** Biến thể của (b) trong giới hạn **một document**:
+  - Mỗi `learning_sessions` document chứa state 3 tầng (lifecycle, activity, item) **và** mảng `events` append-only của buổi đó. Một command đổi state và thêm event bằng **một** `find_one_and_update` có điều kiện `state_version` (optimistic concurrency); sai version → không ghi gì, API trả 409. Ghi một document là atomic trên MongoDB, nên state và event không bao giờ lệch nhau.
+  - `idempotency_key` được ghi vào envelope của mọi event của command, và filter cập nhật có điều kiện "chưa có event mang key này" → gửi lại cùng key không tạo event trùng.
+  - Event được **copy** (at-least-once, idempotent) sang collection `events` để truy vấn chéo session (theo học sinh, theo thời gian). Unique index `(session_id, sequence_no)` làm việc copy lặp lại an toàn; con trỏ `events_copied_upto` chỉ tăng (`$max`). Document session vẫn là nguồn sự thật.
+  - Evidence và Student Model là **projection** tái tạo được từ event + `policy_version`. Evidence append-only (sửa bằng record mới có `supersedes_id`).
+- **Trade-offs:** Document session lớn dần (~40–80 event/buổi, vài chục KB, xa giới hạn 16 MB). Collection `events` là bản sao có độ trễ (eventual).
 - **Reversibility:** **Khó** (schema event là hợp đồng dài hạn) → envelope có `schema_version`, cho phép upcaster.
-- **When:** Ngày 10–14 (sau POC 1 và POC 4).
+- **When:** Tầng lưu trữ đã làm ở T07; worker copy và projector ở T08, T10.
 
 ### ADR-006 — Tutor Contract: tài liệu JSON bất biến, compile từ Teacher Design, snapshot theo session
 - **Recommended:** `ContractCompiler` compile từ LessonVersion + Schedule + Policies (versioned) → `TutorContract` có hash. Session bind với đúng một contract. Teacher sửa lesson → version mới chỉ áp dụng cho session sau. Pause/override là *event*, không sửa contract.
@@ -170,10 +175,13 @@ Mỗi ADR sẽ có file riêng trong `docs/adr/` khi được chốt chính th�
 - **Reversibility:** **Khó nếu không làm từ đầu**, dễ nếu làm đúng.
 - **When:** Ngày 10.
 
-### ADR-008 — Hạ tầng lưu trữ MVP: PostgreSQL (+pgvector) + Object Storage
-- **Recommended:** Chỉ **2 hệ thống lưu trữ**. Postgres chứa OLTP, event ledger, job queue và vector. Object storage chứa file gốc và audio. Chưa dùng Redis, vector DB riêng hay analytics warehouse.
-- **Reversibility:** Dễ để *thêm* sau (Redis, warehouse qua CDC, vector DB riêng).
-- **When:** Ngày 7.
+### ADR-008 — Hạ tầng lưu trữ MVP: MongoDB Atlas (M0) + ổ đĩa local (v0.3, D-T6, D-T7)
+- **Recommended:** Chỉ **2 hệ thống lưu trữ**. MongoDB Atlas gói M0 chứa dữ liệu nghiệp vụ, event và projection; file gốc và audio nằm trên ổ đĩa local (`var/storage/`). Chưa dùng Redis, vector DB riêng hay analytics warehouse. *(v0.1: PostgreSQL + pgvector + Object Storage.)*
+- **[FACT] Ràng buộc M0:** dung lượng 0,5 GB; không có multi-document transaction; không có Atlas Search/Vector Search; tối đa 100 ops/s; không có backup.
+- **Hệ quả thiết kế:** state + event của một buổi học trong một document (ADR-005); tenancy ở repository (ADR-003); RAG dùng context loading, truy xuất khác làm trong Python (PART 21); không có backup nên chủ dự án tự export định kỳ (`mongodump`) trước các buổi kiểm thử quan trọng **[REC]**.
+- **Test:** repository chạy offline trên `InMemoryDatabase` (`cavat/core/memory_db.py`, cùng API async PyMongo, thiếu toán tử nào thì báo lỗi thay vì âm thầm sai). Cùng bộ test chạy lại trên Atlas thật khi có `MONGODB_URI` (marker `atlas`), vừa kiểm tra repository vừa kiểm tra bản giả khớp server.
+- **Reversibility:** Dễ để *thêm* sau (Redis, warehouse, vector DB riêng). Chuyển lại Postgres: trung bình, vì code chỉ đi qua repository.
+- **When:** Đã chốt (v0.3); T07 làm tầng dữ liệu.
 
 ### ADR-009 — Kênh realtime cho tutor text: HTTP command + SSE stream
 - **Why:** Student action là command (POST, idempotent). Tutor output là stream (SSE). SSE tự reconnect, đi qua proxy dễ, đơn giản hơn WebSocket.

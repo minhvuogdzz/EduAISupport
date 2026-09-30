@@ -8,12 +8,16 @@
 
 ### 28.1. Quy ước
 
-- PostgreSQL 16+. Khóa chính `uuid` (UUIDv7, sắp xếp được theo thời gian).
-- **Mọi bảng chứa dữ liệu người học hoặc nội dung trường** có `school_id` + RLS policy (ADR-003).
-- Timestamp dùng `timestamptz` (lưu UTC), hiển thị theo `Asia/Ho_Chi_Minh`.
-- Bảng append-only (event, evidence, override, audit): không `UPDATE`/`DELETE` ở tầng ứng dụng. Có trigger chặn.
-- JSONB cho phần bán cấu trúc có schema (validate ở app, có `schema_version`).
-- Migration dùng Alembic. Mỗi migration có test up/down trên DB tạm (testcontainers).
+> **v0.3 (D-T7):** database là **MongoDB Atlas M0** (ADR-008), không phải PostgreSQL. Quy ước dưới đây thay bản v0.1 (Postgres, RLS, Alembic, partition).
+
+- MongoDB Atlas M0, driver **async PyMongo** (`AsyncMongoClient`, `tz_aware=True`). `_id` là chuỗi UUIDv7 (sắp xếp được theo thời gian), sinh ở application (`new_id()`).
+- **Mọi document chứa dữ liệu người học hoặc nội dung trường** có `school_id`. Không có RLS: mọi truy cập đi qua `TenantScopedRepository`, tự thêm `school_id` vào filter và từ chối truy cập trường khác (ADR-003). Chỉ repository được chạm collection.
+- Mỗi module có `repository.py` riêng; document là Pydantic model (`Document`, `TenantDocument`) có `extra="forbid"`, nên schema được validate ở application.
+- Timestamp là BSON datetime (UTC, độ chính xác mili giây), hiển thị theo `Asia/Ho_Chi_Minh`. Ngày không kèm giờ lưu dạng chuỗi ISO `YYYY-MM-DD` (BSON không có kiểu date).
+- **Không có multi-document transaction:** những gì phải đổi cùng nhau nằm trong một document; cập nhật bằng `find_one_and_update` có điều kiện (`state_version`).
+- Collection append-only (`events`, `evidence`): repository không có hàm update/delete; sửa sai bằng record mới (`supersedes_id`).
+- Không có migration tool: index khai báo trong repository (`IndexSpec`) và tạo bằng `make db-indexes` (idempotent). Đổi schema document → tăng `schema_version` và đọc được cả bản cũ.
+- Test chạy offline trên `InMemoryDatabase`; cùng bộ test chạy trên Atlas khi có `MONGODB_URI` (marker `atlas`).
 
 ### 28.2. ERD (lõi của MVP)
 
@@ -68,7 +72,28 @@ erDiagram
     LEARNING_SESSION ||--o{ AUDIO_ASSET : records
 ```
 
-### 28.3. Bảng chính (trường quan trọng)
+### 28.2a. Collection MongoDB của MVP (v0.3, T07)
+
+ERD ở 28.2 và bảng ở 28.3 là **mô hình logic**. Bản MVP trên MongoDB gộp chúng thành các collection sau (code: `services/api/cavat/modules/<module>/repository.py`):
+
+| Collection | Module | Một document là | Trường chính | Ghi chú |
+|---|---|---|---|---|
+| `schools` | org | Một trường (gốc tenant) | `_id` (= `school_id`), name, timezone, status | Không scope theo tenant |
+| `users` | identity | Một tài khoản | school_id, kind (STUDENT/TEACHER/PARENT/SCHOOL_ADMIN), login_name, display_name (tên gọi), grade, status | Chỉ lưu tên gọi; credential làm ở task auth |
+| `classes` | org | Một lớp | school_id, name, grade, school_year | |
+| `enrollments` | org | Học sinh trong lớp | school_id, class_id, student_id, status | Unique (school_id, class_id, student_id) |
+| `lessons` | content | Một **version** của lesson | school_id, lesson_id, version, status, subject, grade, title, `package` (lesson package nhúng), content_hash (SHA-256), published_at | Unique (school_id, lesson_id, version). Đã PUBLISHED thì không sửa được |
+| `schedules` | scheduling | Một schedule rule | school_id, class_id, subject, weekdays (ISO 1–7), start_time `HH:MM`, duration_min, valid_from/to, timezone, lesson_id | Occurrence làm ở task scheduler |
+| `learning_sessions` | session | Một buổi học của một học sinh | school_id, student_id, lesson_id, lesson_version, kind, schedule_id, contract_id, `state` {lifecycle, activity, item}, `state_version`, `next_sequence_no`, `events[]` (envelope PART 10.3), `events_copied_upto`, started_at, ended_at, end_reason | State 3 tầng + event trong **một document**; ghi bằng `commit()` có điều kiện `state_version` |
+| `events` | session | Bản copy một event | envelope PART 10.3, `_id` = event_id | Append-only; copy at-least-once từ `learning_sessions` |
+| `evidence` | assessment | Một evidence | school_id, student_id, session_id, source_event_ids, kc_id/skill_id, dimension (C,R,A,T,I,S,D), score, weight, validity, construct, support_level, error_class, misconception_id, policy_version, supersedes_id | Append-only |
+| `student_kc_states` | learner | Projection (student × KC × policy_version) | school_id, student_id, kc_id, policy_version, state, source_evidence_count | Unique theo khóa; chỉ projector ghi (upsert) |
+
+Chưa làm ở MVP (theo mô hình logic, thêm khi có task): credential, guardian_link, consent, teaching_assignment, curriculum riêng (KC và misconception đang nằm trong lesson package), material, answer_key tách riêng, schedule_occurrence, tutor_contract, ai_request_log, audio_asset, audit_entry.
+
+**[OPEN]** `answer_key` tách khỏi package (chỉ assessment đọc được) chưa làm: package của item EXIT vẫn nằm trong `lessons`. Quy tắc "đáp án assessment không vào prompt" vì vậy phải do prompt builder (T06) bảo đảm.
+
+### 28.3. Bảng chính (mô hình logic, trường quan trọng)
 
 **identity / org**
 
@@ -145,12 +170,30 @@ erDiagram
 | `audit_entry` | id, school_id, actor_id, action (VIEW_TRANSCRIPT/EXPORT/OVERRIDE/…), target, ip, at |
 | `policy_version` | kind (PROMPT/TUTOR/HINT/MASTERY/MODEL/SAFETY), version, content_hash, released_at |
 
-### 28.4. Index và partition quan trọng
+### 28.4. Index quan trọng (v0.3)
 
-- `session_event (session_id, sequence_no)`, `(student_id, occurred_at)`, partition theo tháng của `occurred_at`.
-- `evidence (student_id, kc_id, created_at)`.
-- `learning_session (student_id, lifecycle_state)`, `(occurrence_id)`.
-- `rag_chunk` HNSW trên `embedding` + GIN trên `tsv` + btree trên `(school_id, subject, grade, status)`.
+Mọi index khai báo trong `indexes` của repository và tạo bằng `make db-indexes`.
+
+| Collection | Index | Loại |
+|---|---|---|
+| `users` | (school_id, login_name) | unique |
+| `users` | (school_id, kind) | |
+| `classes` | (school_id, school_year) | |
+| `enrollments` | (school_id, class_id, student_id) | unique |
+| `enrollments` | (school_id, student_id) | |
+| `lessons` | (school_id, lesson_id, version) | unique |
+| `lessons` | (school_id, subject, grade) | |
+| `schedules` | (school_id, class_id, subject) | |
+| `learning_sessions` | (school_id, student_id, state.lifecycle) | |
+| `learning_sessions` | (school_id, schedule_id) | |
+| `events` | (session_id, sequence_no) | **unique**: copy lặp lại không tạo event trùng |
+| `events` | (school_id, student_id, occurred_at) | |
+| `events` | (school_id, event_type, occurred_at) | |
+| `evidence` | (school_id, student_id, kc_id, created_at) | |
+| `evidence` | (school_id, session_id) | |
+| `student_kc_states` | (school_id, student_id, kc_id, policy_version) | unique |
+
+Không có partition (M0 không hỗ trợ sharding; khối lượng đồ án nhỏ). RAG không dùng vector index (M0 không có Vector Search).
 
 ---
 

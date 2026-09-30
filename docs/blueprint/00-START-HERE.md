@@ -15,7 +15,7 @@
 | **D-T4** | **Ưu tiên dịch vụ miễn phí** (free tier, mã nguồn mở, chạy local) | Stack mặc định chuyển sang free-first (ADR-016, PART 12.1, 38). Chi phí mục tiêu **$0/tháng**. Ràng buộc chính đổi từ *tiền* sang *hạn mức request của free tier* (PART 32.0) |
 | **D-T5** | Làm **một mình cùng AI**: phiên local để lên kế hoạch và review, **phiên cloud để code** theo `docs/tasks/BACKLOG.md` | Kế hoạch chia thành task độc lập, mỗi task một nhánh và một PR; mô hình team 5 người chỉ còn là tham chiếu |
 | **D-T6** | **Mọi thứ chạy local, không dùng Docker** | Bỏ Docker Compose và MinIO; file gốc và audio lưu ở `var/storage/`; Cloudflare Tunnel chỉ cần khi học sinh truy cập từ máy khác |
-| **D-T7** | **Database: MongoDB Atlas (M0)** thay PostgreSQL + pgvector | Thay ADR-003 (RLS), ADR-005 (ledger Postgres), ADR-008 (Postgres + pgvector): lọc `school_id` ở repository; mỗi buổi học là một document chứa state và event (M0 không có multi-document transaction); M0 không có Vector Search nên RAG dùng context loading, truy xuất khác làm trong Python. **[FACT]** Giới hạn M0: 0,5 GB, 100 ops/s, không transaction, không Atlas Search/Vector Search, không backup. Task T07 cập nhật ADR và PART 10, 28 |
+| **D-T7** | **Database: MongoDB Atlas (M0)** thay PostgreSQL + pgvector | Thay ADR-003 (RLS), ADR-005 (ledger Postgres), ADR-008 (Postgres + pgvector): lọc `school_id` ở repository; mỗi buổi học là một document chứa state và event (M0 không có multi-document transaction); M0 không có Vector Search nên RAG dùng context loading, truy xuất khác làm trong Python. **[FACT]** Giới hạn M0: 0,5 GB, 100 ops/s, không transaction, không Atlas Search/Vector Search, không backup. Đã cập nhật ADR-003, 005, 008 và PART 10, 28 (T07) |
 
 **Stack free-first mặc định** (chi tiết PART 12.1):
 
@@ -162,7 +162,7 @@ English **Reading** (text) là slice thứ hai, chạy trên cùng runtime từ 
 Không phải dashboard đẹp, mà là **dữ liệu đúng**: 100% event theo schema (có sequence, correlation, version); attendance và completion; outcome từng item kèm support level, số hint, thời gian; misconception frequency; chỉ số Socratic (leak, reject, fidelity); latency, token và mức tiêu thụ hạn mức free tier mỗi session; mastery + confidence theo KC cho giáo viên. Radar, timeline, knowledge graph và retention đi vào MVP hoặc pilot khi có đủ dữ liệu dọc (PART 27.3).
 
 **Q15. MVP nên có bao nhiêu database/storage system?**
-**Hai:** PostgreSQL (OLTP + event ledger + job queue + pgvector) và Object Storage (file gốc, audio). Không dùng Redis, vector DB riêng, MongoDB hay warehouse trong MVP. Mỗi thứ đều có đường thêm vào sau khi có nhu cầu đo được (ADR-008, PART 10).
+**Hai:** *(v0.1; v0.3 đổi thành MongoDB Atlas M0 + ổ đĩa local, xem ADR-008)* PostgreSQL (OLTP + event ledger + job queue + pgvector) và Object Storage (file gốc, audio). Không dùng Redis, vector DB riêng, MongoDB hay warehouse trong MVP. Mỗi thứ đều có đường thêm vào sau khi có nhu cầu đo được (ADR-008, PART 10).
 
 **Q16. Kiến trúc nào khó thay đổi nhất?**
 Theo thứ tự: (1) **Event/Evidence schema và data ownership**, vì là hợp đồng dài hạn của mọi phân tích và replay; (2) **Tenancy và identity trẻ em**; (3) **Tutor Contract schema**; (4) **AI Gateway abstraction** (khó nếu không làm từ đầu, dễ nếu làm đúng; với free-first càng quan trọng vì hạn mức và điều khoản free tier có thể thay đổi); (5) ngôn ngữ backend. *(v0.2: nơi chạy hệ thống không còn là ràng buộc pháp lý, D-T2, và chuyển được nhờ Docker.)* UI library, chart library, embedding model và TTS đều dễ đổi (ADR register).
