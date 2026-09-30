@@ -8,7 +8,7 @@
 
 ### 18.1. Phạm vi nội dung (anchor theo CT GDPT 2018)
 
-**[ASSUME — cần giáo viên cố vấn xác nhận theo CT 2018 và bộ SGK trường pilot dùng]** Các mạch nội dung Toán 5:
+**[ASSUME — cần chủ dự án (giáo viên kiểm soát) xác nhận theo CT 2018 và bộ SGK dùng trong kiểm thử]** Các mạch nội dung Toán 5:
 
 | Mạch | Chủ đề (ví dụ) | Độ giàu misconception | Hợp với voice |
 |---|---|---|---|

@@ -91,7 +91,7 @@ Tối đa 1 lần retry (giữ độ trễ); sau đó fallback nội dung đã d
 [L5] Turn Directive (từ policy, dạng system message giữa hội thoại) — không cache
 ```
 
-Claude hỗ trợ *mid-conversation system messages* trên Opus 5.5 và Sonnet 5.5, nên L5 có thể là system message nằm trong `messages` mà không phá cache của L1–L4 và các lượt trước. **[FACT]** theo tài liệu Claude API. Với provider không hỗ trợ, adapter chuyển L5 thành khối có đánh dấu trong lượt user (capability flag).
+Cách đặt L5 phụ thuộc capability của provider, do adapter xử lý. Với Gemini (mặc định v0.2): L1–L4 đặt trong system instruction và context cache (trang giá ghi context caching miễn phí ở free tier cho `gemini-3.8-flash`), L5 là khối có đánh dấu `[DIRECTIVE]` ở cuối lượt user mới nhất. Với Claude (nếu dùng làm mốc so sánh): L5 là *mid-conversation system message*, không phá cache. **[FACT]** về khả dụng theo tài liệu hai provider; cơ chế cache cụ thể của Gemini được xác minh trong POC 1.
 
 ### 14.2. Nội dung L1 — Tutor Constitution (bản phác, sẽ viết thành `prompts/constitution.v1.md`)
 
