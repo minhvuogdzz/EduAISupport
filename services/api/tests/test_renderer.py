@@ -83,9 +83,20 @@ def test_hint_falls_back_to_fixed_sentence():
 
 
 def test_template_with_two_questions_is_skipped():
-    # GP-09 TASK H1 and the generic TASK H1 each ask two questions (content proposal in the PR).
+    item = PKG.item("GP-09")
+    hints = [
+        h.model_copy(update={"text": "Con so sánh hai số nào? Con thử lại nhé?"}) if h.target == "TASK" else h
+        for h in item.hints
+    ]
+    two_questions = item.model_copy(update={"hints": hints})
+    hint, _, ref = select_hint(two_questions, PKG, HintTarget.TASK, HintLevel.H1)
+    assert ref != "GP-09:TASK:H1"
+    assert hint is None or hint.text.count("?") <= 1
+
+
+def test_approved_task_hint_is_used_as_written():
     msg, _ = render("GP-09", Move.HINT, target=HintTarget.TASK, level=HintLevel.H1)
-    assert msg.source == "FALLBACK"
+    assert (msg.source, msg.hint_ref) == ("TEMPLATE", "GP-09:TASK:H1")
     assert msg.text.count("?") == 1
 
 

@@ -48,6 +48,8 @@ LEAK = ValidationCode.ANSWER_LEAK.value
         ("GP-10", "Gói kẹo A nặng hơn. Con đồng ý không?"),
         ("GP-06", "Thứ tự là 0,2; 0,25; 0,3; 0,305. Con kiểm tra lại được không?"),
         ("GP-06", "Ta thấy 0,2 < 0,25. Số nào bé tiếp theo?"),  # part of the order
+        ("GP-01", "Vậy 0,25 bé hơn 0,3, đúng không con?"),  # a tag question still tells
+        ("GP-01", "Vì sao 0,25 < 0,3?"),
     ],
 )
 def test_answer_leak_detected(item_id, text):

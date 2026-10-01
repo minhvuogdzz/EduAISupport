@@ -144,11 +144,13 @@ def _leak(text: str, ctx: RenderContext) -> str | None:
                 return f"states {m.group(0).strip()}"
     pairs = _answer_pairs(item)
     for sentence in _sentences(lowered):
-        if _is_question(sentence):
-            continue  # "số nào lớn hơn?" asks, it does not tell
+        # No exemption for questions: "0,25 bé hơn 0,3, đúng không?" tells the answer. "Số nào lớn hơn?"
+        # has no "NUMBER RELATION NUMBER" and never matches.
         stated = _states_relation(sentence, pairs)
         if stated:
             return f"states {stated}"
+        if _is_question(sentence):
+            continue  # a question may list the numbers of an order item
         if isinstance(item.answer, OrderAnswer) and _states_order(sentence, item.answer):
             return "states the final order"
     return None
