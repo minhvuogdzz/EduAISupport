@@ -14,7 +14,16 @@ const sealed = sealAssessmentItems(raw) as { items: Json[] };
 describe("sealAssessmentItems", () => {
   it("reduces EXIT items to a whitelist of fields", () => {
     const exitItems = sealed.items.filter((it) => it.purpose === "EXIT");
-    expect(exitItems.map((it) => it.id)).toEqual(["EX-01", "EX-02", "EX-03", "EX-04"]);
+    expect(exitItems.map((it) => it.id)).toEqual([
+      "EX-01",
+      "EX-02",
+      "EX-03",
+      "EX-04",
+      "EX-05",
+      "EX-06",
+      "EX-07",
+      "EX-08",
+    ]);
     for (const item of exitItems) {
       expect(Object.keys(item).sort()).toEqual(
         ["answer", "cognitive_level", "difficulty", "hints", "id", "kc_ids", "purpose", "stem"].sort(),

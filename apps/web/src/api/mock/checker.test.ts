@@ -77,11 +77,16 @@ describe("choice items", () => {
   });
 
   it("maps a wrong option to its misconception with the option confidence", () => {
-    expect(checkAnswer(answerOf("GP-08"), "Lan")).toMatchObject({
+    expect(checkAnswer(answerOf("GP-10"), "gói B")).toMatchObject({
       outcome: "WRONG",
       misconception_id: "DEC-M01",
       confidence: 0.6,
     });
+  });
+
+  it("attributes nothing to an option that needs a probe question first", () => {
+    // GP-08 "Lan" may be DEC-M01 or a time/speed confusion; the real tutor asks the probe (T04).
+    expect(checkAnswer(answerOf("GP-08"), "Lan")).toMatchObject({ outcome: "WRONG", misconception_id: null });
   });
 
   it("accepts aliases and option ids", () => {
@@ -89,7 +94,7 @@ describe("choice items", () => {
     expect(checkAnswer(answerOf("CC-01"), "phần mười").outcome).toBe("CORRECT");
     expect(checkAnswer(answerOf("CC-01"), "B")).toMatchObject({
       outcome: "WRONG",
-      misconception_id: "DEC-M03",
+      misconception_id: null,
     });
   });
 

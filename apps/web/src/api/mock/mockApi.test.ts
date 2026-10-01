@@ -190,7 +190,7 @@ describe("mock SessionApi: demo data", () => {
       ["Lan", "ACTIVE", 1],
       ["Minh", "COMPLETED", 8],
     ]);
-    expect(sessions[1].misconception_ids).toEqual(["DEC-M03", "DEC-M01"]);
+    expect(sessions[1].misconception_ids).toEqual(["DEC-M01"]);
     expect(sessions.every((s) => s.engine === "mock")).toBe(true);
   });
 
