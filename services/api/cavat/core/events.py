@@ -48,6 +48,7 @@ class EventType(StrEnum):
     TUTOR_MESSAGE_SENT = "TUTOR_MESSAGE_SENT"
     OUTPUT_REJECTED = "OUTPUT_REJECTED"
     MODEL_FALLBACK = "MODEL_FALLBACK"
+    SAFETY_FLAGGED = "SAFETY_FLAGGED"
     # voice
     VOICE_UTTERANCE = "VOICE_UTTERANCE"
     VOICE_FALLBACK_TO_TEXT = "VOICE_FALLBACK_TO_TEXT"
@@ -194,7 +195,15 @@ class ChoiceMade(_Payload):
     label: str
 
 
+class SafetyFlagged(_Payload):
+    """The model judged the student's message worrying (constitution rule 8). For the teacher to review."""
+
+    item_id: str
+    source: Literal["LLM"] = "LLM"
+
+
 PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
+    EventType.SAFETY_FLAGGED: SafetyFlagged,
     EventType.STUDENT_MESSAGE: StudentMessage,
     EventType.HINT_REQUESTED: HintRequested,
     EventType.CHOICE_MADE: ChoiceMade,

@@ -13,16 +13,20 @@ command gets its first answer back instead of a 409.
 from __future__ import annotations
 
 from datetime import datetime
+from functools import lru_cache, partial
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, Header, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from cavat import db
+from cavat.config import get_settings
 from cavat.core.events import EventType
 from cavat.core.repository import utc_now
+from cavat.modules.ai_gateway.router import AIRouter, build_router
 from cavat.modules.content.lesson_package import LessonPackage
 from cavat.modules.session import service
 from cavat.modules.session.repository import (
@@ -156,6 +160,16 @@ def get_database() -> Any:
     return db.get_db()
 
 
+@lru_cache
+def _shared_router() -> AIRouter:
+    return build_router()  # one per process: it remembers which models are out of quota
+
+
+def tutor_router() -> AIRouter | None:
+    """None keeps sessions on approved templates (default). ``TUTOR_RENDERER=llm`` lets Qwen phrase hints."""
+    return _shared_router() if get_settings().tutor_renderer == "llm" else None
+
+
 def demo_student(x_demo_student: Annotated[str | None, Header()] = None) -> str:
     """Temporary identity (see module docstring)."""
     if not x_demo_student or len(x_demo_student) > 64 or not x_demo_student.replace("-", "").isalnum():
@@ -230,7 +244,10 @@ async def _command(
 
     pkg = _package(session.lesson_id)
     try:
-        step = service.apply_command(pkg, session, command, utc_now(), **kwargs)
+        router = tutor_router()
+        live = service.llm_renderer(session, router) if router is not None else None
+        apply = partial(service.apply_command, pkg, session, command, utc_now(), live_renderer=live)
+        step = await run_in_threadpool(apply, **kwargs)  # the model call blocks; keep the event loop free
     except service.CommandNotAllowed as exc:
         raise ApiError(409, "COMMAND_NOT_ALLOWED_IN_ACTIVITY", f"{exc} is not allowed now") from exc
     repo = _repo(database)
