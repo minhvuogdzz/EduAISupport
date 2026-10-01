@@ -19,13 +19,13 @@ Mỗi phiên chỉ làm **một** task. Task cùng lane làm tuần tự; task k
 
 * Có 3 môi trường dữ liệu logic tách biệt:
 
-  * **`cavat_test`** — integration test trên MongoDB Atlas thật.
+  * **`cavat_test`** (hoặc `cavat_test_<12 ký tự hex>`, một database tạm cho mỗi test) — integration test trên MongoDB Atlas thật.
   * **`cavat_dev`** — dữ liệu phát triển/demo sau khi seed thủ công.
   * **`cavat_prod`** — production, chưa dùng ở giai đoạn hiện tại.
 * Không task nào được dùng `cavat_dev` hoặc `cavat_prod` làm database test.
 * Mọi test MongoDB Atlas thật phải có marker `@pytest.mark.atlas`.
 * Atlas test phải tự skip khi cloud không có `MONGODB_URI`.
-* Atlas test phải kiểm tra safety guard và chỉ được chạy nếu database là `cavat_test`.
+* Atlas test phải gọi safety guard dạng allow-list (`cavat_test` hoặc `cavat_test_<12 ký tự hex>`) trước mọi thao tác ghi hoặc xóa; tên khác thì fail ngay.
 * Atlas test phải cleanup dữ liệu trong `finally`/fixture teardown.
 * `make seed` là lệnh duy nhất tạo demo data. Không được tự seed trong startup, migration, test hoặc `make test`.
 * Mọi demo record phải có `is_demo: true`.
@@ -39,7 +39,7 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 
 * [ ] Offline/in-memory tests pass.
 * [ ] Atlas tests có `@pytest.mark.atlas`.
-* [ ] Atlas tests chỉ dùng `cavat_test`.
+* [ ] Atlas tests chỉ dùng database họ `cavat_test` (qua safety guard allow-list).
 * [ ] Có safety guard chống nhầm database.
 * [ ] Atlas test cleanup chạy kể cả khi test fail.
 * [ ] Không có auto-seed.
@@ -235,24 +235,6 @@ Chạy song song được ngay:     T01, T07, T09
 * Nếu có Atlas integration test: chỉ chạy trên `cavat_test`, có safety guard và cleanup.
 * Không có đường code nào tự động ghi demo/test data vào `cavat_dev` hoặc `cavat_prod`.
 * Chủ repo chạy `make test` local trước khi merge PR.
-
-## T08 — Session API cho một lesson (Lane B, sau T04 và T07)
-
-**Đọc:** PART 24 (SessionContext), 29 (API).
-
-**Làm:**
-
-- **Endpoint FastAPI:**
-  - `POST /v1/sessions` (tạo session demo)
-  - `POST /v1/sessions/{id}/join`
-  - `POST /v1/sessions/{id}/responses` (có `Idempotency-Key` và `expected_state_version`)
-  - `POST /v1/sessions/{id}/hint-requests`
-  - `GET /v1/sessions/{id}/state`
-  - `GET /v1/sessions/{id}/stream` (SSE)
-- Chạy item loop theo activity plan tối giản: CONCEPT_CHECK → GUIDED_PRACTICE → EXIT_ASSESSMENT → SUMMARY.
-- Auth tạm bằng header `X-Demo-Student`; ghi rõ trong code và PR rằng đây là tạm.
-
-**Xong khi:** test API với repository in-memory: gửi trùng `Idempotency-Key` không tạo event trùng; sai `state_version` → 409.
 
 ## T09 — Khung web app (Lane C, chạy song song được)
 

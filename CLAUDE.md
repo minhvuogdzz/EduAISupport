@@ -36,9 +36,9 @@ Tài liệu này dành cho mọi phiên Claude Code (local và cloud) làm việ
 
 11. **Tuyệt đối tách database test, demo và dữ liệu thật.** Không test, fixture, script seed hoặc migration nào được phép ghi vào `cavat_dev` hoặc `cavat_prod`.
 
-12. **Atlas integration test:** mọi test chạm MongoDB Atlas thật phải được đánh dấu `@pytest.mark.atlas`. Test Atlas chỉ được phép chạy trên database riêng **`cavat_test`**.
+12. **Atlas integration test:** mọi test chạm MongoDB Atlas thật phải được đánh dấu `@pytest.mark.atlas`. Test Atlas chỉ được phép chạy trên database riêng thuộc họ **`cavat_test`**: tên `cavat_test`, hoặc `cavat_test_<12 ký tự hex>` khi mỗi test dùng một database tạm riêng để cách ly (cách T07 đang làm).
 
-13. Test Atlas phải có safety guard xác nhận database hiện tại đúng là `cavat_test`; nếu database khác `cavat_test` thì test phải fail ngay trước khi thực hiện bất kỳ thao tác ghi nào.
+13. Test Atlas phải có safety guard dạng **allow-list**: chỉ chấp nhận tên khớp `cavat_test` hoặc `cavat_test_<12 ký tự hex>`; tên khác thì test phải fail ngay trước khi thực hiện bất kỳ thao tác ghi hoặc xóa nào. Không viết guard dạng deny-list có hard-code tên `cavat_dev`/`cavat_prod` (xem quy tắc 20).
 
 14. Test Atlas phải **tự dọn dữ liệu sau khi chạy**, kể cả khi assertion/test bị fail giữa chừng. Dùng fixture có cleanup trong `finally` hoặc cơ chế tương đương. Không để test data tồn dư làm ảnh hưởng lần chạy sau.
 
