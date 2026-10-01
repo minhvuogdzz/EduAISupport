@@ -48,225 +48,182 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 * [ ] Không có code test/seed chạm `cavat_dev` hoặc `cavat_prod`.
 * [ ] Với T07/T08: chủ repo đã chạy `make test` local trước merge.
 
-## Khung đã có
+## Đã có trên `main`
 
-| Đường dẫn | Trạng thái |
+| Phần | Trạng thái |
 |---|---|
 | `cavat/core/pedagogy.py` | Enum dùng chung: HintLevel, HintTarget, Move, Outcome, ErrorClass, ActivityType, ItemResolution |
-| `cavat/modules/content/lesson_package.py` | Model, loader, `validate_package` cho lesson YAML (có test smoke) |
-| `cavat/modules/assessment/vi_numbers.py`, `math_checker.py` | **Viết nháp, chưa có test**. T01 hoàn thiện |
-| `cavat/main.py`, `config.py`, `db.py` | Health check, settings, AsyncMongoClient |
-| `docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml` | Đặc tả bài 1, bản DRAFT |
-| Chưa có code | `cavat/modules/tutor/`, `cavat/modules/ai_gateway/` (chỉ có `__init__.py`), `evals/runners/`, `apps/web/` |
+| `cavat/core/events.py` | **Hợp đồng event**: `EventType` và payload có kiểu (QUESTION_SHOWN, ANSWER_SUBMITTED, EXPLANATION_SUBMITTED, POLICY_DECISION, HINT_DELIVERED, ITEM_RESOLVED...). Bên sinh event là T04, bên đọc là T10 |
+| `cavat/modules/tutor/contracts.py` | **Hợp đồng tutor**: `StudentSnapshot`, `ItemState`, `PolicyInput`, `PolicyDecision`, `RenderContext`, `RenderedMessage`, `MessageRenderer`, `ValidationResult`. T02, T03, T04, T06b dùng chung, **không định nghĩa lại** |
+| `cavat/modules/content/lesson_package.py` | Model, loader, `validate_package` cho lesson YAML |
+| `cavat/modules/assessment/` | Bộ đọc số vi-VN và bộ chấm Toán, bug rule M01–M05 (T01, 256 test) |
+| `cavat/core/repository.py`, `memory_db.py`, `db_guard.py`, `modules/*/repository.py` | Tầng MongoDB, repository theo module, guard cho test Atlas (T07) |
+| `apps/web` | Web app học sinh và giáo viên chạy mock API (T09) |
+| `docs/adr/ADR-017-model-roles-qwen-gemini.md` | **Qwen trên Groq là bộ não tutor**; Gemini chỉ cho ảnh/OCR và giọng nói |
+| `docs/poc/free-tier-quota.md` | Hạn mức free đo thật của Groq và Gemini, cách tắt suy luận của Qwen |
 
-## Sơ đồ phụ thuộc
+## Kế hoạch theo đợt
+
+Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy song song được vì chỉ phụ thuộc vào phần đã có trên `main` và vào hai file hợp đồng ở trên.
 
 ```text
-Lane A (lõi tutor, tuần tự):  T01 → T02 → T03 → T04 → T05 → T06
-Lane B (dữ liệu và API):      T07 → T08        (T08 cần thêm T04)
-Lane C (web):                 T09              (độc lập, dùng mock API)
-Lane D (đánh giá):            T10              (cần T04)
-Chạy song song được ngay:     T01, T07, T09
+Đợt 1 (mở ngay):        T02 policy · T03 renderer+validator · T06a gateway Groq/Gemini · T10 projector
+                        T11 make seed · T12 đăng nhập            (T11, T12 là phụ, mở khi còn quota)
+Đợt 2 (sau T02 + T03):  T04 item loop          · T06b LLM renderer + prompt gọn  (T06b cần thêm T06a)
+Đợt 3 (sau T04):        T05 học sinh ảo + POC 1 · T08 session API
+Đợt 4 (sau T08):        T13 nối web với API thật · T14 nhập tài liệu giáo viên · T15 giọng nói Toán
 ```
+
+**Thứ tự ưu tiên nếu hết quota:** T02, T03, T04, T05 (chứng minh được Socratic offline), sau đó T06a, T06b, T08, T13 (có buổi học chạy thật trên web), sau đó T10, các task còn lại.
+
+**Quy tắc riêng cho nhóm tutor:** dùng dataclass trong `tutor/contracts.py` và payload trong `core/events.py`. Nếu thấy hợp đồng thiếu, chỉ được **thêm trường có giá trị mặc định** và ghi rõ trong PR. Đổi tên hay xóa trường thì phải dừng và hỏi chủ dự án.
 
 ---
 
-## T01 — Hoàn thiện bộ đọc số và bộ chấm Toán (Lane A)
+## T02 — Tutor policy và hint engine (đợt 1)
 
-**Đọc:** blueprint 05 (PART 15), 06 (PART 18), ADR-010 trong 02; `lesson.yaml`.
+**Đọc:** blueprint 05 PART 15.2 (bảng luật R-*), 16.3; `tutor/contracts.py`.
 
-**Làm:**
+**Làm:** tạo `cavat/modules/tutor/policy.py` với `HintPolicyConfig` và hàm thuần `decide(inp: PolicyInput, cfg) -> PolicyDecision`.
 
-1. Viết test cho `vi_numbers.py` với các input: `"0,25"`, `"0.25"`, `"1.250"` (ambiguous), `"1.234,5"`, `"3/4"`, `"75%"`; kiểm tra thêm `extract_numbers` (có span) và `format_vi`.
-2. Viết test cho `math_checker.py` trên chính các item của `lesson.yaml`:
-
-   | Loại item | Trường hợp phải test |
-   |---|---|
-   | compare | `"<"` đúng; `">"` sai + DEC-M01 (0,25…0,3); `"0,3 > 0,25"` đúng (đảo chiều); `"0,25 lớn hơn 0,3"` → M01; gõ không dấu `"be hon"`; 0,4…0,45 `">"` → M02; 0,05…0,5 `"="` → M03 (không phải M01); 2,1…1,99 `"<"` → M04; 0,50…0,5 `">"` → M05 (không phải M01) |
-   | order (GP-06) | thứ tự đúng; thứ tự theo M01 → M01; chuỗi `">"` giảm dần vẫn được hiểu đúng |
-   | numeric (GP-07) | `"6"` đúng; `"1"` → M01 |
-   | choice (GP-08, GP-10) | `"Hoa ạ"` đúng (chữ "ạ" không bị hiểu thành phương án A); `"Lan"` → M01; `"gói kẹo A"` đúng |
-   | boolean (GP-09) | `"sai"`, `"không đúng"` đúng; `"đúng"` → M01 |
-   | intent | `""` → NO_RESPONSE; `"con không biết"` → HELP_REQUEST; `"cho con đáp án đi"` → ANSWER_DEMAND |
-
-3. Sửa lỗi test phát hiện được. Giữ nguyên API công khai: `check_answer(item, text, pkg) -> CheckResult`, `parse_relation`, `parse_verdict`, `rule_family`.
-
-**Xong khi:** ≥ 40 test pass, và mỗi bug rule M01–M05 có test cả trường hợp "khớp" lẫn "không áp dụng".
-
-## T02 — Tutor policy và hint engine (Lane A, sau T01)
-
-**Đọc:** blueprint 05 PART 15.2 (bảng luật R-*), PART 16.3.
-
-**Làm:** tạo `cavat/modules/tutor/policy.py` gồm:
-
-- **Dataclass:**
-  - `HintPolicyConfig`: mức gợi ý tối đa theo activity (CONCEPT_CHECK H3, GUIDED_PRACTICE H7, INDEPENDENT_PRACTICE H5, EXIT_ASSESSMENT H1); leo thang +1 mỗi lượt, +2 khi học sinh có cảm xúc tiêu cực; ngưỡng misconception 0.7; frustration sau 3 lượt không tiến triển hoặc 240 s; verify_rate 0.5.
-  - `StudentSnapshot`, `ItemState`, `PolicyInput`.
-  - `PolicyDecision(move, level, target, misconception_id, resolution, reason_codes, rule_ids)`.
-- **Hàm `decide(inp, cfg) -> PolicyDecision`:** tất định, thực thi các luật:
-
-  | Nhóm | Luật |
-  |---|---|
-  | Hết giờ | R-TIME |
-  | Trả lời đúng | R-CORRECT, R-VERIFY, R-TEACH-BACK |
-  | Cần xác nhận | R-CONFIRM |
-  | Im lặng | R-NO-RESPONSE (nhắc nhẹ tối đa 2 lần, sau đó H1) |
-  | Xin trợ giúp | R-HELP-REQUEST (lần đầu OFFER_CHOICE) |
-  | Không đọc được câu trả lời | R-REDIRECT |
-  | Kẹt lâu | R-FRUSTRATION (H6), sau đó R-FULL (H7) |
-  | Bài đánh giá cuối | R-ASSESS-CAP |
-  | Tính nhầm | R-SLIP |
-  | Có misconception rõ | R-MISC-HIGH (COGNITIVE_CONFLICT, nhảy tối đa +2 và ít nhất lên H2) |
-  | Sai lần đầu | R-FIRST-WRONG (PROBE), hoặc R-WEAK-PRIOR (H1) nếu học sinh yếu |
-  | Sai tiếp | R-ESCALATE |
-
-- Mỗi quyết định ghi `rule_ids`.
+- **`HintPolicyConfig`:** mức gợi ý tối đa theo activity (CONCEPT_CHECK H3, GUIDED_PRACTICE H7, INDEPENDENT_PRACTICE H5, EXIT_ASSESSMENT H1); leo thang +1 mỗi lượt, +2 khi học sinh có cảm xúc tiêu cực; ngưỡng misconception 0.7; frustration sau 3 lượt không tiến triển hoặc 240 s; verify_rate 0.5; nhắc khi im lặng tối đa 2 lần.
+- **Luật:** R-TIME, R-CORRECT, R-VERIFY, R-TEACH-BACK, R-CONFIRM, R-NO-RESPONSE, R-HELP-REQUEST (lần đầu OFFER_CHOICE), R-REDIRECT, R-FRUSTRATION (H6) rồi R-FULL (H7), R-ASSESS-CAP, R-SLIP, R-MISC-HIGH (COGNITIVE_CONFLICT, nhảy tối đa +2 và ít nhất lên H2), R-FIRST-WRONG (PROBE) hoặc R-WEAK-PRIOR (H1), R-ESCALATE. Mỗi quyết định ghi `rule_ids`.
 
 **Xong khi:**
-- Mỗi luật có ít nhất một test.
-- Không có đường nào vượt mức gợi ý tối đa của activity.
-- Resolution đúng với `resolution_for`: H0 → INDEPENDENT, ≤ H5 → SUPPORTED, H6–H7 → WORKED.
+- Mỗi luật có ít nhất một test, dựng `PolicyInput` bằng item thật của `lesson.yaml` và `CheckResult` từ `check_answer`.
+- Không có đường nào vượt mức gợi ý tối đa của activity (test tham số hóa trên mọi activity).
+- Resolution đúng `resolution_for`: H0 → INDEPENDENT, ≤ H5 → SUPPORTED, H6–H7 → WORKED.
 
-## T03 — Template renderer và output validator (Lane A, sau T02)
+## T03 — Template renderer và output validator (đợt 1)
 
-**Đọc:** PART 13.4, 14, 15.3; trong `lesson.yaml` xem hints, counter_examples, worked_solution, verify_prompt.
+**Đọc:** PART 13.4, 14, 15.3; `tutor/contracts.py`; trong `lesson.yaml` xem hints, counter_examples, worked_solution, verify_prompt.
 
 **Làm:**
+- **`tutor/renderer.py`**, `TemplateRenderer` implement `MessageRenderer`:
+  - Câu tiếng Việt cho mọi `Move`, xưng "cô" – "con".
+  - Chọn hint theo thứ tự: đúng (target, level) → cùng target mức thấp hơn → `generic_hints` → câu dự phòng. Ghi `hint_ref`.
+  - Điền `{left}`/`{right}` cho counter_examples. WORKED_GUIDANCE hiện mọi bước trừ bước cuối. FULL_EXPLANATION = explanation + mời học sinh nói lại.
+- **`tutor/validator.py`**, hàm `validate_message(text, ctx) -> ValidationResult` (khớp `MessageValidator`):
+  - ANSWER_LEAK: câu khẳng định "SỐ QUAN_HỆ SỐ" trùng đáp án, dạng "x = đáp án", `leak_patterns` trên văn bản đã bỏ dấu. Câu hỏi kiểu "số nào lớn hơn?" không phải lộ đáp án. Không kiểm tra lộ đáp án khi move là FULL_EXPLANATION.
+  - MULTIPLE_QUESTIONS, MISSING_QUESTION (theo `MOVES_REQUIRING_QUESTION`), TOO_LONG (> `ctx.max_words`), PII_REQUEST, INTELLIGENCE_PRAISE, UNGROUNDED_NUMBER, EMPTY.
 
-- **`tutor/renderer.py`**, `TemplateRenderer.render(ctx) -> RenderResult`:
-  - Sinh câu tiếng Việt cho mọi Move, xưng "cô" – "con".
-  - Chọn hint theo thứ tự: đúng (target, level) → cùng target mức thấp hơn → `generic_hints` → câu dự phòng.
-  - Điền `{left}`/`{right}` cho counter_examples.
-  - WORKED_GUIDANCE hiện mọi bước trừ bước cuối.
-  - FULL_EXPLANATION = explanation + mời học sinh nói lại.
-- **`tutor/validator.py`**, `validate_message(...) -> ValidationResult`, bắt các lỗi:
-  - **Lộ đáp án:** câu khẳng định "SỐ QUAN_HỆ SỐ" trùng đáp án đúng; dạng "x = đáp án"; khớp `leak_patterns` trên văn bản đã bỏ dấu. Câu hỏi kiểu "số nào lớn hơn?" **không** phải lộ đáp án.
-  - Nhiều hơn 1 dấu "?".
-  - Thiếu câu hỏi khi move yêu cầu.
-  - Dài hơn 60 từ.
-  - Hỏi thông tin cá nhân.
-  - Khen trí thông minh.
+**Xong khi:** render mọi cặp (item PRACTICE × move) đều qua validator (test tham số hóa, dùng `PolicyDecision` dựng tay nên không cần T02); có test lộ đáp án cả dương tính lẫn âm tính.
 
-**Xong khi:**
-- Render mọi cặp (item PRACTICE × move) đều không vi phạm validator, bằng test tham số hóa.
-- Có test lộ đáp án cả dương tính lẫn âm tính.
+## T06a — AI Gateway: Groq (Qwen, Whisper) và Gemini (ảnh) (đợt 1)
 
-## T04 — Item loop, state machine tầng 3 (Lane A, sau T03)
+**Đọc:** ADR-017, `docs/poc/free-tier-quota.md`, PART 11–12.
 
-**Đọc:** PART 16.2 (Item Tutoring Loop), 10.4 (event catalog).
+**Làm:**
+- **`ai_gateway/base.py`:** `ModelClass`, `ChatRequest`/`ChatResult` (có usage token), lỗi `QuotaExceeded` (kèm thời điểm reset nếu có), `ModelUnavailable`, `InvalidModelOutput`; `QuotaTracker` đọc header `x-ratelimit-*`.
+- **`ai_gateway/groq.py`:** gọi API tương thích OpenAI bằng `httpx`, không thêm SDK. Chat dùng `reasoning_effort: "none"` và `response_format` json_schema strict (cả hai đã được kiểm chứng). Từ chối gửi khi ước lượng prompt > 3.000 token. 429 → `QuotaExceeded`. Có `transcribe(audio, language="vi")` dùng `whisper-large-v3`.
+- **`ai_gateway/gemini.py`:** chỉ `describe_image(image_bytes, prompt)` cho ảnh hình học và đề bài chụp, google-genai 2.x với `thinking_level=LOW`. Không dùng Gemini cho chat.
+- **`ai_gateway/router.py`:** chọn theo `ModelClass`, chuỗi dự phòng (Qwen → gpt-oss-120b → báo cho bên gọi dùng câu mẫu), trần `MAX_LLM_CALLS_PER_SESSION`.
+- **`ai_gateway/fake.py`:** model giả có kịch bản, cho mọi test.
+- `make ai-ping`: gọi thử Groq và Gemini một lần bằng khóa trong `.env` (chạy ở máy local).
 
-**Làm:** tạo `tutor/item_loop.py` với `ItemTutor(item, package, activity, renderer, cfg, snapshot)`, có hai hàm `start()` và `on_student(text, seconds)`.
+**Xong khi:** test offline bằng `httpx.MockTransport` cho thấy: JSON hợp lệ được parse; 429 chuyển sang model dự phòng rồi báo dùng câu mẫu; prompt quá dài bị từ chối trước khi gửi; không file nào ngoài `ai_gateway/` import SDK hay URL của nhà cung cấp.
 
+## T10 — Assessment projector v1 (đợt 1)
+
+**Đọc:** blueprint 09 (PART 25–26 và DI-1…DI-14); `core/events.py`.
+
+**Làm:** `assessment/projector.py`, hàm thuần có `policy_version`:
+1. Đọc payload `ITEM_RESOLVED`, `ANSWER_SUBMITTED`, `EXPLANATION_SUBMITTED` (validate bằng `PAYLOAD_MODELS`) → evidence theo 7 chiều C, R, A, T, I, S, D.
+2. Evidence → phân phối Beta theo từng chiều; tính M (chuẩn hóa lại trọng số khi thiếu chiều), confidence (DI-11), trạng thái và các gate UNDERSTOOD, MASTERED, PROVISIONALLY_MASTERED.
+3. Ghi kết quả qua repository `evidence` và `student_kc_states` đã có (T07).
+
+**Xong khi:** golden test tất định trên chuỗi event dựng tay; cả 14 tình huống tối thiểu của alignment contract §9 có test; nhãn từ LLM có độ tin cậy thấp không thành evidence mạnh.
+
+## T11 — Lệnh `make seed` cho dữ liệu demo (đợt 1, phụ)
+
+**Đọc:** CLAUDE.md quy tắc 11–25. Đây là thay đổi về an toàn dữ liệu, phải ghi rõ trong PR.
+
+**Làm:** `python -m cavat.seed` với hai lệnh `make seed` và `make seed-clear`. Tạo 1 trường, 1 lớp, 1 giáo viên, 5 học sinh, 1 phụ huynh, 1 bài đã xuất bản từ `lesson.yaml`. Mọi bản ghi có `is_demo: true`; `seed-clear` chỉ xóa bản ghi `is_demo: true`. Chạy lại không tạo trùng.
+
+**Xong khi:** test bằng database in-memory: seed hai lần không trùng; clear không chạm bản ghi không có `is_demo`; không đường code nào khác gọi seed (startup, test, migration).
+
+## T12 — Đăng nhập học sinh và giáo viên (đợt 1, phụ)
+
+**Đọc:** PART 30.2, ADR-004; repository `users` (T07).
+
+**Làm:** học sinh đăng nhập bằng mã lớp + tên + PIN 6 số; giáo viên bằng email + mật khẩu (argon2id); cookie HttpOnly; khóa tạm sau 5 lần sai; giáo viên đặt lại PIN. Endpoint `/v1/auth/*` theo PART 29.
+
+**Xong khi:** test offline cho đăng nhập đúng, sai, bị khóa, cách ly giữa hai trường.
+
+## T04 — Item loop, state machine tầng 3 (đợt 2, sau T02 và T03)
+
+**Đọc:** PART 16.2, 10.4; `tutor/contracts.py`, `core/events.py`.
+
+**Làm:** `tutor/item_loop.py`, `ItemTutor(item, package, activity, renderer, validator, cfg, snapshot)` với `start()` và `on_student(text, seconds)`.
 - Các pha: AWAITING, AWAITING_CHOICE, AWAITING_CONFIRM, VERIFYING, TEACH_BACK, RESOLVED.
-- Áp dụng quyết định của policy vào `ItemState`.
-- Ghi transcript và event theo envelope PART 10.3, bản rút gọn, chưa cần DB: QUESTION_SHOWN, ANSWER_SUBMITTED, POLICY_DECISION, HINT_DELIVERED, MISCONCEPTION_DETECTED, TUTOR_MESSAGE_SENT, ITEM_RESOLVED.
-- Kiểm tra mọi tin nhắn gửi đi bằng validator.
+- Cập nhật `ItemState`; gọi `decide`; render; validate (lỗi thì retry một lần, rồi dùng câu mẫu dự phòng).
+- Sinh event bằng payload trong `core/events.py`, kết thúc mỗi câu bằng một `ITEM_RESOLVED` đầy đủ trường.
 
-**Xong khi:** có test hội thoại cho bốn kịch bản (học sinh mang M01, xin gợi ý, im lặng, trả lời đúng ngay); mọi item đều kết thúc và không lộ đáp án.
+**Xong khi:** test hội thoại cho bốn kịch bản (học sinh mang M01, xin gợi ý, im lặng, trả lời đúng ngay); mọi câu đều kết thúc, không lộ đáp án; mọi payload validate được bằng `PAYLOAD_MODELS`.
 
-## T05 — Học sinh ảo và runner POC 1 bằng template (Lane A, sau T04)
+## T06b — LLM renderer và prompt gọn (đợt 2, sau T03 và T06a)
 
-**Đọc:** PART 33 (POC 1), 45.2–45.3.
-
-**Làm:**
-
-- **`evals/synthetic_students.py`:** 6 profile (strong, average, weak, inconsistent, low_confidence, misconception_heavy). Tất định theo seed. Mỗi câu trả lời kèm "ý định thật" để đo độ chính xác chẩn đoán.
-- **`evals/runners/poc1.py`:** CLI `python -m evals.runners.poc1 --adapter template`.
-  - Chạy các item PRACTICE. Item nào kết thúc ở mức WORKED thì cho làm lại bằng item song sinh.
-  - Metrics: leak rate, question ratio, diagnosis accuracy (dùng `rule_family`), phân bố move/level/resolution, số lượt mỗi item.
-  - Xuất `evals/reports/*.json` và transcript Markdown để chủ dự án đọc.
-- Thêm `make poc1`.
-
-**Xong khi:**
-- Chạy hai lần cho kết quả giống hệt.
-- Leak = 0; question ratio ≥ 0.85; diagnosis ≥ 0.8 với profile misconception_heavy.
-
-## T06 — AI Gateway, Gemini adapter và LLM renderer (Lane A, sau T05)
-
-**Đọc:** PART 11, 12 (bảng model free-first, 12.6 fallback), 14 (prompt L1–L5).
+**Đọc:** PART 14, ADR-017 (giới hạn 8.000 token/phút của Groq).
 
 **Làm:**
+- `tutor/prompts/constitution.v1.md`, `math_g5.v1.md`; `tutor/prompt_builder.py` dựng prompt **≤ 3.000 token**: hiến chương ngắn, câu hỏi hiện tại, gợi ý mẫu liên quan làm điểm tựa, 4–6 lượt gần nhất, directive. Đáp án câu EXIT không bao giờ vào prompt.
+- `tutor/llm_renderer.py` implement `MessageRenderer`: PRESENT, CONFIRM_ADVANCE, CLOSE_ITEM, OFFER_CHOICE, ASK_CONFIRM luôn dùng câu mẫu; move khác gọi gateway → validator → retry 1 lần kèm lỗi → câu mẫu. Hết trần lượt gọi thì dùng câu mẫu.
+- Phân tích câu "vì sao" của học sinh thành `reasoning_quality` (đề xuất, có `label_confidence`).
 
-- **`ai_gateway/base.py`:**
-  - `ModelClass`, `TutorTurnOut` cùng JSON schema viết tay, **không có nullable** (dùng `""` và `-1` làm giá trị trống).
-  - Các lỗi `QuotaExceeded`, `ModelUnavailable`, `InvalidModelOutput`.
-- **`ai_gateway/gemini.py`** (google-genai 2.x, đã kiểm tra API):
-  - Gọi `genai.Client(api_key)` và `client.models.generate_content(model, contents, config=...)`.
-  - `config = types.GenerateContentConfig(system_instruction=..., response_mime_type="application/json", response_json_schema=..., thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW))`.
-  - `errors.ClientError` có code 429 → `QuotaExceeded`.
-  - Không đặt temperature.
-- **Prompt:**
-  - `tutor/prompts/constitution.v1.md`, `math_g5.v1.md`.
-  - `tutor/prompt_builder.py`: L1–L4 ổn định đặt trước, L5 directive đặt cuối. Đáp án item EXIT không bao giờ vào prompt.
-- **`tutor/llm_renderer.py`:**
-  - PRESENT, CONFIRM_ADVANCE, CLOSE_ITEM, OFFER_CHOICE, ASK_CONFIRM dùng template để tiết kiệm hạn mức.
-  - Các move khác gọi LLM → validate → nếu lỗi thì retry 1 lần kèm danh sách lỗi → vẫn lỗi thì fallback template.
-- **Runner:** thêm `--adapter gemini` và `--max-llm-calls` (mặc định 150) để giữ hạn mức free; thêm `make poc1-gemini`.
+**Xong khi:** test bằng model giả: lộ đáp án bị chặn rồi dùng câu mẫu; 429 dùng câu mẫu ngay; prompt dựng từ mọi item PRACTICE đều ≤ 3.000 token (ước lượng).
 
-**Xong khi:**
-- Test bằng fake model, không gọi mạng: lộ đáp án bị chặn và fallback; lỗi 429 → fallback ngay.
-- Chủ dự án tự chạy `make poc1-gemini` ở máy local, vì cloud không có key.
+## T05 — Học sinh ảo và runner POC 1 (đợt 3, sau T04)
 
-## T08 — Session API cho một lesson (Lane B, sau T04 và T07)
-
-**Đọc:** PART 24 (SessionContext), 29 (API).
+**Đọc:** PART 33 (POC 1), 45.2–45.3; `docs/poc/free-tier-quota.md`.
 
 **Làm:**
+- `evals/synthetic_students.py`: 6 profile (strong, average, weak, inconsistent, low_confidence, misconception_heavy), tất định theo seed, mỗi câu trả lời kèm "ý định thật".
+- `evals/runners/poc1.py`: `--renderer template|llm`, `--max-llm-calls` (mặc định 15). Chạy các câu PRACTICE, làm lại bằng câu song sinh khi kết thúc WORKED. Metrics: leak rate, question ratio, diagnosis accuracy (dùng `rule_family`), phân bố move/level/resolution, số lượt mỗi câu, số lần gọi LLM và token. Xuất `evals/reports/*.json` và transcript Markdown.
+- `make poc1` (câu mẫu, offline) và `make poc1-llm` (chạy local với khóa Groq).
 
-* **Endpoint FastAPI:**
+**Xong khi:** chạy hai lần cho kết quả giống hệt; leak = 0; question ratio ≥ 0.85; diagnosis ≥ 0.8 với profile misconception_heavy.
 
-  * `POST /v1/sessions` (tạo session demo)
-  * `POST /v1/sessions/{id}/join`
-  * `POST /v1/sessions/{id}/responses` (có `Idempotency-Key` và `expected_state_version`)
-  * `POST /v1/sessions/{id}/hint-requests`
-  * `GET /v1/sessions/{id}/state`
-  * `GET /v1/sessions/{id}/stream` (SSE)
-* Chạy item loop theo activity plan tối giản: CONCEPT_CHECK → GUIDED_PRACTICE → EXIT_ASSESSMENT → SUMMARY.
-* Auth tạm bằng header `X-Demo-Student`; ghi rõ trong code và PR rằng đây là tạm.
-* API test mặc định dùng repository in-memory và không cần Atlas.
-* Nếu bổ sung API integration test với Atlas thì test phải đánh dấu `@pytest.mark.atlas`, chỉ sử dụng `cavat_test`, có safety guard và cleanup.
-* `POST /v1/sessions` tạo session demo không đồng nghĩa với auto-seed database; test/demo fixture phải chủ động tạo dữ liệu trong test hoặc thông qua `make seed` theo đúng policy.
-* Không được để API startup hoặc test startup tự tạo demo data vào `cavat_dev`.
+## T08 — Session API cho một bài (đợt 3, sau T04 và T07)
 
-**Xong khi:**
+**Đọc:** PART 24 (SessionContext), 29 (API); phần giả định ở cuối `apps/web/README.md` (web đang chờ API khớp các giả định đó).
 
-* Test API với repository in-memory: gửi trùng `Idempotency-Key` không tạo event trùng; sai `state_version` → 409.
-* Có thể chạy test toàn bộ offline trong cloud.
-* Nếu có Atlas integration test: chỉ chạy trên `cavat_test`, có safety guard và cleanup.
-* Không có đường code nào tự động ghi demo/test data vào `cavat_dev` hoặc `cavat_prod`.
-* Chủ repo chạy `make test` local trước khi merge PR.
+**Làm:**
+- **Endpoint FastAPI:** `POST /v1/sessions` (tạo buổi demo), `POST /v1/sessions/{id}/join`, `POST /v1/sessions/{id}/responses` (có `Idempotency-Key` và `expected_state_version`), `POST /v1/sessions/{id}/hint-requests`, `POST /v1/sessions/{id}/choices`, `GET /v1/sessions/{id}/state`, `GET /v1/sessions/{id}/stream` (SSE).
+- Chạy item loop theo activity plan tối giản: CONCEPT_CHECK → GUIDED_PRACTICE → EXIT_ASSESSMENT → SUMMARY.
+- Auth tạm bằng header `X-Demo-Student` nếu T12 chưa xong; ghi rõ là tạm.
+- Test API mặc định dùng database in-memory. Test Atlas (nếu có) phải theo quy tắc 12–14. Không tự tạo dữ liệu demo khi startup.
 
-## T09 — Khung web app (Lane C, chạy song song được)
+**Xong khi:** gửi trùng `Idempotency-Key` không tạo event trùng; sai `state_version` → 409; toàn bộ test chạy offline; chủ repo chạy `make test` ở máy local trước khi gộp (quy tắc 22).
 
-**Làm:** tạo `apps/web` bằng React + TypeScript + Vite (pnpm).
+## T13 — Nối web với API thật (đợt 4, sau T08)
 
-- **Màn hình học sinh:** câu hỏi, ô trả lời, nút xin gợi ý, khung hội thoại, hiển thị số kiểu 0,25.
-- **Màn hình giáo viên:** xem transcript.
-- Gọi API qua client sinh từ OpenAPI, hoặc dùng mock nếu T08 chưa xong.
-- Chữ to, dễ đọc cho trẻ 10–11 tuổi.
-- Thêm `make web`.
+**Làm:** theo mục "Nối API thật" trong `apps/web/README.md`: sinh kiểu từ OpenAPI, viết `HttpSessionApi`, chọn mock hoặc HTTP bằng biến môi trường, chỉ import mock khi dùng mock.
 
-**Xong khi:** `pnpm build` pass và app chạy được với mock.
+**Xong khi:** `make web-check` xanh; một buổi học chạy hết từ web tới API ở máy local.
 
-## T10 — Assessment projector v1 (Lane D, sau T04)
+## T14 — Nhập tài liệu giáo viên (đợt 4)
 
-**Đọc:** blueprint 09 (PART 25–26 và các DI-1…DI-14).
+**Đọc:** PART 22; ADR-017 (LlamaParse cho PDF/PPTX, Gemini vision cho trang scan và hình vẽ).
 
-**Làm:** tạo `assessment/projector.py`, là hàm thuần có `policy_version`, đi qua các bước:
+**Làm:** pipeline tải lên → LlamaParse → bản nháp `LessonPackage` (LLM Qwen dựng cấu trúc, ≤ 3.000 token mỗi lần, chia theo trang) → `MathChecker` kiểm tra đáp án → giáo viên duyệt. Ảnh hình học đi qua `describe_image` của Gemini.
 
-1. Event → evidence theo 7 chiều C, R, A, T, I, S, D.
-2. Evidence → phân phối Beta theo từng chiều.
-3. Tính M, chuẩn hóa lại trọng số khi thiếu chiều.
-4. Tính confidence (DI-11).
-5. Suy ra trạng thái và các gate UNDERSTOOD, MASTERED, PROVISIONALLY_MASTERED.
+**Xong khi:** test offline bằng output LlamaParse đã ghi sẵn; bản nháp qua `validate_package` hoặc báo đúng lỗi.
 
-**Xong khi:** golden test cho kết quả tất định, và cả 14 tình huống tối thiểu của alignment contract §9 đều có test.
+## T15 — Giọng nói cho Toán (đợt 4)
+
+**Đọc:** PART 20.2; kết quả Whisper trong `docs/poc/free-tier-quota.md`.
+
+**Làm:** bộ chuẩn hóa phát ngôn toán tiếng Việt (sửa "bớ" → "bé", "phần 10" → "phần mười", "phẩy"...), xác nhận lại câu trả lời bằng giọng nói trước khi chấm, Whisper qua gateway.
+
+**Xong khi:** test offline trên bộ transcript mẫu; câu trả lời bằng giọng nói chỉ thành evidence sau khi học sinh xác nhận.
 
 ---
 
 ## Việc của chủ dự án (làm ở máy local, không giao cloud)
 
-- [ ] Chép credentials Atlas vào `services/api/.env` (lệnh ở README), rồi chạy `make setup` và `make db-ping`.
-- [ ] Duyệt `docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml` (misconception, gợi ý, bài song sinh) và các DI ở blueprint 09.
-- [ ] Tạo Gemini API key trên AI Studio, ghi hạn mức free tier vào `docs/poc/free-tier-quota.md`.
-- [ ] Sau khi T06 merge: chạy `make poc1-gemini` và đọc transcript trong `evals/reports/`.
+- [x] Chép credentials Atlas vào `services/api/.env`, `make setup`, `make db-ping`.
+- [x] Khóa Groq, Gemini, LlamaCloud trong `services/api/.env` (đã kiểm tra hoạt động ngày 2026-10-01).
+- [ ] Duyệt `docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml` và các DI ở blueprint 09.
+- [ ] Chụp phần còn lại của bảng hạn mức Gemini (`gemini-3.8-live` và các dòng bị cắt).
+- [ ] Hỏi luật sư về điều khoản tuổi của Google và Groq (xem cuối `docs/poc/free-tier-quota.md`).
+- [ ] Sau T05: chạy `make poc1-llm` và đọc transcript trong `evals/reports/`.
