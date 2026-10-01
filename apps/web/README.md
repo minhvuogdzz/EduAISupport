@@ -1,15 +1,23 @@
-# apps/web — Web app CAVAT (T09)
+# apps/web — Web app CAVAT (T09, T13)
 
-Khung web app React + TypeScript + Vite cho hai màn hình của vertical slice: **học sinh** học một buổi với tutor, **giáo viên** xem transcript. Vì session API (T08) chưa có, app đang chạy bằng **mock API trong trình duyệt**.
+Web app React + TypeScript + Vite cho hai màn hình của vertical slice: **học sinh** học một buổi với tutor, **giáo viên** xem transcript. App chạy được ở hai chế độ: **mock API trong trình duyệt** (mặc định, không cần backend) và **API thật** của `services/api`.
 
 ## Chạy
 
 Yêu cầu: Node ≥ 22.13 (khuyên dùng Node 22 LTS) và pnpm 10. Bật pnpm bằng `corepack enable`.
 
 ```bash
-make web        # cài dependency theo lockfile, mở dev server ở http://localhost:5173
+make web        # mock API trong trình duyệt, dev server ở http://localhost:5173
+make web-live   # API thật; trước đó chạy `make api` hoặc `make api-memory` ở một terminal khác
 make web-check  # lint + type-check + test + build, giống job `web` của CI
 ```
+
+Hai cách chạy backend cho `make web-live`:
+
+- `make api`: database MongoDB Atlas trong `.env` (`cavat_dev`). Buổi học được lưu lại.
+- `make api-memory`: database trong bộ nhớ. Không ghi gì lên Atlas, dừng server là mất hết; dùng để thử nhanh.
+
+Muốn Qwen diễn đạt lời gợi ý thì đặt `TUTOR_RENDERER=llm` trong `services/api/.env`; mặc định backend chỉ dùng câu mẫu.
 
 Trong `apps/web` có thể gọi trực tiếp: `pnpm dev`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm format`.
 
@@ -38,6 +46,8 @@ Quy ước hiển thị:
 src/
   api/contract.ts    Kiểu dữ liệu của session API (PART 29, 10.3, 24.2), viết tay tới khi T08 có OpenAPI
   api/client.ts      Interface SessionApi: màn hình chỉ nói chuyện với interface này; ApiError
+  api/http/          SessionApi qua HTTP tới services/api (xem mục "API thật")
+  api/index.ts       Chọn mock hay HTTP lúc build theo biến VITE_API
   api/mock/          Mock API chạy trong trình duyệt (xem mục dưới)
   features/student/  Màn hình học sinh; tutorSession.ts là reducer ghép snapshot với stream
   features/teacher/  Màn hình giáo viên
@@ -57,17 +67,28 @@ Test (`pnpm test`, Vitest + Testing Library): enum của contract khớp `servic
 - **Bundle không chứa đáp án câu EXIT:** plugin `vite-plugins/mockLesson.ts` chỉ giữ loại câu trả lời và nhãn lựa chọn của câu EXIT; mock ghi nhận câu trả lời EXIT mà không chấm. Câu luyện tập vẫn có đáp án trong bundle vì mock cần để chấm, nên **bản build hiện tại chỉ dùng để thử nghiệm**.
 - Dữ liệu nằm trong `localStorage` của trình duyệt: tab học sinh và tab giáo viên trên cùng máy thấy cùng dữ liệu, tải lại trang thì buổi học tiếp tục đúng chỗ. Lần đầu mở có sẵn 2 buổi mẫu (Minh đã xong, Lan đang học). Nút "Tạo lại dữ liệu demo" ở trang giáo viên xóa và tạo lại.
 
-## Nối API thật (sau T08)
+## API thật (T13)
 
-1. Sinh kiểu TypeScript từ OpenAPI của FastAPI (ví dụ `openapi-typescript`) và thay dần `src/api/contract.ts`.
-2. Viết `HttpSessionApi` implement `SessionApi`: `fetch` cho command, `EventSource` cho `/stream`, lỗi `{ "error": { "code", "message", "details" } }` thành `ApiError`. Chọn giữa mock và HTTP bằng biến môi trường trong `src/api/index.ts`; thêm `server.proxy` cho `/v1` trong `vite.config.ts`.
-3. Chỉ import mock khi dùng mock (dynamic import), để bản build thật không mang theo đáp án câu luyện tập.
+`make web-live` đặt `VITE_API=http` lúc build, khi đó `src/api/index.ts` dùng `createHttpApi` (`src/api/http/httpApi.ts`) thay cho mock. Dev server chuyển tiếp `/v1` tới `http://127.0.0.1:8000` (`vite.config.ts`); nếu API ở địa chỉ khác thì đặt `VITE_API_URL`.
 
-Những điểm web app đang giả định, cần T08 xác nhận hoặc đổi:
+- **Danh tính tạm (chờ T12):** mỗi trình duyệt tự sinh một mã học sinh, lưu ở `localStorage` (`cavat.demo.student-id`) và gửi qua header `X-Demo-Student`. Màn hình giáo viên gửi `X-Demo-Teacher`. Đây chưa phải đăng nhập.
+- **Chưa có SSE:** backend chưa có `GET /v1/sessions/{id}/stream`. Sau mỗi lệnh, client đọc `GET /state` rồi tự phát `tutor.delta` … `tutor.final` và `state` cho màn hình, đúng thứ tự mà stream thật sẽ dùng. Khi có SSE chỉ cần đổi trong `httpApi.ts`.
+- **Lỗi:** body `{ "error": { "code", "message", "details" } }` thành `ApiError`; lỗi khác (API chưa chạy, proxy trả 502) thành lỗi thường và màn hình báo "Chưa gửi được".
+- **Bản build cho API thật không chứa mock và đáp án:** mock chỉ được import động khi dùng mock. Đã kiểm tra bundle của `VITE_API=http pnpm build` không có chuỗi nào của mock.
+- **Transcript của giáo viên** có thêm nhãn "AI diễn đạt" ở lượt do LLM viết lời (nước đi vẫn do policy chọn) và "Câu dự phòng" khi cả LLM lẫn câu mẫu không qua bộ kiểm tra.
 
-- Mọi command đổi state, kể cả `/hint-requests` và `/choices`, đều mang `expected_state_version` (PART 29.1). PART 29.2 mới ghi trường này cho `/responses`.
-- `SessionState` có `allowed_commands`, `pending_choice`, `item.expecting` (ANSWER hoặc EXPLANATION), `item.answer_format` và `item.options` (không kèm đúng/sai).
-- Lựa chọn SMALL/EXAMPLE sau OFFER_CHOICE đi qua `POST /choices`.
+Đã chạy tay (2026-10-01): một buổi học 8 câu từ trình duyệt tới API với Qwen thật, gồm trả lời sai, xin gợi ý và chọn "Cho con gợi ý", câu hỏi tách nguyên nhân ở GP-08, hỏi "vì sao", tổng kết, rồi xem danh sách và transcript ở màn hình giáo viên.
+
+Còn thiếu:
+
+- `src/api/contract.ts` vẫn viết tay, chưa sinh từ OpenAPI của FastAPI.
+- SSE, đăng nhập thật, ghi audit khi giáo viên xem transcript, lọc danh sách buổi học theo lớp.
+
+Các giả định trước đây của web app, nay backend đã làm theo:
+
+- Mọi command đổi state, kể cả `/hint-requests` và `/choices`, đều mang `expected_state_version`.
+- `SessionState` có `allowed_commands`, `pending_choice`, `item.expecting`, `item.answer_format` và `item.options` (không kèm đúng/sai).
+- Lựa chọn sau OFFER_CHOICE đi qua `POST /choices`. Backend dùng hai lựa chọn `HINT` ("Cho con gợi ý") và `RETRY` ("Con tự thử lại"); mock vẫn dùng SMALL/EXAMPLE.
 - `Idempotency-Key` được kiểm tra trước các kiểm tra khác, để lệnh gửi lại nhận đúng kết quả cũ thay vì 409.
-- Giáo viên cần endpoint danh sách buổi học (chưa có trong PART 29), ví dụ `GET /v1/sessions?class_id=…`.
-- Micro choice cần một event type: PART 24.3 nói lựa chọn được ghi event nhưng PART 10.4 chưa có; mock tạm dùng `CHOICE_MADE`.
+- Giáo viên có `GET /v1/sessions` và `GET /v1/sessions/{id}/transcript`.
+- Lựa chọn của học sinh được ghi bằng event `CHOICE_MADE`.

@@ -1,10 +1,18 @@
 import type { SessionApi } from "./client";
-import { createMockApi } from "./mock/mockApi";
+import { createHttpApi } from "./http/httpApi";
 
 /**
- * The API the app talks to. Only the in-browser mock exists until T08 ships the session API; then add
- * an HTTP implementation of SessionApi here and pick it with an env flag (apps/web/README.md).
+ * The API the app talks to, chosen at build time:
+ * - `VITE_API=http`: the session API of services/api, through the dev proxy or `VITE_API_URL`;
+ * - anything else: the in-browser mock.
+ *
+ * The mock is imported only when it is used, so a build for the real API carries neither the mock tutor
+ * nor the answers of the practice items.
  */
-export function createApi(): SessionApi {
+export async function createApi(): Promise<SessionApi> {
+  if (import.meta.env.VITE_API === "http") {
+    return createHttpApi({ baseUrl: import.meta.env.VITE_API_URL ?? "" });
+  }
+  const { createMockApi } = await import("./mock/mockApi");
   return createMockApi();
 }
