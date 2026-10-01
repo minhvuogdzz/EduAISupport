@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  /* Lexend: designed for reading fluency; ships Vietnamese glyphs (self-hosted, no CDN). */
+  --font-sans: "Lexend Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-4 outline-offset-2 outline-sky-500;
+  }
+}

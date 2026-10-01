@@ -17,6 +17,7 @@ Tài liệu này dành cho mọi phiên Claude Code (local và cloud) làm việ
 ## Chạy dự án
 
 - Python 3.11+, venv ở `services/api/.venv`. Lệnh: `make setup`, `make test`, `make lint`, `make fmt`, `make api`, `make db-ping`.
+- Web app ở `apps/web` (React + TypeScript + Vite, pnpm, Node ≥ 22.13): `make web` (dev server, mock API), `make web-check` (lint + test + build, như job `web` của CI). Đọc `apps/web/README.md` trước khi sửa.
 - Secret nằm ở `services/api/.env` (gitignore; mẫu ở `.env.example`). Phiên cloud **không có** secret, nên test phải chạy offline, không cần Atlas hay Gemini. Test cần Atlas thật đánh dấu `@pytest.mark.atlas` và tự skip khi thiếu `MONGODB_URI`.
 
 ## Quy tắc thiết kế không được vi phạm

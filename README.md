@@ -42,6 +42,12 @@ make test
 make api
 ```
 
+Web app (học sinh và giáo viên, đang chạy bằng mock API) cần Node ≥ 22.13 và pnpm (`corepack enable`). Mở ở http://localhost:5173:
+
+```bash
+make web
+```
+
 ## Tài liệu
 
 - **Bắt đầu từ đây:** [docs/blueprint/00-START-HERE.md](docs/blueprint/00-START-HERE.md). Gồm audit, Q1–Q18 và mục lục 48 PART.
