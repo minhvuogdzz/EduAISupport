@@ -65,19 +65,56 @@ def test_hint_exact_target_and_level():
     assert msg.text == next(h.text for h in PKG.item("GP-02").hints if h.level == HintLevel.H4)
 
 
-def test_hint_falls_back_to_same_target_lower_level():
-    msg, _ = render("GP-01b", Move.HINT, target=HintTarget.STEP, level=HintLevel.H5)
-    assert (msg.source, msg.hint_ref) == ("TEMPLATE", "GP-01b:STEP:H4")
+def test_hint_at_the_level_wins_over_the_target():
+    """The owner's trial: STEP at H1 gave the fixed fallback sentence although GP-01 has a level 1 hint."""
+    msg, ctx = render("GP-01", Move.HINT, target=HintTarget.STEP, level=HintLevel.H1)
+    assert (msg.source, msg.hint_ref) == ("TEMPLATE", "GP-01:TASK:H1")
+    assert validate_message(msg.text, ctx).ok
+    # Asking for more help after the level 2 concept hint must not give that sentence again.
+    stronger, _ = render("GP-01", Move.HINT, target=HintTarget.CONCEPT, level=HintLevel.H3)
+    assert (stronger.source, stronger.hint_ref) == ("TEMPLATE", "GP-01:STRATEGY:H3")
 
 
-def test_hint_falls_back_to_generic_hints():
+def test_hint_falls_back_to_the_generic_hint_at_that_level():
+    # GP-01b has hints at levels 1, 2 and 4 only.
     msg, _ = render("GP-01b", Move.HINT, target=HintTarget.STRATEGY, level=HintLevel.H3)
     assert (msg.source, msg.hint_ref) == ("GENERIC", "GENERIC:STRATEGY:H3")
+    top, _ = render("GP-01b", Move.HINT, target=HintTarget.STEP, level=HintLevel.H5)
+    assert (top.source, top.hint_ref) == ("GENERIC", "GENERIC:STEP:H5")
+
+
+def test_hint_falls_back_to_the_strongest_lower_level():
+    no_generic = PKG.model_copy(update={"generic_hints": []})
+    hint, source, ref = select_hint(PKG.item("GP-01b"), no_generic, HintTarget.STRATEGY, HintLevel.H3)
+    assert (source, ref) == ("TEMPLATE", "GP-01b:CONCEPT:H2")
+    hint, source, ref = select_hint(PKG.item("GP-01b"), no_generic, HintTarget.STEP, HintLevel.H7)
+    assert (source, ref) == ("TEMPLATE", "GP-01b:STEP:H4")
+    bare = PKG.item("GP-01b").model_copy(update={"hints": []})
+    hint, source, ref = select_hint(bare, PKG, HintTarget.STEP, HintLevel.H7)
+    assert (source, ref) == ("GENERIC", "GENERIC:STEP:H5")
+
+
+def test_self_check_and_format_hints_are_chosen_by_target():
+    # R-SLIP asks for SELF_CHECK at H1: the item's level 1 TASK hint would be the wrong kind of help.
+    msg, _ = render("GP-01", Move.HINT, target=HintTarget.SELF_CHECK, level=HintLevel.H1)
+    assert (msg.source, msg.hint_ref) == ("GENERIC", "GENERIC:SELF_CHECK:H1")
+    fmt, _ = render("GP-01", Move.HINT, target=HintTarget.FORMAT, level=HintLevel.H3)
+    assert fmt.hint_ref == "GENERIC:FORMAT:H1"
+    # ...and such a hint is never used for a step of the ladder.
+    bare = PKG.item("GP-01").model_copy(update={"hints": []})
+    hint, _, ref = select_hint(bare, PKG, HintTarget.STEP, HintLevel.H1)
+    assert ref == "GENERIC:TASK:H1"
 
 
 def test_hint_falls_back_to_fixed_sentence():
-    # GP-01 has CONCEPT only at H2 and the generic CONCEPT hint is H2 too, so nothing fits H1.
-    msg, ctx = render("GP-01", Move.HINT, target=HintTarget.CONCEPT, level=HintLevel.H1)
+    # Nothing approved at or below the level: an item without hints in a lesson without generic hints.
+    bare = PKG.item("GP-01").model_copy(update={"hints": []})
+    no_generic = PKG.model_copy(update={"generic_hints": []})
+    assert select_hint(bare, no_generic, HintTarget.CONCEPT, HintLevel.H3) is None
+    state = ItemState(item_id=bare.id, activity=ActivityType.GUIDED_PRACTICE)
+    decision = PolicyDecision(move=Move.HINT, target=HintTarget.CONCEPT, level=HintLevel.H3)
+    ctx = RenderContext(decision=decision, item=bare, package=no_generic, state=state)
+    msg = TemplateRenderer().render(ctx)
     assert (msg.source, msg.hint_ref) == ("FALLBACK", None)
     assert validate_message(msg.text, ctx).ok
 

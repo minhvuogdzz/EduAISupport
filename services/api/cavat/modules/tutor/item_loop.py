@@ -78,9 +78,10 @@ PROBE_CONFIDENCE = 0.8
 PROBE_CORRECT_ERROR = ErrorClass.REASONING
 
 # Outcomes that show no progress on the item (R-FRUSTRATION counts them; silence too, DI).
-_UNPRODUCTIVE = frozenset(
-    {Outcome.WRONG, Outcome.UNPARSEABLE, Outcome.NO_RESPONSE, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND}
-)
+# DI, approved by the owner on 2026-10-01: asking for help is not one of them. In the owner's trial two
+# wrong answers followed by "Xin gợi ý" jumped straight to the worked solution; the request must get the
+# next hint instead. (Help requests still feed the negative-affect signal of R-ESCALATE.)
+_UNPRODUCTIVE = frozenset({Outcome.WRONG, Outcome.UNPARSEABLE, Outcome.NO_RESPONSE})
 _HELP = frozenset({Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
 
 # Fixed fallback sentence (renderer.PHRASES key) used when a message fails the validator twice.
@@ -103,6 +104,7 @@ class Phase(StrEnum):
     AWAITING_CHOICE = "AWAITING_CHOICE"  # "gợi ý thêm hay tự thử lại?" after OFFER_CHOICE
     AWAITING_CONFIRM = "AWAITING_CONFIRM"  # a clearer answer after ASK_CONFIRM
     AWAITING_PROBE = "AWAITING_PROBE"  # the comparison that separates two causes (lesson.yaml `probe`)
+    AWAITING_REASON = "AWAITING_REASON"  # the student's account of the method after "con làm thế nào?"
     VERIFYING = "VERIFYING"  # the "vì sao" after a correct answer (R-VERIFY)
     TEACH_BACK = "TEACH_BACK"  # the student retells the method after H6/H7 (R-TEACH-BACK)
     RESOLVED = "RESOLVED"
@@ -209,6 +211,8 @@ class ItemTutor:
             return self._on_explanation(text)
         if self.phase == Phase.AWAITING_PROBE:
             return self._on_probe(text, seconds)
+        if self.phase == Phase.AWAITING_REASON:
+            return self._on_reason(text, seconds)
 
         check = self._check(text)
         if self.phase == Phase.AWAITING_CHOICE and check.outcome in _HELP and self._offer is not None:
@@ -303,6 +307,30 @@ class ItemTutor:
         check = CheckResult(intent) if intent is not None else None
         return self._act(self._decide("EXPLANATION", check), text)
 
+    def _on_reason(self, text: str, seconds: float) -> TutorTurn:
+        """The reply to "con đã làm thế nào?" (R-FIRST-WRONG).
+
+        It is the student's account of the method, not a new attempt (DI, approved by the owner on
+        2026-10-01). Restating the same wrong answer ("thì nó bằng thật mà"), or words the checker cannot
+        read as an answer, are recorded as an explanation and the tutor goes on to the first hint: no
+        second wrong attempt, no unproductive turn. A correct answer, a different answer, silence and a
+        request for help are handled as on any other turn.
+        """
+        check = self._check(text)
+        last = self._last_graded
+        restated = (
+            last is not None
+            and check.outcome in (Outcome.WRONG, Outcome.PARTIAL)
+            and check.normalized == last.normalized
+        )
+        if last is None or not (restated or check.outcome == Outcome.UNPARSEABLE):
+            self._record_answer(check, text, seconds)
+            trigger: TurnTrigger = "HINT_REQUEST" if check.outcome in _HELP else "ANSWER"
+            return self._act(self._decide(trigger, check), text)
+        self._emit(EventType.EXPLANATION_SUBMITTED, ExplanationSubmitted(item_id=self.item.id, text=text))
+        self._last_check = last
+        return self._act(self._decide("ANSWER", last), text)
+
     def _on_probe(self, text: str, seconds: float) -> TutorTurn:
         """Read the probe comparison and attribute ``if_wrong`` or ``if_correct`` (GP-08, GP-08b)."""
         option = self._probe_option
@@ -384,6 +412,8 @@ class ItemTutor:
             if self._probe_option is not None:
                 # The renderer finds the probe from the option named in the student text.
                 student_text = self._probe_option.text
+        if d.move == Move.PROBE and self._probe_option is None:
+            st.probes_sent += 1  # R-FIRST-WRONG asks "con làm thế nào?" once per item
 
         msg, attempts = self._render(d, student_text)
         if d.move in HINT_MOVES and d.level is not None and msg.source != "FALLBACK":
@@ -432,8 +462,8 @@ class ItemTutor:
             return Phase.AWAITING_CHOICE
         if d.move == Move.ASK_CONFIRM:
             return Phase.AWAITING_CONFIRM
-        if d.move == Move.PROBE and self._probe_option is not None:
-            return Phase.AWAITING_PROBE
+        if d.move == Move.PROBE:
+            return Phase.AWAITING_PROBE if self._probe_option is not None else Phase.AWAITING_REASON
         if d.move in (Move.TEACH_BACK, Move.FULL_EXPLANATION):
             # H7 already ends with "nói lại cách làm": its reply is the teach-back (PART 16.2 WORKED).
             self._explanation_asked = True
