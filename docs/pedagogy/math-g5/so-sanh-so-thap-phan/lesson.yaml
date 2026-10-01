@@ -123,7 +123,7 @@ misconceptions:
 
 # Gợi ý dự phòng dùng chung (khi câu hỏi chưa có gợi ý đúng mức).
 generic_hints:
-  - {target: TASK, level: 1, text: "Đề bài muốn mình so sánh những số nào? Con đọc to các số đó giúp cô nhé?"}
+  - {target: TASK, level: 1, text: "Con đọc to giúp cô: đề bài muốn mình so sánh những số nào?"}
   - {target: CONCEPT, level: 2, text: "Khi so sánh hai số thập phân, mình so sánh phần nào trước: phần nguyên hay phần thập phân?"}
   - {target: STRATEGY, level: 3, text: "Con thử so sánh theo thứ tự: phần nguyên trước, rồi lần lượt hàng phần mười, hàng phần trăm xem?"}
   - {target: STEP, level: 4, text: "Bước đầu tiên là so sánh phần nguyên. Phần nguyên của các số là mấy, có bằng nhau không?"}
@@ -547,7 +547,7 @@ items:
       wrong_answers: {"true": DEC-M01}
     verify_prompt: "Đúng rồi! Con giải thích giúp cô bạn An nhầm ở chỗ nào được không?"
     hints:
-      - {target: TASK, level: 1, text: "Bạn An đang so sánh hai số nào? Con kiểm tra lại phép so sánh của bạn ấy giúp cô nhé?"}
+      - {target: TASK, level: 1, text: "Con xem bạn An đang so sánh hai số nào, rồi kiểm tra lại phép so sánh của bạn ấy giúp cô nhé?"}
       - {target: CONCEPT, level: 2, text: "Khi so sánh 0,25 và 0,3, mình có được so sánh 25 với 3 như so sánh số tự nhiên không?"}
       - {target: STRATEGY, level: 3, text: "Con thử viết 0,3 thành 0,30 rồi so sánh 0,25 với 0,30 xem kết quả có giống bạn An không?"}
       - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,25 có chữ số 2, còn 0,3 có chữ số 3. Vậy 0,25 có lớn hơn 0,3 như bạn An nói không?"}
@@ -572,7 +572,7 @@ items:
       requires_explanation: true
       wrong_answers: {"true": DEC-M01}
     hints:
-      - {target: TASK, level: 1, text: "Bạn Bình đang so sánh hai số nào? Con kiểm tra lại phép so sánh của bạn ấy giúp cô nhé?"}
+      - {target: TASK, level: 1, text: "Con xem bạn Bình đang so sánh hai số nào, rồi kiểm tra lại phép so sánh của bạn ấy giúp cô nhé?"}
       - {target: CONCEPT, level: 2, text: "Khi so sánh 0,6 và 0,45, mình có được so sánh 6 với 45 như số tự nhiên không?"}
       - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,6 có chữ số 6, còn 0,45 có chữ số 4. Vậy 0,6 có bé hơn 0,45 như bạn Bình nói không?"}
     worked_solution:

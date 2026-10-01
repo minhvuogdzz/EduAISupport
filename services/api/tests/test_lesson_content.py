@@ -150,6 +150,13 @@ def test_probe_questions_separate_their_two_causes():
             assert PKG.misconception(probe.if_correct).kc_id != "KC-DEC-CMP"
 
 
+def test_every_hint_asks_at_most_one_question():
+    hints = [(i.id, h.text) for i in ITEMS for h in i.hints]
+    hints += [("generic", h.text) for h in PKG.generic_hints]
+    for owner, text in hints:
+        assert text.count("?") <= 1, f"{owner}: {text!r}"
+
+
 def test_generic_hints_do_not_assume_equal_integer_parts():
     for h in PKG.generic_hints:
         assert "phần nguyên bằng nhau thì" not in lower(h.text), h.text
