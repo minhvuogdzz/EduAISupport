@@ -32,6 +32,50 @@ Tài liệu này dành cho mọi phiên Claude Code (local và cloud) làm việ
 9. Công thức hoặc ngưỡng không có trong hai khung đánh giá phải được đánh dấu **DI (Declared Interpretation)**.
 10. Atlas M0 không có multi-document transaction: state và event của một buổi học nằm trong **một document** (ghi atomic), dùng `state_version` cho optimistic concurrency.
 
+## Quy tắc bắt buộc về Database Test / Seed / Dữ liệu thật
+
+11. **Tuyệt đối tách database test, demo và dữ liệu thật.** Không test, fixture, script seed hoặc migration nào được phép ghi vào `cavat_dev` hoặc `cavat_prod`.
+
+12. **Atlas integration test:** mọi test chạm MongoDB Atlas thật phải được đánh dấu `@pytest.mark.atlas`. Test Atlas chỉ được phép chạy trên database riêng thuộc họ **`cavat_test`**: tên `cavat_test`, hoặc `cavat_test_<12 ký tự hex>` khi mỗi test dùng một database tạm riêng để cách ly (cách T07 đang làm).
+
+13. Test Atlas phải có safety guard dạng **allow-list**: chỉ chấp nhận tên khớp `cavat_test` hoặc `cavat_test_<12 ký tự hex>`; tên khác thì test phải fail ngay trước khi thực hiện bất kỳ thao tác ghi hoặc xóa nào. Không viết guard dạng deny-list có hard-code tên `cavat_dev`/`cavat_prod` (xem quy tắc 20).
+
+14. Test Atlas phải **tự dọn dữ liệu sau khi chạy**, kể cả khi assertion/test bị fail giữa chừng. Dùng fixture có cleanup trong `finally` hoặc cơ chế tương đương. Không để test data tồn dư làm ảnh hưởng lần chạy sau.
+
+15. Phiên cloud mặc định **không có secret và không chạm Atlas**. Khi thiếu cấu hình Atlas, các test `@pytest.mark.atlas` phải tự `skip`; `make test` trong cloud vẫn phải chạy bình thường với test offline/in-memory.
+
+16. Dữ liệu demo chỉ được tạo bằng lệnh explicit **`make seed`**. Không được:
+
+* tự seed khi application startup;
+* tự seed khi chạy test;
+* tự seed trong migration;
+* tự seed khi chạy `make test`;
+* tự seed khi chạy `make api`.
+
+17. **Mọi bản ghi do `make seed` tạo phải có `is_demo: true`.** Không được gắn `is_demo: true` cho dữ liệu học sinh thật.
+
+18. Script `make seed` phải có khả năng xác định và xóa toàn bộ demo data dựa trên `is_demo: true` mà không ảnh hưởng dữ liệu thật.
+
+19. Database dành cho phát triển thông thường là **`cavat_dev`**. Database production sau này là **`cavat_prod`**. Hai database này **không được dùng làm test database**.
+
+20. Code test, fixture, POC và script cleanup không được chứa hard-code hoặc fallback tới `cavat_dev` / `cavat_prod`. Test phải có database name riêng và có safety guard.
+
+21. Khi phát triển hoặc review T07/T08, phải phân biệt rõ:
+
+* **in-memory repository test**: chạy offline;
+* **Atlas integration test**: chạy MongoDB Atlas thật trên `cavat_test`;
+* **demo seed**: chỉ chạy thủ công bằng `make seed`;
+* **real development data**: nằm ở `cavat_dev`.
+
+22. Trước khi merge PR của **T07 hoặc T08**, chủ repo phải chạy `make test` ở máy local với Atlas test database được cấu hình đúng. Điều kiện merge phải bao gồm kết quả xác nhận các test `@pytest.mark.atlas` đã chạy trên **`cavat_test`** và không có test/seed nào chạm `cavat_dev` hoặc `cavat_prod`.
+
+23. Nếu phát hiện bất kỳ script/test nào có nguy cơ chọn nhầm database, **không được sửa bằng cách bỏ qua test**. Phải thêm safety guard hoặc sửa cơ chế chọn database trước khi merge.
+
+24. Khi cần tạo test data trên Atlas, ưu tiên namespace/document IDs riêng cho test run và luôn cleanup sau test. Không sử dụng dữ liệu demo hoặc dữ liệu thật để làm fixture cho integration test.
+
+25. Mọi thay đổi liên quan tới database isolation, test database, seed hoặc cleanup phải được xem là **infrastructure/data-safety change**, cần được ghi rõ trong PR description.
+
+
 ## Quy ước tài liệu
 
 - Viết tiếng Việt; thuật ngữ kỹ thuật giữ tiếng Anh.

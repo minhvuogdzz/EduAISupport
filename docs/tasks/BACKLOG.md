@@ -15,6 +15,39 @@ Mỗi phiên chỉ làm **một** task. Task cùng lane làm tuần tự; task k
 - **Trước khi mở PR:** `make lint` và `make test` phải xanh. Mô tả PR ghi rõ: đã làm gì, test gì, còn thiếu gì.
 - **Nội dung sư phạm là DRAFT** (lesson.yaml, prompt, ngưỡng, DI). Không tự sửa. Nếu thấy cần sửa, ghi đề xuất vào PR để chủ dự án (giáo viên kiểm soát) duyệt.
 
+## Database Safety Gate — bắt buộc cho mọi task có DB
+
+* Có 3 môi trường dữ liệu logic tách biệt:
+
+  * **`cavat_test`** (hoặc `cavat_test_<12 ký tự hex>`, một database tạm cho mỗi test) — integration test trên MongoDB Atlas thật.
+  * **`cavat_dev`** — dữ liệu phát triển/demo sau khi seed thủ công.
+  * **`cavat_prod`** — production, chưa dùng ở giai đoạn hiện tại.
+* Không task nào được dùng `cavat_dev` hoặc `cavat_prod` làm database test.
+* Mọi test MongoDB Atlas thật phải có marker `@pytest.mark.atlas`.
+* Atlas test phải tự skip khi cloud không có `MONGODB_URI`.
+* Atlas test phải gọi safety guard dạng allow-list (`cavat_test` hoặc `cavat_test_<12 ký tự hex>`) trước mọi thao tác ghi hoặc xóa; tên khác thì fail ngay.
+* Atlas test phải cleanup dữ liệu trong `finally`/fixture teardown.
+* `make seed` là lệnh duy nhất tạo demo data. Không được tự seed trong startup, migration, test hoặc `make test`.
+* Mọi demo record phải có `is_demo: true`.
+* Không test, fixture, seed hoặc cleanup script nào được phép chạm dữ liệu thật.
+* Trước khi merge T07/T08, chủ repo phải chạy `make test` local với Atlas và xác nhận integration test đã chạy trên `cavat_test`.
+* Nếu test chỉ chạy in-memory thì không được ghi trong PR rằng MongoDB Atlas đã được kiểm chứng.
+
+### Database Safety Acceptance Checklist
+
+Một task liên quan DB chỉ được coi là hoàn thành khi:
+
+* [ ] Offline/in-memory tests pass.
+* [ ] Atlas tests có `@pytest.mark.atlas`.
+* [ ] Atlas tests chỉ dùng database họ `cavat_test` (qua safety guard allow-list).
+* [ ] Có safety guard chống nhầm database.
+* [ ] Atlas test cleanup chạy kể cả khi test fail.
+* [ ] Không có auto-seed.
+* [ ] `make seed` là explicit command.
+* [ ] Demo records có `is_demo: true`.
+* [ ] Không có code test/seed chạm `cavat_dev` hoặc `cavat_prod`.
+* [ ] Với T07/T08: chủ repo đã chạy `make test` local trước merge.
+
 ## Khung đã có
 
 | Đường dẫn | Trạng thái |
@@ -174,40 +207,34 @@ Chạy song song được ngay:     T01, T07, T09
 - Test bằng fake model, không gọi mạng: lộ đáp án bị chặn và fallback; lỗi 429 → fallback ngay.
 - Chủ dự án tự chạy `make poc1-gemini` ở máy local, vì cloud không có key.
 
-## T07 — Tầng dữ liệu MongoDB (Lane B, chạy song song được)
-
-**Đọc:** PART 8, 10; mục D-T7 trong 00-START-HERE.
-
-**Ràng buộc Atlas M0 (đã xác minh):** dung lượng 0,5 GB; không có multi-document transaction; không có Atlas Search/Vector Search; tối đa 100 ops/s; không có backup.
-
-**Làm:**
-
-- Mỗi module có `repository.py` riêng. Lớp chung `TenantScopedRepository` buộc mọi truy vấn phải có `school_id`.
-- **Collection:** schools, users, classes, enrollments, lessons (kèm version/package), schedules, learning_sessions, evidence, student_kc_states.
-- **learning_sessions:** một document chứa state 3 tầng và mảng events; cập nhật bằng `find_one_and_update` có điều kiện `state_version`.
-- **Index:** unique `session_id + sequence_no` khi copy event sang collection `events`.
-- Bản repository in-memory dùng cho test. Test chạm Atlas thật đánh dấu `@pytest.mark.atlas` và tự skip khi thiếu `MONGODB_URI`.
-- Cập nhật ADR-003, ADR-005, ADR-008 và PART 10, PART 28 trong blueprint cho MongoDB.
-
-**Xong khi:** test repository chạy offline đều pass; có test xung đột cho optimistic concurrency.
-
 ## T08 — Session API cho một lesson (Lane B, sau T04 và T07)
 
 **Đọc:** PART 24 (SessionContext), 29 (API).
 
 **Làm:**
 
-- **Endpoint FastAPI:**
-  - `POST /v1/sessions` (tạo session demo)
-  - `POST /v1/sessions/{id}/join`
-  - `POST /v1/sessions/{id}/responses` (có `Idempotency-Key` và `expected_state_version`)
-  - `POST /v1/sessions/{id}/hint-requests`
-  - `GET /v1/sessions/{id}/state`
-  - `GET /v1/sessions/{id}/stream` (SSE)
-- Chạy item loop theo activity plan tối giản: CONCEPT_CHECK → GUIDED_PRACTICE → EXIT_ASSESSMENT → SUMMARY.
-- Auth tạm bằng header `X-Demo-Student`; ghi rõ trong code và PR rằng đây là tạm.
+* **Endpoint FastAPI:**
 
-**Xong khi:** test API với repository in-memory: gửi trùng `Idempotency-Key` không tạo event trùng; sai `state_version` → 409.
+  * `POST /v1/sessions` (tạo session demo)
+  * `POST /v1/sessions/{id}/join`
+  * `POST /v1/sessions/{id}/responses` (có `Idempotency-Key` và `expected_state_version`)
+  * `POST /v1/sessions/{id}/hint-requests`
+  * `GET /v1/sessions/{id}/state`
+  * `GET /v1/sessions/{id}/stream` (SSE)
+* Chạy item loop theo activity plan tối giản: CONCEPT_CHECK → GUIDED_PRACTICE → EXIT_ASSESSMENT → SUMMARY.
+* Auth tạm bằng header `X-Demo-Student`; ghi rõ trong code và PR rằng đây là tạm.
+* API test mặc định dùng repository in-memory và không cần Atlas.
+* Nếu bổ sung API integration test với Atlas thì test phải đánh dấu `@pytest.mark.atlas`, chỉ sử dụng `cavat_test`, có safety guard và cleanup.
+* `POST /v1/sessions` tạo session demo không đồng nghĩa với auto-seed database; test/demo fixture phải chủ động tạo dữ liệu trong test hoặc thông qua `make seed` theo đúng policy.
+* Không được để API startup hoặc test startup tự tạo demo data vào `cavat_dev`.
+
+**Xong khi:**
+
+* Test API với repository in-memory: gửi trùng `Idempotency-Key` không tạo event trùng; sai `state_version` → 409.
+* Có thể chạy test toàn bộ offline trong cloud.
+* Nếu có Atlas integration test: chỉ chạy trên `cavat_test`, có safety guard và cleanup.
+* Không có đường code nào tự động ghi demo/test data vào `cavat_dev` hoặc `cavat_prod`.
+* Chủ repo chạy `make test` local trước khi merge PR.
 
 ## T09 — Khung web app (Lane C, chạy song song được)
 
