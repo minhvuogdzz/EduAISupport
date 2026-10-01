@@ -58,7 +58,21 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 | `cavat/modules/content/lesson_package.py` | Model, loader, `validate_package` cho lesson YAML |
 | `cavat/modules/assessment/` | Bộ đọc số vi-VN và bộ chấm Toán, bug rule M01–M05 (T01, 256 test) |
 | `cavat/core/repository.py`, `memory_db.py`, `db_guard.py`, `modules/*/repository.py` | Tầng MongoDB, repository theo module, guard cho test Atlas (T07) |
-| `apps/web` | Web app học sinh và giáo viên chạy mock API (T09) |
+| `apps/web` | Web app học sinh và giáo viên chạy mock API (T09). **Chưa nối API thật** (T13) |
+| `cavat/modules/tutor/policy.py` | Policy gợi ý tất định, mọi quyết định có `rule_ids` (T02, bổ sung ở T04). Bản `hint-policy/0.3.0` |
+| `cavat/modules/tutor/renderer.py`, `validator.py` | Câu mẫu cho mọi move và bộ chặn output (T03). Câu chữ trong `PHRASES` là nháp |
+| `cavat/modules/tutor/item_loop.py` | `ItemTutor`: vòng lặp một câu hỏi, probe tách nguyên nhân, sinh event (T04) |
+| `cavat/modules/ai_gateway/` | Groq (Qwen, Whisper), Gemini (ảnh), router có chuỗi dự phòng và trần lượt gọi, model giả, `make ai-ping` (T06a) |
+| `cavat/modules/tutor/prompt_builder.py`, `llm_renderer.py`, `prompts/` | Qwen diễn đạt nước đi, câu mẫu làm dự phòng; câu EXIT chỉ dùng câu mẫu; chặn lời vượt câu mẫu (T06b bản gọn) |
+| `cavat/modules/session/service.py`, `api.py` | API một buổi học 8 câu; bật Qwen bằng `TUTOR_RENDERER=llm`, mặc định câu mẫu (T08 bản gọn) |
+
+### Phần còn thiếu của các task đã gộp (bản gọn)
+
+- **T06b:** chưa phân tích câu "vì sao" của học sinh thành `reasoning_quality`. Chưa có eval regression cho prompt (chờ T05).
+- **T08:** chưa có `GET /v1/sessions/{id}/stream` (SSE), hẹn giờ im lặng (trigger `SILENCE`), giới hạn thời gian buổi học, danh sách buổi học cho giáo viên. Auth vẫn là header tạm `X-Demo-Student` (chờ T12).
+- **An toàn:** event `SAFETY_FLAGGED` đã được ghi, chưa có màn hình cho giáo viên.
+- **Bộ chặn lộ đáp án** với câu trắc nghiệm và đúng/sai chỉ dựa vào `leak_patterns`; cần T05 để đo.
+- **Gemini `describe_image`:** `make ai-ping` trả HTTP 503 ngày 2026-10-01, chưa rõ nguyên nhân.
 | `docs/adr/ADR-017-model-roles-qwen-gemini.md` | **Qwen trên Groq là bộ não tutor**; Gemini chỉ cho ảnh/OCR và giọng nói |
 | `docs/poc/free-tier-quota.md` | Hạn mức free đo thật của Groq và Gemini, cách tắt suy luận của Qwen |
 
@@ -75,6 +89,8 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 ```
 
 **Thứ tự ưu tiên nếu hết quota:** T02, T03, T04, T05 (chứng minh được Socratic offline), sau đó T06a, T06b, T08, T13 (có buổi học chạy thật trên web), sau đó T10, các task còn lại.
+
+**Tình trạng ngày 2026-10-01:** T02, T03, T04, T06a, T06b (bản gọn) và T08 (bản gọn) đã gộp. Credit cloud đã hết, các task còn lại làm ở local theo thứ tự: T13 (nối web với API thật), T10 (projector), T05 (học sinh ảo), rồi các task khác.
 
 **Quy tắc riêng cho nhóm tutor:** dùng dataclass trong `tutor/contracts.py` và payload trong `core/events.py`. Nếu thấy hợp đồng thiếu, chỉ được **thêm trường có giá trị mặc định** và ghi rõ trong PR. Đổi tên hay xóa trường thì phải dừng và hỏi chủ dự án.
 
@@ -231,7 +247,10 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 - [x] Chép credentials Atlas vào `services/api/.env`, `make setup`, `make db-ping`.
 - [x] Khóa Groq, Gemini, LlamaCloud trong `services/api/.env` (đã kiểm tra hoạt động ngày 2026-10-01).
 - [x] Review `lesson.yaml` (2026-10-01): đã sửa theo review và quyết định của chủ dự án; `test_lesson_content.py` giữ các quy tắc này trong CI.
+- [x] 2026-10-01: duyệt DI "học sinh im lặng sau H6 thì cô giải thích trọn vẹn (H7) rồi mời con nói lại" (R-FULL, `hint-policy/0.3.0`).
 - [ ] Duyệt nháp 4 câu kiểm tra cuối mới (EX-05…EX-08) và các DI ở blueprint 09.
+- [ ] Duyệt các DI của T04: hỏi "vì sao" ở 30% số câu trả lời đúng (`verify_rate`), trần 12 lượt học sinh mỗi câu (`MAX_STUDENT_TURNS`), và "không nói lại được sau H7 thì ghi `UNRESOLVED`".
+- [ ] Duyệt câu chữ nháp: `PHRASES` trong `tutor/renderer.py`, câu tổng kết và nhãn lựa chọn trong `session/service.py`, hai file prompt trong `tutor/prompts/`.
 - [ ] Chụp phần còn lại của bảng hạn mức Gemini (`gemini-3.8-live` và các dòng bị cắt).
 - [ ] Hỏi luật sư về điều khoản tuổi của Google và Groq (xem cuối `docs/poc/free-tier-quota.md`).
 - [ ] Sau T05: chạy `make poc1-llm` và đọc transcript trong `evals/reports/`.

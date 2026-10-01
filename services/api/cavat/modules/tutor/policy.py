@@ -32,7 +32,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.2.0"
+POLICY_VERSION = "hint-policy/0.3.0"
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -48,7 +48,9 @@ _TARGET_FOR_ERROR: dict[ErrorClass, HintTarget] = {
 }
 
 # Outcomes (besides the HINT_REQUEST trigger) that show no progress after worked guidance (R-FULL).
-_STALLED = frozenset({Outcome.WRONG, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
+# DI, approved by the owner on 2026-10-01: silence after H6 also means "H6 không hiệu quả", so the student
+# gets the full explanation and is asked to retell it, instead of nudges until the turn limit.
+_STALLED = frozenset({Outcome.WRONG, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND, Outcome.NO_RESPONSE})
 
 # Replies to a "vì sao" or teach-back question that carry no explanation.
 _NO_EXPLANATION = frozenset({Outcome.NO_RESPONSE, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
@@ -132,7 +134,9 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
     if outcome == Outcome.CORRECT:
         return _correct(st, facts, cfg)
 
-    stalled = outcome in _STALLED or inp.trigger == "HINT_REQUEST"
+    # A SILENCE tick counts as stalled only once the whole wait time has passed (same as R-NO-RESPONSE).
+    waited_out = inp.trigger == "SILENCE" and st.seconds_since_last_message >= wait_seconds(inp, facts, cfg)
+    stalled = outcome in _STALLED or inp.trigger == "HINT_REQUEST" or waited_out
     time_up = inp.time_left_s <= inp.assessment_reserve_s and st.activity != ActivityType.EXIT_ASSESSMENT
     full = _full(st, facts, stalled=stalled, time_up=time_up)
     if full is not None:
@@ -222,8 +226,13 @@ def _after_explanation(st: ItemState, outcome: Outcome | None) -> PolicyDecision
     rule = "R-TEACH-BACK" if st.worked_shown else "R-VERIFY"
     resolution = resolution_for(st.max_hint_level)
     if outcome in _NO_EXPLANATION:
+        reasons: tuple[str, ...] = ("NO_EXPLANATION",)
+        if st.max_hint_level >= HintLevel.H7:
+            # DI: H7 goes only to a student who has not answered correctly, and nothing is graded after it.
+            # Without the teach-back the item was "closed without a correct answer": UNRESOLVED, not WORKED.
+            resolution, reasons = ItemResolution.UNRESOLVED, ("NO_EXPLANATION", "NOT_SOLVED")
         return PolicyDecision(
-            move=Move.CLOSE_ITEM, resolution=resolution, reason_codes=("NO_EXPLANATION",), rule_ids=(rule,)
+            move=Move.CLOSE_ITEM, resolution=resolution, reason_codes=reasons, rule_ids=(rule,)
         )
     return PolicyDecision(
         move=Move.CONFIRM_ADVANCE,

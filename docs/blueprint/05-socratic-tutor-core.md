@@ -192,7 +192,7 @@ contract.hintPolicy: max_level theo activity, escalation step tối đa, require
 | R-ESCALATE | Sai lặp lại, cùng target | Level +1 (tối đa +2 nếu affect tiêu cực) |
 | R-DEESCALATE | Học sinh làm đúng một bước sau hint | Bước sau quay lại level thấp hơn (fading) |
 | R-FRUSTRATION | ≥ 3 lượt không tiến triển hoặc > `stuck_s` trên một item | Chuyển `WORKED_GUIDANCE` (H6), sau đó **bắt buộc** item song sinh ở H0 |
-| R-FULL | H6 không hiệu quả, hoặc hết thời gian mà item thuộc objective bắt buộc | H7 cho phép **chỉ** ở activity practice; sau đó teach-back + item song sinh |
+| R-FULL | H6 không hiệu quả (sau H6 học sinh vẫn sai, xin trợ giúp, hoặc **im lặng**: DI, chủ dự án duyệt 2026-10-01), hoặc hết thời gian mà item thuộc objective bắt buộc | H7 cho phép **chỉ** ở activity practice; sau đó teach-back + item song sinh. Không nói lại được sau H7 thì item ghi `UNRESOLVED` (DI) |
 | R-ASSESS-CAP | activity = EXIT_ASSESSMENT | Tối đa H1 (hoặc S1–S2 với English); mọi hint đánh dấu evidence là *supported* |
 | R-STRONG-PRIOR | mastery KC ≥ 0.75, confidence ≥ 0.6 | Tăng `wait_s`, ưu tiên `VERIFY` ("vì sao") thay vì hint |
 | R-WEAK-PRIOR | mastery KC < 0.4 hoặc hint_dependency cao | Giảm `wait_s`; cho phép H2 ngay từ lần sai đầu nếu có misconception |
