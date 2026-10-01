@@ -104,7 +104,7 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
   - Chọn hint theo thứ tự: đúng (target, level) → cùng target mức thấp hơn → `generic_hints` → câu dự phòng. Ghi `hint_ref`.
   - Điền `{left}`/`{right}` cho counter_examples. WORKED_GUIDANCE hiện mọi bước trừ bước cuối. FULL_EXPLANATION = explanation + mời học sinh nói lại.
 - **`tutor/validator.py`**, hàm `validate_message(text, ctx) -> ValidationResult` (khớp `MessageValidator`):
-  - ANSWER_LEAK: câu khẳng định "SỐ QUAN_HỆ SỐ" trùng đáp án, dạng "x = đáp án", `leak_patterns` trên văn bản đã bỏ dấu. Câu hỏi kiểu "số nào lớn hơn?" không phải lộ đáp án. Không kiểm tra lộ đáp án khi move là FULL_EXPLANATION.
+  - ANSWER_LEAK: câu khẳng định "SỐ QUAN_HỆ SỐ" trùng đáp án, dạng "x = đáp án", `leak_patterns` áp trên văn bản chữ thường **còn dấu** (quy ước mới trong header `lesson.yaml`; pattern đã có `\b`). Câu hỏi kiểu "số nào lớn hơn?" không phải lộ đáp án. Không kiểm tra lộ đáp án khi move là FULL_EXPLANATION.
   - MULTIPLE_QUESTIONS, MISSING_QUESTION (theo `MOVES_REQUIRING_QUESTION`), TOO_LONG (> `ctx.max_words`), PII_REQUEST, INTELLIGENCE_PRAISE, UNGROUNDED_NUMBER, EMPTY.
 
 **Xong khi:** render mọi cặp (item PRACTICE × move) đều qua validator (test tham số hóa, dùng `PolicyDecision` dựng tay nên không cần T02); có test lộ đáp án cả dương tính lẫn âm tính.
@@ -159,14 +159,21 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 - Cập nhật `ItemState`; gọi `decide`; render; validate (lỗi thì retry một lần, rồi dùng câu mẫu dự phòng).
 - Sinh event bằng payload trong `core/events.py`, kết thúc mỗi câu bằng một `ITEM_RESOLVED` đầy đủ trường.
 
-**Xong khi:** test hội thoại cho bốn kịch bản (học sinh mang M01, xin gợi ý, im lặng, trả lời đúng ngay); mọi câu đều kết thúc, không lộ đáp án; mọi payload validate được bằng `PAYLOAD_MODELS`.
+- **Bổ sung vào `policy.py` (phần T02 còn thiếu):**
+  - R-VERIFY: sau câu trả lời đúng, hỏi "vì sao" theo `verify_rate`, và luôn hỏi với câu có `requires_explanation`. Dùng `verify_prompt` của câu hoặc `default_verify_prompt` của bài.
+  - R-TEACH-BACK: đúng sau khi đã giải mẫu (H6/H7) thì yêu cầu học sinh nói lại cách làm.
+  - Ghi `rule_ids` cho mọi quyết định, kể cả PRESENT, CONFIRM_ADVANCE, ASK_CONFIRM, REDIRECT.
+- **Câu hỏi tách nguyên nhân (`probe`, GP-08, GP-08b):** khi `CheckResult.detail["probe_option"]` có giá trị, hỏi `probe.prompt` (một câu so sánh, chấm bằng `parse_relation`). Học sinh so sánh sai thì ghi `probe.if_wrong` (DEC-M01). So sánh đúng thì ghi `probe.if_correct` (APPLY-TIME-SPEED, không tính vào KC-DEC-CMP). Không trả lời thì không gắn misconception nào.
+- Khi `CheckResult.detail` có `ambiguous_misconceptions` (ví dụ M01 và M05 cùng dự đoán), không chọn COGNITIVE_CONFLICT cho một lỗi cụ thể và không ghi `MISCONCEPTION_DETECTED`.
+
+**Xong khi:** test hội thoại cho bốn kịch bản (học sinh mang M01, xin gợi ý, im lặng, trả lời đúng ngay) và cho probe của GP-08 (cả hai nhánh); mọi câu đều kết thúc, không lộ đáp án; mọi payload validate được bằng `PAYLOAD_MODELS`.
 
 ## T06b — LLM renderer và prompt gọn (đợt 2, sau T03 và T06a)
 
 **Đọc:** PART 14, ADR-017 (giới hạn 8.000 token/phút của Groq).
 
 **Làm:**
-- `tutor/prompts/constitution.v1.md`, `math_g5.v1.md`; `tutor/prompt_builder.py` dựng prompt **≤ 3.000 token**: hiến chương ngắn, câu hỏi hiện tại, gợi ý mẫu liên quan làm điểm tựa, 4–6 lượt gần nhất, directive. Đáp án câu EXIT không bao giờ vào prompt.
+- `tutor/prompts/constitution.v1.md`, `math_g5.v1.md`; `tutor/prompt_builder.py` dựng prompt **≤ 3.000 token**: hiến chương ngắn, câu hỏi hiện tại, gợi ý mẫu liên quan làm điểm tựa, 4–6 lượt gần nhất, directive. Với câu EXIT, `answer`, `rubric` và `sample_answer` không bao giờ vào prompt (có test kiểm tra).
 - `tutor/llm_renderer.py` implement `MessageRenderer`: PRESENT, CONFIRM_ADVANCE, CLOSE_ITEM, OFFER_CHOICE, ASK_CONFIRM luôn dùng câu mẫu; move khác gọi gateway → validator → retry 1 lần kèm lỗi → câu mẫu. Hết trần lượt gọi thì dùng câu mẫu.
 - Phân tích câu "vì sao" của học sinh thành `reasoning_quality` (đề xuất, có `label_confidence`).
 
@@ -223,7 +230,8 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 
 - [x] Chép credentials Atlas vào `services/api/.env`, `make setup`, `make db-ping`.
 - [x] Khóa Groq, Gemini, LlamaCloud trong `services/api/.env` (đã kiểm tra hoạt động ngày 2026-10-01).
-- [ ] Duyệt `docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml` và các DI ở blueprint 09.
+- [x] Review `lesson.yaml` (2026-10-01): đã sửa theo review và quyết định của chủ dự án; `test_lesson_content.py` giữ các quy tắc này trong CI.
+- [ ] Duyệt nháp 4 câu kiểm tra cuối mới (EX-05…EX-08) và các DI ở blueprint 09.
 - [ ] Chụp phần còn lại của bảng hạn mức Gemini (`gemini-3.8-live` và các dòng bị cắt).
 - [ ] Hỏi luật sư về điều khoản tuổi của Google và Groq (xem cuối `docs/poc/free-tier-quota.md`).
 - [ ] Sau T05: chạy `make poc1-llm` và đọc transcript trong `evals/reports/`.

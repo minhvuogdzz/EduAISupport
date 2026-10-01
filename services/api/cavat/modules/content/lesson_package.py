@@ -44,10 +44,21 @@ class NumericAnswer(_Model):
     wrong_answers: dict[str, str] = Field(default_factory=dict)
 
 
+class Probe(_Model):
+    """A follow-up comparison that separates two causes of the same wrong choice (e.g. GP-08)."""
+
+    prompt: str
+    left: str
+    right: str
+    if_wrong: str  # misconception recorded when the student also compares the numbers wrongly
+    if_correct: str  # misconception recorded when the numbers are compared correctly (another cause)
+
+
 class ChoiceOption(_Model):
     id: str
     text: str
     correct: bool = False
+    probe: Probe | None = None
     aliases: list[str] = Field(default_factory=list)
     misconceptions: list[str] = Field(default_factory=list)
     misconception_confidence: float = 0.6
@@ -154,6 +165,8 @@ class LessonPackage(_Model):
     concepts: list[Concept] = Field(default_factory=list)
     misconceptions: list[Misconception] = Field(default_factory=list)
     generic_hints: list[HintTemplate] = Field(default_factory=list)
+    # Asked after a correct answer when the policy chooses VERIFY and the item has no verify_prompt.
+    default_verify_prompt: str | None = None
     items: list[Item]
 
     def item(self, item_id: str) -> Item:
@@ -215,6 +228,8 @@ def validate_package(pkg: LessonPackage) -> list[str]:
                 problems.append(f"{it.id}: choice item must have exactly one correct option")
             for o in ans.options:
                 referenced += o.misconceptions
+                if o.probe is not None:
+                    referenced += [o.probe.if_wrong, o.probe.if_correct]
         elif isinstance(ans, NumericAnswer | BooleanAnswer):
             referenced += list(ans.wrong_answers.values())
         for mid in referenced:

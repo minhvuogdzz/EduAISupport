@@ -36,6 +36,8 @@ export interface ChoiceOption {
   aliases?: string[];
   misconceptions?: string[];
   misconception_confidence?: number;
+  /** Follow-up question that separates two causes of this wrong option (lesson_package.Probe). The mock ignores it. */
+  probe?: { prompt: string; left: string; right: string; if_wrong: string; if_correct: string };
 }
 
 export interface ChoiceAnswer {
