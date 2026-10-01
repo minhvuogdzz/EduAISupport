@@ -6,7 +6,9 @@ explained, tested rule by rule and replayed. The LLM never picks the move, the t
 
 Input convention: ``inp.state`` already reflects the message being decided on (the item loop bumps
 ``attempt_no``, ``unproductive_turns``... before calling ``decide``), so ``attempt_no == 1`` with a
-WRONG check is the first wrong answer.
+WRONG check is the first wrong answer. For the EXPLANATION trigger (the reply to VERIFY or TEACH_BACK),
+``inp.check`` is None for a real explanation, or carries the intent (NO_RESPONSE, HELP_REQUEST...) when
+the reply is not one.
 
 Thresholds taken from the blueprint table are marked [FACT]; the others are declared interpretations
 (DI) and live in ``PolicyConfig`` so that a change is a versioned config change, not a code change.
@@ -14,6 +16,7 @@ Thresholds taken from the blueprint table are marked [FACT]; the others are decl
 
 from __future__ import annotations
 
+import zlib
 from dataclasses import dataclass, replace
 
 from cavat.core.pedagogy import (
@@ -29,7 +32,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.1.0"
+POLICY_VERSION = "hint-policy/0.2.0"
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -46,6 +49,9 @@ _TARGET_FOR_ERROR: dict[ErrorClass, HintTarget] = {
 
 # Outcomes (besides the HINT_REQUEST trigger) that show no progress after worked guidance (R-FULL).
 _STALLED = frozenset({Outcome.WRONG, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
+
+# Replies to a "vì sao" or teach-back question that carry no explanation.
+_NO_EXPLANATION = frozenset({Outcome.NO_RESPONSE, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
 
 
 @dataclass(frozen=True)
@@ -66,6 +72,7 @@ class PolicyConfig:
     affect_help_requests: int = 2  # DI: >= 2 help requests on the item is a negative affect signal
     max_hint_level: HintLevel = HintLevel.H5  # H6/H7 come only from R-FRUSTRATION and R-FULL
     assessment_cap: HintLevel = HintLevel.H1  # [FACT] R-ASSESS-CAP (Math ladder)
+    verify_rate: float = 0.3  # DI: share of items whose correct answer is followed by "vì sao" (R-VERIFY)
 
 
 DEFAULT_CONFIG = PolicyConfig()
@@ -82,6 +89,7 @@ class ItemFacts:
     counterexamples: frozenset[str] = frozenset()  # misconception ids with a counterexample in the package
     mandatory_objective: bool = False  # the item belongs to a mandatory objective (R-FULL)
     expected_item_s: float = 90.0  # DI: expected time to finish the item (R-TIME)
+    requires_explanation: bool = False  # R-VERIFY always asks "vì sao" after a correct answer
 
 
 def decide(
@@ -118,13 +126,11 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
     outcome = chk.outcome if chk is not None else None
 
     if inp.trigger == "START":
-        return PolicyDecision(move=Move.PRESENT, reason_codes=("ITEM_START",))
+        return PolicyDecision(move=Move.PRESENT, reason_codes=("ITEM_START",), rule_ids=("R-PRESENT",))
+    if inp.trigger == "EXPLANATION":
+        return _after_explanation(st, outcome)
     if outcome == Outcome.CORRECT:
-        return PolicyDecision(
-            move=Move.CONFIRM_ADVANCE,
-            resolution=resolution_for(st.max_hint_level),
-            reason_codes=("CORRECT",),
-        )
+        return _correct(st, facts, cfg)
 
     stalled = outcome in _STALLED or inp.trigger == "HINT_REQUEST"
     time_up = inp.time_left_s <= inp.assessment_reserve_s and st.activity != ActivityType.EXIT_ASSESSMENT
@@ -165,7 +171,9 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
     if chk is None:  # TICK with nothing to do
         return None
     if outcome == Outcome.NEEDS_CONFIRMATION:
-        return PolicyDecision(move=Move.ASK_CONFIRM, reason_codes=("NEEDS_CONFIRMATION",))
+        return PolicyDecision(
+            move=Move.ASK_CONFIRM, reason_codes=("NEEDS_CONFIRMATION",), rule_ids=("R-ASK-CONFIRM",)
+        )
     if outcome == Outcome.PARTIAL and st.hint_levels:
         return PolicyDecision(
             move=Move.HINT,
@@ -176,7 +184,58 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         )
     if outcome in (Outcome.WRONG, Outcome.PARTIAL):
         return _wrong(inp, facts, cfg)
-    return PolicyDecision(move=Move.REDIRECT, target=HintTarget.TASK, reason_codes=("UNREADABLE",))
+    return PolicyDecision(
+        move=Move.REDIRECT, target=HintTarget.TASK, reason_codes=("UNREADABLE",), rule_ids=("R-REDIRECT",)
+    )
+
+
+def _correct(st: ItemState, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecision:
+    """R-TEACH-BACK after worked guidance, else R-VERIFY ("vì sao") when required or sampled."""
+    if st.worked_shown:
+        return PolicyDecision(
+            move=Move.TEACH_BACK,
+            reason_codes=("CORRECT_AFTER_WORKED",),
+            rule_ids=("R-TEACH-BACK",),
+        )
+    if facts.requires_explanation:
+        return PolicyDecision(
+            move=Move.VERIFY, reason_codes=("CORRECT", "REQUIRES_EXPLANATION"), rule_ids=("R-VERIFY",)
+        )
+    if (
+        not st.verified
+        and st.activity != ActivityType.EXIT_ASSESSMENT
+        and _sampled(st.item_id, cfg.verify_rate)
+    ):
+        return PolicyDecision(
+            move=Move.VERIFY, reason_codes=("CORRECT", "VERIFY_SAMPLED"), rule_ids=("R-VERIFY",)
+        )
+    return PolicyDecision(
+        move=Move.CONFIRM_ADVANCE,
+        resolution=resolution_for(st.max_hint_level),
+        reason_codes=("CORRECT",),
+        rule_ids=("R-CORRECT",),
+    )
+
+
+def _after_explanation(st: ItemState, outcome: Outcome | None) -> PolicyDecision:
+    """End the item once the student answered (or skipped) the VERIFY / TEACH_BACK question."""
+    rule = "R-TEACH-BACK" if st.worked_shown else "R-VERIFY"
+    resolution = resolution_for(st.max_hint_level)
+    if outcome in _NO_EXPLANATION:
+        return PolicyDecision(
+            move=Move.CLOSE_ITEM, resolution=resolution, reason_codes=("NO_EXPLANATION",), rule_ids=(rule,)
+        )
+    return PolicyDecision(
+        move=Move.CONFIRM_ADVANCE,
+        resolution=resolution,
+        reason_codes=("EXPLANATION_RECEIVED",),
+        rule_ids=(rule,),
+    )
+
+
+def _sampled(item_id: str, rate: float) -> bool:
+    """DI: deterministic sampling for R-VERIFY, from a hash of the item id (replayable, no RNG)."""
+    return zlib.crc32(item_id.encode("utf-8")) % 1000 < rate * 1000
 
 
 def _full(st: ItemState, facts: ItemFacts, *, stalled: bool, time_up: bool) -> PolicyDecision | None:
@@ -206,6 +265,9 @@ def _wrong(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecis
     rules: list[str] = []
     reasons: list[str] = []
 
+    if chk.detail.get("probe_option"):
+        # The chosen option has two possible causes (lesson.yaml `probe`): ask the probe before any hint.
+        return PolicyDecision(move=Move.PROBE, reason_codes=("SEPARATE_CAUSES",), rule_ids=("R-PROBE-CAUSE",))
     if chk.error_class == ErrorClass.CALCULATION:
         # DI: the checker reports CALCULATION only when the method was right (a slip).
         return PolicyDecision(
@@ -253,7 +315,7 @@ def _wrong(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecis
         target=target,
         misconception_id=mis,
         reason_codes=tuple(reasons),
-        rule_ids=tuple(rules),
+        rule_ids=tuple(rules) or ("R-LADDER",),
     )
 
 
