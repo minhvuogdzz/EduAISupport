@@ -148,7 +148,7 @@ function TurnRow({ turn, studentName }: { turn: TranscriptTurn; studentName: str
 }
 
 function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
-  const { move, hint_level, hint_target, rule_ids } = annotation;
+  const { move, hint_level, hint_target, rule_ids, source } = annotation;
   return (
     <p className="flex flex-wrap gap-1">
       <Chip tone="teal" title={move}>
@@ -166,6 +166,16 @@ function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
           {rule}
         </Chip>
       ))}
+      {source === "LLM" && (
+        <Chip tone="sky" title="AI chỉ diễn đạt nước đi do policy chọn; câu đã qua bộ kiểm tra">
+          AI diễn đạt
+        </Chip>
+      )}
+      {source === "FALLBACK" && (
+        <Chip tone="rose" title="Câu của AI và câu mẫu đều không qua bộ kiểm tra">
+          Câu dự phòng
+        </Chip>
+      )}
     </p>
   );
 }

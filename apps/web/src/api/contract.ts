@@ -227,12 +227,17 @@ export interface SessionSummary {
   engine: EngineKind;
 }
 
+/** Who worded a tutor message. The move itself always comes from the policy. */
+export type MessageSource = "TEMPLATE" | "GENERIC" | "LLM" | "FALLBACK";
+
 export interface TutorAnnotation {
   move: Move;
   hint_level: HintLevel | null;
   hint_target: HintTarget | null;
   rule_ids: string[];
   reason_codes: string[];
+  /** Real API only: approved template, generic hint, LLM wording (validated), or fallback sentence. */
+  source?: MessageSource;
 }
 
 export interface StudentAnnotation {

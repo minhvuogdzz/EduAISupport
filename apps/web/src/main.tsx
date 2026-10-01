@@ -13,12 +13,14 @@ import { createQueryClient } from "./queryClient";
 const root = document.getElementById("root");
 if (!root) throw new Error("index.html has no #root element");
 
-createRoot(root).render(
-  <StrictMode>
-    <AppProviders api={createApi()} queryClient={createQueryClient()}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </AppProviders>
-  </StrictMode>,
-);
+void createApi().then((api) => {
+  createRoot(root).render(
+    <StrictMode>
+      <AppProviders api={api} queryClient={createQueryClient()}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AppProviders>
+    </StrictMode>,
+  );
+});

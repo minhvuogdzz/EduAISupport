@@ -58,18 +58,19 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 | `cavat/modules/content/lesson_package.py` | Model, loader, `validate_package` cho lesson YAML |
 | `cavat/modules/assessment/` | Bộ đọc số vi-VN và bộ chấm Toán, bug rule M01–M05 (T01, 256 test) |
 | `cavat/core/repository.py`, `memory_db.py`, `db_guard.py`, `modules/*/repository.py` | Tầng MongoDB, repository theo module, guard cho test Atlas (T07) |
-| `apps/web` | Web app học sinh và giáo viên chạy mock API (T09). **Chưa nối API thật** (T13) |
+| `apps/web` | Web app học sinh và giáo viên (T09): chạy mock (`make web`) hoặc API thật (`make web-live`, T13) |
 | `cavat/modules/tutor/policy.py` | Policy gợi ý tất định, mọi quyết định có `rule_ids` (T02, bổ sung ở T04). Bản `hint-policy/0.3.0` |
 | `cavat/modules/tutor/renderer.py`, `validator.py` | Câu mẫu cho mọi move và bộ chặn output (T03). Câu chữ trong `PHRASES` đã được chủ dự án duyệt ngày 2026-10-01 |
 | `cavat/modules/tutor/item_loop.py` | `ItemTutor`: vòng lặp một câu hỏi, probe tách nguyên nhân, sinh event (T04) |
 | `cavat/modules/ai_gateway/` | Groq (Qwen, Whisper), Gemini (ảnh), router có chuỗi dự phòng và trần lượt gọi, model giả, `make ai-ping` (T06a) |
-| `cavat/modules/tutor/prompt_builder.py`, `llm_renderer.py`, `prompts/` | Qwen diễn đạt nước đi, câu mẫu làm dự phòng; câu EXIT chỉ dùng câu mẫu; chặn lời vượt câu mẫu (T06b bản gọn) |
-| `cavat/modules/session/service.py`, `api.py` | API một buổi học 8 câu; bật Qwen bằng `TUTOR_RENDERER=llm`, mặc định câu mẫu (T08 bản gọn) |
+| `cavat/modules/tutor/prompt_builder.py`, `llm_renderer.py`, `prompts/` | Qwen diễn đạt nước đi, câu mẫu làm dự phòng; câu EXIT chỉ dùng câu mẫu (T06b bản gọn). Từ `llm-renderer.v2`: Qwen chỉ diễn đạt PROBE, HINT, COGNITIVE_CONFLICT, NUDGE, REDIRECT và phải bám câu mẫu |
+| `cavat/modules/session/service.py`, `api.py` | API một buổi học 8 câu; bật Qwen bằng `TUTOR_RENDERER=llm`, mặc định câu mẫu (T08 bản gọn); danh sách buổi học và transcript cho giáo viên (T13). `make api-memory` chạy API với database trong bộ nhớ |
 
 ### Phần còn thiếu của các task đã gộp (bản gọn)
 
 - **T06b:** chưa phân tích câu "vì sao" của học sinh thành `reasoning_quality`. Chưa có eval regression cho prompt (chờ T05).
-- **T08:** chưa có `GET /v1/sessions/{id}/stream` (SSE), hẹn giờ im lặng (trigger `SILENCE`), giới hạn thời gian buổi học, danh sách buổi học cho giáo viên. Auth vẫn là header tạm `X-Demo-Student` (chờ T12).
+- **T08:** chưa có `GET /v1/sessions/{id}/stream` (SSE), hẹn giờ im lặng (trigger `SILENCE`), giới hạn thời gian buổi học. Auth vẫn là header tạm `X-Demo-Student` và `X-Demo-Teacher` (chờ T12).
+- **T13:** `apps/web/src/api/contract.ts` vẫn viết tay, chưa sinh từ OpenAPI. Vì chưa có SSE, web đọc `GET /state` sau mỗi lệnh rồi tự phát stream.
 - **An toàn:** event `SAFETY_FLAGGED` đã được ghi, chưa có màn hình cho giáo viên.
 - **Bộ chặn lộ đáp án** với câu trắc nghiệm và đúng/sai chỉ dựa vào `leak_patterns`; cần T05 để đo.
 - **Gemini `describe_image`:** `make ai-ping` trả HTTP 503 ngày 2026-10-01, chưa rõ nguyên nhân.
@@ -90,7 +91,7 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 
 **Thứ tự ưu tiên nếu hết quota:** T02, T03, T04, T05 (chứng minh được Socratic offline), sau đó T06a, T06b, T08, T13 (có buổi học chạy thật trên web), sau đó T10, các task còn lại.
 
-**Tình trạng ngày 2026-10-01:** T02, T03, T04, T06a, T06b (bản gọn) và T08 (bản gọn) đã gộp. Credit cloud đã hết, các task còn lại làm ở local theo thứ tự: T13 (nối web với API thật), T10 (projector), T05 (học sinh ảo), rồi các task khác.
+**Tình trạng ngày 2026-10-01:** T02, T03, T04, T06a, T06b (bản gọn), T08 (bản gọn) và T13 đã gộp; một buổi học 8 câu đã chạy trọn từ trình duyệt tới API với Qwen thật. Credit cloud đã hết, các task còn lại làm ở local theo thứ tự: T10 (projector), T05 (học sinh ảo), rồi các task khác.
 
 **Quy tắc riêng cho nhóm tutor:** dùng dataclass trong `tutor/contracts.py` và payload trong `core/events.py`. Nếu thấy hợp đồng thiếu, chỉ được **thêm trường có giá trị mặc định** và ghi rõ trong PR. Đổi tên hay xóa trường thì phải dừng và hỏi chủ dự án.
 
@@ -224,6 +225,8 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 
 **Xong khi:** `make web-check` xanh; một buổi học chạy hết từ web tới API ở máy local.
 
+**Trạng thái (2026-10-01):** đã làm, trừ việc sinh kiểu từ OpenAPI. Chạy bằng `make api` (hoặc `make api-memory`) và `make web-live`; chi tiết ở `apps/web/README.md`, mục "API thật".
+
 ## T14 — Nhập tài liệu giáo viên (đợt 4)
 
 **Đọc:** PART 22; ADR-017 (LlamaParse cho PDF/PPTX, Gemini vision cho trang scan và hình vẽ).
@@ -252,6 +255,8 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 - [x] 2026-10-01: duyệt các DI của T04: hỏi "vì sao" ở 30% số câu trả lời đúng (`verify_rate`), trần 12 lượt học sinh mỗi câu (`MAX_STUDENT_TURNS`), và "không nói lại được sau H7 thì ghi `UNRESOLVED`".
 - [x] 2026-10-01: duyệt câu chữ: `PHRASES` trong `tutor/renderer.py`, câu tổng kết và nhãn lựa chọn trong `session/service.py`, hai file prompt `v1` trong `tutor/prompts/`.
 - [ ] Duyệt các DI ở blueprint 09.
+- [ ] Duyệt DI `ANCHOR_COVERAGE = 0.6` (`tutor/llm_renderer.py`): câu của AI phải giữ ít nhất 60% số từ của câu mẫu, nếu không thì dùng câu mẫu.
+- [ ] Quyết định: khi học sinh xin gợi ý mức cao hơn mà bài không có gợi ý cùng mục tiêu ở mức đó, hiện hệ thống lùi về gợi ý mức thấp hơn cùng mục tiêu (GP-01: xin mức 3 "khái niệm" thì nhận lại câu mức 2). Phương án khác: lấy gợi ý đúng mức ở mục tiêu khác (mức 3 "chiến lược").
 - [ ] Duyệt 3 gợi ý được viết lại khi review T03 (GP-09, GP-09b và gợi ý chung TASK mức 1), rồi xác nhận cả bài để chuyển `lesson.yaml` từ DRAFT sang APPROVED.
 - [ ] Chụp phần còn lại của bảng hạn mức Gemini (`gemini-3.8-live` và các dòng bị cắt).
 - [ ] Hỏi luật sư về điều khoản tuổi của Google và Groq (xem cuối `docs/poc/free-tier-quota.md`).

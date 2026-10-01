@@ -1,7 +1,7 @@
 PY := services/api/.venv/bin/python
 WEB := apps/web
 
-.PHONY: setup test lint fmt api db-ping db-indexes ai-ping web web-install web-check
+.PHONY: setup test lint fmt api api-memory db-ping db-indexes ai-ping web web-live web-install web-check
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -22,6 +22,9 @@ fmt:
 api:
 	cd services/api && .venv/bin/uvicorn cavat.main:app --reload --port 8000
 
+api-memory: ## Run the API on an in-memory database: nothing is written to Atlas, sessions are lost on restart
+	cd services/api && .venv/bin/python scripts/dev_memory_api.py
+
 db-ping:
 	cd services/api && .venv/bin/python -m cavat.db
 
@@ -36,6 +39,9 @@ web-install: ## Install the web app dependencies from the lockfile (Node >= 22.1
 
 web: web-install ## Run the web app with the mock API at http://localhost:5173
 	cd $(WEB) && pnpm dev
+
+web-live: web-install ## Run the web app against the real API (start "make api" in another terminal first)
+	cd $(WEB) && VITE_API=http pnpm dev
 
 web-check: web-install ## Lint, type-check, test and build the web app (same as CI)
 	cd $(WEB) && pnpm lint && pnpm test && pnpm build
