@@ -423,3 +423,114 @@ def student_view(pkg: LessonPackage, session: LearningSession) -> dict[str, Any]
         "progress": {"items_done": min(index, len(plan)), "items_total": len(plan)},
         "transcript": transcript(session),
     }
+
+
+# --------------------------------------------------------------------------- teacher view
+
+
+def summary(pkg: LessonPackage | None, session: LearningSession) -> dict[str, Any]:
+    """``SessionSummary`` of the web contract, for the teacher's list of sessions."""
+    activity = session.state.activity or {}
+    plan = activity.get("plan", [])
+    misconceptions: list[str] = []
+    for e in session.events:
+        if e.event_type == EventType.MISCONCEPTION_DETECTED:
+            mis = e.payload.get("misconception_id")
+            if mis and mis not in misconceptions:
+                misconceptions.append(mis)
+    return {
+        "session_id": session.id,
+        "student_display_name": session.student_display_name or "",
+        "lesson_title": pkg.title if pkg is not None else session.lesson_id,
+        "lifecycle_state": session.state.lifecycle,
+        "started_at": session.started_at,
+        "updated_at": session.updated_at,
+        "progress": {"items_done": min(activity.get("index", 0), len(plan)), "items_total": len(plan)},
+        "misconception_ids": misconceptions,
+        "engine": "live",
+    }
+
+
+def teacher_transcript(pkg: LessonPackage, session: LearningSession) -> dict[str, Any]:
+    """``SessionTranscript`` of the web contract: what was said, with what the system decided and why.
+
+    For the teacher only. It carries outcomes, misconceptions, rule ids and the message source (template
+    or LLM), none of which the student view exposes.
+    """
+    stems = {it.id: it.stem for it in pkg.items}
+    names = {m.id: m.name for m in pkg.misconceptions}
+    segments: list[dict[str, Any]] = []
+    blocks: dict[str, dict[str, Any]] = {}
+    decisions: dict[str | None, dict[str, Any]] = {}  # the POLICY_DECISION that the next message carries out
+    graded: dict[str | None, dict[str, Any]] = {}  # the student turn that the next graded event annotates
+
+    def add(turn: dict[str, Any], attempt: str | None) -> None:
+        block = blocks.get(attempt) if attempt else None
+        if block is not None:
+            block["turns"].append(turn)
+        elif segments and segments[-1]["kind"] == "session":
+            segments[-1]["turns"].append(turn)
+        else:
+            segments.append({"kind": "session", "turns": [turn]})
+
+    def misconception(mis_id: str, confidence: float) -> dict[str, Any]:
+        return {"id": mis_id, "name": names.get(mis_id, mis_id), "confidence": confidence}
+
+    for e in session.events:
+        p, attempt, kind = e.payload, e.item_attempt_id, e.event_type
+        base = {"sequence_no": e.sequence_no, "occurred_at": e.occurred_at}
+        block = blocks.get(attempt) if attempt else None
+        if kind == EventType.QUESTION_SHOWN and attempt:
+            blocks[attempt] = {
+                "kind": "item",
+                "item_attempt_id": attempt,
+                "item_id": p["item_id"],
+                "activity_type": p["activity_type"],
+                "stem": stems.get(p["item_id"], ""),
+                "position": len(blocks) + 1,
+                "resolution": None,
+                "max_hint_level": 0,
+                "turns": [],
+            }
+            segments.append(blocks[attempt])
+        elif kind == EventType.HINT_DELIVERED and block is not None:
+            block["max_hint_level"] = max(block["max_hint_level"], p["hint_level"])
+        elif kind == EventType.ITEM_RESOLVED and block is not None:
+            block["resolution"], block["max_hint_level"] = p["resolution"], p["max_hint_level"]
+        elif kind == EventType.POLICY_DECISION:
+            decisions[attempt] = p
+        elif kind == EventType.TUTOR_MESSAGE_SENT:
+            d = decisions.pop(attempt, {})
+            tutor = {
+                "move": p["move"],
+                "hint_level": d.get("hint_level"),
+                "hint_target": d.get("hint_target"),
+                "rule_ids": d.get("rule_ids", []),
+                "reason_codes": d.get("reason_codes", []),
+                "source": p["source"],
+            }
+            add({**base, "actor": "tutor", "text": p["text"], "tutor": tutor, "student": None}, attempt)
+        elif kind == EventType.SESSION_COMPLETED and p.get("summary_text"):
+            add({**base, "actor": "tutor", "text": p["summary_text"], "tutor": None, "student": None}, None)
+        elif kind in (EventType.STUDENT_MESSAGE, EventType.HINT_REQUESTED, EventType.CHOICE_MADE):
+            if kind == EventType.STUDENT_MESSAGE:
+                text, turn_kind = p["text"], p["kind"]
+            elif kind == EventType.HINT_REQUESTED:
+                text, turn_kind = CHOICES[CHOICE_HINT], "HINT_REQUEST"
+            else:
+                text, turn_kind = p["label"], "CHOICE"
+            student = {"kind": turn_kind, "outcome": None, "normalized_answer": None, "misconception": None}
+            if kind == EventType.STUDENT_MESSAGE:
+                graded[attempt] = student
+            add({**base, "actor": "student", "text": text, "tutor": None, "student": student}, attempt)
+        elif kind == EventType.ANSWER_SUBMITTED and attempt in graded:
+            student = graded[attempt]
+            student["outcome"], student["normalized_answer"] = p["outcome"], p.get("normalized")
+            if p.get("misconception_id"):
+                confidence = p.get("misconception_confidence") or 0.0
+                student["misconception"] = misconception(p["misconception_id"], confidence)
+        elif kind == EventType.MISCONCEPTION_DETECTED and attempt in graded:
+            # A probe answer is not graded as an attempt, yet it is what revealed the cause.
+            if graded[attempt]["misconception"] is None:
+                graded[attempt]["misconception"] = misconception(p["misconception_id"], p["confidence"])
+    return {"session": summary(pkg, session), "segments": segments}
