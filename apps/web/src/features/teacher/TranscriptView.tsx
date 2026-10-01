@@ -172,7 +172,10 @@ function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
         </Chip>
       )}
       {source === "FALLBACK" && (
-        <Chip tone="rose" title="Câu của AI và câu mẫu đều không qua bộ kiểm tra">
+        <Chip
+          tone="rose"
+          title="Bài không có câu đã duyệt cho lượt này, hoặc câu sinh ra không qua bộ kiểm tra"
+        >
           Câu dự phòng
         </Chip>
       )}

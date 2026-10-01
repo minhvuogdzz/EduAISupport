@@ -59,7 +59,7 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 | `cavat/modules/assessment/` | Bộ đọc số vi-VN và bộ chấm Toán, bug rule M01–M05 (T01, 256 test) |
 | `cavat/core/repository.py`, `memory_db.py`, `db_guard.py`, `modules/*/repository.py` | Tầng MongoDB, repository theo module, guard cho test Atlas (T07) |
 | `apps/web` | Web app học sinh và giáo viên (T09): chạy mock (`make web`) hoặc API thật (`make web-live`, T13) |
-| `cavat/modules/tutor/policy.py` | Policy gợi ý tất định, mọi quyết định có `rule_ids` (T02, bổ sung ở T04). Bản `hint-policy/0.3.0` |
+| `cavat/modules/tutor/policy.py` | Policy gợi ý tất định, mọi quyết định có `rule_ids` (T02, bổ sung ở T04). Bản `hint-policy/0.4.0` |
 | `cavat/modules/tutor/renderer.py`, `validator.py` | Câu mẫu cho mọi move và bộ chặn output (T03). Câu chữ trong `PHRASES` đã được chủ dự án duyệt ngày 2026-10-01 |
 | `cavat/modules/tutor/item_loop.py` | `ItemTutor`: vòng lặp một câu hỏi, probe tách nguyên nhân, sinh event (T04) |
 | `cavat/modules/ai_gateway/` | Groq (Qwen, Whisper), Gemini (ảnh), router có chuỗi dự phòng và trần lượt gọi, model giả, `make ai-ping` (T06a) |
@@ -118,7 +118,7 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 **Làm:**
 - **`tutor/renderer.py`**, `TemplateRenderer` implement `MessageRenderer`:
   - Câu tiếng Việt cho mọi `Move`, xưng "cô" – "con".
-  - Chọn hint theo thứ tự: đúng (target, level) → cùng target mức thấp hơn → `generic_hints` → câu dự phòng. Ghi `hint_ref`.
+  - Chọn hint theo thứ tự (đổi ngày 2026-10-01, xem PART 15.3): template đúng mức của item → của `generic_hints` → template mạnh nhất dưới mức đó của item → của `generic_hints` → câu dự phòng; `SELF_CHECK` và `FORMAT` tra theo target trước. Ghi `hint_ref`.
   - Điền `{left}`/`{right}` cho counter_examples. WORKED_GUIDANCE hiện mọi bước trừ bước cuối. FULL_EXPLANATION = explanation + mời học sinh nói lại.
 - **`tutor/validator.py`**, hàm `validate_message(text, ctx) -> ValidationResult` (khớp `MessageValidator`):
   - ANSWER_LEAK: câu khẳng định "SỐ QUAN_HỆ SỐ" trùng đáp án, dạng "x = đáp án", `leak_patterns` áp trên văn bản chữ thường **còn dấu** (quy ước mới trong header `lesson.yaml`; pattern đã có `\b`). Câu hỏi kiểu "số nào lớn hơn?" không phải lộ đáp án. Không kiểm tra lộ đáp án khi move là FULL_EXPLANATION.
@@ -256,7 +256,9 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 - [x] 2026-10-01: duyệt câu chữ: `PHRASES` trong `tutor/renderer.py`, câu tổng kết và nhãn lựa chọn trong `session/service.py`, hai file prompt `v1` trong `tutor/prompts/`.
 - [ ] Duyệt các DI ở blueprint 09.
 - [ ] Duyệt DI `ANCHOR_COVERAGE = 0.6` (`tutor/llm_renderer.py`): câu của AI phải giữ ít nhất 60% số từ của câu mẫu, nếu không thì dùng câu mẫu.
-- [ ] Quyết định: khi học sinh xin gợi ý mức cao hơn mà bài không có gợi ý cùng mục tiêu ở mức đó, hiện hệ thống lùi về gợi ý mức thấp hơn cùng mục tiêu (GP-01: xin mức 3 "khái niệm" thì nhận lại câu mức 2). Phương án khác: lấy gợi ý đúng mức ở mục tiêu khác (mức 3 "chiến lược").
+- [x] 2026-10-01 (sau buổi chạy thử của chủ dự án): duyệt ba thay đổi nhịp độ của cô: (1) chọn gợi ý theo mức trước (`template-renderer.v2`); (2) lượt xin gợi ý không tính là lượt "bí" của R-FRUSTRATION; (3) câu trả lời cho "con làm thế nào?" là lời giải thích, không tính là một lần trả lời sai mới (`hint-policy/0.4.0`).
+- [ ] Duyệt hai DI đi kèm thay đổi (2): học sinh gõ "cho con đáp án" cũng không tính là lượt "bí"; đã đưa hết gợi ý tới mức 5 mà học sinh vẫn xin thì cô giải mẫu (H6).
+- [ ] Quyết định: 12 trên 32 gợi ý mức 1 của bài 1 là "Con đọc to hai số…", viết cho lúc có giọng nói; có viết lại cho bản gõ chữ không.
 - [ ] Duyệt 3 gợi ý được viết lại khi review T03 (GP-09, GP-09b và gợi ý chung TASK mức 1), rồi xác nhận cả bài để chuyển `lesson.yaml` từ DRAFT sang APPROVED.
 - [ ] Chụp phần còn lại của bảng hạn mức Gemini (`gemini-3.8-live` và các dòng bị cắt).
 - [ ] Hỏi luật sư về điều khoản tuổi của Google và Groq (xem cuối `docs/poc/free-tier-quota.md`).

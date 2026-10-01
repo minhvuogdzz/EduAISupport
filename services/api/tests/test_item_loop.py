@@ -90,6 +90,76 @@ def test_student_asks_for_a_hint() -> None:
     assert end["explained"] is None
 
 
+def test_the_reply_to_the_probe_is_not_a_second_wrong_answer() -> None:
+    """The owner's trial on GP-01 (2026-10-01): "=", then "thì nó bằng thật mà", then "Xin gợi ý".
+
+    Before: the reply was graded as a second wrong answer, the request counted as a third unproductive
+    turn and the tutor went straight to the worked solution without giving one hint of the lesson.
+    """
+    t = tutor("GP-01")
+    turns = talk(t, "=", "thì nó bằng thật mà", "con cần gợi ý", "con cần gợi ý", "=")
+    assert moves(turns) == [
+        Move.PRESENT,
+        Move.PROBE,
+        Move.HINT,  # the item's level 1 hint, not the fixed fallback sentence
+        Move.OFFER_CHOICE,  # asking for help is not "stuck": the next hint is offered
+        Move.HINT,
+        Move.HINT,  # second wrong answer: one more rung, still no worked solution
+    ]
+    assert turns[1].phase == Phase.AWAITING_REASON
+    assert (t.state.attempt_no, t.state.unproductive_turns, t.state.probes_sent) == (2, 2, 1)
+    assert t.state.worked_shown is False
+    hints = of_type(t.events, EventType.HINT_DELIVERED)
+    assert [(h["hint_level"], h["source"], h["template_ref"]) for h in hints] == [
+        (1, "TEMPLATE", "GP-01:TASK:H1"),
+        (2, "TEMPLATE", "GP-01:CONCEPT:H2"),
+        (3, "TEMPLATE", "GP-01:STRATEGY:H3"),
+    ]
+    answers = of_type(t.events, EventType.ANSWER_SUBMITTED)
+    assert [(a["attempt_no"], a["raw_text"]) for a in answers] == [(1, "="), (2, "=")]
+    reasons = of_type(t.events, EventType.EXPLANATION_SUBMITTED)
+    assert [r["text"] for r in reasons] == ["thì nó bằng thật mà"]
+
+    turns.append(t.on_student("0,25 < 0,3", 10))
+    end = resolved(t)
+    assert (end["resolution"], end["attempts"], end["max_hint_level"]) == ("SUPPORTED", 3, 3)
+
+
+def test_words_after_the_probe_get_the_first_hint_not_a_redirect() -> None:
+    t = tutor("GP-01")
+    turns = talk(t, "=", "con thấy hai số giống nhau")
+    assert moves(turns) == [Move.PRESENT, Move.PROBE, Move.HINT]
+    assert (t.state.attempt_no, t.state.unproductive_turns) == (1, 1)
+    assert turns[2].phase == Phase.AWAITING
+
+
+def test_a_new_answer_after_the_probe_is_graded() -> None:
+    corrected = tutor("GP-01")
+    turns = talk(corrected, "=", "à con nhầm, 0,25 < 0,3")
+    assert moves(turns) == [Move.PRESENT, Move.PROBE, Move.CONFIRM_ADVANCE]
+    end = resolved(corrected)
+    assert (end["resolution"], end["attempts"]) == ("INDEPENDENT", 2)
+
+    changed = tutor("GP-01")
+    talk(changed, "=", "0,25 > 0,3")  # another wrong answer is a second attempt
+    assert (changed.state.attempt_no, changed.state.unproductive_turns) == (2, 2)
+
+    asks = tutor("GP-01")
+    turns = talk(asks, "=", "con không biết")
+    assert moves(turns)[-1] == Move.OFFER_CHOICE and asks.state.attempt_no == 1
+
+
+def test_asking_for_hints_climbs_the_ladder_then_shows_the_worked_steps() -> None:
+    t = tutor("GP-01")
+    t.start()
+    seen = []
+    for _ in range(11):
+        seen.append(t.on_student("con cần gợi ý", 5).move)
+    assert seen == [Move.OFFER_CHOICE, Move.HINT] * 5 + [Move.WORKED_GUIDANCE]
+    assert [int(level) for level in t.state.hint_levels] == [1, 2, 3, 4, 5, 6]
+    assert t.state.unproductive_turns == 0 and t.state.help_requests == 6
+
+
 def test_silent_student() -> None:
     t = tutor("GP-01")
     t.start()

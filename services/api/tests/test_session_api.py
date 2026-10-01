@@ -332,6 +332,30 @@ def test_a_leaking_model_falls_back_to_the_template(client, monkeypatch):
     assert len(fake.calls) == 2 and leak not in [t["text"] for t in state["transcript"]]
 
 
+def test_after_the_probe_the_screen_asks_for_words_and_the_reply_is_not_graded(client):
+    state = start(client)
+    sid = state["session_id"]
+    for _ in range(2):
+        state = advance(client, state)
+    assert send(client, state, "=", "p1").status_code == 200  # wrong, no known misconception: PROBE
+    state = get_state(client, state)
+    assert state["transcript"][-1]["move"] == "PROBE"
+    assert state["item"]["expecting"] == "EXPLANATION"
+    assert state["allowed_commands"] == ["ANSWER", "HINT_REQUEST"]  # a hint may still be asked for
+
+    assert send(client, state, "thì nó bằng thật mà", "p2", kind="EXPLANATION").status_code == 200
+    state = get_state(client, state)
+    hint = state["transcript"][-1]
+    assert (hint["move"], hint["hint_level"]) == ("HINT", 1)
+    assert state["item"]["expecting"] == "ANSWER"
+
+    transcript = client.get(f"/v1/sessions/{sid}/transcript", headers=TEACHER).json()
+    block = next(seg for seg in transcript["segments"] if seg.get("item_id") == "GP-01")
+    said = [t["student"] for t in block["turns"] if t["actor"] == "student"]
+    assert [(s["kind"], s["outcome"]) for s in said] == [("ANSWER", "WRONG"), ("EXPLANATION", None)]
+    assert block["turns"][-1]["tutor"]["source"] == "TEMPLATE"  # the item's own level 1 hint
+
+
 def test_teacher_sees_outcomes_misconceptions_and_rules(client):
     state = start(client)
     sid = state["session_id"]

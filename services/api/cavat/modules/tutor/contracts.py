@@ -51,6 +51,7 @@ class ItemState:
     nudges_sent: int = 0  # silence nudges (never counted as wrong answers)
     unproductive_turns: int = 0  # turns without progress (blueprint R-FRUSTRATION)
     help_requests: int = 0
+    probes_sent: int = 0  # "con làm thế nào?" asked after the first wrong answer (R-FIRST-WRONG asks once)
     misconception_counts: dict[str, int] = field(default_factory=dict)
     verified: bool = False  # a "why" question was asked and answered
     worked_shown: bool = False  # H6/H7 content was delivered

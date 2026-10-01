@@ -112,6 +112,10 @@ def test_r_first_wrong() -> None:
     after_probe = _decide(_inp(_check(), attempt_no=2))
     assert (after_probe.move, after_probe.level) == (Move.HINT, H1)
 
+    # The reply to the probe is not a new attempt (DI approved 2026-10-01): still attempt 1, probe sent.
+    after_reason = _decide(_inp(_check(), attempt_no=1, probes_sent=1))
+    assert (after_reason.move, after_reason.level, after_reason.rule_ids) == (Move.HINT, H1, ("R-LADDER",))
+
 
 def test_r_no_response() -> None:
     wait = wait_seconds(_inp())
@@ -132,6 +136,19 @@ def test_r_help_request() -> None:
 
     demand = _decide(_inp(_check(Outcome.ANSWER_DEMAND)))
     assert (demand.move, demand.level) == (Move.OFFER_CHOICE, H1)
+
+    # Asking for help is not an unproductive turn any more, so the last rung needs its own way up:
+    # every hint of the ladder given and the student asks again -> worked steps, not the top hint again.
+    H4, H5 = HintLevel(4), HintLevel(5)
+    rung4 = {"hint_levels": [H1, H2, H3, H4], "hint_targets": [HintTarget.STEP] * 4}
+    below_top = _decide(_inp(trigger="HINT_REQUEST", **rung4))
+    assert (below_top.move, below_top.level) == (Move.OFFER_CHOICE, H5)
+    rung5 = {"hint_levels": [H1, H2, H3, H4, H5], "hint_targets": [HintTarget.STEP] * 5}
+    exhausted = _decide(_inp(trigger="HINT_REQUEST", **rung5))
+    assert (exhausted.move, exhausted.level) == (Move.WORKED_GUIDANCE, H6)
+    assert exhausted.rule_ids == ("R-FRUSTRATION",) and "LADDER_EXHAUSTED" in exhausted.reason_codes
+    typed = _decide(_inp(_check(Outcome.HELP_REQUEST), **rung5))
+    assert typed.move == Move.WORKED_GUIDANCE
 
 
 def test_r_escalate() -> None:

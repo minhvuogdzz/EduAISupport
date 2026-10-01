@@ -76,6 +76,8 @@ _STUDENT_EVENTS = frozenset(
 )
 _TUTOR_EVENTS = frozenset({EventType.TUTOR_MESSAGE_SENT, EventType.HINT_DELIVERED})
 _EXPLAINING = frozenset({Phase.VERIFYING, Phase.TEACH_BACK})
+# The tutor asked for words, not for a sign or an option. After "con làm thế nào?" a hint may still be asked.
+_EXPECTS_WORDS = _EXPLAINING | {Phase.AWAITING_REASON}
 _HINT_MOVE_NAMES = frozenset(m.value for m in HINT_MOVES)
 
 
@@ -404,7 +406,7 @@ def student_view(pkg: LessonPackage, session: LearningSession) -> dict[str, Any]
             "stem": it.stem,
             "answer_format": ans.type,
             "options": options,
-            "expecting": "EXPLANATION" if Phase(st.item["phase"]) in _EXPLAINING else "ANSWER",
+            "expecting": "EXPLANATION" if Phase(st.item["phase"]) in _EXPECTS_WORDS else "ANSWER",
             "position": st.item["position"],
         }
         activity_view = {"activity_id": st.item["activity_id"], "type": st.item["activity"]}

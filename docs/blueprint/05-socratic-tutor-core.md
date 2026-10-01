@@ -186,12 +186,12 @@ contract.hintPolicy: max_level theo activity, escalation step tối đa, require
 |---|---|---|
 | R-SLIP | error_class = CALCULATION và method đúng | Target `SELF_CHECK`, level H1; **không** leo thang khái niệm |
 | R-MISC-HIGH | Phát hiện misconception, confidence ≥ 0.7 | Target `CONCEPT`; level = max(H2, current); move = `COGNITIVE_CONFLICT` nếu có phản ví dụ trong package |
-| R-FIRST-WRONG | Sai lần đầu, chưa rõ nguyên nhân | Move `PROBE` ("Con làm thế nào ra kết quả này?") trước khi gợi ý; H0 → H1 |
+| R-FIRST-WRONG | Sai lần đầu, chưa rõ nguyên nhân | Move `PROBE` ("Con làm thế nào ra kết quả này?") trước khi gợi ý; H0 → H1. Câu trả lời cho PROBE là lời giải thích, **không tính là một lần trả lời sai mới** trừ khi học sinh đưa đáp án khác (DI, chủ dự án duyệt 2026-10-01) |
 | R-NO-RESPONSE | Không phản hồi quá `wait_s` (theo profile: 30–60s) | Rephrase câu hỏi (target `TASK`, H1). **Không tính là sai** |
-| R-HELP-REQUEST | Học sinh xin gợi ý hoặc đáp án | Micro-choice: "Con muốn gợi ý nhỏ hay xem một ví dụ tương tự?" → level +1 |
+| R-HELP-REQUEST | Học sinh xin gợi ý hoặc đáp án | Micro-choice: "Con muốn gợi ý nhỏ hay xem một ví dụ tương tự?" → level +1. Đã đưa hết bậc gợi ý (H5) mà vẫn xin thì chuyển `WORKED_GUIDANCE` (DI, chờ duyệt) |
 | R-ESCALATE | Sai lặp lại, cùng target | Level +1 (tối đa +2 nếu affect tiêu cực) |
 | R-DEESCALATE | Học sinh làm đúng một bước sau hint | Bước sau quay lại level thấp hơn (fading) |
-| R-FRUSTRATION | ≥ 3 lượt không tiến triển hoặc > `stuck_s` trên một item | Chuyển `WORKED_GUIDANCE` (H6), sau đó **bắt buộc** item song sinh ở H0 |
+| R-FRUSTRATION | ≥ 3 lượt không tiến triển hoặc > `stuck_s` trên một item. Lượt không tiến triển là trả lời sai, không đọc được hoặc im lặng; **lượt xin gợi ý không tính** (DI, chủ dự án duyệt 2026-10-01) | Chuyển `WORKED_GUIDANCE` (H6), sau đó **bắt buộc** item song sinh ở H0 |
 | R-FULL | H6 không hiệu quả (sau H6 học sinh vẫn sai, xin trợ giúp, hoặc **im lặng**: DI, chủ dự án duyệt 2026-10-01), hoặc hết thời gian mà item thuộc objective bắt buộc | H7 cho phép **chỉ** ở activity practice; sau đó teach-back + item song sinh. Không nói lại được sau H7 thì item ghi `UNRESOLVED` (DI, chủ dự án duyệt 2026-10-01) |
 | R-ASSESS-CAP | activity = EXIT_ASSESSMENT | Tối đa H1 (hoặc S1–S2 với English); mọi hint đánh dấu evidence là *supported* |
 | R-STRONG-PRIOR | mastery KC ≥ 0.75, confidence ≥ 0.6 | Tăng `wait_s`, ưu tiên `VERIFY` ("vì sao") thay vì hint |
@@ -207,6 +207,14 @@ contract.hintPolicy: max_level theo activity, escalation step tối đa, require
 3. LLM sinh trực tiếp theo directive, grounding vào lesson package, qua validator.
 
 Luôn có ít nhất một template đã duyệt cho mỗi item ở mức H1, H2 và H4. Đây là yêu cầu của lesson package, vừa để fallback khi AI lỗi, vừa làm "anchor" cho LLM.
+
+**Thứ tự tra template (DI, chủ dự án duyệt 2026-10-01).** Mỗi item có một thang gợi ý theo mức, mỗi mức một template, nên tra theo **mức** trước; target chỉ dùng để chọn khi cùng mức có nhiều template:
+
+1. Template đúng mức đó: của item, rồi của `generic_hints`.
+2. Template mạnh nhất dưới mức đó: của item, rồi của `generic_hints`.
+3. Câu dự phòng cố định.
+
+Riêng target `SELF_CHECK` và `FORMAT` là *loại* trợ giúp chứ không phải một bậc của thang, nên tra theo target trước. `hint_ref` ghi template thực tế đã dùng (ví dụ policy chọn `STEP` × H1 nhưng template dùng là `GP-01:TASK:H1`).
 
 ### 15.4. Evidence từ hint
 

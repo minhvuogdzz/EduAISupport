@@ -22,7 +22,7 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-TEMPLATE_VERSION = "template-renderer.v1"
+TEMPLATE_VERSION = "template-renderer.v2"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -59,31 +59,63 @@ def _one_question(text: str) -> bool:
     return len(re.findall(r"\?+", text)) <= 1
 
 
-def _pick(hints: list[HintTemplate], target: HintTarget | None, level: HintLevel) -> HintTemplate | None:
-    """The highest template at or below `level` for `target` (any target when None).
+# SELF_CHECK and FORMAT say what kind of help is needed, not how much: they are looked up by target.
+# The other targets are steps of the hint ladder and are looked up by level.
+_KIND_TARGETS = frozenset({HintTarget.SELF_CHECK, HintTarget.FORMAT})
+
+
+def _pick(
+    hints: list[HintTemplate], target: HintTarget | None, level: HintLevel, *, below: bool = False
+) -> HintTemplate | None:
+    """The template at `level` (with ``below``: the strongest one under it); `target` only breaks a tie.
 
     A template asking more than one question would fail the validator (one question per turn), so it
     is skipped and the lookup falls through to the next source.
     """
     candidates = [
-        h
-        for h in hints
-        if (target is None or h.target == target) and h.level <= level and _one_question(h.text)
+        h for h in hints if (h.level < level if below else h.level == level) and _one_question(h.text)
     ]
-    return max(candidates, key=lambda h: h.level, default=None)
+    return max(candidates, key=lambda h: (h.level, h.target == target), default=None)
 
 
 def select_hint(
     item: Item, package: LessonPackage, target: HintTarget | None, level: HintLevel | None
 ) -> tuple[HintTemplate, MessageSource, str] | None:
-    """Approved hint for (target, level): item template, then the same target lower, then generic hints."""
+    """Approved hint for the policy's (target, level).
+
+    Order approved by the owner on 2026-10-01. A lesson gives each item one hint per level (its ladder),
+    whatever the target, so the level decides:
+
+    1. the hint at that level: the item's, else the generic one;
+    2. else the strongest hint below that level: the item's, else the generic one.
+
+    Before, the target came first: a level 1 STEP hint fell through to the fixed fallback sentence although
+    the item had a level 1 hint, and a level 3 CONCEPT hint gave the level 2 sentence again.
+    SELF_CHECK and FORMAT are the exception: a hint of that kind is used when there is one at or below
+    the level.
+    """
     level = HintLevel.H1 if level is None else level
-    own = _pick(item.hints, target, level)
-    if own is not None:
-        return own, "TEMPLATE", f"{item.id}:{own.target.value}:H{int(own.level)}"
-    generic = _pick(package.generic_hints, target, level)
-    if generic is not None:
-        return generic, "GENERIC", f"GENERIC:{generic.target.value}:H{int(generic.level)}"
+    sources: list[tuple[list[HintTemplate], MessageSource, str]] = [
+        (item.hints, "TEMPLATE", item.id),
+        (package.generic_hints, "GENERIC", "GENERIC"),
+    ]
+
+    def found(hint: HintTemplate, source: MessageSource, owner: str):
+        return hint, source, f"{owner}:{hint.target.value}:H{int(hint.level)}"
+
+    if target in _KIND_TARGETS:
+        for hints, source, owner in sources:
+            of_kind = [h for h in hints if h.target == target and h.level <= level and _one_question(h.text)]
+            if of_kind:
+                return found(max(of_kind, key=lambda h: h.level), source, owner)
+    ladders = [
+        ([h for h in hints if h.target not in _KIND_TARGETS], src, owner) for hints, src, owner in sources
+    ]
+    for below in (False, True):
+        for hints, source, owner in ladders:
+            hit = _pick(hints, target, level, below=below)
+            if hit is not None:
+                return found(hit, source, owner)
     return None
 
 

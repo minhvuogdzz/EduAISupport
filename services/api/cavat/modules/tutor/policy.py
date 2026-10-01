@@ -32,7 +32,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.3.0"
+POLICY_VERSION = "hint-policy/0.4.0"
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -167,6 +167,16 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
             rule_ids=("R-NO-RESPONSE",),
         )
     if inp.trigger == "HINT_REQUEST" or outcome in (Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND):
+        if not st.worked_shown and st.max_hint_level >= cfg.max_hint_level:
+            # DI: asking for help is no longer an unproductive turn, so a student who has had every hint
+            # of the ladder and asks again would get the top hint for ever. Show the worked steps instead.
+            return PolicyDecision(
+                move=Move.WORKED_GUIDANCE,
+                level=HintLevel.H6,
+                target=HintTarget.STEP,
+                reason_codes=("LADDER_EXHAUSTED", "NEXT_TWIN_ITEM_H0"),
+                rule_ids=("R-FRUSTRATION",),
+            )
         return PolicyDecision(
             move=Move.OFFER_CHOICE,
             level=_clamp(st.max_hint_level + 1, cfg.max_hint_level),
@@ -269,7 +279,8 @@ def _full(st: ItemState, facts: ItemFacts, *, stalled: bool, time_up: bool) -> P
 def _wrong(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecision:
     st, chk = inp.state, inp.check
     assert chk is not None
-    first = st.attempt_no <= 1 and not st.hint_levels
+    # The reply to the probe is not a new attempt (item loop), so the probe itself must count here.
+    first = st.attempt_no <= 1 and not st.hint_levels and st.probes_sent == 0
     mis = chk.misconception_id
     move = Move.HINT
     target: HintTarget
