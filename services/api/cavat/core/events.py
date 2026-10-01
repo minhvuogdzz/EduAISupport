@@ -36,6 +36,9 @@ class EventType(StrEnum):
     ANSWER_SUBMITTED = "ANSWER_SUBMITTED"
     EXPLANATION_SUBMITTED = "EXPLANATION_SUBMITTED"
     ITEM_RESOLVED = "ITEM_RESOLVED"
+    # student commands as typed (session API); the item loop adds the graded events
+    STUDENT_MESSAGE = "STUDENT_MESSAGE"
+    CHOICE_MADE = "CHOICE_MADE"
     # tutor
     POLICY_DECISION = "POLICY_DECISION"
     HINT_REQUESTED = "HINT_REQUESTED"
@@ -170,7 +173,31 @@ class ItemResolved(_Payload):
 
 
 # Which payload model validates which event type. Types not listed carry free-form payloads for now.
+class StudentMessage(_Payload):
+    """What the student sent, before grading. Kept for the transcript and for replaying the item loop."""
+
+    item_id: str
+    kind: Literal["ANSWER", "STEP", "EXPLANATION", "MESSAGE"]
+    text: str
+    modality: Literal["TEXT", "VOICE"] = "TEXT"
+    seconds: float = Field(default=0.0, ge=0)
+
+
+class HintRequested(_Payload):
+    item_id: str
+    seconds: float = Field(default=0.0, ge=0)
+
+
+class ChoiceMade(_Payload):
+    item_id: str
+    choice_id: str
+    label: str
+
+
 PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
+    EventType.STUDENT_MESSAGE: StudentMessage,
+    EventType.HINT_REQUESTED: HintRequested,
+    EventType.CHOICE_MADE: ChoiceMade,
     EventType.QUESTION_SHOWN: QuestionShown,
     EventType.ANSWER_SUBMITTED: AnswerSubmitted,
     EventType.EXPLANATION_SUBMITTED: ExplanationSubmitted,

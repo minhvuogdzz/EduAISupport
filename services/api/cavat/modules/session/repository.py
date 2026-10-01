@@ -114,6 +114,7 @@ class NewEvent(_Model):
 
 class LearningSession(TenantDocument):
     student_id: str
+    student_display_name: str | None = None  # given name only (CLAUDE.md rule 8)
     lesson_id: str
     lesson_version: str
     kind: Literal["LESSON", "HOMEWORK", "REVIEW"] = "LESSON"
