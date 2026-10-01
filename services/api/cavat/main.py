@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from cavat import __version__, db
+from cavat.modules.session import api as session_api
 
 
 @asynccontextmanager
@@ -15,6 +16,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="CAVAT API", version=__version__, lifespan=lifespan)
+session_api.register(app)
 
 
 @app.get("/health")
