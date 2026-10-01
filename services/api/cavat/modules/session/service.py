@@ -18,7 +18,7 @@ from typing import Any, Literal
 
 from cavat.config import REPO_ROOT
 from cavat.core.events import ChoiceMade, EventType, HintRequested, SafetyFlagged, StudentMessage
-from cavat.core.pedagogy import ActivityType
+from cavat.core.pedagogy import HINT_MOVES, ActivityType
 from cavat.core.repository import new_id
 from cavat.modules.ai_gateway.router import AIRouter
 from cavat.modules.content.lesson_package import ChoiceAnswer, LessonPackage, load_lesson_package
@@ -76,6 +76,7 @@ _STUDENT_EVENTS = frozenset(
 )
 _TUTOR_EVENTS = frozenset({EventType.TUTOR_MESSAGE_SENT, EventType.HINT_DELIVERED})
 _EXPLAINING = frozenset({Phase.VERIFYING, Phase.TEACH_BACK})
+_HINT_MOVE_NAMES = frozenset(m.value for m in HINT_MOVES)
 
 
 class CommandNotAllowed(Exception):
@@ -358,7 +359,9 @@ def transcript(session: LearningSession) -> list[dict[str, Any]]:
         if e.event_type == EventType.POLICY_DECISION:
             hint_level = p.get("hint_level")
         elif e.event_type == EventType.TUTOR_MESSAGE_SENT:
-            text, move, level = p["text"], p["move"], hint_level
+            # The level is shown only on a real hint: an offer or a nudge carries the level it is about.
+            text, move = p["text"], p["move"]
+            level = hint_level if move in _HINT_MOVE_NAMES else None
         elif e.event_type == EventType.SESSION_COMPLETED:
             text, actor = p.get("summary_text"), "tutor"  # the tutor says the summary
         elif e.event_type == EventType.STUDENT_MESSAGE:

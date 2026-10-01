@@ -29,9 +29,18 @@ QWEN, GPT_OSS = default_chat_chains()[ModelClass.TUTOR_REASONING]
 LLM_MOVES = [m for m in Move if m not in TEMPLATE_ONLY_MOVES]
 HINT_H3 = {"level": HintLevel.H3, "target": HintTarget.STRATEGY}
 
-GOOD_HINT = "Con thử nhìn chữ số ở hàng phần mười của hai số xem, chữ số nào lớn hơn?"
+# A faithful rewording of the STRATEGY H3 template of GP-01 (the anchor of HINT_H3).
+GOOD_HINT = (
+    "Con thử viết 0,3 thành 0,30 để hai số cùng có hai chữ số ở phần thập phân nhé, "
+    "rồi con so sánh 0,25 và 0,30 được không?"
+)
 GOOD_PROBE = "Con nói cho cô nghe con đã làm thế nào để ra câu trả lời đó được không?"
 LEAK = "0,25 bé hơn 0,3 đó con. Con thấy chưa?"
+# A faithful rewording of the CONCEPT H2 template of GP-01.
+ON_ANCHOR_H2 = (
+    "Khi hai số có phần nguyên bằng nhau, mình so sánh hàng nào trước, con nhỉ: "
+    "hàng phần mười hay hàng phần trăm?"
+)
 SECRET_EXIT = PKG.items_for("EXIT")[0].model_copy(
     update={
         "id": "EX-T",
@@ -106,7 +115,7 @@ def test_answer_leak_is_blocked_then_the_template_is_used(item_id, leaks):
     assert len(fake.calls) == 2 and renderer.calls_used == 2
     assert "[LẦN TRƯỚC BỊ TỪ CHỐI] ANSWER_LEAK" in user_prompt(fake, 1)
     assert renderer.last_trace.fallback_reason == "validation"
-    assert renderer.last_trace.rejected == (("ANSWER_LEAK",), ("ANSWER_LEAK",))
+    assert [codes[0] for codes in renderer.last_trace.rejected] == ["ANSWER_LEAK", "ANSWER_LEAK"]
 
 
 def test_retry_carries_the_codes_and_a_valid_second_answer_is_used():
@@ -115,7 +124,7 @@ def test_retry_carries_the_codes_and_a_valid_second_answer_is_used():
     assert (msg.text, msg.source) == (GOOD_HINT, "LLM")
     assert "[LẦN TRƯỚC BỊ TỪ CHỐI]" not in user_prompt(fake, 0)
     assert "[LẦN TRƯỚC BỊ TỪ CHỐI] ANSWER_LEAK (đã nêu đáp án)" in user_prompt(fake, 1)
-    assert renderer.last_trace.rejected == (("ANSWER_LEAK",),)
+    assert [codes[0] for codes in renderer.last_trace.rejected] == ["ANSWER_LEAK"]
 
 
 def test_output_without_a_message_is_rejected_as_empty():
@@ -166,7 +175,7 @@ def test_cap_reached_before_the_retry_uses_the_template():
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
     assert len(fake.calls) == 1
     assert renderer.last_trace.fallback_reason == "session_cap"
-    assert renderer.last_trace.rejected == (("ANSWER_LEAK",),)
+    assert [codes[0] for codes in renderer.last_trace.rejected] == ["ANSWER_LEAK"]
 
 
 def test_without_api_key_the_template_is_used():
@@ -222,8 +231,52 @@ def test_a_message_that_goes_beyond_the_anchor_is_rejected():
     )
     raised = "Con viết 0,3 thành 0,30 nhé. Bây giờ con so sánh hàng phần mười của hai số này xem sao?"
     assert validate_message(raised, ctx).ok
-    renderer, fake = make([turn(raised), turn("Con so sánh hàng phần mười trước nhé, được không?")])
+    renderer, fake = make([turn(raised), turn(ON_ANCHOR_H2)])
     msg = renderer.render(ctx)
     assert msg.source == "LLM" and "0,30" not in msg.text
-    assert renderer.last_trace.rejected == (("BEYOND_ANCHOR",),)
+    assert "BEYOND_ANCHOR" in renderer.last_trace.rejected[0] and len(renderer.last_trace.rejected) == 1
     assert "BEYOND_ANCHOR" in fake.calls[1][1].messages[1].content
+
+
+def test_a_message_that_repeats_an_earlier_tutor_turn_is_rejected():
+    """Real Qwen output: asked for a stronger hint, it sent back the sentence it had just said."""
+    said = ON_ANCHOR_H2
+    fresh = "Con ơi, khi hai số có phần nguyên bằng nhau thì mình so sánh hàng nào trước: mười hay trăm?"
+    renderer, fake = make([turn(said), turn(said.upper()), turn(fresh)])
+    ctx = ctx_for("GP-01", Move.HINT, "con không biết", level=HintLevel.H2, target=HintTarget.CONCEPT)
+    assert renderer.render(ctx).text == said
+    again = renderer.render(ctx)
+    assert again.text == fresh and again.source == "LLM"
+    assert renderer.last_trace.rejected == (("REPEATS_PREVIOUS",),)
+    assert "REPEATS_PREVIOUS" in fake.calls[2][1].messages[1].content
+
+
+@pytest.mark.parametrize(
+    ("move", "decision", "drift"),
+    [
+        # Asked for the CONCEPT hint, the model reworded the counter-example it had given before.
+        (
+            Move.HINT,
+            {"level": HintLevel.H3, "target": HintTarget.CONCEPT},
+            "Con thử đổi 0,25 mét và 0,3 mét ra xăng-ti-mét nhé. Đổi xong rồi con xem đoạn nào dài hơn?",
+        ),
+        (Move.PROBE, {}, "Con thử nhìn lại chữ số hàng phần mười của hai số xem sao nhé?"),
+    ],
+)
+def test_a_message_that_drifts_from_the_anchor_is_rejected(move, decision, drift):
+    """Real Qwen outputs: they pass the validator, but they do not say what the move asked for."""
+    ctx = ctx_for("GP-01", move, "cho con gợi ý", **decision)
+    assert validate_message(drift, ctx).ok
+    renderer, fake = make([turn(drift), turn(drift)])
+    assert renderer.render(ctx) == TEMPLATE.render(ctx)
+    assert renderer.last_trace.rejected == (("OFF_ANCHOR",), ("OFF_ANCHOR",))
+    assert "OFF_ANCHOR (không bám câu mẫu" in user_prompt(fake, 1)
+
+
+@pytest.mark.parametrize("move", [Move.VERIFY, Move.TEACH_BACK, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION])
+def test_lesson_content_moves_are_said_with_the_template(move):
+    """Seen with real Qwen output: asked to VERIFY a correct answer, it sent the student back to a hint."""
+    renderer, fake = make([turn(GOOD_HINT)])
+    ctx = ctx_for("GP-01", move, "<", level=HintLevel.H6, target=HintTarget.STEP)
+    assert renderer.render(ctx) == TEMPLATE.render(ctx)
+    assert fake.calls == [] and renderer.calls_used == 0
