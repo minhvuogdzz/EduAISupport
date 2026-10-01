@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, cast
 
 from cavat.core.pedagogy import (
@@ -249,3 +250,81 @@ def test_r_time() -> None:
     out_of_time = _decide(_inp(_check(), attempt_no=1, time_left_s=100.0, reserve_s=120.0))
     assert (out_of_time.move, out_of_time.resolution) == (Move.CLOSE_ITEM, ItemResolution.UNRESOLVED)
     assert out_of_time.rule_ids == ("R-TIME",)
+
+
+NO_VERIFY = replace(DEFAULT_CONFIG, verify_rate=0.0)
+ALWAYS_VERIFY = replace(DEFAULT_CONFIG, verify_rate=1.0)
+
+
+def test_r_verify() -> None:
+    correct = _check(Outcome.CORRECT)
+    skipped = decide(_inp(correct, attempt_no=1), None, NO_VERIFY)
+    assert skipped is not None
+    assert (skipped.move, skipped.resolution) == (Move.CONFIRM_ADVANCE, ItemResolution.INDEPENDENT)
+    assert skipped.rule_ids == ("R-CORRECT",)
+
+    sampled = decide(_inp(correct, attempt_no=1), None, ALWAYS_VERIFY)
+    assert sampled is not None
+    assert (sampled.move, sampled.resolution, sampled.rule_ids) == (Move.VERIFY, None, ("R-VERIFY",))
+
+    required = decide(_inp(correct, attempt_no=1), ItemFacts(requires_explanation=True), NO_VERIFY)
+    assert required is not None
+    assert required.move == Move.VERIFY
+    assert "REQUIRES_EXPLANATION" in required.reason_codes
+
+    exit_test = decide(_inp(correct, activity=ActivityType.EXIT_ASSESSMENT), None, ALWAYS_VERIFY)
+    assert exit_test is not None and exit_test.move == Move.CONFIRM_ADVANCE  # DI: no sampled "vì sao"
+
+    explained = _decide(_inp(None, trigger="EXPLANATION", attempt_no=1, hint_levels=[H1]))
+    assert (explained.move, explained.resolution) == (Move.CONFIRM_ADVANCE, ItemResolution.SUPPORTED)
+    assert explained.rule_ids == ("R-VERIFY",)
+
+    silent = _decide(_inp(_check(Outcome.NO_RESPONSE), trigger="EXPLANATION", attempt_no=1))
+    assert (silent.move, silent.resolution) == (Move.CLOSE_ITEM, ItemResolution.INDEPENDENT)
+
+
+def test_r_teach_back() -> None:
+    after_worked = {"attempt_no": 4, "hint_levels": [H2, H6], "worked_shown": True}
+    d = _decide(_inp(_check(Outcome.CORRECT), **after_worked), ItemFacts(requires_explanation=True))
+    assert (d.move, d.resolution, d.rule_ids) == (Move.TEACH_BACK, None, ("R-TEACH-BACK",))
+
+    retold = _decide(_inp(None, trigger="EXPLANATION", **after_worked))
+    assert (retold.move, retold.resolution) == (Move.CONFIRM_ADVANCE, ItemResolution.WORKED)
+    assert retold.rule_ids == ("R-TEACH-BACK",)
+
+
+def test_r_probe_cause() -> None:
+    chose_probe_option = CheckResult(
+        outcome=Outcome.WRONG, error_class=ErrorClass.UNKNOWN, detail={"probe_option": "A"}
+    )
+    d = _decide(_inp(chose_probe_option, attempt_no=1))
+    assert (d.move, d.level, d.misconception_id) == (Move.PROBE, None, None)
+    assert d.rule_ids == ("R-PROBE-CAUSE",)
+
+    ambiguous = CheckResult(
+        outcome=Outcome.WRONG,
+        error_class=ErrorClass.CONCEPTUAL,
+        detail={"ambiguous_misconceptions": ["M1", "M5"]},
+    )
+    later = _decide(_inp(ambiguous, attempt_no=2), ItemFacts(counterexamples=frozenset({"M1", "M5"})))
+    assert later.move != Move.COGNITIVE_CONFLICT and later.misconception_id is None
+
+
+def test_every_decision_has_rule_ids() -> None:
+    inputs = [
+        _inp(trigger="START"),
+        _inp(_check(Outcome.CORRECT), attempt_no=1),
+        _inp(_check(Outcome.NEEDS_CONFIRMATION)),
+        _inp(_check(Outcome.UNPARSEABLE)),
+        _inp(_check(Outcome.NEEDS_LLM)),
+        _inp(_check(Outcome.NO_RESPONSE)),
+        _inp(_check(Outcome.WRONG), attempt_no=2),
+        _inp(_check(Outcome.PARTIAL), attempt_no=2),
+        _inp(_check(Outcome.PARTIAL), attempt_no=2, hint_levels=[H2], hint_targets=[HintTarget.STEP]),
+        _inp(trigger="HINT_REQUEST"),
+        _inp(None, trigger="EXPLANATION"),
+    ]
+    for inp in inputs:
+        for cfg in (NO_VERIFY, ALWAYS_VERIFY):
+            d = decide(inp, None, cfg)
+            assert d is not None and d.rule_ids, (inp.trigger, inp.check, d)
