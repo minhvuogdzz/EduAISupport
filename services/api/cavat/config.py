@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,6 +26,8 @@ class Settings(BaseSettings):
     llama_cloud_api_key: SecretStr | None = None
     # Hard cap on LLM calls per session; above it the tutor runs on approved templates only.
     max_llm_calls_per_session: int = 15
+    # "template": approved sentences only (default). "llm": Qwen phrases hints, templates as fallback.
+    tutor_renderer: Literal["template", "llm"] = "template"
     storage_dir: Path = REPO_ROOT / "var" / "storage"
 
 

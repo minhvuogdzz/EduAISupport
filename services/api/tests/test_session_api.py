@@ -19,6 +19,7 @@ from cavat.modules.content.lesson_package import (
     NumericAnswer,
     OrderAnswer,
 )
+from cavat.modules.session import api as session_api
 from cavat.modules.session import service
 from cavat.modules.session.api import get_database
 from cavat.modules.session.repository import LearningSessionRepository
@@ -29,7 +30,9 @@ MINH = {"X-Demo-Student": "minh"}
 
 
 @pytest.fixture
-async def memory():
+async def memory(monkeypatch):
+    # Templates only unless a test installs a fake router: no test may call a real model.
+    monkeypatch.setattr(session_api, "tutor_router", lambda: None)
     database = InMemoryDatabase()
     await ensure_indexes(database)
     app.dependency_overrides[get_database] = lambda: database
@@ -242,3 +245,57 @@ def test_wrong_answers_never_leak_the_answer_or_internal_labels(client):
     answer = PKG.item("GP-01").answer
     stated = f"{answer.left} {correct_text('GP-01')} {answer.right}"
     assert all(stated not in t["text"] for t in state["transcript"] if t["actor"] == "tutor")
+
+
+def llm_router(monkeypatch, script):
+    from cavat.modules.ai_gateway.fake import FakeChatModel
+    from cavat.modules.ai_gateway.router import AIRouter
+    from cavat.modules.session import api
+
+    fake = FakeChatModel(script)
+    monkeypatch.setattr(api, "tutor_router", lambda: AIRouter(chat_provider=fake, max_calls_per_session=15))
+    return fake
+
+
+def reply(message, safety_flag=False):
+    return {"message": message, "safety_flag": safety_flag, "policy_feedback": ""}
+
+
+async def test_llm_phrases_the_live_turn_and_past_turns_are_never_sent_again(client, memory, monkeypatch):
+    first = "Con nhìn lại hai số trong đề rồi nói cho cô biết con định so sánh thế nào nhé?"
+    second = "Con thử nhìn kỹ từng hàng của hai số xem sao nhé?"
+    fake = llm_router(monkeypatch, [reply(first), reply(second, safety_flag=True)])
+    state = start(client)
+    for _ in range(2):
+        state = advance(client, state)  # concept checks answered correctly: template-only moves
+    assert state["item"]["item_id"] == "GP-01" and not fake.calls
+    wrong = ">" if correct_text("GP-01") == "<" else "<"
+
+    assert send(client, state, wrong, "w1").status_code == 200
+    state = get_state(client, state)
+    assert state["transcript"][-1]["text"] == first and len(fake.calls) == 1
+    assert send(client, state, wrong, "w2").status_code == 200
+    state = get_state(client, state)
+    assert state["transcript"][-1]["text"] == second
+    assert len(fake.calls) == 2  # the first turn was replayed with templates, not sent to the model again
+    prompt = fake.calls[1][1].messages[-1].content
+    assert first in prompt and "Minh" in prompt  # history comes from the event log
+
+    session = await stored(memory, state)
+    assert session.state.activity["llm_calls"] == 2
+    sources = [e.payload["source"] for e in session.events if e.event_type == "TUTOR_MESSAGE_SENT"]
+    assert sources[-2:] == ["LLM", "LLM"]
+    assert [e.event_type for e in session.events].count("SAFETY_FLAGGED") == 1
+
+
+def test_a_leaking_model_falls_back_to_the_template(client, monkeypatch):
+    answer = PKG.item("GP-01").answer
+    leak = f"Đáp án là {answer.left} {correct_text('GP-01')} {answer.right} nhé. Con hiểu chưa?"
+    fake = llm_router(monkeypatch, [reply(leak), reply(leak)])
+    state = start(client)
+    for _ in range(2):
+        state = advance(client, state)
+    wrong = ">" if correct_text("GP-01") == "<" else "<"
+    assert send(client, state, wrong, "w1").status_code == 200
+    state = get_state(client, state)
+    assert len(fake.calls) == 2 and leak not in [t["text"] for t in state["transcript"]]

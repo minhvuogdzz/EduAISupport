@@ -17,9 +17,10 @@ from functools import lru_cache
 from typing import Any, Literal
 
 from cavat.config import REPO_ROOT
-from cavat.core.events import ChoiceMade, EventType, HintRequested, StudentMessage
+from cavat.core.events import ChoiceMade, EventType, HintRequested, SafetyFlagged, StudentMessage
 from cavat.core.pedagogy import ActivityType
 from cavat.core.repository import new_id
+from cavat.modules.ai_gateway.router import AIRouter
 from cavat.modules.content.lesson_package import ChoiceAnswer, LessonPackage, load_lesson_package
 from cavat.modules.session.repository import (
     Actor,
@@ -28,7 +29,10 @@ from cavat.modules.session.repository import (
     NewEvent,
     SessionState,
 )
+from cavat.modules.tutor.contracts import MessageRenderer
 from cavat.modules.tutor.item_loop import ItemTutor, Phase, TutorEvent
+from cavat.modules.tutor.llm_renderer import LLMRenderer
+from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
@@ -157,6 +161,43 @@ def rebuild_tutor(pkg: LessonPackage, item: dict[str, Any]) -> ItemTutor:
     return tutor
 
 
+def item_history(session: LearningSession) -> list[Turn]:
+    """The latest turns of the current item, read from the event log (survives a restart)."""
+    attempt = (session.state.item or {}).get("item_attempt_id")
+    turns: list[Turn] = []
+    for e in session.events:
+        if e.item_attempt_id != attempt:
+            continue
+        if e.event_type == EventType.STUDENT_MESSAGE:
+            turns.append(Turn("student", e.payload["text"]))
+        elif e.event_type == EventType.HINT_REQUESTED:
+            turns.append(Turn("student", CHOICES[CHOICE_HINT]))
+        elif e.event_type == EventType.TUTOR_MESSAGE_SENT:
+            turns.append(Turn("tutor", e.payload["text"]))
+    return turns[-RECENT_TURNS:]
+
+
+def llm_renderer(session: LearningSession, router: AIRouter) -> LLMRenderer:
+    """Renderer for the live turn of this session: Qwen phrases the move, templates are the fallback.
+
+    The number of LLM calls already made is kept in the session document, so the per-session cap holds
+    across requests.
+    """
+    return LLMRenderer(
+        router,
+        TemplateRenderer(),
+        validate_message,
+        student_name=session.student_display_name,
+        calls_used=(session.state.activity or {}).get("llm_calls", 0),
+        history=item_history(session),
+        history_item=(session.state.item or {}).get("item_id"),
+    )
+
+
+def _activity(plan: list[list[str]], index: int, llm_calls: int) -> dict[str, Any]:
+    return {"plan": plan, "index": index, "llm_calls": llm_calls}
+
+
 def _activity_id(index: int, activity: str) -> str:
     return f"{index + 1:02d}-{activity}"
 
@@ -225,6 +266,7 @@ def apply_command(
     kind: str = "ANSWER",
     modality: str = "TEXT",
     choice_id: str | None = None,
+    live_renderer: MessageRenderer | None = None,
 ) -> Step:
     """One student command on the current item. Raises ``CommandNotAllowed`` when it does not fit."""
     if command not in allowed_commands(session):
@@ -232,6 +274,7 @@ def apply_command(
     item = dict(session.state.item or {})
     plan: list[list[str]] = session.state.activity["plan"]
     index: int = session.state.activity["index"]
+    llm_calls: int = session.state.activity.get("llm_calls", 0)
     seconds = max((now - session.updated_at).total_seconds(), 0.0)
     item_id, attempt_id, activity_id = item["item_id"], item["item_attempt_id"], item["activity_id"]
     version_after = session.state_version + 1
@@ -249,7 +292,7 @@ def apply_command(
         if choice_id == CHOICE_RETRY:
             # The loop already treats the next message as a normal attempt; only the buttons go away.
             item["choice_open"] = False
-            activity = {"plan": plan, "index": index}
+            activity = _activity(plan, index, llm_calls)
             return Step(
                 SessionState(lifecycle=LifecycleState.ACTIVE, activity=activity, item=item), events, {}
             )
@@ -262,14 +305,22 @@ def apply_command(
         events = [student_event(EventType.STUDENT_MESSAGE, message)]
         loop_text = text
 
-    turn = rebuild_tutor(pkg, item).on_student(loop_text, seconds)
+    tutor = rebuild_tutor(pkg, item)  # the replay uses templates: past turns never call the model again
+    if live_renderer is not None:
+        tutor.renderer = live_renderer
+    turn = tutor.on_student(loop_text, seconds)
     events += _loop_events(turn.events, session, item)
+    llm_calls = getattr(live_renderer, "calls_used", llm_calls)
+    trace = getattr(live_renderer, "last_trace", None)
+    if trace is not None and trace.safety_flag:
+        flagged = SafetyFlagged(item_id=item_id).model_dump(mode="json")
+        events.append(_event(EventType.SAFETY_FLAGGED, flagged, session, attempt_id, activity_id))
     item["inputs"] = [*item["inputs"], {"text": loop_text, "seconds": seconds}]
     item["phase"] = turn.phase.value
     item["choice_open"] = turn.phase == Phase.AWAITING_CHOICE
 
     if not turn.resolved:
-        activity = {"plan": plan, "index": index}
+        activity = _activity(plan, index, llm_calls)
         return Step(SessionState(lifecycle=LifecycleState.ACTIVE, activity=activity, item=item), events, {})
 
     index += 1
@@ -279,14 +330,14 @@ def apply_command(
         events.append(_event(EventType.ACTIVITY_COMPLETED, done, session, None, activity_id))
     if index < len(plan):
         next_item, opened = _open_item(pkg, session, plan, index)
-        activity = {"plan": plan, "index": index}
+        activity = _activity(plan, index, llm_calls)
         state = SessionState(lifecycle=LifecycleState.ACTIVE, activity=activity, item=next_item)
         return Step(state, events + opened, {})
 
     summary = {"summary_text": _persona(pkg, SUMMARY_TEXT), "items_done": len(plan)}
     summary_id = _activity_id(len(plan), ActivityType.SUMMARY.value)
     events.append(_event(EventType.SESSION_COMPLETED, summary, session, None, summary_id))
-    state = SessionState(lifecycle=LifecycleState.COMPLETED, activity={"plan": plan, "index": index})
+    state = SessionState(lifecycle=LifecycleState.COMPLETED, activity=_activity(plan, index, llm_calls))
     return Step(state, events, {"ended_at": now, "end_reason": "COMPLETED"})
 
 

@@ -15,6 +15,7 @@ turns of the current item for the prompt.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -89,14 +90,17 @@ class LLMRenderer:
         *,
         student_name: str | None = None,
         calls_used: int = 0,
+        history: Sequence[Turn] = (),
+        history_item: str | None = None,
     ) -> None:
         self._router = router
         self._template = template
         self._validator = validator
         self._student_name = student_name
         self.calls_used = calls_used  # LLM requests already sent in this session (from SessionContext)
-        self._history: list[Turn] = []
-        self._history_item: str | None = None
+        # A session that rebuilds the renderer for each request passes the turns of the current item.
+        self._history: list[Turn] = list(history)[-RECENT_TURNS:]
+        self._history_item: str | None = history_item
         self.last_trace: RenderTrace | None = None
 
     def render(self, ctx: RenderContext) -> RenderedMessage:
