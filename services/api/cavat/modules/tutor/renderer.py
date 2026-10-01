@@ -2,8 +2,8 @@
 
 Blueprint PART 15.3: approved lesson content comes first. A hint is looked up in this order: the item's
 template for (target, level), the item's template for the same target at a lower level, the lesson's
-generic hints, then a fixed fallback sentence. The fixed sentences below are DRAFT wording that the
-supervising teacher still has to approve; changing them is a template change (CLAUDE.md rule 7).
+generic hints, then a fixed fallback sentence. The fixed sentences below were approved by the owner
+(the supervising teacher) on 2026-10-01; changing them is a template change (CLAUDE.md rule 7).
 """
 
 from __future__ import annotations

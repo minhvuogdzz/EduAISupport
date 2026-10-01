@@ -60,7 +60,7 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 | `cavat/core/repository.py`, `memory_db.py`, `db_guard.py`, `modules/*/repository.py` | Tầng MongoDB, repository theo module, guard cho test Atlas (T07) |
 | `apps/web` | Web app học sinh và giáo viên chạy mock API (T09). **Chưa nối API thật** (T13) |
 | `cavat/modules/tutor/policy.py` | Policy gợi ý tất định, mọi quyết định có `rule_ids` (T02, bổ sung ở T04). Bản `hint-policy/0.3.0` |
-| `cavat/modules/tutor/renderer.py`, `validator.py` | Câu mẫu cho mọi move và bộ chặn output (T03). Câu chữ trong `PHRASES` là nháp |
+| `cavat/modules/tutor/renderer.py`, `validator.py` | Câu mẫu cho mọi move và bộ chặn output (T03). Câu chữ trong `PHRASES` đã được chủ dự án duyệt ngày 2026-10-01 |
 | `cavat/modules/tutor/item_loop.py` | `ItemTutor`: vòng lặp một câu hỏi, probe tách nguyên nhân, sinh event (T04) |
 | `cavat/modules/ai_gateway/` | Groq (Qwen, Whisper), Gemini (ảnh), router có chuỗi dự phòng và trần lượt gọi, model giả, `make ai-ping` (T06a) |
 | `cavat/modules/tutor/prompt_builder.py`, `llm_renderer.py`, `prompts/` | Qwen diễn đạt nước đi, câu mẫu làm dự phòng; câu EXIT chỉ dùng câu mẫu; chặn lời vượt câu mẫu (T06b bản gọn) |
@@ -248,9 +248,11 @@ Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy so
 - [x] Khóa Groq, Gemini, LlamaCloud trong `services/api/.env` (đã kiểm tra hoạt động ngày 2026-10-01).
 - [x] Review `lesson.yaml` (2026-10-01): đã sửa theo review và quyết định của chủ dự án; `test_lesson_content.py` giữ các quy tắc này trong CI.
 - [x] 2026-10-01: duyệt DI "học sinh im lặng sau H6 thì cô giải thích trọn vẹn (H7) rồi mời con nói lại" (R-FULL, `hint-policy/0.3.0`).
-- [ ] Duyệt nháp 4 câu kiểm tra cuối mới (EX-05…EX-08) và các DI ở blueprint 09.
-- [ ] Duyệt các DI của T04: hỏi "vì sao" ở 30% số câu trả lời đúng (`verify_rate`), trần 12 lượt học sinh mỗi câu (`MAX_STUDENT_TURNS`), và "không nói lại được sau H7 thì ghi `UNRESOLVED`".
-- [ ] Duyệt câu chữ nháp: `PHRASES` trong `tutor/renderer.py`, câu tổng kết và nhãn lựa chọn trong `session/service.py`, hai file prompt trong `tutor/prompts/`.
+- [x] 2026-10-01: duyệt 4 câu kiểm tra cuối mới (EX-05…EX-08).
+- [x] 2026-10-01: duyệt các DI của T04: hỏi "vì sao" ở 30% số câu trả lời đúng (`verify_rate`), trần 12 lượt học sinh mỗi câu (`MAX_STUDENT_TURNS`), và "không nói lại được sau H7 thì ghi `UNRESOLVED`".
+- [x] 2026-10-01: duyệt câu chữ: `PHRASES` trong `tutor/renderer.py`, câu tổng kết và nhãn lựa chọn trong `session/service.py`, hai file prompt `v1` trong `tutor/prompts/`.
+- [ ] Duyệt các DI ở blueprint 09.
+- [ ] Duyệt 3 gợi ý được viết lại khi review T03 (GP-09, GP-09b và gợi ý chung TASK mức 1), rồi xác nhận cả bài để chuyển `lesson.yaml` từ DRAFT sang APPROVED.
 - [ ] Chụp phần còn lại của bảng hạn mức Gemini (`gemini-3.8-live` và các dòng bị cắt).
 - [ ] Hỏi luật sư về điều khoản tuổi của Google và Groq (xem cuối `docs/poc/free-tier-quota.md`).
 - [ ] Sau T05: chạy `make poc1-llm` và đọc transcript trong `evals/reports/`.

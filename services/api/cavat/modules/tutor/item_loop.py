@@ -65,8 +65,9 @@ from cavat.modules.tutor.contracts import (
 from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, decide
 from cavat.modules.tutor.renderer import PHRASES, counter_example
 
-# DI: hard stop for one item. Every policy path ends well before this (frustration -> worked -> full
-# -> teach-back); the guard only makes sure that no sequence of replies can keep an item open forever.
+# DI, approved by the owner on 2026-10-01: hard stop for one item. Every policy path ends well before
+# this (frustration -> worked -> full -> teach-back); the guard only makes sure that no sequence of
+# replies can keep an item open forever.
 MAX_STUDENT_TURNS = 12
 
 # DI: confidence of a misconception attributed by a probe answer (same as one bug-rule match in the
