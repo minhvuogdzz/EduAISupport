@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cavat.core.repository import (
     ASCENDING,
+    DESCENDING,
     IndexSpec,
     NotFound,
     RepositoryError,
@@ -163,6 +164,7 @@ class LearningSessionRepository(TenantScopedRepository):
             "student_lifecycle",
         ),
         IndexSpec((("school_id", ASCENDING), ("schedule_id", ASCENDING)), "schedule"),
+        IndexSpec((("school_id", ASCENDING), ("updated_at", DESCENDING)), "school_recent"),
     )
 
     def _envelope(
@@ -206,6 +208,11 @@ class LearningSessionRepository(TenantScopedRepository):
     async def get(self, session_id: str) -> LearningSession | None:
         doc = await self._find_one({"_id": session_id})
         return LearningSession.from_doc(doc) if doc else None
+
+    async def list_recent(self, limit: int = 100) -> list[LearningSession]:
+        """The school's latest sessions, newest first (the teacher's review list)."""
+        docs = await self._find({}, sort=[("updated_at", DESCENDING)], limit=limit)
+        return [LearningSession.from_doc(d) for d in docs]
 
     async def list_for_student(
         self, student_id: str, lifecycle: Sequence[LifecycleState] | None = None

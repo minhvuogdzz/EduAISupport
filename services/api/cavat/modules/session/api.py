@@ -149,6 +149,71 @@ class SessionStateView(BaseModel):
     transcript: list[ChatTurn]
 
 
+class SessionSummaryView(BaseModel):
+    session_id: str
+    student_display_name: str
+    lesson_title: str
+    lifecycle_state: str
+    started_at: datetime | None
+    updated_at: datetime
+    progress: Progress
+    misconception_ids: list[str]
+    engine: Literal["mock", "live"]
+
+
+class TutorAnnotation(BaseModel):
+    move: str
+    hint_level: int | None
+    hint_target: str | None
+    rule_ids: list[str]
+    reason_codes: list[str]
+    source: Literal["TEMPLATE", "GENERIC", "LLM", "FALLBACK"]
+
+
+class MisconceptionView(BaseModel):
+    id: str
+    name: str
+    confidence: float
+
+
+class StudentAnnotation(BaseModel):
+    kind: Literal["ANSWER", "STEP", "EXPLANATION", "MESSAGE", "HINT_REQUEST", "CHOICE"]
+    outcome: str | None
+    normalized_answer: str | None
+    misconception: MisconceptionView | None
+
+
+class TranscriptTurn(BaseModel):
+    sequence_no: int
+    occurred_at: datetime
+    actor: Literal["student", "tutor", "system", "teacher"]
+    text: str
+    tutor: TutorAnnotation | None
+    student: StudentAnnotation | None
+
+
+class SessionSegment(BaseModel):
+    kind: Literal["session"]
+    turns: list[TranscriptTurn]
+
+
+class ItemSegment(BaseModel):
+    kind: Literal["item"]
+    item_attempt_id: str
+    item_id: str
+    activity_type: str
+    stem: str
+    position: int
+    resolution: str | None
+    max_hint_level: int
+    turns: list[TranscriptTurn]
+
+
+class SessionTranscriptView(BaseModel):
+    session: SessionSummaryView
+    segments: list[Annotated[SessionSegment | ItemSegment, Field(discriminator="kind")]]
+
+
 class CommandAck(BaseModel):
     accepted: Literal[True] = True
     state_version: int
@@ -177,8 +242,16 @@ def demo_student(x_demo_student: Annotated[str | None, Header()] = None) -> str:
     return x_demo_student
 
 
+def demo_teacher(x_demo_teacher: Annotated[str | None, Header()] = None) -> str:
+    """Temporary (T12 adds accounts and roles): any ``X-Demo-Teacher`` header marks the teacher."""
+    if not x_demo_teacher:
+        raise ApiError(401, "NOT_SESSION_OWNER", "X-Demo-Teacher header is required")
+    return x_demo_teacher
+
+
 Database = Annotated[Any, Depends(get_database)]
 Student = Annotated[str, Depends(demo_student)]
+Teacher = Annotated[str, Depends(demo_teacher)]
 IdempotencyKey = Annotated[str | None, Header(max_length=100)]
 
 router = APIRouter(prefix="/v1/sessions", tags=["sessions"])
@@ -279,6 +352,23 @@ async def create_session(body: CreateSession, database: Database, student: Stude
     session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, body.student_display_name)
     session = await _repo(database).create(session)
     return service.student_view(pkg, session)
+
+
+@router.get("", response_model=list[SessionSummaryView])
+async def list_sessions(database: Database, teacher: Teacher):
+    """Teacher: the school's latest sessions, newest first."""
+    packages = service.lesson_packages()
+    sessions = await _repo(database).list_recent()
+    return [service.summary(packages.get(s.lesson_id), s) for s in sessions]
+
+
+@router.get("/{session_id}/transcript", response_model=SessionTranscriptView)
+async def get_transcript(session_id: str, database: Database, teacher: Teacher):
+    """Teacher: the conversation with outcomes, misconceptions, rule ids and message sources."""
+    session = await _repo(database).get(session_id)
+    if session is None:
+        raise ApiError(404, "NOT_FOUND", "session not found")
+    return service.teacher_transcript(_package(session.lesson_id), session)
 
 
 @router.post("/{session_id}/join", response_model=SessionStateView)

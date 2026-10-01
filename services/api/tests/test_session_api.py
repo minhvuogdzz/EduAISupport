@@ -5,6 +5,7 @@ Always runs on the in-memory database (the dependency is overridden), never on A
 
 from fractions import Fraction
 
+import httpx
 import pytest
 from cavat.core.events import PAYLOAD_MODELS, EventType
 from cavat.core.memory_db import InMemoryDatabase
@@ -27,12 +28,17 @@ from fastapi.testclient import TestClient
 
 PKG = next(iter(service.lesson_packages().values()))
 MINH = {"X-Demo-Student": "minh"}
+TEACHER = {"X-Demo-Teacher": "1"}
+
+
+@pytest.fixture(autouse=True)
+def templates_only(monkeypatch):
+    """No test may call a real model, whatever TUTOR_RENDERER says in .env; a test installs a fake router."""
+    monkeypatch.setattr(session_api, "tutor_router", lambda: None)
 
 
 @pytest.fixture
-async def memory(monkeypatch):
-    # Templates only unless a test installs a fake router: no test may call a real model.
-    monkeypatch.setattr(session_api, "tutor_router", lambda: None)
+async def memory():
     database = InMemoryDatabase()
     await ensure_indexes(database)
     app.dependency_overrides[get_database] = lambda: database
@@ -299,3 +305,87 @@ def test_a_leaking_model_falls_back_to_the_template(client, monkeypatch):
     assert send(client, state, wrong, "w1").status_code == 200
     state = get_state(client, state)
     assert len(fake.calls) == 2 and leak not in [t["text"] for t in state["transcript"]]
+
+
+def test_teacher_sees_outcomes_misconceptions_and_rules(client):
+    state = start(client)
+    sid = state["session_id"]
+    for _ in range(2):
+        state = advance(client, state)
+    wrong = ">" if correct_text("GP-01") == "<" else "<"
+    assert send(client, state, f"0,25 {wrong} 0,3", "w1").status_code == 200
+
+    assert client.get("/v1/sessions").status_code == 401  # the teacher header is required
+    assert client.get(f"/v1/sessions/{sid}/transcript", headers=MINH).status_code == 401
+    listed = client.get("/v1/sessions", headers=TEACHER).json()
+    assert [s["session_id"] for s in listed] == [sid]
+    assert listed[0]["engine"] == "live" and listed[0]["student_display_name"] == "Minh"
+    assert listed[0]["progress"] == {"items_done": 2, "items_total": 8}
+    assert listed[0]["misconception_ids"] == ["DEC-M01"]
+
+    transcript = client.get(f"/v1/sessions/{sid}/transcript", headers=TEACHER).json()
+    assert transcript["session"] == listed[0]
+    items = [seg for seg in transcript["segments"] if seg["kind"] == "item"]
+    assert [(i["item_id"], i["position"], i["resolution"]) for i in items] == [
+        ("CC-01", 1, "INDEPENDENT"),
+        ("CC-02", 2, "INDEPENDENT"),
+        ("GP-01", 3, None),
+    ]
+    assert items[0]["activity_type"] == "CONCEPT_CHECK" and items[0]["stem"] == PKG.item("CC-01").stem
+    first = items[0]["turns"]
+    assert first[0]["tutor"]["move"] == "PRESENT" and first[0]["tutor"]["rule_ids"] == ["R-PRESENT"]
+    assert (first[1]["actor"], first[1]["student"]["outcome"]) == ("student", "CORRECT")
+
+    answer, reply = items[2]["turns"][-2:]
+    assert answer["student"]["kind"] == "ANSWER" and answer["student"]["outcome"] == "WRONG"
+    assert answer["student"]["normalized_answer"]
+    assert answer["student"]["misconception"]["id"] == "DEC-M01"
+    assert answer["student"]["misconception"]["name"] == PKG.misconception("DEC-M01").name
+    assert reply["actor"] == "tutor" and reply["tutor"]["rule_ids"] and reply["tutor"]["source"] == "TEMPLATE"
+    assert client.get("/v1/sessions/nope/transcript", headers=TEACHER).status_code == 404
+
+
+async def walk_whole_lesson(http: httpx.AsyncClient) -> dict:
+    created = await http.post("/v1/sessions", json={"student_display_name": "Minh"}, headers=MINH)
+    assert created.status_code == 201, created.text
+    sid = created.json()["session_id"]
+    state = (await http.post(f"/v1/sessions/{sid}/join", headers=MINH)).json()
+    for n in range(60):
+        if state["lifecycle_state"] != "ACTIVE":
+            break
+        explaining = state["item"]["expecting"] == "EXPLANATION"
+        body = {
+            "item_attempt_id": state["item"]["item_attempt_id"],
+            "content": {
+                "text": "vì con so sánh từng hàng" if explaining else correct_text(state["item"]["item_id"])
+            },
+            "expected_state_version": state["state_version"],
+        }
+        ack = await http.post(
+            f"/v1/sessions/{sid}/responses", json=body, headers={**MINH, "Idempotency-Key": f"walk-{n}"}
+        )
+        assert ack.status_code == 200, ack.text
+        state = (await http.get(f"/v1/sessions/{sid}/state", headers=MINH)).json()
+    return state
+
+
+async def test_a_whole_lesson_on_the_database(db):
+    """The session API on real storage: the in-memory database, and a throwaway ``cavat_test_*``
+    database on Atlas when MONGODB_URI is set (guarded and dropped by the ``db`` fixture)."""
+    app.dependency_overrides[get_database] = lambda: db
+    try:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as http:
+            state = await walk_whole_lesson(http)
+            assert state["lifecycle_state"] == "COMPLETED"
+            assert state["progress"] == {"items_done": 8, "items_total": 8}
+            sid = state["session_id"]
+            listed = (await http.get("/v1/sessions", headers=TEACHER)).json()
+            assert [s["session_id"] for s in listed] == [sid] and listed[0]["lifecycle_state"] == "COMPLETED"
+            transcript = (await http.get(f"/v1/sessions/{sid}/transcript", headers=TEACHER)).json()
+            assert [seg["kind"] for seg in transcript["segments"]].count("item") == 8
+            assert transcript["segments"][-1]["kind"] == "session"
+    finally:
+        app.dependency_overrides.pop(get_database, None)
+    session = await LearningSessionRepository(db, service.DEMO_SCHOOL_ID).get(sid)
+    assert session.events_copied_upto == len(session.events) > 0
