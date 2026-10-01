@@ -16,6 +16,7 @@
 | **D-T5** | Làm **một mình cùng AI**: phiên local để lên kế hoạch và review, **phiên cloud để code** theo `docs/tasks/BACKLOG.md` | Kế hoạch chia thành task độc lập, mỗi task một nhánh và một PR; mô hình team 5 người chỉ còn là tham chiếu |
 | **D-T6** | **Mọi thứ chạy local, không dùng Docker** | Bỏ Docker Compose và MinIO; file gốc và audio lưu ở `var/storage/`; Cloudflare Tunnel chỉ cần khi học sinh truy cập từ máy khác |
 | **D-T7** | **Database: MongoDB Atlas (M0)** thay PostgreSQL + pgvector | Thay ADR-003 (RLS), ADR-005 (ledger Postgres), ADR-008 (Postgres + pgvector): lọc `school_id` ở repository; mỗi buổi học là một document chứa state và event (M0 không có multi-document transaction); M0 không có Vector Search nên RAG dùng context loading, truy xuất khác làm trong Python. **[FACT]** Giới hạn M0: 0,5 GB, 100 ops/s, không transaction, không Atlas Search/Vector Search, không backup. Đã cập nhật ADR-003, 005, 008 và PART 10, 28 (T07) |
+| **D-T8** | **Qwen trên Groq là bộ não tutor**; Gemini chỉ cho ảnh/OCR hình học và voice/live; LlamaParse cho tài liệu giáo viên | Thay mặc định TUTOR_REASONING ở PART 12.1 (ADR-017). Gemini free chỉ 20 request/ngày cho mỗi model, Groq 1.000 request/ngày nhưng giới hạn 8.000 token/phút, nên prompt ≤ 3.000 token, tắt suy luận, tối đa 15 lần gọi LLM mỗi buổi, còn lại dùng câu mẫu. Số đo ở `docs/poc/free-tier-quota.md` |
 
 **Stack free-first mặc định** (chi tiết PART 12.1):
 

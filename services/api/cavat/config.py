@@ -15,9 +15,16 @@ class Settings(BaseSettings):
 
     mongodb_uri: SecretStr | None = None
     mongodb_db: str = "cavat_dev"
+    # Tutor brain (ADR-017): Qwen on Groq. Gemini only for vision/OCR and voice.
+    groq_api_key: SecretStr | None = None
+    groq_model: str = "qwen/qwen3.8-27b"
+    groq_stt_model: str = "whisper-large-v3"
     gemini_api_key: SecretStr | None = None
-    tutor_model: str = "gemini-3.8-flash"
-    lightweight_model: str = "gemini-3.5-flash-lite"
+    gemini_vision_model: str = "gemini-3.8-flash"
+    gemini_live_model: str = "gemini-3.8-live"
+    llama_cloud_api_key: SecretStr | None = None
+    # Hard cap on LLM calls per session; above it the tutor runs on approved templates only.
+    max_llm_calls_per_session: int = 15
     storage_dir: Path = REPO_ROOT / "var" / "storage"
 
 
