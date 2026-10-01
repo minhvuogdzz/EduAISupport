@@ -4,9 +4,14 @@
 # Quy ước:
 # - Số viết theo kiểu Việt Nam: dấu phẩy thập phân (0,25).
 # - hint.level: 1..7 tương ứng H1..H7 (blueprint PART 15). target: TASK | CONCEPT | STRATEGY | STEP | SELF_CHECK | FORMAT.
-# - leak_patterns: biểu thức chính quy áp dụng trên văn bản đã bỏ dấu, chữ thường (ví dụ "hoa nhanh hon").
-# - counter_examples có thể dùng {left}, {right} (chỉ điền được với câu hỏi dạng compare).
-# - Câu EXIT_ASSESSMENT: đáp án chỉ bộ chấm đọc, không bao giờ đưa vào prompt của AI.
+# - leak_patterns: biểu thức chính quy áp dụng trên văn bản chữ thường CÒN DẤU, bắt buộc có \b ở hai đầu
+#   (bỏ dấu sẽ làm "Minh" trùng "mình", "Nam" trùng "năm", "an sai" khớp "bạn sai"). Không câu nào dưới H7
+#   (stem, rephrase, hint, verify, các bước giải mẫu trừ bước cuối, phản ví dụ) được khớp pattern của chính câu đó.
+# - counter_examples dùng {left}, {right} (chỉ điền được với câu compare), hoặc cặp số không có ở câu nào.
+#   Đổi đơn vị chỉ dùng mét → xăng-ti-mét khi số có tối đa 2 chữ số ở phần thập phân.
+# - purpose EXIT = câu của hoạt động EXIT_ASSESSMENT: gợi ý tối đa H1, có gợi ý thì bằng chứng chỉ là SUPPORTED.
+#   Đáp án, rubric và sample_answer của câu EXIT không bao giờ đưa vào prompt của AI.
+# - probe: câu hỏi tách nguyên nhân khi một lựa chọn sai có hai cách giải thích (GP-08, GP-08b).
 
 lesson_id: math-g5-dec-compare
 version: 0.1.0
@@ -71,7 +76,7 @@ misconceptions:
     severity: CRITICAL
     counter_examples:
       - "Nếu có {left} mét dây và {right} mét dây, con thử đổi cả hai ra xăng-ti-mét rồi xem đoạn nào dài hơn nhé?"
-      - "0,3 mét là 30 xăng-ti-mét, còn 0,25 mét là 25 xăng-ti-mét. Vậy đoạn dây nào dài hơn?"
+      - "0,9 mét là 90 xăng-ti-mét, còn 0,85 mét là 85 xăng-ti-mét. Vậy số có nhiều chữ số hơn có phải lúc nào cũng lớn hơn không?"
   - id: DEC-M02
     kc_id: KC-DEC-CMP
     name: "Ngắn hơn thì lớn hơn"
@@ -89,7 +94,7 @@ misconceptions:
     severity: CRITICAL
     counter_examples:
       - "Chữ số ngay sau dấu phẩy thuộc hàng phần mười. Ở {left} và {right}, chữ số hàng phần mười lần lượt là mấy?"
-      - "Nếu 0,05 bằng 0,5 thì 5 xu cũng bằng 50 xu. Con thấy có đúng không?"
+      - "0,07 mét là 7 xăng-ti-mét, còn 0,7 mét là 70 xăng-ti-mét. Hai đoạn dây đó có dài bằng nhau không?"
   - id: DEC-M04
     kc_id: KC-DEC-CMP
     name: "Bỏ qua phần nguyên"
@@ -108,16 +113,25 @@ misconceptions:
     counter_examples:
       - "Nếu con có {left} kg gạo và bạn có {right} kg gạo, chữ số 0 ở cuối có làm lượng gạo nhiều hơn không?"
       - "0,5 là 5 phần mười, còn 0,50 là 50 phần trăm. 50 phần trăm có bằng 5 phần mười không?"
+  - id: APPLY-TIME-SPEED
+    kc_id: KC-DEC-APPLY
+    name: "Nhiều giây hơn thì nhanh hơn"
+    description: "So sánh số đúng nhưng hiểu nhầm rằng chạy hết nhiều thời gian hơn là chạy nhanh hơn. Không phải lỗi số thập phân, không tính vào KC-DEC-CMP."
+    severity: NORMAL
+    counter_examples:
+      - "Hai bạn chạy cùng một quãng đường. Bạn về đích sau ít giây hơn thì chạy nhanh hơn hay chậm hơn?"
 
 # Gợi ý dự phòng dùng chung (khi câu hỏi chưa có gợi ý đúng mức).
 generic_hints:
   - {target: TASK, level: 1, text: "Đề bài muốn mình so sánh những số nào? Con đọc to các số đó giúp cô nhé?"}
   - {target: CONCEPT, level: 2, text: "Khi so sánh hai số thập phân, mình so sánh phần nào trước: phần nguyên hay phần thập phân?"}
-  - {target: STRATEGY, level: 3, text: "Con thử viết các số cho có cùng số chữ số ở phần thập phân, rồi so sánh lần lượt từng hàng xem?"}
-  - {target: STEP, level: 4, text: "Phần nguyên bằng nhau thì mình so sánh tiếp chữ số ở hàng phần mười. Con so sánh hai chữ số đó giúp cô nhé?"}
+  - {target: STRATEGY, level: 3, text: "Con thử so sánh theo thứ tự: phần nguyên trước, rồi lần lượt hàng phần mười, hàng phần trăm xem?"}
+  - {target: STEP, level: 4, text: "Bước đầu tiên là so sánh phần nguyên. Phần nguyên của các số là mấy, có bằng nhau không?"}
   - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Bước 1: phần nguyên của các số là mấy?"}
   - {target: SELF_CHECK, level: 1, text: "Con kiểm tra lại từng hàng một lần nữa giúp cô nhé?"}
   - {target: FORMAT, level: 1, text: "Con trả lời đúng theo yêu cầu của đề giúp cô nhé?"}
+
+default_verify_prompt: "Đúng rồi! Con giải thích cho cô vì sao con làm như vậy được không?"
 
 items:
   # ------------------------------------------------------------ CONCEPT_CHECK
@@ -132,7 +146,7 @@ items:
       type: choice
       options:
         - {id: A, text: "hàng phần mười", correct: true, aliases: ["phần mười"]}
-        - {id: B, text: "hàng phần trăm", aliases: ["phần trăm"], misconceptions: [DEC-M03]}
+        - {id: B, text: "hàng phần trăm", aliases: ["phần trăm"]}
         - {id: C, text: "hàng đơn vị", aliases: ["đơn vị"]}
     hints:
       - {target: TASK, level: 1, text: "Chữ số 4 đứng ở bên trái hay bên phải dấu phẩy?"}
@@ -143,7 +157,7 @@ items:
       - "Chữ số đứng ngay sau dấu phẩy thuộc hàng phần mười."
       - "Vậy chữ số 4 thuộc hàng phần mười."
     explanation: "Chữ số đứng ngay sau dấu phẩy thuộc hàng phần mười. Trong 3,47, chữ số 4 đứng ngay sau dấu phẩy nên thuộc hàng phần mười."
-    leak_patterns: ["4 (thuoc|o|la) hang phan muoi"]
+    leak_patterns: ["\\b4 (thuộc|ở|là) hàng phần mười\\b"]
 
   - id: CC-02
     purpose: CONCEPT_CHECK
@@ -440,7 +454,7 @@ items:
       - "Với x = 5 ta được 0,55 < 0,60, nên x phải lớn hơn 5."
       - "Với x = 6 ta được 0,65 > 0,60, nên chữ số x bé nhất là 6."
     explanation: "Viết 0,6 thành 0,60. Với x = 5 thì 0,55 < 0,60, còn với x = 6 thì 0,65 > 0,60. Vậy chữ số x bé nhất là 6."
-    leak_patterns: ["x (bang|la|=) ?6\\b", "be nhat la 6"]
+    leak_patterns: ["\\bx ?(=|bằng|là) ?6\\b", "\\bbé nhất là 6\\b"]
 
   - id: GP-07b
     purpose: PRACTICE
@@ -464,7 +478,7 @@ items:
       - "Với x = 6 ta được 0,63 < 0,70, nên x phải lớn hơn 6."
       - "Với x = 7 ta được 0,73 > 0,70, nên chữ số x bé nhất là 7."
     explanation: "Viết 0,7 thành 0,70. Với x = 6 thì 0,63 < 0,70, còn với x = 7 thì 0,73 > 0,70. Vậy chữ số x bé nhất là 7."
-    leak_patterns: ["x (bang|la|=) ?7\\b", "be nhat la 7"]
+    leak_patterns: ["\\bx ?(=|bằng|là) ?7\\b", "\\bbé nhất là 7\\b"]
 
   - id: GP-08
     purpose: PRACTICE
@@ -476,7 +490,9 @@ items:
     answer:
       type: choice
       options:
-        - {id: A, text: "Lan", misconceptions: [DEC-M01]}
+        - id: A
+          text: "Lan"
+          probe: {prompt: "Con so sánh giúp cô: 9,8 và 9,75, số nào lớn hơn?", left: "9,8", right: "9,75", if_wrong: DEC-M01, if_correct: APPLY-TIME-SPEED}
         - {id: B, text: "Hoa", correct: true}
     verify_prompt: "Đúng rồi! Con giải thích giúp cô vì sao con chọn bạn Hoa được không?"
     hints:
@@ -490,7 +506,7 @@ items:
       - "So sánh 9,8 và 9,75: cùng phần nguyên 9; ở hàng phần mười 8 > 7 nên 9,8 > 9,75."
       - "Vậy Hoa chạy hết ít thời gian hơn, nên Hoa chạy nhanh hơn."
     explanation: "Người chạy hết ít thời gian hơn thì chạy nhanh hơn. Ở hàng phần mười 7 < 8 nên 9,75 < 9,8. Vậy Hoa chạy nhanh hơn."
-    leak_patterns: ["hoa (chay )?nhanh hon", "lan (chay )?cham hon", "ban hoa (chay )?nhanh"]
+    leak_patterns: ["\\bhoa (chạy )?nhanh hơn\\b", "\\blan (chạy )?chậm hơn\\b"]
 
   - id: GP-08b
     purpose: PRACTICE
@@ -502,7 +518,9 @@ items:
     answer:
       type: choice
       options:
-        - {id: A, text: "Minh", misconceptions: [DEC-M01]}
+        - id: A
+          text: "Minh"
+          probe: {prompt: "Con so sánh giúp cô: 12,5 và 12,45, số nào lớn hơn?", left: "12,5", right: "12,45", if_wrong: DEC-M01, if_correct: APPLY-TIME-SPEED}
         - {id: B, text: "Tuấn", correct: true}
     hints:
       - {target: TASK, level: 1, text: "Bạn chạy hết ít thời gian hơn là bạn chạy nhanh hơn hay chậm hơn?"}
@@ -513,7 +531,7 @@ items:
       - "So sánh 12,5 và 12,45: cùng phần nguyên 12; ở hàng phần mười 5 > 4 nên 12,5 > 12,45."
       - "Vậy Tuấn chạy hết ít thời gian hơn, nên Tuấn chạy nhanh hơn."
     explanation: "Ở hàng phần mười 4 < 5 nên 12,45 < 12,5, tức là Tuấn chạy hết ít thời gian hơn. Vậy Tuấn chạy nhanh hơn."
-    leak_patterns: ["tuan (chay )?nhanh hon", "minh (chay )?cham hon"]
+    leak_patterns: ["\\btuấn (chạy )?nhanh hơn\\b", "\\bminh (chạy )?chậm hơn\\b"]
 
   - id: GP-09
     purpose: PRACTICE
@@ -539,7 +557,7 @@ items:
       - "Ở hàng phần mười: 0,25 có chữ số 2, 0,3 có chữ số 3, và 2 < 3."
       - "Vậy 0,25 < 0,3, nên bạn An nói sai."
     explanation: "Bạn An so sánh 25 với 3 như số tự nhiên là chưa đúng. Ở hàng phần mười, 2 < 3 nên 0,25 < 0,3. Vậy bạn An nói sai."
-    leak_patterns: ["an (noi )?sai", "an da sai", "an nham", "an noi chua dung"]
+    leak_patterns: ["\\bbạn an (đã )?(nói )?sai\\b", "\\ban (đã )?nói sai\\b", "\\ban nhầm\\b", "\\ban nói chưa đúng\\b"]
 
   - id: GP-09b
     purpose: PRACTICE
@@ -547,7 +565,7 @@ items:
     cognitive_level: DIAG
     difficulty: 0.5
     isomorphic_group: G9
-    stem: "Bạn Bình nói: \"0,7 < 0,65 vì 7 < 65\". Bạn Bình nói đúng hay sai?"
+    stem: "Bạn Bình nói: \"0,6 < 0,45 vì 6 < 45\". Bạn Bình nói đúng hay sai?"
     answer:
       type: boolean
       value: false
@@ -555,14 +573,14 @@ items:
       wrong_answers: {"true": DEC-M01}
     hints:
       - {target: TASK, level: 1, text: "Bạn Bình đang so sánh hai số nào? Con kiểm tra lại phép so sánh của bạn ấy giúp cô nhé?"}
-      - {target: CONCEPT, level: 2, text: "Khi so sánh 0,7 và 0,65, mình có được so sánh 7 với 65 như số tự nhiên không?"}
-      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,7 có chữ số 7, còn 0,65 có chữ số 6. Vậy 0,7 có bé hơn 0,65 như bạn Bình nói không?"}
+      - {target: CONCEPT, level: 2, text: "Khi so sánh 0,6 và 0,45, mình có được so sánh 6 với 45 như số tự nhiên không?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 0,6 có chữ số 6, còn 0,45 có chữ số 4. Vậy 0,6 có bé hơn 0,45 như bạn Bình nói không?"}
     worked_solution:
-      - "Bạn Bình so sánh 7 với 65 như số tự nhiên, cách này chưa phù hợp với số thập phân."
-      - "Ở hàng phần mười: 0,7 có chữ số 7, 0,65 có chữ số 6, và 7 > 6."
-      - "Vậy 0,7 > 0,65, nên bạn Bình nói sai."
-    explanation: "Ở hàng phần mười 7 > 6 nên 0,7 > 0,65. Bạn Bình so sánh 7 với 65 như số tự nhiên nên nói sai."
-    leak_patterns: ["binh (noi )?sai", "binh da sai", "binh nham"]
+      - "Bạn Bình so sánh 6 với 45 như số tự nhiên, cách này chưa phù hợp với số thập phân."
+      - "Ở hàng phần mười: 0,6 có chữ số 6, 0,45 có chữ số 4, và 6 > 4."
+      - "Vậy 0,6 > 0,45, nên bạn Bình nói sai."
+    explanation: "Ở hàng phần mười 6 > 4 nên 0,6 > 0,45. Bạn Bình so sánh 6 với 45 như số tự nhiên nên nói sai."
+    leak_patterns: ["\\bbạn bình (đã )?(nói )?sai\\b", "\\bbình (đã )?nói sai\\b", "\\bbình nhầm\\b"]
 
   - id: GP-10
     purpose: PRACTICE
@@ -588,7 +606,7 @@ items:
       - "Ở hàng phần mười: 0,5 có chữ số 5, 0,45 có chữ số 4, và 5 > 4."
       - "Vậy gói kẹo A nặng hơn."
     explanation: "So sánh 0,5 và 0,45: phần nguyên đều là 0, ở hàng phần mười 5 > 4 nên 0,5 > 0,45. Vậy gói kẹo A nặng hơn."
-    leak_patterns: ["goi (keo )?a (nang|nhieu) hon", "goi (keo )?b nhe hon"]
+    leak_patterns: ["\\bgói (kẹo )?a (nặng|nhiều) hơn\\b", "\\bgói (kẹo )?b nhẹ hơn\\b"]
 
   - id: GP-10b
     purpose: PRACTICE
@@ -612,7 +630,7 @@ items:
       - "Ở hàng phần mười: 1,2 có chữ số 2, 1,15 có chữ số 1, và 2 > 1."
       - "Vậy chai nước A chứa nhiều nước hơn."
     explanation: "Cùng phần nguyên 1; ở hàng phần mười 2 > 1 nên 1,2 > 1,15. Vậy chai A chứa nhiều nước hơn."
-    leak_patterns: ["chai (nuoc )?a (chua )?nhieu", "chai (nuoc )?b (chua )?it"]
+    leak_patterns: ["\\bchai (nước )?a (chứa )?nhiều\\b", "\\bchai (nước )?b (chứa )?ít\\b"]
 
   # ------------------------------------------------------------ EXIT_ASSESSMENT
   - id: EX-01
@@ -651,7 +669,7 @@ items:
         - {id: B, text: "Nam", misconceptions: [DEC-M01]}
     hints:
       - {target: TASK, level: 1, text: "Con so sánh chiều cao 1,4 m và 1,35 m theo từng hàng nhé?"}
-    leak_patterns: ["minh cao hon", "nam thap hon"]
+    leak_patterns: ["\\bminh cao hơn\\b", "\\bnam thấp hơn\\b"]
 
   - id: EX-04
     purpose: EXIT
@@ -666,4 +684,48 @@ items:
       wrong_answers: {"true": DEC-M03}
     hints:
       - {target: TASK, level: 1, text: "Con nhìn chữ số hàng phần mười của hai số nhé?"}
-    leak_patterns: ["ha (noi )?sai", "ha nham"]
+    leak_patterns: ["\\bhà (nói )?sai\\b", "\\bhà nhầm\\b"]
+
+  - id: EX-05
+    purpose: EXIT
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.45
+    expected_time_s: 30
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,3 … 0,35"
+    answer: {type: compare, left: "0,3", right: "0,35"}
+    hints:
+      - {target: TASK, level: 1, text: "Con đọc kỹ hai số 0,3 và 0,35 rồi so sánh theo từng hàng nhé?"}
+
+  - id: EX-06
+    purpose: EXIT
+    kc_ids: [KC-DEC-EQ]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 30
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 0,8 … 0,80"
+    answer: {type: compare, left: "0,8", right: "0,80"}
+    hints:
+      - {target: TASK, level: 1, text: "Con nghĩ xem chữ số 0 ở cuối phần thập phân có làm thay đổi giá trị của số không nhé?"}
+
+  - id: EX-07
+    purpose: EXIT
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.4
+    expected_time_s: 30
+    stem: "Điền dấu >, < hoặc = vào chỗ chấm: 3,1 … 2,95"
+    answer: {type: compare, left: "3,1", right: "2,95"}
+    hints:
+      - {target: TASK, level: 1, text: "Con nhớ so sánh phần nguyên của hai số trước nhé?"}
+
+  - id: EX-08
+    purpose: EXIT
+    kc_ids: [KC-DEC-ORDER]
+    cognitive_level: B
+    difficulty: 0.5
+    expected_time_s: 60
+    stem: "Sắp xếp các số sau theo thứ tự từ bé đến lớn: 0,9; 0,75; 0,8"
+    answer: {type: order, numbers: ["0,9", "0,75", "0,8"], direction: asc}
+    hints:
+      - {target: TASK, level: 1, text: "Con tìm số bé nhất trong ba số trước nhé?"}

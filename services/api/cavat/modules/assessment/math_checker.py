@@ -205,12 +205,16 @@ BUG_RULES: dict[str, BugRule] = {
     "longer_is_larger": bug_longer_is_larger,
     "shorter_is_larger": bug_shorter_is_larger,
 }
-# Most specific rules first; a specific rule hides the general rule it specializes.
 BUG_RULE_PRIORITY = list(BUG_RULES)
+# Family of each specific rule (used by evals to group misconceptions).
 SPECIALIZES: dict[str, str] = {
     "trailing_zero_larger": "longer_is_larger",
     "ignore_zero_placeholder": "longer_is_larger",
 }
+# A specific rule hides its general rule only when both describe the same mental step. Reading 0,05 as
+# 0,5 IS comparing "05" with "5", so M03 hides M01. "0,50 > 0,5" fits M01 (50 > 5) and M05 (trailing
+# zero) equally well, so both are kept and the answer is reported as not distinguishable.
+HIDES: dict[str, str] = {"ignore_zero_placeholder": "longer_is_larger"}
 
 
 def _rule_order(pkg: LessonPackage) -> list[tuple[str, str]]:
@@ -222,17 +226,21 @@ def _rule_order(pkg: LessonPackage) -> list[tuple[str, str]]:
 def _rank(matches: list[tuple[str, str]]) -> list[tuple[str, float]]:
     """Drop general rules hidden by a matched specific rule, then assign confidences."""
     rules = {rule for _, rule in matches}
-    kept = [(mid, rule) for mid, rule in matches if not any(SPECIALIZES.get(r) == rule for r in rules)]
+    kept = [(mid, rule) for mid, rule in matches if not any(HIDES.get(r) == rule for r in rules)]
     if not kept:
         return []
     if len(kept) == 1:
         return [(kept[0][0], 0.8)]
-    return [(kept[0][0], 0.6)] + [(mid, 0.4) for mid, _ in kept[1:]]
+    return [(mid, 0.5) for mid, _ in kept]  # several rules predict this answer: not distinguishable
 
 
 def _with_diagnosis(result: CheckResult, ranked: list[tuple[str, float]]) -> CheckResult:
     result.candidates = ranked
-    if ranked:
+    if len(ranked) > 1:
+        # Several misconceptions explain the answer equally well: record the candidates, attribute none.
+        result.error_class = ErrorClass.CONCEPTUAL
+        result.detail["ambiguous_misconceptions"] = [mid for mid, _ in ranked]
+    elif ranked:
         result.misconception_id, result.misconception_confidence = ranked[0]
         result.error_class = ErrorClass.CONCEPTUAL
     else:
@@ -444,6 +452,12 @@ def _check_choice(stem: str, spec: ChoiceAnswer, text: str) -> CheckResult:
     if chosen.correct:
         return CheckResult(Outcome.CORRECT, normalized=chosen.id, correct_answer=correct.id)
     result = CheckResult(Outcome.WRONG, normalized=chosen.id, correct_answer=correct.id)
+    if chosen.probe is not None:
+        # The wrong option has more than one possible cause: the tutor asks the probe question first and
+        # attributes the misconception from that answer (lesson.yaml `probe`). Nothing is attributed yet.
+        result.error_class = ErrorClass.UNKNOWN
+        result.detail["probe_option"] = chosen.id
+        return result
     return _with_diagnosis(result, [(m, chosen.misconception_confidence) for m in chosen.misconceptions])
 
 

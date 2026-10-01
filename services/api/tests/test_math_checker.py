@@ -56,7 +56,7 @@ def assert_result(result, outcome, misconception=None):
         ("GP-02", ">", WRONG, "DEC-M02"),
         ("GP-03", "=", WRONG, "DEC-M03"),
         ("GP-04", "<", WRONG, "DEC-M04"),
-        ("GP-05", ">", WRONG, "DEC-M05"),
+        ("GP-05", ">", WRONG, None),  # M01 and M05 both predict ">": not distinguishable
     ],
 )
 def test_compare(item_id, text, outcome, misconception):
@@ -69,9 +69,16 @@ def test_compare_normalizes_the_relation_to_left_vs_right():
 
 
 def test_specific_bug_rule_hides_the_general_one():
-    # DEC-M01 also predicts 0,05 = 0,5 (05 = 5) and 0,50 > 0,5 (50 > 5); the specific rules win.
+    # Reading 0,05 as 0,5 is the same step as comparing "05" with "5": M03 hides M01.
     assert check("GP-03", "=").candidates == [("DEC-M03", 0.8)]
-    assert check("GP-05", ">").candidates == [("DEC-M05", 0.8)]
+
+
+def test_overlapping_predictions_are_not_attributed():
+    # 0,50 > 0,5 fits M01 (50 > 5) and M05 (trailing zero) equally: record both, attribute neither.
+    result = check("GP-05", ">")
+    assert result.misconception_id is None and result.error_class is ErrorClass.CONCEPTUAL
+    assert result.candidates == [("DEC-M05", 0.5), ("DEC-M01", 0.5)]
+    assert result.detail["ambiguous_misconceptions"] == ["DEC-M05", "DEC-M01"]
 
 
 @pytest.mark.parametrize(
@@ -92,7 +99,7 @@ def test_specific_bug_rule_hides_the_general_one():
         ("GP-01", "0,3 con nghĩ là lớn hơn", CORRECT, None),
         ("GP-01", "< hay >", UNPARSEABLE, None),  # undecided: ask again
         ("GP-01", "0,25 > 0,3, à không, 0,25 < 0,3", UNPARSEABLE, None),
-        ("GP-05", "0.50 > 0.5", WRONG, "DEC-M05"),  # "0.50" is the left number, not the right one
+        ("GP-05", "0.50 > 0.5", WRONG, None),  # "0.50" is the left number; M01/M05 not distinguishable
     ],
 )
 def test_compare_reads_explanations_and_other_phrasings(item_id, text, outcome, misconception):
@@ -260,18 +267,18 @@ def test_numeric_isomorphic_item():
     ("item_id", "text", "outcome", "misconception"),
     [
         ("GP-08", "Hoa ạ", CORRECT, None),  # "ạ" is a polite particle, not option A
-        ("GP-08", "Lan", WRONG, "DEC-M01"),
+        ("GP-08", "Lan", WRONG, None),  # two possible causes: the probe decides
         ("GP-08", "Hoa", CORRECT, None),
         ("GP-08", "B ạ", CORRECT, None),
         ("GP-08", "Dạ, B ạ", CORRECT, None),
         ("GP-08", "Con chọn đáp án B", CORRECT, None),
-        ("GP-08", "a", WRONG, "DEC-M01"),  # a bare "a" is option A
+        ("GP-08", "a", WRONG, None),  # a bare "a" is option A
         ("GP-08", "ạ", UNPARSEABLE, None),
         ("GP-10", "gói kẹo A", CORRECT, None),
         ("GP-10", "goi keo a", CORRECT, None),
         ("GP-10", "kẹo B", WRONG, "DEC-M01"),
         ("CC-01", "phần mười", CORRECT, None),
-        ("CC-01", "hàng phần trăm", WRONG, "DEC-M03"),
+        ("CC-01", "hàng phần trăm", WRONG, None),  # a place-name slip, not M03
         ("CC-01", "hàng đơn vị", WRONG, None),
     ],
 )
@@ -451,3 +458,9 @@ def test_open_items_go_to_the_llm(item):
 def test_unexpected_input_never_raises(text):
     for item in PKG.items:
         assert isinstance(check_answer(item, text, PKG).outcome, Outcome)
+
+
+def test_wrong_choice_with_probe_waits_for_the_probe():
+    result = check("GP-08", "Lan")
+    assert result.detail["probe_option"] == "A"
+    assert result.misconception_id is None and result.error_class is ErrorClass.UNKNOWN
