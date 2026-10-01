@@ -11,6 +11,8 @@ from cavat.core.events import PAYLOAD_MODELS, EventType
 from cavat.core.memory_db import InMemoryDatabase
 from cavat.db import ensure_indexes
 from cavat.main import app
+from cavat.modules.ai_gateway.fake import FakeChatModel
+from cavat.modules.ai_gateway.router import AIRouter
 from cavat.modules.assessment.math_checker import check_answer
 from cavat.modules.assessment.vi_numbers import parse_literal
 from cavat.modules.content.lesson_package import (
@@ -223,6 +225,19 @@ def test_hint_request_delivers_a_hint(client):
     assert (student["actor"], tutor["actor"]) == ("student", "tutor")
     assert tutor["turn_id"] == ack.json()["tutor_turn_id"]
     assert after["item"]["item_attempt_id"] == state["item"]["item_attempt_id"]
+    # The tutor first offers a choice; that offer is not a hint, so it carries no hint level.
+    assert (tutor["move"], tutor["hint_level"]) == ("OFFER_CHOICE", None)
+    assert [c["choice_id"] for c in after["pending_choice"]] == ["HINT", "RETRY"]
+
+    chosen = client.post(
+        f"/v1/sessions/{state['session_id']}/choices",
+        json={"choice_id": "HINT", "expected_state_version": after["state_version"]},
+        headers={**MINH, "Idempotency-Key": "choice-1"},
+    )
+    assert chosen.status_code == 200, chosen.text
+    hinted = get_state(client, state)
+    assert (hinted["transcript"][-1]["move"], hinted["transcript"][-1]["hint_level"]) == ("HINT", 1)
+    assert hinted["pending_choice"] is None
 
 
 def advance(client, state):
@@ -253,14 +268,25 @@ def test_wrong_answers_never_leak_the_answer_or_internal_labels(client):
     assert all(stated not in t["text"] for t in state["transcript"] if t["actor"] == "tutor")
 
 
-def llm_router(monkeypatch, script):
-    from cavat.modules.ai_gateway.fake import FakeChatModel
-    from cavat.modules.ai_gateway.router import AIRouter
-    from cavat.modules.session import api
-
-    fake = FakeChatModel(script)
-    monkeypatch.setattr(api, "tutor_router", lambda: AIRouter(chat_provider=fake, max_calls_per_session=15))
+def llm_router(monkeypatch, fake):
+    monkeypatch.setattr(
+        session_api, "tutor_router", lambda: AIRouter(chat_provider=fake, max_calls_per_session=15)
+    )
     return fake
+
+
+class RewordingModel(FakeChatModel):
+    """A model that does its job: it rewords the approved sentence ([CÂU MẪU]) of the prompt."""
+
+    PREFIXES = ("Minh ơi, ", "Con nghe cô nhé, ")
+
+    def chat(self, request, model):
+        lines = request.messages[-1].content.splitlines()
+        anchor = lines[next(i for i, line in enumerate(lines) if line.startswith("[CÂU MẪU]")) + 1]
+        prefix = self.PREFIXES[len(self.calls) % len(self.PREFIXES)]
+        message = f"{prefix}{anchor[0].lower()}{anchor[1:]}"
+        self._queues[None].append(reply(message, safety_flag=len(self.calls) == 1))
+        return super().chat(request, model)
 
 
 def reply(message, safety_flag=False):
@@ -268,9 +294,7 @@ def reply(message, safety_flag=False):
 
 
 async def test_llm_phrases_the_live_turn_and_past_turns_are_never_sent_again(client, memory, monkeypatch):
-    first = "Con nhìn lại hai số trong đề rồi nói cho cô biết con định so sánh thế nào nhé?"
-    second = "Con thử nhìn kỹ từng hàng của hai số xem sao nhé?"
-    fake = llm_router(monkeypatch, [reply(first), reply(second, safety_flag=True)])
+    fake = llm_router(monkeypatch, RewordingModel([]))
     state = start(client)
     for _ in range(2):
         state = advance(client, state)  # concept checks answered correctly: template-only moves
@@ -279,10 +303,11 @@ async def test_llm_phrases_the_live_turn_and_past_turns_are_never_sent_again(cli
 
     assert send(client, state, wrong, "w1").status_code == 200
     state = get_state(client, state)
-    assert state["transcript"][-1]["text"] == first and len(fake.calls) == 1
+    first = state["transcript"][-1]["text"]
+    assert first.startswith("Minh ơi, ") and len(fake.calls) == 1
     assert send(client, state, wrong, "w2").status_code == 200
     state = get_state(client, state)
-    assert state["transcript"][-1]["text"] == second
+    assert state["transcript"][-1]["text"].startswith("Con nghe cô nhé, ")
     assert len(fake.calls) == 2  # the first turn was replayed with templates, not sent to the model again
     prompt = fake.calls[1][1].messages[-1].content
     assert first in prompt and "Minh" in prompt  # history comes from the event log
@@ -297,7 +322,7 @@ async def test_llm_phrases_the_live_turn_and_past_turns_are_never_sent_again(cli
 def test_a_leaking_model_falls_back_to_the_template(client, monkeypatch):
     answer = PKG.item("GP-01").answer
     leak = f"Đáp án là {answer.left} {correct_text('GP-01')} {answer.right} nhé. Con hiểu chưa?"
-    fake = llm_router(monkeypatch, [reply(leak), reply(leak)])
+    fake = llm_router(monkeypatch, FakeChatModel([reply(leak), reply(leak)]))
     state = start(client)
     for _ in range(2):
         state = advance(client, state)

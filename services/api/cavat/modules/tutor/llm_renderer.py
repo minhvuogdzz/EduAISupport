@@ -1,20 +1,30 @@
 """LLM renderer (T06b): Qwen phrases the policy's move, approved templates stay the safety net (ADR-017).
 
-PRESENT, CONFIRM_ADVANCE, CLOSE_ITEM, OFFER_CHOICE and ASK_CONFIRM always use the template, and so does
-every move on an assessment (EXIT) item: the model must not add help to a test. Any other move
-calls the gateway (``ModelClass.TUTOR_REASONING``, strict JSON), runs the output validator, retries once
-with the validator's codes, then falls back to the template. A message that passes the validator is
-still rejected (``BEYOND_ANCHOR``) when it uses a number that is neither in the item stem, in the anchor
-nor in what the student said: seen with real Qwen output, which turned an H2 question into the H4 step
-"0,3 viết thành 0,30". The policy picks the hint level, the model may not raise it. When the router
-answers ``use_template``
-(429, session cap, no API key, prompt too long) the template is used at once: a lesson never stops because
-of a provider. One instance serves one session: it counts the LLM calls of that session and keeps the last
-turns of the current item for the prompt.
+The model only words PROBE, HINT, COGNITIVE_CONFLICT, NUDGE and REDIRECT (``LLM_MOVES``). Every other move
+is said with the approved template, word for word, and so is every move on an assessment (EXIT) item: the
+model must not add help to a test, and the reply to a correct answer, the worked steps and the full
+explanation are lesson content.
+
+For an LLM move the renderer calls the gateway (``ModelClass.TUTOR_REASONING``, strict JSON), runs the
+output validator, retries once with the rejection codes, then falls back to the template. The template for
+the move is the *anchor*: the model may reword it for what the student just said, nothing more. Three
+checks beyond the validator enforce that; each one comes from a real Qwen output that passed the validator:
+
+- ``BEYOND_ANCHOR``: a number that is neither in the stem, in the anchor nor in what the student said
+  (an H2 question came back as the H4 step "0,3 viết thành 0,30");
+- ``REPEATS_PREVIOUS``: an earlier tutor turn of the item copied word for word;
+- ``OFF_ANCHOR``: fewer than ``ANCHOR_COVERAGE`` of the anchor's words kept (asked for the H3 concept hint,
+  the model reworded the counter-example it had given before; asked to VERIFY a correct answer, it did too).
+
+The policy picks the move, the target and the level; the model may not change them. When the router answers
+``use_template`` (429, session cap, no API key, prompt too long) the template is used at once: a lesson
+never stops because of a provider. One instance serves one session: it counts the LLM calls of that session
+and keeps the last turns of the current item for the prompt.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -22,7 +32,7 @@ from typing import Any
 from cavat.core.pedagogy import Move
 from cavat.modules.ai_gateway.base import ModelClass
 from cavat.modules.ai_gateway.router import AIRouter
-from cavat.modules.assessment.vi_numbers import extract_numbers
+from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
 from cavat.modules.tutor.contracts import (
     MessageSource,
     MessageValidator,
@@ -32,12 +42,26 @@ from cavat.modules.tutor.contracts import (
 from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, build_request, prompt_view
 from cavat.modules.tutor.renderer import TemplateRenderer
 
-LLM_RENDERER_VERSION = "llm-renderer.v1"
-TEMPLATE_ONLY_MOVES = frozenset(
-    {Move.PRESENT, Move.CONFIRM_ADVANCE, Move.CLOSE_ITEM, Move.OFFER_CHOICE, Move.ASK_CONFIRM}
-)
-MAX_ATTEMPTS = 2  # the first call and one retry carrying the validator's codes
+LLM_RENDERER_VERSION = "llm-renderer.v2"
+LLM_MOVES = frozenset({Move.PROBE, Move.HINT, Move.COGNITIVE_CONFLICT, Move.NUDGE, Move.REDIRECT})
+TEMPLATE_ONLY_MOVES = frozenset(Move) - LLM_MOVES
+MAX_ATTEMPTS = 2  # the first call and one retry carrying the rejection codes
 BEYOND_ANCHOR = "BEYOND_ANCHOR"
+REPEATS_PREVIOUS = "REPEATS_PREVIOUS"
+OFF_ANCHOR = "OFF_ANCHOR"
+# DI: share of the anchor's distinct words that the model's message must keep. A faithful rewording keeps
+# most of them (0,65-0,9 in the cases seen); a message about something else keeps under 0,3.
+ANCHOR_COVERAGE = 0.6
+
+_WORD = re.compile(r"[^\W_]+(?:[,.\-][^\W_]+)*")  # words, decimals ("0,25") and "xăng-ti-mét"
+
+
+def anchor_coverage(text: str, anchor: str) -> float:
+    """Share of the anchor's distinct words (Vietnamese syllables, numbers) that also occur in ``text``."""
+    wanted = set(_WORD.findall(normalize_text(anchor)))
+    if not wanted:
+        return 1.0
+    return len(wanted & set(_WORD.findall(normalize_text(text)))) / len(wanted)
 
 
 def beyond_anchor(text: str, ctx: RenderContext, anchor: str) -> list[str]:
@@ -118,6 +142,12 @@ class LLMRenderer:
         del self._history[:-RECENT_TURNS]
         return message
 
+    def _repeats(self, text: str) -> bool:
+        """The model copied a tutor turn of this item word for word (seen with real Qwen output: a level 3
+        hint came back as the level 2 sentence it had just said). The student gets nothing new from it."""
+        said = normalize_text(text)
+        return any(t.role == "tutor" and normalize_text(t.text) == said for t in self._history)
+
     def _render_with_llm(self, ctx: RenderContext, fallback: RenderedMessage) -> RenderedMessage:
         move = ctx.decision.move
         view = prompt_view(ctx)
@@ -142,8 +172,13 @@ class LLMRenderer:
             text, safety_flag, feedback = _fields(outcome.result.data)
             flagged = flagged or safety_flag
             codes = self._validator(text, ctx).codes  # the full item: leak checks need the answer
-            if beyond_anchor(text, ctx, anchor):
-                codes = (*codes, BEYOND_ANCHOR)
+            if text:  # an empty message is already rejected; the anchor checks need words to look at
+                if beyond_anchor(text, ctx, anchor):
+                    codes = (*codes, BEYOND_ANCHOR)
+                if self._repeats(text):
+                    codes = (*codes, REPEATS_PREVIOUS)
+                if anchor_coverage(text, anchor) < ANCHOR_COVERAGE:
+                    codes = (*codes, OFF_ANCHOR)
             if not codes:
                 self.last_trace = RenderTrace(move, "LLM", calls, None, tuple(rejected), flagged, feedback)
                 return RenderedMessage(text=text, source="LLM", hint_ref=fallback.hint_ref)
