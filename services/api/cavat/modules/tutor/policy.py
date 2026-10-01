@@ -74,7 +74,9 @@ class PolicyConfig:
     affect_help_requests: int = 2  # DI: >= 2 help requests on the item is a negative affect signal
     max_hint_level: HintLevel = HintLevel.H5  # H6/H7 come only from R-FRUSTRATION and R-FULL
     assessment_cap: HintLevel = HintLevel.H1  # [FACT] R-ASSESS-CAP (Math ladder)
-    verify_rate: float = 0.3  # DI: share of items whose correct answer is followed by "vì sao" (R-VERIFY)
+    # DI, approved by the owner on 2026-10-01. Items are picked by a hash of the item id, so the same
+    # items always ask (lesson 1: 9 of the 21 items that do not already require an explanation).
+    verify_rate: float = 0.3  # share of items whose correct answer is followed by "vì sao" (R-VERIFY)
 
 
 DEFAULT_CONFIG = PolicyConfig()
@@ -228,8 +230,9 @@ def _after_explanation(st: ItemState, outcome: Outcome | None) -> PolicyDecision
     if outcome in _NO_EXPLANATION:
         reasons: tuple[str, ...] = ("NO_EXPLANATION",)
         if st.max_hint_level >= HintLevel.H7:
-            # DI: H7 goes only to a student who has not answered correctly, and nothing is graded after it.
-            # Without the teach-back the item was "closed without a correct answer": UNRESOLVED, not WORKED.
+            # DI, approved by the owner on 2026-10-01: H7 goes only to a student who has not answered
+            # correctly, and nothing is graded after it. Without the teach-back the item was "closed
+            # without a correct answer": UNRESOLVED, not WORKED.
             resolution, reasons = ItemResolution.UNRESOLVED, ("NO_EXPLANATION", "NOT_SOLVED")
         return PolicyDecision(
             move=Move.CLOSE_ITEM, resolution=resolution, reason_codes=reasons, rule_ids=(rule,)

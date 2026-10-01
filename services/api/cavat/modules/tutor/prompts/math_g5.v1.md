@@ -1,5 +1,5 @@
 <!--
-Math G5 Pedagogy Module v1 (L2, blueprint PART 14.3). DRAFT: chờ giáo viên kiểm soát (chủ dự án) duyệt.
+Math G5 Pedagogy Module v1 (L2, blueprint PART 14.3). Chủ dự án (giáo viên kiểm soát) duyệt ngày 2026-10-01.
 Sửa file này là thay đổi prompt: tạo bản version mới và chạy eval regression (CLAUDE.md quy tắc 7).
 Khối chú thích này không được gửi cho model.
 -->

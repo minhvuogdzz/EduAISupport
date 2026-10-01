@@ -54,12 +54,13 @@ DEMO_PLAN: tuple[tuple[str, ActivityType], ...] = (
 # What the item loop reads when the student presses "gợi ý" (classified as HELP_REQUEST).
 HINT_REQUEST_TEXT = "con cần gợi ý"
 
-# Micro choices after OFFER_CHOICE (PART 24.3). DRAFT wording, to be approved by the teacher.
+# Micro choices after OFFER_CHOICE (PART 24.3). Wording approved by the owner on 2026-10-01.
 CHOICE_HINT = "HINT"
 CHOICE_RETRY = "RETRY"
 CHOICES: dict[str, str] = {CHOICE_HINT: "Cho con gợi ý", CHOICE_RETRY: "Con tự thử lại"}
 
-# DRAFT wording. It never says which exit answers were right (assessment feedback is the teacher's).
+# Wording approved by the owner on 2026-10-01. It never says which exit answers were right
+# (assessment feedback is the teacher's).
 SUMMARY_TEXT = "{T} và {s} đã học xong bài hôm nay. {S} đã rất cố gắng. Hẹn gặp lại {s} ở buổi sau nhé."
 
 CommandType = Literal["ANSWER", "HINT_REQUEST", "CHOICE"]

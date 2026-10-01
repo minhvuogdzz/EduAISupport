@@ -1,5 +1,5 @@
 <!--
-Tutor Constitution v1 (L1, blueprint PART 14.2). DRAFT: chờ giáo viên kiểm soát (chủ dự án) duyệt.
+Tutor Constitution v1 (L1, blueprint PART 14.2). Chủ dự án (giáo viên kiểm soát) duyệt ngày 2026-10-01.
 Sửa file này là thay đổi prompt: tạo bản version mới và chạy eval regression (CLAUDE.md quy tắc 7).
 Khối chú thích này không được gửi cho model.
 -->

@@ -1,5 +1,6 @@
 # Lesson package — Toán 5: So sánh hai số thập phân
-# TRẠNG THÁI: DRAFT — chờ giáo viên kiểm soát (chủ dự án) duyệt. Xem README.md cùng thư mục.
+# TRẠNG THÁI: DRAFT — chờ giáo viên kiểm soát (chủ dự án) duyệt cả bài. Các mục còn chờ duyệt nằm ở
+# "Việc của chủ dự án" trong docs/tasks/BACKLOG.md.
 #
 # Quy ước:
 # - Số viết theo kiểu Việt Nam: dấu phẩy thập phân (0,25).
@@ -686,6 +687,7 @@ items:
       - {target: TASK, level: 1, text: "Con nhìn chữ số hàng phần mười của hai số nhé?"}
     leak_patterns: ["\\bhà (nói )?sai\\b", "\\bhà nhầm\\b"]
 
+  # EX-05…EX-08: thêm sau review ngày 2026-10-01, chủ dự án duyệt cùng ngày.
   - id: EX-05
     purpose: EXIT
     kc_ids: [KC-DEC-CMP]
