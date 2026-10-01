@@ -1,7 +1,7 @@
 PY := services/api/.venv/bin/python
 WEB := apps/web
 
-.PHONY: setup test lint fmt api db-ping web web-install web-check
+.PHONY: setup test lint fmt api db-ping db-indexes web web-install web-check
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -24,6 +24,9 @@ api:
 
 db-ping:
 	cd services/api && .venv/bin/python -m cavat.db
+
+db-indexes: ## Create MongoDB indexes declared by the repositories (idempotent)
+	cd services/api && .venv/bin/python -m cavat.db --ensure-indexes
 
 web-install: ## Install the web app dependencies from the lockfile (Node >= 22.13, pnpm 10)
 	cd $(WEB) && pnpm install --frozen-lockfile
