@@ -97,11 +97,28 @@ def test_silent_student() -> None:
     while t.phase != Phase.RESOLVED:
         turns.append(t.on_student("", 50))
     assert len(turns) <= MAX_STUDENT_TURNS
-    assert turns[0].move == Move.NUDGE
-    assert Move.WORKED_GUIDANCE in moves(turns)  # R-FRUSTRATION after three silent turns
+    # Two nudges, R-FRUSTRATION on the third silent turn, then R-FULL: silence after H6 is "stalled"
+    # (DI approved 2026-10-01), so the tutor explains in full and invites a teach-back.
+    assert moves(turns) == [
+        Move.NUDGE,
+        Move.NUDGE,
+        Move.WORKED_GUIDANCE,
+        Move.FULL_EXPLANATION,
+        Move.CLOSE_ITEM,
+    ]
     assert of_type(t.events, EventType.ANSWER_SUBMITTED) == []  # silence is never a wrong answer
     end = resolved(t)
-    assert (end["resolution"], end["attempts"]) == ("UNRESOLVED", 0)
+    assert (end["resolution"], end["attempts"]) == ("UNRESOLVED", 0)  # never solved, never retold
+    assert (end["max_hint_level"], end["explained"]) == (7, False)
+
+
+def test_silent_student_who_retells_after_the_full_explanation() -> None:
+    t = tutor("GP-01")
+    turns = talk(t, "", "", "", "", "so sánh hàng phần mười trước, 2 bé hơn 3")
+    assert moves(turns)[3:] == [Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION, Move.CONFIRM_ADVANCE]
+    end = resolved(t)
+    assert (end["resolution"], end["max_hint_level"], end["explained"]) == ("WORKED", 7, True)
+    assert end["attempts"] == 0
 
 
 def test_correct_at_once() -> None:

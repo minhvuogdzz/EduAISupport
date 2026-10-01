@@ -189,6 +189,16 @@ def test_r_full() -> None:
     )
     assert (time_up.move, time_up.level) == (Move.FULL_EXPLANATION, H7)
 
+    # DI approved 2026-10-01: silence after H6 is "H6 không hiệu quả", not a reason for more nudges.
+    silent = _decide(_inp(_check(Outcome.NO_RESPONSE), **after_worked))
+    assert (silent.move, silent.level, silent.rule_ids) == (Move.FULL_EXPLANATION, H7, ("R-FULL",))
+    wait = wait_seconds(_inp())
+    assert decide(_inp(trigger="SILENCE", seconds_since_last_message=wait - 1, **after_worked)) is None
+    timed = _decide(_inp(trigger="SILENCE", seconds_since_last_message=wait, **after_worked))
+    assert (timed.move, timed.level) == (Move.FULL_EXPLANATION, H7)
+    before_worked = _decide(_inp(_check(Outcome.NO_RESPONSE), attempt_no=1, hint_levels=[H2]))
+    assert before_worked.move == Move.NUDGE  # silence before H6 is still only nudged
+
 
 def test_r_assess_cap() -> None:
     exit_test = ActivityType.EXIT_ASSESSMENT
@@ -291,6 +301,21 @@ def test_r_teach_back() -> None:
     retold = _decide(_inp(None, trigger="EXPLANATION", **after_worked))
     assert (retold.move, retold.resolution) == (Move.CONFIRM_ADVANCE, ItemResolution.WORKED)
     assert retold.rule_ids == ("R-TEACH-BACK",)
+
+    quiet = _check(Outcome.NO_RESPONSE)
+    solved_after_h6 = _decide(_inp(quiet, trigger="EXPLANATION", **after_worked))  # correct, not retold
+    assert (solved_after_h6.move, solved_after_h6.resolution) == (Move.CLOSE_ITEM, ItemResolution.WORKED)
+
+    # After H7 nothing was ever answered correctly: without the teach-back the item is UNRESOLVED.
+    after_full = {"attempt_no": 4, "hint_levels": [H2, H6, H7], "worked_shown": True}
+    not_retold = _decide(_inp(quiet, trigger="EXPLANATION", **after_full))
+    assert (not_retold.move, not_retold.resolution) == (Move.CLOSE_ITEM, ItemResolution.UNRESOLVED)
+    assert "NOT_SOLVED" in not_retold.reason_codes
+    retold_after_full = _decide(_inp(None, trigger="EXPLANATION", **after_full))
+    assert (retold_after_full.move, retold_after_full.resolution) == (
+        Move.CONFIRM_ADVANCE,
+        ItemResolution.WORKED,
+    )
 
 
 def test_r_probe_cause() -> None:
