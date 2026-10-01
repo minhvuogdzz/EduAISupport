@@ -1,6 +1,6 @@
 PY := services/api/.venv/bin/python
 
-.PHONY: setup test lint fmt api db-ping
+.PHONY: setup test lint fmt api db-ping db-indexes
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -23,3 +23,6 @@ api:
 
 db-ping:
 	cd services/api && .venv/bin/python -m cavat.db
+
+db-indexes: ## Create MongoDB indexes declared by the repositories (idempotent)
+	cd services/api && .venv/bin/python -m cavat.db --ensure-indexes

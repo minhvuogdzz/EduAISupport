@@ -226,20 +226,24 @@ sequenceDiagram
 
 ### 10.1. Phân tích trước khi chọn DB (theo brief §43)
 
-| Loại dữ liệu | Consistency | Transaction | Truy vấn | Khối lượng (10k HS) | Lưu ở |
-|---|---|---|---|---|---|
-| Identity, org, enrollment | Mạnh | Có | Quan hệ | Nhỏ | Postgres |
-| Content, lesson version, item bank | Mạnh | Có | Quan hệ + JSONB | Nhỏ | Postgres |
-| Session state (3 tầng) | Mạnh, optimistic locking | Có (với event) | Theo khóa | Trung bình | Postgres |
-| Event ledger | Append-only, thứ tự trong session | Có (cùng state) | Theo session/student/time | Lớn: ~40–80 event/session → vài triệu/tháng | Postgres, partition theo tháng |
-| Evidence | Append-only | Có | Theo student × KC | Trung bình | Postgres |
-| Student Model (projection) | Eventual (giây) | Không bắt buộc | Theo student, class | Nhỏ | Postgres |
-| RAG chunks + vectors | Eventual | Không | ANN + filter theo scope | Nhỏ (vài chục nghìn chunk) | Postgres + pgvector |
-| Raw docs, audio | — | — | Theo key | Lớn (audio) | Object storage |
-| Analytics | Eventual | Không | Aggregate | Trung bình | Postgres views/materialized views (MVP), warehouse (sau) |
-| Jobs (ingestion, projection, notification) | At-least-once | Có (cùng tx với dữ liệu) | Queue | Nhỏ | Postgres queue |
+> **v0.3 (D-T7):** database là **MongoDB Atlas gói M0**, file gốc và audio trên ổ đĩa local (ADR-008). Cột "Lưu ở" dưới đây đã cập nhật; v0.1 chọn PostgreSQL + Object Storage. **[FACT]** Giới hạn M0: 0,5 GB, 100 ops/s, không có multi-document transaction, không có Atlas Search/Vector Search, không có backup.
 
-**Kết luận:** mọi nhu cầu MVP vừa với **PostgreSQL + Object Storage**. MongoDB không mang lại lợi ích (dữ liệu quan hệ mạnh; JSONB đủ cho phần bán cấu trúc). Vector DB riêng không cần ở quy mô vài chục nghìn chunk với filter theo scope. Redis chưa cần vì session state phải bền vững, không để trong cache.
+| Loại dữ liệu | Consistency | Transaction | Truy vấn | Khối lượng (đồ án: vài lớp) | Lưu ở (v0.3) |
+|---|---|---|---|---|---|
+| Identity, org, enrollment | Mạnh | Không cần (ghi một document) | Theo khóa, theo lớp | Nhỏ | `users`, `schools`, `classes`, `enrollments` |
+| Content, lesson version, item bank | Mạnh | Không cần | Theo lesson + version | Nhỏ | `lessons` (mỗi version một document, package nhúng trong đó) |
+| Session state (3 tầng) | Mạnh, optimistic locking (`state_version`) | Atomic nhờ **cùng document** với event | Theo khóa | Nhỏ | `learning_sessions` |
+| Event ledger | Append-only, thứ tự trong session | Như trên | Theo session/student/time | ~40–80 event/buổi | Mảng `events` trong `learning_sessions` (nguồn sự thật) + bản copy trong `events` để truy vấn chéo session |
+| Evidence | Append-only | Không | Theo student × KC | Trung bình | `evidence` |
+| Student Model (projection) | Eventual (giây) | Không bắt buộc | Theo student, class | Nhỏ | `student_kc_states` |
+| RAG chunks | Eventual | Không | Theo scope lesson | Nhỏ | Context loading từ lesson package; truy xuất khác làm trong Python (M0 không có Vector Search, PART 21) |
+| Raw docs, audio | — | — | Theo key | Lớn (audio) | Ổ đĩa local `var/storage/` |
+| Analytics | Eventual | Không | Aggregate | Nhỏ | Aggregation pipeline trên `events`, `evidence` |
+| Jobs (copy event, projection) | At-least-once, idempotent | Không | Queue | Nhỏ | Chạy trong process (con trỏ `events_copied_upto`); queue riêng khi cần |
+
+**Kết luận (v0.3):** vì M0 không có transaction nhiều document, mọi thứ phải đổi cùng nhau (state 3 tầng + event của một command) nằm trong **một document** `learning_sessions` và được ghi bằng một `find_one_and_update` có điều kiện `state_version` (ADR-005). Các collection còn lại chỉ nhận ghi một document mỗi lần. Tenancy do `TenantScopedRepository` bảo đảm (ADR-003). Tầng dữ liệu: `services/api/cavat/core/repository.py` và `cavat/modules/*/repository.py`.
+
+**[ASSUME]** Dung lượng: một buổi học ≈ 40–80 event × ~0,5 KB ≈ 20–40 KB cho document session, cộng bản copy trong `events`. 0,5 GB đủ cho vài nghìn buổi học (quy mô đồ án). Audio không vào database.
 
 ### 10.2. Phân tầng dữ liệu đánh giá (brief §37, §38)
 
@@ -279,6 +283,12 @@ Mỗi bản ghi ở L1–L6 mang `source_ids` (tham chiếu tầng dưới) + `p
 ```
 
 `sequence_no` tăng dần trong mỗi session (unique `(session_id, sequence_no)`) để đảm bảo thứ tự và replay.
+
+**v0.3 (MongoDB):**
+- Envelope nằm trong mảng `events` của document `learning_sessions`. Repository tự điền `event_id` (UUIDv7), `school_id`, `student_id`, `session_id`, `contract_id`, `sequence_no`, `recorded_at`; caller chỉ đưa `event_type`, `payload`, `actor`, `activity_id`, `item_attempt_id`, `correlation` (`NewEvent` trong `cavat/modules/session/repository.py`).
+- `sequence_no` được cấp từ `next_sequence_no` của document và chỉ được ghi khi `state_version` còn khớp, nên không có hai event cùng số.
+- `idempotency_key` của command được ghi vào mọi event của command đó; command trùng key bị từ chối (`DuplicateCommand`), không tạo event trùng.
+- Bản copy trong collection `events` dùng `_id = event_id` và unique index `(session_id, sequence_no)`; copy lặp lại không tạo bản ghi trùng.
 
 ### 10.4. Danh mục event (tối thiểu của brief + bổ sung)
 
