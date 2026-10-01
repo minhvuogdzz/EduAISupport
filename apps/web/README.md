@@ -7,10 +7,13 @@ Web app React + TypeScript + Vite cho hai màn hình của vertical slice: **h�
 Yêu cầu: Node ≥ 22.13 (khuyên dùng Node 22 LTS) và pnpm 10. Bật pnpm bằng `corepack enable`.
 
 ```bash
-make web        # mock API trong trình duyệt, dev server ở http://localhost:5173
-make web-live   # API thật; trước đó chạy `make api` hoặc `make api-memory` ở một terminal khác
+make demo       # một lệnh cho cả bản demo: API (database trong bộ nhớ) + web ở http://localhost:5173
+make web        # chỉ web, mock API trong trình duyệt, không cần backend
+make web-live   # chỉ web, nối API thật; cần `make api` hoặc `make api-memory` đang chạy ở một terminal khác
 make web-check  # lint + type-check + test + build, giống job `web` của CI
 ```
+
+`make demo` chạy `make api-memory` và `make web-live` trong cùng một terminal; bấm Ctrl+C là dừng cả hai. Mỗi lệnh chạy server chiếm một terminal cho tới khi dừng, nên `make api` và `make web-live` phải nằm ở hai tab khác nhau. Khi cổng bận, đổi cổng bằng `make demo API_PORT=8010 WEB_PORT=5183`.
 
 Hai cách chạy backend cho `make web-live`:
 
@@ -69,7 +72,7 @@ Test (`pnpm test`, Vitest + Testing Library): enum của contract khớp `servic
 
 ## API thật (T13)
 
-`make web-live` đặt `VITE_API=http` lúc build, khi đó `src/api/index.ts` dùng `createHttpApi` (`src/api/http/httpApi.ts`) thay cho mock. Dev server chuyển tiếp `/v1` tới `http://127.0.0.1:8000` (`vite.config.ts`); nếu API ở địa chỉ khác thì đặt `VITE_API_URL`.
+`make web-live` đặt `VITE_API=http` lúc build, khi đó `src/api/index.ts` dùng `createHttpApi` (`src/api/http/httpApi.ts`) thay cho mock. Dev server chuyển tiếp `/v1` tới `http://127.0.0.1:8000` (`vite.config.ts`; đổi cổng bằng biến `CAVAT_API_PORT`); nếu API ở địa chỉ khác thì đặt `VITE_API_URL`.
 
 - **Danh tính tạm (chờ T12):** mỗi trình duyệt tự sinh một mã học sinh, lưu ở `localStorage` (`cavat.demo.student-id`) và gửi qua header `X-Demo-Student`. Màn hình giáo viên gửi `X-Demo-Teacher`. Đây chưa phải đăng nhập.
 - **Chưa có SSE:** backend chưa có `GET /v1/sessions/{id}/stream`. Sau mỗi lệnh, client đọc `GET /state` rồi tự phát `tutor.delta` … `tutor.final` và `state` cho màn hình, đúng thứ tự mà stream thật sẽ dùng. Khi có SSE chỉ cần đổi trong `httpApi.ts`.
