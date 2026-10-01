@@ -207,8 +207,23 @@ def test_only_the_given_name_reaches_the_model():
 
 
 @pytest.mark.parametrize("move", LLM_MOVES)
-def test_exit_rubric_sample_answer_solution_and_explanation_never_reach_the_model(move):
+def test_exit_items_never_call_the_model(move):
+    """An assessment item gets the approved template only: nothing about it reaches the model."""
     renderer, fake = make([turn("Con đọc lại đề bài giúp cô nhé?")])
-    renderer.render(ctx_for(SECRET_EXIT, move, "con không biết", level=HintLevel.H1, target=HintTarget.TASK))
-    sent = "\n".join(m.content for _, request in fake.calls for m in request.messages)
-    assert fake.calls and "SECRET" not in sent
+    ctx = ctx_for(SECRET_EXIT, move, "con không biết", level=HintLevel.H1, target=HintTarget.TASK)
+    msg = renderer.render(ctx)
+    assert not fake.calls and msg.source != "LLM" and renderer.calls_used == 0
+
+
+def test_a_message_that_goes_beyond_the_anchor_is_rejected():
+    """Real Qwen output for an H2 question: it passed the validator but gave away the H4 step."""
+    ctx = ctx_for(
+        "GP-01", Move.HINT, "0,25 > 0,3 vì 25 lớn hơn 3", level=HintLevel.H2, target=HintTarget.CONCEPT
+    )
+    raised = "Con viết 0,3 thành 0,30 nhé. Bây giờ con so sánh hàng phần mười của hai số này xem sao?"
+    assert validate_message(raised, ctx).ok
+    renderer, fake = make([turn(raised), turn("Con so sánh hàng phần mười trước nhé, được không?")])
+    msg = renderer.render(ctx)
+    assert msg.source == "LLM" and "0,30" not in msg.text
+    assert renderer.last_trace.rejected == (("BEYOND_ANCHOR",),)
+    assert "BEYOND_ANCHOR" in fake.calls[1][1].messages[1].content

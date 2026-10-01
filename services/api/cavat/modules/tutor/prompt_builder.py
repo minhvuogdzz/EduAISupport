@@ -71,6 +71,7 @@ RETRY_NOTES: dict[str, str] = {
     ValidationCode.INTELLIGENCE_PRAISE: "khen trí thông minh",
     ValidationCode.UNGROUNDED_NUMBER: "dùng số không có trong bài",
     ValidationCode.EMPTY: "message trống",
+    "BEYOND_ANCHOR": "dùng số hoặc bước làm không có trong câu mẫu",
 }
 
 _COMMENT = re.compile(r"<!--.*?-->", re.S)
