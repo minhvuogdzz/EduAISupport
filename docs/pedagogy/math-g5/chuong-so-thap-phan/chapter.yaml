@@ -32,6 +32,7 @@ nodes:
     name: Phân số thập phân
     layer: BASIC
     description: "Phân số có mẫu số là 10, 100, 1000... là phân số thập phân; viết được thành số thập phân và ngược lại."
+    home_tip: "Cùng con chia một chiếc bánh hoặc tờ giấy thành 10 phần bằng nhau, tô vài phần rồi hỏi: phần tô màu là mấy phần mười, viết thành số thập phân thế nào?"
     lesson_id: math-g5-dec-concept
     theory:
       - id: T1
@@ -78,6 +79,7 @@ nodes:
     name: Khái niệm số thập phân
     layer: BASIC
     description: "Số thập phân gồm phần nguyên và phần thập phân, ngăn cách bởi dấu phẩy; đọc và viết được số thập phân."
+    home_tip: "Đo chiều cao của con bằng thước mét rồi cùng viết thành số thập phân, ví dụ 1 m 35 cm là 1,35 m, và nhờ con đọc to số đó."
     lesson_id: math-g5-dec-concept
     theory:
       - id: T1
@@ -126,6 +128,7 @@ nodes:
     name: Giá trị theo hàng của số thập phân
     layer: BASIC
     description: "Nhận biết hàng phần mười, phần trăm, phần nghìn và giá trị của mỗi chữ số."
+    home_tip: "Khi đi chợ, chỉ cho con số cân nặng như 2,5 kg và hỏi: chữ số 5 sau dấu phẩy cho biết điều gì?"
     lesson_id: math-g5-dec-compare
     theory:
       - id: T1
@@ -172,6 +175,7 @@ nodes:
     name: Số thập phân bằng nhau
     layer: BASIC
     description: "Viết thêm hoặc bỏ chữ số 0 ở tận cùng bên phải phần thập phân thì giá trị không đổi."
+    home_tip: "Đố con: chai 1,5 lít và chai 1,50 lít, chai nào nhiều nước hơn? Để con tự giải thích vì sao bằng nhau."
     lesson_id: math-g5-dec-compare
     theory:
       - id: T1
@@ -222,6 +226,7 @@ nodes:
     name: So sánh hai số thập phân
     layer: IMPLEMENT
     description: "So sánh phần nguyên, nếu bằng nhau thì so sánh lần lượt từng hàng của phần thập phân."
+    home_tip: "Đưa con hai số đo, ví dụ hai cây bút dài 12,5 cm và 12,45 cm, hỏi cây nào dài hơn và vì sao."
     lesson_id: math-g5-dec-compare
     theory:
       - id: T1
@@ -279,6 +284,7 @@ nodes:
     name: Sắp xếp thứ tự các số thập phân
     layer: IMPLEMENT
     description: "Xếp các số thập phân theo thứ tự từ bé đến lớn hoặc ngược lại."
+    home_tip: "Viết chiều cao của các thành viên trong nhà bằng mét rồi nhờ con xếp từ thấp đến cao."
     lesson_id: math-g5-dec-compare
     theory:
       - id: T1
@@ -325,6 +331,7 @@ nodes:
     name: Vận dụng so sánh số thập phân
     layer: IMPLEMENT
     description: "Dùng so sánh số thập phân trong bài toán thực tế (thời gian, khối lượng, chiều cao...)."
+    home_tip: "Xem cùng con một cuộc thi chạy hoặc bơi, hỏi: biết thời gian của từng người, ai về nhanh nhất?"
     lesson_id: math-g5-dec-compare
     theory:
       - id: T1

@@ -12,6 +12,7 @@ import type {
   Move,
   NodeStatus,
   Outcome,
+  Quality,
   StudentAnnotation,
   TeachAction,
   TeachMessageKind,
@@ -208,6 +209,68 @@ export const MISSING_LABEL: Record<string, string> = {
   EXPLANATION: "Chưa giải thích được",
   APPLICATION: "Chưa làm đúng bài vận dụng",
   MISCONCEPTION: "Còn lỗi sai nghiêm trọng",
+};
+
+/** DI-14 for parents (words, never a score). NOT_STARTED is added for topics not begun. */
+export const QUALITY_LABEL: Record<Quality, string> = {
+  NOT_STARTED: "Chưa học",
+  INSUFFICIENT_DATA: "Chưa đủ dữ liệu",
+  FAMILIAR: "Đang làm quen",
+  WITH_SUPPORT: "Làm được khi có hỗ trợ",
+  INDEPENDENT: "Tự làm được",
+  SOLID: "Vững và vận dụng",
+};
+
+/** What each state means, for the parent (one sentence each). */
+export const QUALITY_MEANING: Record<Quality, string> = {
+  NOT_STARTED: "Con chưa học tới bài này.",
+  INSUFFICIENT_DATA: "Con mới làm ít câu, cô chưa đủ căn cứ để nhận xét.",
+  FAMILIAR: "Con đang làm quen, còn cần cô hướng dẫn nhiều.",
+  WITH_SUPPORT: "Con làm được khi có gợi ý của cô.",
+  INDEPENDENT: "Con tự làm được và giải thích được cách làm.",
+  SOLID: "Con làm vững và vận dụng được vào bài mới.",
+};
+
+/** The student's two words for a topic (PART 27.1): "Đã nắm chắc" or "Cần luyện thêm". */
+export function studentWords(quality: Quality, status?: NodeStatus): string {
+  if (quality === "INDEPENDENT" || quality === "SOLID") return "Đã nắm chắc";
+  if (quality === "NOT_STARTED") return status === "CURRENT" ? "Đang học" : "Chưa học";
+  return "Cần luyện thêm";
+}
+
+/** The topic being learned but not graded yet reads "Đang học", not "Chưa học". */
+export function topicState(node: { quality: Quality; status: NodeStatus }): {
+  label: string;
+  meaning: string;
+  tone: string;
+} {
+  if (node.quality === "NOT_STARTED" && node.status === "CURRENT") {
+    return {
+      label: "Đang học",
+      meaning: "Con đang học bài này, cô chưa đủ căn cứ để nhận xét.",
+      tone: "bg-brand-50 text-brand-900 ring-brand-200",
+    };
+  }
+  return {
+    label: QUALITY_LABEL[node.quality],
+    meaning: QUALITY_MEANING[node.quality],
+    tone: QUALITY_TONE[node.quality],
+  };
+}
+
+/** Learning time: never "0 phút" once the student has learned something. */
+export function minutesText(minutes: number, sessions: number): string {
+  return minutes === 0 && sessions > 0 ? "dưới 1 phút" : `${minutes} phút`;
+}
+
+/** Chip colors of the qualitative states: a status, so always shown with its words. */
+export const QUALITY_TONE: Record<Quality, string> = {
+  NOT_STARTED: "bg-slate-100 text-slate-600 ring-slate-200",
+  INSUFFICIENT_DATA: "bg-slate-100 text-slate-700 ring-slate-300",
+  FAMILIAR: "bg-sky-50 text-sky-900 ring-sky-200",
+  WITH_SUPPORT: "bg-amber-50 text-amber-900 ring-amber-200",
+  INDEPENDENT: "bg-emerald-50 text-emerald-900 ring-emerald-200",
+  SOLID: "bg-emerald-600 text-white ring-emerald-600",
 };
 
 /** Rules of the node teaching policy (plan v1, 5.4). */

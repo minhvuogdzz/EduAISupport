@@ -48,7 +48,7 @@ function WithBlanks({ text }: { text: string }) {
       {text.split("…").map((piece, i) => (
         <span key={i}>
           {i > 0 && (
-            <span className="mx-1 inline-block min-w-[2.5em] rounded-lg border-2 border-dashed border-teal-600 bg-teal-50 px-2 text-center text-teal-700">
+            <span className="mx-1 inline-block min-w-[2.5em] rounded-lg border-2 border-dashed border-brand-600 bg-brand-50 px-2 text-center text-brand-700">
               <span aria-hidden="true">…</span>
               <span className="sr-only">chỗ trống</span>
             </span>

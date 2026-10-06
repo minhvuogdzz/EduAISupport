@@ -35,7 +35,9 @@ export function SessionList({
                 to={`/teacher/sessions/${session.session_id}`}
                 aria-current={selected ? "page" : undefined}
                 className={`flex flex-col gap-1 rounded-2xl p-3 ring-1 ${
-                  selected ? "bg-teal-50 ring-2 ring-teal-600" : "bg-white ring-slate-200 hover:ring-teal-400"
+                  selected
+                    ? "bg-brand-50 ring-2 ring-brand-600"
+                    : "bg-white ring-slate-200 hover:ring-brand-400"
                 }`}
               >
                 <span className="flex items-center justify-between gap-2">

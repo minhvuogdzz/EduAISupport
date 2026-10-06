@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 const TONES = {
   slate: "bg-slate-100 text-slate-800",
-  teal: "bg-teal-100 text-teal-900",
+  teal: "bg-brand-100 text-brand-900",
   amber: "bg-amber-100 text-amber-900",
   rose: "bg-rose-100 text-rose-900",
   sky: "bg-sky-100 text-sky-900",

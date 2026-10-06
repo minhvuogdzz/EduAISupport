@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@fontsource-variable/lexend':
+      '@fontsource/be-vietnam-pro':
         specifier: ^5.3.0
         version: 5.3.0
       '@tanstack/react-query':
@@ -269,8 +269,8 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@fontsource-variable/lexend@5.3.0':
-    resolution: {integrity: sha512-3SXtiZ8rFbT0oaPzEboCG5RM3jtyhpNxandh1jWNLqvrJRfV/eP3R+GGw+o5e3hS1uqmAGutKxSvaWG5oyrimA==}
+  '@fontsource/be-vietnam-pro@5.3.0':
+    resolution: {integrity: sha512-xhAQBGHDxP5BF8IJxedy5MoWUmc1DlPCcZbMLhvnPkf8TaYCbbUVs3LjpuJ4BYdTrdiCLaewNaY8z+owq/FqFw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1755,7 +1755,7 @@ snapshots:
 
   '@exodus/bytes@1.16.0': {}
 
-  '@fontsource-variable/lexend@5.3.0': {}
+  '@fontsource/be-vietnam-pro@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

@@ -139,7 +139,7 @@ function TurnRow({ turn, studentName }: { turn: TranscriptTurn; studentName: str
       </time>
       <div className="flex flex-col gap-1">
         <p>
-          <span className={`font-semibold ${tutor ? "text-teal-800" : "text-sky-800"}`}>
+          <span className={`font-semibold ${tutor ? "text-brand-800" : "text-sky-800"}`}>
             {tutor ? "Tutor" : studentName}:
           </span>{" "}
           <MathText text={turn.text} />

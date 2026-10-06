@@ -214,6 +214,11 @@ class LearningSessionRepository(TenantScopedRepository):
         docs = await self._find({}, sort=[("updated_at", DESCENDING)], limit=limit)
         return [LearningSession.from_doc(d) for d in docs]
 
+    async def student_ids(self, limit: int = 5000) -> list[str]:
+        """The school's students who have a session. Reads only that field, not the sessions."""
+        docs = await self._find({}, projection={"student_id": 1, "_id": 0}, limit=limit)
+        return sorted({d["student_id"] for d in docs})
+
     async def list_for_student(
         self, student_id: str, lifecycle: Sequence[LifecycleState] | None = None
     ) -> list[LearningSession]:

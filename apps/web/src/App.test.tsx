@@ -11,7 +11,8 @@ describe("App", () => {
     expect(
       screen.getByText("Chế độ giả lập (mock): chưa nối máy chủ. Lời của cô là câu mẫu, chưa phải AI tutor."),
     ).toBeVisible();
-    await user.click(screen.getByRole("link", { name: /Học sinh/ }));
+    const roles = screen.getByRole("navigation", { name: "Vai trò" });
+    await user.click(within(roles).getByRole("link", { name: "Học sinh" }));
 
     const start = screen.getByRole("button", { name: "Bắt đầu học" });
     expect(start).toBeDisabled();

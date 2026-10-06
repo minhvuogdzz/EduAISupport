@@ -17,7 +17,7 @@ command gets its first answer back instead of a 409.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from functools import lru_cache, partial
 from typing import Annotated, Any, Literal
 
@@ -34,7 +34,7 @@ from cavat.core.repository import utc_now
 from cavat.modules.ai_gateway.router import AIRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
-from cavat.modules.session import chapter_service, service
+from cavat.modules.session import chapter_service, progress, service
 from cavat.modules.session.repository import (
     DuplicateCommand,
     EventRepository,
@@ -371,6 +371,86 @@ class TeachingReportView(BaseModel):
     decisions: list[DecisionView]
 
 
+class ProgressNode(BaseModel):
+    node_id: str
+    name: str
+    layer: Literal["BASIC", "IMPLEMENT"]
+    status: str
+    level: int | None
+    quality: Literal["NOT_STARTED", "INSUFFICIENT_DATA", "FAMILIAR", "WITH_SUPPORT", "INDEPENDENT", "SOLID"]
+    order: int
+    passed: bool
+
+
+class ProgressTopic(BaseModel):
+    node_id: str
+    name: str
+    quality: str
+    reason: str | None = None
+
+
+class SessionCounts(BaseModel):
+    total: int
+    completed: int
+    unfinished: int
+    minutes: int
+
+
+class WeekView(BaseModel):
+    study_days: int
+    passed: int
+
+
+class StudentOverviewView(BaseModel):
+    """GET /v1/students/me/overview: the student's chapter in plain words (PART 27.1, DI-14)."""
+
+    student_display_name: str
+    parent_code: str
+    chapter: ChapterRef
+    nodes: list[ProgressNode]
+    relations: list[RelationView]
+    passed: int
+    total: int
+    sessions: SessionCounts
+    study_days: list[str]
+    streak: int
+    this_week: WeekView
+    going_well: list[ProgressTopic]
+    to_practise: list[ProgressTopic]
+    current_session_id: str | None
+    last_session_at: datetime | None
+
+
+class TrendDay(BaseModel):
+    date: str
+    studied: bool
+    passed: int
+    started: int
+
+
+class HomeTip(BaseModel):
+    node_id: str
+    name: str
+    tip: str
+
+
+class ParentSession(BaseModel):
+    session_id: str
+    started_at: datetime
+    minutes: int
+    lifecycle_state: str
+    passed_names: list[str]
+
+
+class ParentChildView(StudentOverviewView):
+    """GET /v1/parents/children/{code}: the same picture, plus four weeks of trend and how to help at
+    home. No transcript: the parent view has no drill-down into the conversation (PART 27.4)."""
+
+    trend: list[TrendDay]
+    home_tips: list[HomeTip]
+    session_list: list[ParentSession]
+
+
 class CommandAck(BaseModel):
     accepted: Literal[True] = True
     state_version: int
@@ -399,6 +479,19 @@ def demo_student(x_demo_student: Annotated[str | None, Header()] = None) -> str:
     return x_demo_student
 
 
+def demo_parent(x_demo_parent: Annotated[str | None, Header()] = None) -> str:
+    """Temporary (T12 adds parent accounts and guardian links): any ``X-Demo-Parent`` header marks a
+    parent, who sees one child through the code the child's page shows (``progress.parent_code``)."""
+    if not x_demo_parent:
+        raise ApiError(401, "NOT_SESSION_OWNER", "X-Demo-Parent header is required")
+    return x_demo_parent
+
+
+def local_today() -> date:
+    """Today on the student's clock (Asia/Ho_Chi_Minh). Tests override it."""
+    return datetime.now(progress.LOCAL_TZ).date()
+
+
 def demo_teacher(x_demo_teacher: Annotated[str | None, Header()] = None) -> str:
     """Temporary (T12 adds accounts and roles): any ``X-Demo-Teacher`` header marks the teacher."""
     if not x_demo_teacher:
@@ -409,9 +502,13 @@ def demo_teacher(x_demo_teacher: Annotated[str | None, Header()] = None) -> str:
 Database = Annotated[Any, Depends(get_database)]
 Student = Annotated[str, Depends(demo_student)]
 Teacher = Annotated[str, Depends(demo_teacher)]
+Parent = Annotated[str, Depends(demo_parent)]
+Today = Annotated[date, Depends(local_today)]
 IdempotencyKey = Annotated[str | None, Header(max_length=100)]
 
 router = APIRouter(prefix="/v1/sessions", tags=["sessions"])
+students = APIRouter(prefix="/v1/students", tags=["students"])
+parents = APIRouter(prefix="/v1/parents", tags=["parents"])
 
 
 def _repo(database: Any) -> LearningSessionRepository:
@@ -693,6 +790,40 @@ async def make_choice(
     )
 
 
+def _chapter_overview(sessions: list[LearningSession], student_id: str, today: date) -> dict[str, Any]:
+    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+    own = [s for s in sessions if s.student_id == student_id]
+    view = progress.overview(chapter, own, today)
+    return {**view, "parent_code": progress.parent_code(student_id)}
+
+
+@students.get("/me/overview", response_model=StudentOverviewView)
+async def my_overview(database: Database, student: Student, today: Today):
+    """Student: the chapter so far, across sessions: topics in words, streak, what to practise."""
+    sessions = await _repo(database).list_for_student(student)
+    return _chapter_overview(sessions, student, today)
+
+
+@parents.get("/children/{code}", response_model=ParentChildView)
+async def child_overview(code: str, database: Database, parent: Parent, today: Today):
+    """Parent: the child's progress in plain words, the trend over four weeks and how to help at home."""
+    repo = _repo(database)
+    wanted = code.strip().upper()
+    student_id = next((s for s in await repo.student_ids() if progress.parent_code(s) == wanted), None)
+    if student_id is None:
+        raise ApiError(404, "NOT_FOUND", "no student has this code")
+    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+    own = await repo.list_for_student(student_id)
+    view = _chapter_overview(own, student_id, today)
+    practise = view["to_practise"] or [n for n in view["nodes"] if not n["passed"]][:1]
+    return {
+        **view,
+        "trend": progress.trend(chapter, own, today),
+        "home_tips": progress.home_tips(chapter, practise),
+        "session_list": progress.sessions_list(chapter, own),
+    }
+
+
 def register(app: FastAPI) -> None:
     """Mount the router and the error format ``{"error": {"code", "message", "details"}}``."""
 
@@ -710,3 +841,5 @@ def register(app: FastAPI) -> None:
         return _error(503, "INVALID_STATE", "database is not configured")
 
     app.include_router(router)
+    app.include_router(students)
+    app.include_router(parents)

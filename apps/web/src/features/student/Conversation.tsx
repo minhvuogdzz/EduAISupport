@@ -2,6 +2,7 @@ import { memo } from "react";
 
 import { BookIcon, LightbulbIcon, PencilIcon, StarIcon } from "../../components/icons";
 import { TEACH_KIND_LABEL } from "../../components/labels";
+import { Mascot } from "../../components/Mascot";
 import { MathText } from "../../components/MathText";
 import type { DisplayTurn, TutorView } from "./tutorSession";
 
@@ -19,7 +20,7 @@ export function Conversation({ turns, typing, tutorName, studentName }: Conversa
     <section aria-label={`Trò chuyện với ${tutorName}`} className="flex flex-col gap-3">
       <ol role="log" aria-live="polite" className="flex flex-col gap-3">
         {turns.map((turn, index) => (
-          <li key={turn.turn_id}>
+          <li key={turn.turn_id} className="motion-safe:animate-rise">
             {turn.move === "PRESENT" && index > firstQuestion && (
               <p className="my-2 flex items-center gap-3 text-base text-slate-500" aria-hidden="true">
                 <span className="h-px flex-1 bg-slate-200" />
@@ -41,14 +42,22 @@ export function Conversation({ turns, typing, tutorName, studentName }: Conversa
 }
 
 function Avatar({ label, tutor }: { label: string; tutor: boolean }) {
+  if (tutor) {
+    return (
+      <span
+        aria-hidden="true"
+        className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-gold/40"
+      >
+        <Mascot size={46} />
+      </span>
+    );
+  }
   return (
     <span
       aria-hidden="true"
-      className={`flex size-11 shrink-0 items-center justify-center rounded-full text-base font-semibold ${
-        tutor ? "bg-teal-700 text-white" : "bg-sky-200 text-sky-950"
-      }`}
+      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold-soft text-base font-semibold text-gold-deep ring-1 ring-gold/40"
     >
-      {tutor ? label : label.charAt(0).toLocaleUpperCase("vi-VN")}
+      {label.charAt(0).toLocaleUpperCase("vi-VN")}
     </span>
   );
 }
@@ -61,7 +70,9 @@ const Bubble = memo(function Bubble({ turn, speaker }: { turn: DisplayTurn; spea
       <Avatar label={speaker} tutor={tutor} />
       <div
         className={`max-w-[85%] rounded-3xl px-4 py-3 text-xl leading-relaxed ${
-          tutor ? "rounded-bl-md bg-white ring-1 ring-slate-200" : "rounded-br-md bg-sky-100 text-sky-950"
+          tutor
+            ? "rounded-bl-md bg-white shadow-sm ring-1 ring-gold/30"
+            : "rounded-br-md bg-brand-700 text-white"
         } ${turn.pending ? "opacity-60" : ""}`}
       >
         {turn.kind === "RETELL_PROMPT" && (
@@ -79,7 +90,7 @@ const Bubble = memo(function Bubble({ turn, speaker }: { turn: DisplayTurn; spea
           <span className="sr-only">{speaker}: </span>
           <MathText text={turn.text} />
         </p>
-        {turn.pending && <p className="mt-1 text-sm text-sky-800">Đang gửi…</p>}
+        {turn.pending && <p className="mt-1 text-sm text-brand-100">Đang gửi…</p>}
       </div>
     </div>
   );
@@ -90,7 +101,7 @@ function TypingBubble({ text, tutorName }: { text: string; tutorName: string }) 
   return (
     <div className="flex items-end gap-2" aria-hidden="true" data-testid="typing">
       <Avatar label={tutorName} tutor />
-      <div className="max-w-[85%] rounded-3xl rounded-bl-md bg-white px-4 py-3 text-xl leading-relaxed ring-1 ring-slate-200">
+      <div className="max-w-[85%] rounded-3xl rounded-bl-md bg-white px-4 py-3 text-xl leading-relaxed shadow-sm ring-1 ring-gold/30">
         {text ? (
           <p className="whitespace-pre-wrap">
             <MathText text={text} />
@@ -99,7 +110,11 @@ function TypingBubble({ text, tutorName }: { text: string; tutorName: string }) 
         ) : (
           <p className="flex gap-1.5 py-2">
             {[0, 1, 2].map((dot) => (
-              <span key={dot} className="size-2.5 rounded-full bg-slate-400 motion-safe:animate-bounce" />
+              <span
+                key={dot}
+                style={{ animationDelay: `${dot * 150}ms` }}
+                className="size-2.5 rounded-full bg-brand-400 motion-safe:animate-bounce"
+              />
             ))}
           </p>
         )}
@@ -116,19 +131,19 @@ const TeachCard = memo(function TeachCard({ turn, tutorName }: { turn: DisplayTu
   switch (turn.kind) {
     case "NODE":
       return (
-        <p className="my-2 flex items-center gap-3 text-lg font-medium text-teal-900">
-          <span aria-hidden="true" className="h-px flex-1 bg-teal-200" />
+        <p className="my-2 flex items-center gap-3 text-lg font-medium text-brand-900">
+          <span aria-hidden="true" className="h-px flex-1 bg-brand-200" />
           <span className="max-w-[80%] text-center text-pretty">
             {speaker}
             <MathText text={turn.text} />
           </span>
-          <span aria-hidden="true" className="h-px flex-1 bg-teal-200" />
+          <span aria-hidden="true" className="h-px flex-1 bg-brand-200" />
         </p>
       );
     case "THEORY":
       return (
-        <article className="rounded-3xl bg-white p-5 shadow-sm ring-2 ring-teal-200">
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-base font-semibold text-teal-900">
+        <article className="rounded-3xl bg-white p-5 shadow-sm ring-2 ring-brand-200">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-base font-semibold text-brand-900">
             <BookIcon className="size-5" />
             {tutorName} giảng bài
           </p>
@@ -159,7 +174,7 @@ const TeachCard = memo(function TeachCard({ turn, tutorName }: { turn: DisplayTu
       );
     default: // SUMMARY
       return (
-        <article className="flex items-center gap-4 rounded-3xl bg-teal-700 p-5 text-white">
+        <article className="flex items-center gap-4 rounded-3xl bg-brand-700 p-5 text-white">
           <StarIcon className="size-10 shrink-0 text-amber-300" />
           <p className="text-xl leading-relaxed font-medium">
             {speaker}
