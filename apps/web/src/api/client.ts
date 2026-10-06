@@ -37,6 +37,8 @@ export interface SessionApi {
   /** GET /v1/sessions/{id}/stream (SSE). Returns the unsubscribe function. */
   subscribe(sessionId: string, onEvent: (event: StreamEvent) => void): () => void;
 
+  /** Student: this student's own sessions, newest first ("Lịch sử học"): GET /v1/sessions/mine. */
+  listMySessions(): Promise<SessionSummary[]>;
   /** Teacher: sessions to review. Not in PART 29 yet; proposal: GET /v1/sessions?class_id=… */
   listSessions(): Promise<SessionSummary[]>;
   /** Teacher: GET /v1/sessions/{id}/transcript (audited). */

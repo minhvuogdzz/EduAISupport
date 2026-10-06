@@ -172,3 +172,39 @@ def test_the_teacher_transcript_shows_the_rules_and_the_retell_verdict(client):
     retell = next(t for t in turns if t["student"] and t["student"].get("retell"))
     assert retell["student"]["retell"] == {"score": 0.0, "ideas_found": 0, "ideas_total": 3}
     assert transcript["session"]["progress"] == {"items_done": 0, "items_total": 7}
+
+
+def test_a_new_session_continues_where_the_student_stopped(client):
+    first = start(client)
+    n = 0
+    while first["teaching"]["passed"] == 0:  # the student passes the first node, then leaves
+        first = advance(client, first, f"a{n}")
+        n += 1
+
+    created = client.post("/v1/sessions", json={"student_display_name": "Minh"}, headers=MINH).json()
+    statuses = {node["node_id"]: node["status"] for node in created["teaching"]["nodes"]}
+    assert statuses[FRAC] == "PASSED" and statuses["KC-DEC-CONCEPT"] == "AVAILABLE"
+    second = client.post(f"/v1/sessions/{created['session_id']}/join", headers=MINH).json()
+    teaching = second["teaching"]
+    # The tutor goes on with the next node and first warms up its prerequisite (N-WARMUP, step 1).
+    assert (teaching["current_node_id"], teaching["step"]) == ("KC-DEC-CONCEPT", 1)
+    assert second["item"]["item_id"].startswith("TP-")  # an item of the node passed last time
+    assert [t["kind"] for t in second["transcript"][:2]] == ["NODE", "NODE"]
+
+    mine = client.get("/v1/sessions/mine", headers=MINH).json()
+    assert [s["session_id"] for s in mine] == [second["session_id"], first["session_id"]]
+    assert all(s["mode"] == "CHAPTER" and s["progress"]["items_done"] == 1 for s in mine)
+
+    report = client.get(f"/v1/sessions/{second['session_id']}/report", headers=TEACHER).json()
+    assert report["earlier_sessions"] == 1
+    assert any(e["earlier"] for e in report["evidence"]) and not any(
+        d["earlier"] for d in report["decisions"]
+    )
+    assert report["decisions"][0]["node_id"] == "KC-DEC-CONCEPT"
+
+    lan = {"X-Demo-Student": "lan"}
+    other = client.post("/v1/sessions", json={"student_display_name": "Lan"}, headers=lan).json()
+    assert {n["node_id"]: n["status"] for n in other["teaching"]["nodes"]}[FRAC] == "AVAILABLE"
+    assert [s["session_id"] for s in client.get("/v1/sessions/mine", headers=lan).json()] == [
+        other["session_id"]
+    ]

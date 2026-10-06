@@ -323,6 +323,7 @@ class ReportNode(BaseModel):
 class EvidenceView(BaseModel):
     sequence_no: int
     occurred_at: datetime
+    earlier: bool = False  # from an earlier session of the student
     node_id: str
     dimension: str
     score: float
@@ -334,6 +335,7 @@ class EvidenceView(BaseModel):
 class TraceView(BaseModel):
     sequence_no: int
     occurred_at: datetime
+    earlier: bool = False
     node_id: str
     mastery: float | None
 
@@ -341,6 +343,7 @@ class TraceView(BaseModel):
 class DecisionView(BaseModel):
     sequence_no: int
     occurred_at: datetime
+    earlier: bool = False
     action: str
     node_id: str | None
     ref: str | None
@@ -360,6 +363,7 @@ class TeachingReportView(BaseModel):
     chapter: ChapterVersion
     versions: dict[str, str]
     current_node_id: str | None
+    earlier_sessions: int = 0  # sessions of the student on this chapter before this one
     nodes: list[ReportNode]
     relations: list[RelationView]
     evidence: list[EvidenceView]
@@ -428,10 +432,45 @@ def _chapter(chapter_id: str) -> Chapter:
     return chapter
 
 
-def _view(session: LearningSession) -> dict[str, Any]:
+def _earlier(sessions: list[LearningSession], session: LearningSession) -> list[Any]:
+    """Events of the student's sessions of the same chapter started before ``session``, oldest first."""
+    if not chapter_service.is_chapter(session):
+        return []
+    before = [
+        s
+        for s in sessions
+        if s.id != session.id
+        and s.student_id == session.student_id
+        and s.lesson_id == session.lesson_id
+        and chapter_service.is_chapter(s)
+        and s.created_at < session.created_at
+    ]
+    return [e for s in sorted(before, key=lambda s: s.created_at) for e in s.events]
+
+
+async def _history(database: Any, session: LearningSession) -> list[Any]:
+    """The student's history on this chapter: what the tutor remembers from earlier sessions."""
+    if not chapter_service.is_chapter(session):
+        return []
+    return _earlier(await _repo(database).list_for_student(session.student_id), session)
+
+
+async def _view(database: Any, session: LearningSession) -> dict[str, Any]:
     if chapter_service.is_chapter(session):
-        return chapter_service.student_view(_chapter(session.lesson_id), session)
+        history = await _history(database, session)
+        return chapter_service.student_view(_chapter(session.lesson_id), session, history)
     return service.student_view(_package(session.lesson_id), session)
+
+
+def _summaries(sessions: list[LearningSession]) -> list[dict[str, Any]]:
+    """Summaries of a list of sessions; chapter progress counts what the student passed before too."""
+    packages, chapters = service.lesson_packages(), chapter_service.chapters()
+    return [
+        chapter_service.summary(chapters[s.lesson_id], s, _earlier(sessions, s))
+        if chapter_service.is_chapter(s) and s.lesson_id in chapters
+        else service.summary(packages.get(s.lesson_id), s)
+        for s in sessions
+    ]
 
 
 async def _load(database: Any, session_id: str, student: str) -> LearningSession:
@@ -484,7 +523,7 @@ async def _command(
 
     if chapter_service.is_chapter(session):
         content: Any = _chapter(session.lesson_id)
-        command_fn: Any = chapter_service.apply_command
+        command_fn: Any = partial(chapter_service.apply_command, history=await _history(database, session))
     else:
         content, command_fn = _package(session.lesson_id), service.apply_command
     try:
@@ -530,20 +569,21 @@ async def create_session(body: CreateSession, database: Database, student: Stude
         pkg = _package(target)
         session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, body.student_display_name)
     session = await _repo(database).create(session)
-    return _view(session)
+    return await _view(database, session)
 
 
 @router.get("", response_model=list[SessionSummaryView])
 async def list_sessions(database: Database, teacher: Teacher):
     """Teacher: the school's latest sessions, newest first."""
-    packages, chapters = service.lesson_packages(), chapter_service.chapters()
-    sessions = await _repo(database).list_recent()
-    return [
-        chapter_service.summary(chapters[s.lesson_id], s)
-        if chapter_service.is_chapter(s) and s.lesson_id in chapters
-        else service.summary(packages.get(s.lesson_id), s)
-        for s in sessions
-    ]
+    return _summaries(await _repo(database).list_recent())
+
+
+@router.get("/mine", response_model=list[SessionSummaryView])
+async def my_sessions(database: Database, student: Student):
+    """Student: this student's sessions, newest first ("Lịch sử học"). Each one opens with its whole
+    conversation; an unfinished one can be continued."""
+    sessions = await _repo(database).list_for_student(student)
+    return list(reversed(_summaries(sessions)))
 
 
 @router.get("/{session_id}/transcript", response_model=SessionTranscriptView)
@@ -553,7 +593,8 @@ async def get_transcript(session_id: str, database: Database, teacher: Teacher):
     if session is None:
         raise ApiError(404, "NOT_FOUND", "session not found")
     if chapter_service.is_chapter(session):
-        return chapter_service.teacher_transcript(_chapter(session.lesson_id), session)
+        history = await _history(database, session)
+        return chapter_service.teacher_transcript(_chapter(session.lesson_id), session, history)
     return service.teacher_transcript(_package(session.lesson_id), session)
 
 
@@ -563,7 +604,8 @@ async def get_report(session_id: str, database: Database, teacher: Teacher):
     session = await _repo(database).get(session_id)
     if session is None or not chapter_service.is_chapter(session):
         raise ApiError(404, "NOT_FOUND", "no teaching report for this session")
-    return chapter_service.report(_chapter(session.lesson_id), session)
+    history = await _history(database, session)
+    return chapter_service.report(_chapter(session.lesson_id), session, history)
 
 
 @router.post("/{session_id}/join", response_model=SessionStateView)
@@ -572,7 +614,8 @@ async def join_session(session_id: str, database: Database, student: Student):
     session = await _load(database, session_id, student)
     if session.state.lifecycle == LifecycleState.READY:
         if chapter_service.is_chapter(session):
-            step = chapter_service.join(_chapter(session.lesson_id), session, utc_now())
+            history = await _history(database, session)
+            step = chapter_service.join(_chapter(session.lesson_id), session, utc_now(), history)
         else:
             step = service.join(_package(session.lesson_id), session, utc_now())
         try:
@@ -581,13 +624,13 @@ async def join_session(session_id: str, database: Database, student: Student):
             )
         except StateVersionConflict:  # joined from another tab at the same moment
             session = await _load(database, session_id, student)
-    return _view(session)
+    return await _view(database, session)
 
 
 @router.get("/{session_id}/state", response_model=SessionStateView)
 async def get_state(session_id: str, database: Database, student: Student):
     session = await _load(database, session_id, student)
-    return _view(session)
+    return await _view(database, session)
 
 
 @router.post("/{session_id}/responses", response_model=CommandAck)

@@ -412,6 +412,8 @@ export interface ReportNode {
 export interface EvidenceEntry {
   sequence_no: number;
   occurred_at: string;
+  /** From an earlier session of the student: the tutor remembers it. */
+  earlier?: boolean;
   node_id: string;
   dimension: Dimension;
   /** 1 counts fully for the node, 0 against it. */
@@ -424,6 +426,7 @@ export interface EvidenceEntry {
 export interface MasteryPoint {
   sequence_no: number;
   occurred_at: string;
+  earlier?: boolean;
   node_id: string;
   mastery: number | null;
 }
@@ -445,6 +448,8 @@ export interface TeachingReport {
   chapter: { chapter_id: string; title: string; version: string };
   versions: Record<string, string>;
   current_node_id: string | null;
+  /** Sessions of the student on this chapter before this one; their evidence counts. */
+  earlier_sessions?: number;
   nodes: ReportNode[];
   relations: KnowledgeRelation[];
   evidence: EvidenceEntry[];

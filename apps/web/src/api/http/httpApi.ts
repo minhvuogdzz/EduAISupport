@@ -196,6 +196,10 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       };
     },
 
+    listMySessions() {
+      return request<SessionSummary[]>("GET", "/v1/sessions/mine", studentHeaders());
+    },
+
     listSessions() {
       return request<SessionSummary[]>("GET", "/v1/sessions", TEACHER_HEADERS);
     },

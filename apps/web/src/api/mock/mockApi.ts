@@ -132,6 +132,13 @@ export function createMockApi(options: MockApiOptions = {}): SessionApi {
     return ack;
   }
 
+  async function listAll() {
+    await sleep(latencyMs);
+    return Object.values(load().sessions)
+      .map((session) => toSummary(session, lesson))
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  }
+
   return {
     engine: "mock",
 
@@ -220,12 +227,10 @@ export function createMockApi(options: MockApiOptions = {}): SessionApi {
       };
     },
 
-    async listSessions() {
-      await sleep(latencyMs);
-      return Object.values(load().sessions)
-        .map((session) => toSummary(session, lesson))
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    },
+    listSessions: listAll,
+
+    /** Everything the mock keeps belongs to this browser, so "my" sessions are all of them. */
+    listMySessions: listAll,
 
     async getTranscript(sessionId) {
       await sleep(latencyMs);

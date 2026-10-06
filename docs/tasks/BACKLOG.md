@@ -92,7 +92,7 @@ Chi tiết: `docs/plan/plan-v1-teaching-knowledge-graph.md`, ADR-018, D-T9 đế
 | M1-4 | Chính sách dạy theo node (luật `N-*`) | — | Xong: `teaching/node_policy.py` (policy `node-policy/0.1.0`), trạng thái dạy `teaching/state.py`, sự kiện `NODE_DECISION` |
 | M1-5 | Hybrid RAG tự xây: chia đoạn, BM25 hai bản, chỉ mục vector, RRF, xếp hạng lại theo sư phạm, ghi vết; model class `EMBEDDING`; bộ câu hỏi đánh giá đầu tiên | — | Chưa |
 | M1-6 | Bộ máy vòng dạy 7 bước, dùng vòng kèm từng câu ở bước luyện tập; test hội thoại trọn 7 node | — | Xong: `teaching/loop.py` (mẫu câu `teaching-templates/0.1.0`); hội thoại trọn 7 node chạy offline, tiếp tục được từ sự kiện đã lưu |
-| M1-7 | Nối vào API buổi học và web: bản đồ node, lời giảng, ô giải thích | T08, T13 (mở rộng) | Xong: buổi học theo chương qua API, màn học sinh có bản đồ và 7 bước, màn giáo viên "Bộ não gia sư" (`GET /report`) |
+| M1-7 | Nối vào API buổi học và web: bản đồ node, lời giảng, ô giải thích | T08, T13 (mở rộng) | Xong: buổi học theo chương qua API, màn học sinh có bản đồ và 7 bước, màn giáo viên "Bộ não gia sư" (`GET /report`); lưu lịch sử hội thoại và học tiếp qua nhiều buổi (M1-7b) |
 | M1-8 | Học sinh ảo: lỗi sai và chỗ hổng tiên quyết; không công nhận "đã hiểu" sai | T05 | Chưa |
 | M1-9 | Qwen diễn đạt lời giảng neo vào đoạn của Hybrid RAG; chạy thử thật | T06b (mở rộng) | Chưa |
 
