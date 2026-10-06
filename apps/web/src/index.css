@@ -1,8 +1,41 @@
 @import "tailwindcss";
 
 @theme {
-  /* Lexend: designed for reading fluency; ships Vietnamese glyphs (self-hosted, no CDN). */
-  --font-sans: "Lexend Variable", ui-sans-serif, system-ui, sans-serif;
+  /* Be Vietnam Pro: drawn for Vietnamese diacritics; self-hosted, no CDN. */
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+
+  /* CAVAT palette. Turquoise is the brand, gold the warm accent; leaf and sky support. */
+  --color-brand-50: oklch(97.5% 0.018 195);
+  --color-brand-100: oklch(94% 0.045 195);
+  --color-brand-200: oklch(88% 0.075 195);
+  --color-brand-300: oklch(81% 0.105 195);
+  --color-brand-400: oklch(74% 0.125 195);
+  --color-brand-500: oklch(67% 0.13 195);
+  --color-brand-600: oklch(58% 0.115 197);
+  --color-brand-700: oklch(50% 0.097 200);
+  --color-brand-800: oklch(42% 0.078 203);
+  --color-brand-900: oklch(35% 0.062 205);
+  --color-brand-950: oklch(27% 0.048 207);
+  --color-gold: oklch(82% 0.14 85);
+  --color-gold-soft: oklch(94% 0.07 90);
+  --color-gold-deep: oklch(55% 0.12 70);
+  --color-leaf: oklch(72% 0.13 150);
+  --color-sky-soft: oklch(94% 0.035 230);
+  --color-ink: oklch(22% 0.03 255);
+  --color-paper: oklch(98.8% 0.012 90);
+
+  /* A message arrives: it rises a little and fades in (only with motion allowed). */
+  --animate-rise: rise 0.25s ease-out both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @layer base {
@@ -11,10 +44,27 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-paper text-ink antialiased;
   }
 
   :focus-visible {
     @apply outline-4 outline-offset-2 outline-sky-500;
+  }
+}
+
+@layer components {
+  /* The brand's soft gradient (hero areas): warm gold to turquoise, fading to white. */
+  .brand-gradient {
+    background-image: linear-gradient(
+      135deg,
+      var(--color-gold-soft),
+      var(--color-brand-100) 55%,
+      oklch(99% 0.005 195)
+    );
+  }
+
+  /* A card: white, rounded, a hairline warm border, a soft shadow. */
+  .card {
+    @apply rounded-3xl border border-gold/25 bg-white shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.12)];
   }
 }

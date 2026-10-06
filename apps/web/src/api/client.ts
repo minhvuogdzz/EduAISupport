@@ -8,7 +8,9 @@ import type {
   SessionState,
   SessionSummary,
   SessionTranscript,
+  ParentChildView,
   StreamEvent,
+  StudentOverview,
   TeachingReport,
 } from "./contract";
 
@@ -39,6 +41,10 @@ export interface SessionApi {
 
   /** Student: this student's own sessions, newest first ("Lịch sử học"): GET /v1/sessions/mine. */
   listMySessions(): Promise<SessionSummary[]>;
+  /** Student: the chapter so far, in words (real API only: the mock runs lesson 1 alone). */
+  getMyOverview?: () => Promise<StudentOverview>;
+  /** Parent: the child behind a code (real API only). */
+  getChildOverview?: (code: string) => Promise<ParentChildView>;
   /** Teacher: sessions to review. Not in PART 29 yet; proposal: GET /v1/sessions?class_id=… */
   listSessions(): Promise<SessionSummary[]>;
   /** Teacher: GET /v1/sessions/{id}/transcript (audited). */

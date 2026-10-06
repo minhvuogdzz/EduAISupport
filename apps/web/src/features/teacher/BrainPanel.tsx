@@ -19,6 +19,7 @@ import {
   RULE_LABEL,
   TEACH_ACTION_LABEL,
 } from "../../components/labels";
+import { useElementWidth } from "../../lib/useElementWidth";
 import { formatViDecimal, formatViTime } from "../../lib/viNumber";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
 
@@ -176,8 +177,8 @@ function MasteryChart({
   threshold: number;
   name: string;
 }) {
-  const W = 600;
-  const H = 170;
+  const [frame, W] = useElementWidth(600);
+  const H = 180;
   const left = 34;
   const right = 16;
   const top = 12;
@@ -187,14 +188,16 @@ function MasteryChart({
     points.length < 2 ? left + (W - left - right) / 2 : left + (i * (W - left - right)) / (points.length - 1);
   const last = points.at(-1);
   return (
-    <figure>
+    <figure ref={frame}>
       <figcaption className="mb-1 font-semibold">Điểm M qua từng lượt</figcaption>
       {points.length === 0 ? (
         <p className="text-sm text-slate-600">Chưa có bằng chứng nào cho bài này.</p>
       ) : (
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="h-auto w-full"
+          width={W}
+          height={H}
+          className="max-w-full"
           role="img"
           aria-label={`Điểm M của bài ${name} qua từng lượt`}
         >
@@ -233,7 +236,7 @@ function MasteryChart({
           <polyline
             points={points.map((p, i) => `${x(i)},${y(p.mastery ?? 0)}`).join(" ")}
             fill="none"
-            className="stroke-teal-700"
+            className="stroke-brand-700"
             strokeWidth={2}
             strokeLinejoin="round"
           />
@@ -243,7 +246,7 @@ function MasteryChart({
               cx={x(i)}
               cy={y(p.mastery ?? 0)}
               r={4}
-              className="fill-teal-700 stroke-white"
+              className="fill-brand-700 stroke-white"
               strokeWidth={2}
             >
               <title>{`Lượt #${p.sequence_no} lúc ${formatViTime(p.occurred_at)}: M ${formatViDecimal(p.mastery ?? 0)}`}</title>
@@ -283,7 +286,7 @@ function DimensionBars({ node }: { node: ReportNode }) {
               <span className="h-3 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
                 {dim.n_eff > 0 && (
                   <span
-                    className={`block h-full rounded-full ${dim.in_mastery ? "bg-teal-600" : "bg-slate-300"}`}
+                    className={`block h-full rounded-full ${dim.in_mastery ? "bg-brand-600" : "bg-slate-300"}`}
                     style={{ width: `${percent}%` }}
                   />
                 )}
@@ -414,7 +417,7 @@ function EvidenceTable({ evidence }: { evidence: EvidenceEntry[] }) {
         </div>
       )}
       {rows.length > SHOWN && (
-        <button type="button" onClick={() => setAll(!all)} className="mt-2 text-sm text-teal-800 underline">
+        <button type="button" onClick={() => setAll(!all)} className="mt-2 text-sm text-brand-800 underline">
           {all ? "Thu gọn" : `Xem tất cả ${rows.length}`}
         </button>
       )}
@@ -467,7 +470,7 @@ function DecisionTimeline({ decisions, names }: { decisions: DecisionEntry[]; na
         ))}
       </ol>
       {rows.length > SHOWN * 2 && (
-        <button type="button" onClick={() => setAll(!all)} className="mt-2 text-sm text-teal-800 underline">
+        <button type="button" onClick={() => setAll(!all)} className="mt-2 text-sm text-brand-800 underline">
           {all ? "Thu gọn" : `Xem tất cả ${rows.length}`}
         </button>
       )}

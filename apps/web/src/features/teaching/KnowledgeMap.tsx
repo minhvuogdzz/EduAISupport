@@ -43,9 +43,9 @@ const STYLE: Record<NodeStatus, { box: string; text: string; sub: string; glyph:
     glyph: "text-emerald-700",
   },
   CURRENT: {
-    box: "fill-teal-700 stroke-teal-700",
+    box: "fill-brand-700 stroke-brand-700",
     text: "fill-white",
-    sub: "fill-teal-50",
+    sub: "fill-brand-50",
     glyph: "text-white",
   },
   ON_HOLD: {
@@ -213,7 +213,7 @@ export function KnowledgeMap({
             markerHeight="7"
             orient="auto-start-reverse"
           >
-            <path d="M0 0 L8 4 L0 8 z" className="fill-teal-700" />
+            <path d="M0 0 L8 4 L0 8 z" className="fill-brand-700" />
           </marker>
         </defs>
         {(["BASIC", "IMPLEMENT"] as const).map((layer) => (
@@ -240,7 +240,7 @@ export function KnowledgeMap({
               strokeWidth={hot ? 2 : 1.5}
               strokeDasharray={r.type === "APPLICATION" ? "5 4" : undefined}
               markerEnd={`url(#${uid}-${hot ? "arrow-hot" : "arrow"})`}
-              className={hot ? "stroke-teal-700" : "stroke-slate-400"}
+              className={hot ? "stroke-brand-700" : "stroke-slate-400"}
             />
           );
         })}
@@ -282,7 +282,7 @@ export function KnowledgeMap({
                   width={BOX_W + 6}
                   height={BOX_H + 6}
                   rx={16}
-                  className="fill-none stroke-teal-400 motion-safe:animate-pulse"
+                  className="fill-none stroke-brand-400 motion-safe:animate-pulse"
                   strokeWidth={2}
                 />
               )}

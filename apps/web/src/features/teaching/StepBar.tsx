@@ -7,7 +7,7 @@ export function StepBar({ step, nodeName }: { step: number | null; nodeName: str
       aria-label={nodeName ? `Các bước học bài ${nodeName}` : "Các bước học"}
       className="flex flex-col gap-2"
     >
-      {nodeName && <p className="text-base font-semibold text-teal-900">{nodeName}</p>}
+      {nodeName && <p className="text-base font-semibold text-brand-900">{nodeName}</p>}
       <ol className="grid grid-cols-7 gap-1">
         {TEACHING_STEPS.map((label, index) => {
           const number = index + 1;
@@ -23,16 +23,16 @@ export function StepBar({ step, nodeName }: { step: number | null; nodeName: str
                 aria-hidden="true"
                 className={`flex size-8 items-center justify-center rounded-full text-sm font-semibold ${
                   current
-                    ? "bg-teal-700 text-white ring-4 ring-teal-200"
+                    ? "bg-brand-700 text-white ring-4 ring-brand-200"
                     : done
-                      ? "bg-teal-100 text-teal-900"
+                      ? "bg-brand-100 text-brand-900"
                       : "bg-slate-100 text-slate-500"
                 }`}
               >
                 {done ? "✓" : number}
               </span>
               <span
-                className={`text-xs leading-tight ${current ? "font-semibold text-teal-900" : "text-slate-600"}`}
+                className={`text-xs leading-tight ${current ? "font-semibold text-brand-900" : "text-slate-600"}`}
               >
                 {label}
                 {done && <span className="sr-only"> (đã qua)</span>}

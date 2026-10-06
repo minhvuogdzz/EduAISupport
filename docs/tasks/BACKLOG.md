@@ -96,6 +96,15 @@ Chi tiết: `docs/plan/plan-v1-teaching-knowledge-graph.md`, ADR-018, D-T9 đế
 | M1-8 | Học sinh ảo: lỗi sai và chỗ hổng tiên quyết; không công nhận "đã hiểu" sai | T05 | Chưa |
 | M1-9 | Qwen diễn đạt lời giảng neo vào đoạn của Hybrid RAG; chạy thử thật | T06b (mở rộng) | Chưa |
 
+### Giao diện hoàn chỉnh (yêu cầu 2026-10-06)
+
+Chủ dự án yêu cầu giao diện hoàn chỉnh, đẹp, có thêm vai trò phụ huynh, tham khảo phong cách trang lac-buddy-ai-companion.lovable.app. Phần mức hiểu bài phải hiển thị đúng hai khung đánh giá (blueprint PART 27.1, 25, 56).
+
+| Task | Nội dung | Trạng thái |
+|---|---|---|
+| UI-1 | Hệ thiết kế (màu, font Be Vietnam Pro, thẻ, linh vật tự vẽ), trang giới thiệu, trang chủ học sinh có tiến bộ của chương, vai trò phụ huynh (`/parent`, mức hiểu bằng chữ DI-14, xu hướng 4 tuần, gợi ý ở nhà), màn học và trang giáo viên theo giao diện mới; endpoint `GET /v1/students/me/overview`, `GET /v1/parents/children/{code}` | Đang làm |
+| UI-2 | Bảng theo dõi lớp cho giáo viên: chỉ số tổng, bản đồ nhiệt học sinh × bài theo vùng màu PART 25, biểu đồ lỗi hay gặp, học sinh cần chú ý; chi tiết buổi học có đồng hồ điểm M kèm độ tin cậy và biểu đồ 7 chiều (PART 56) | Chưa |
+
 ### Mốc 2 và Mốc 3
 
 - **Mốc 2:** đường đọc tài liệu tự xây (thay T14; bỏ LlamaParse), dựng phần còn lại của chương Số thập phân từ tài liệu thật, chấm lời giải thích, đủ 7 chiều điểm, báo cáo giáo viên có cây tri thức và nhận xét.

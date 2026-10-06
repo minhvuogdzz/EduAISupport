@@ -8,7 +8,7 @@ export function QuestionCard({ item, total, label }: { item: CurrentItem; total:
       className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 md:p-6"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="question-title" className="text-lg font-semibold text-teal-800">
+        <h2 id="question-title" className="text-lg font-semibold text-brand-800">
           {label ?? `Câu ${item.position}/${total}`}
         </h2>
         {item.expecting === "EXPLANATION" && (

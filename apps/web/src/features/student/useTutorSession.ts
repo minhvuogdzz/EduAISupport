@@ -30,6 +30,7 @@ export function useTutorSession(sessionId: string) {
           dispatch({
             type: "load_failed",
             notFound: error instanceof ApiError && error.code === "NOT_FOUND",
+            notOwner: error instanceof ApiError && error.code === "NOT_SESSION_OWNER",
           });
       }
     })();

@@ -1,6 +1,6 @@
 # apps/web — Web app CAVAT (T09, T13)
 
-Web app React + TypeScript + Vite cho hai màn hình của vertical slice: **học sinh** học một buổi với tutor, **giáo viên** xem transcript. App chạy được ở hai chế độ: **mock API trong trình duyệt** (mặc định, không cần backend) và **API thật** của `services/api`.
+Web app React + TypeScript + Vite cho ba vai trò: **học sinh** học với gia sư và xem tiến bộ của mình, **phụ huynh** theo dõi con, **giáo viên** xem bộ não gia sư và transcript. App chạy được ở hai chế độ: **mock API trong trình duyệt** (mặc định, không cần backend) và **API thật** của `services/api`.
 
 ## Chạy
 
@@ -29,18 +29,23 @@ Thử trên tablet cùng mạng LAN: `pnpm dev --host`, rồi mở `http://<IP m
 
 ## Màn hình
 
-| Đường dẫn                           | Người dùng | Nội dung                                                                                                                                                                                                                           |
-| ----------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                 | —          | Chọn vai trò                                                                                                                                                                                                                       |
-| `/student`                          | Học sinh   | Nhập tên gọi để tạo buổi học demo; nút "Học tiếp" nếu buổi trước trên máy này còn dở                                                                                                                                               |
-| `/student/sessions/:id`             | Học sinh   | Câu hỏi, khung hội thoại, ô trả lời, nút dấu `<` `>` `=` `,`, nút "Xin gợi ý", lựa chọn nhỏ của cô, thẻ hoàn thành. Buổi học theo chương có thêm bản đồ bài học, thanh 7 bước, thẻ "Cô giảng bài", "Cô làm mẫu" và ô "con nói lại" |
-| `/teacher`, `/teacher/sessions/:id` | Giáo viên  | Danh sách buổi học và transcript theo từng câu: move, mức gợi ý H0–H7 và target, rule id, kết quả chấm, misconception, kết quả câu (resolution). Buổi học theo chương mở tab "Bộ não gia sư" (xem dưới)                            |
+| Đường dẫn                           | Người dùng | Nội dung                                                                                                                                                                                                                                   |
+| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                                 | —          | Trang giới thiệu: vòng dạy 7 bước, khác gì chatbot, cây tri thức của chương, góc nhìn của ba vai trò                                                                                                                                       |
+| `/student`                          | Học sinh   | Lời chào, "Học tiếp" buổi còn dở, bắt đầu buổi mới; tiến bộ của chương (API thật): chuỗi ngày học, bài đã qua, bản đồ chương với "Đã nắm chắc / Cần luyện thêm", tuần này, mã cho bố mẹ, "Lịch sử học"                                     |
+| `/student/sessions/:id`             | Học sinh   | Câu hỏi, khung hội thoại, ô trả lời, nút dấu `<` `>` `=` `,`, nút "Xin gợi ý", lựa chọn nhỏ của cô, thẻ hoàn thành. Buổi học theo chương có thêm bản đồ bài học, thanh 7 bước, thẻ "Cô giảng bài", "Cô làm mẫu" và ô "con nói lại"         |
+| `/parent`, `/parent/:code`          | Phụ huynh  | Nhập mã của con; xem số buổi, thời gian học, bài đã vững, chuỗi ngày học, mức hiểu từng bài bằng chữ (DI-14), việc con làm tốt và cần luyện thêm, gợi ý giúp con ở nhà, tiến bộ 4 tuần, các buổi học. Không có điểm số, không có hội thoại |
+| `/teacher`, `/teacher/sessions/:id` | Giáo viên  | Danh sách buổi học và transcript theo từng câu: move, mức gợi ý H0–H7 và target, rule id, kết quả chấm, misconception, kết quả câu (resolution). Buổi học theo chương mở tab "Bộ não gia sư" (xem dưới)                                    |
+
+**Mỗi vai trò thấy gì về mức hiểu bài (blueprint PART 27.1):** học sinh thấy hai cụm "Đã nắm chắc / Cần luyện thêm"; phụ huynh thấy 6 mức nhận xét bằng chữ của DI-14 (Chưa học, Chưa đủ dữ liệu, Đang làm quen, Làm được khi có hỗ trợ, Tự làm được, Vững và vận dụng) và xu hướng 4 tuần; chỉ giáo viên thấy điểm M, độ tin cậy và 7 chiều đánh giá.
 
 Quy ước hiển thị:
 
 - Số thập phân viết kiểu Việt Nam (`0,25`). Mỗi số là một khối không ngắt dòng; "0,25 … 0,3" luôn nằm trên một dòng và chỗ trống "…" hiện thành ô gạch đứt.
 - Không bao giờ sửa chữ học sinh gõ: transcript phải đúng nguyên văn. Chỉ định dạng những số do app tự in ra (`formatViDecimal`), và giờ theo `Asia/Ho_Chi_Minh`.
-- Chữ to cho trẻ 10–11 tuổi: câu hỏi 24–30 px, hội thoại 20 px, nút cao ≥ 56 px. Font Lexend (thiết kế cho đọc dễ, có bộ chữ tiếng Việt, tự host nên không cần CDN).
+- Chữ to cho trẻ 10–11 tuổi: câu hỏi 24–30 px, hội thoại 20 px, nút cao ≥ 56 px. Font Be Vietnam Pro (vẽ riêng cho dấu tiếng Việt, giấy phép OFL, tự host qua `@fontsource` nên không cần CDN).
+- Giao diện (UI-1): màu thương hiệu xanh ngọc (`brand-*`) và vàng ấm (`gold`, `gold-soft`) khai báo trong `@theme` của `src/index.css`; thẻ `.card` bo tròn, viền vàng nhạt; nền `.brand-gradient` cho phần đầu trang. Linh vật là con cò quàng khăn xanh tự vẽ (`components/Mascot.tsx`), có 5 tâm trạng. Mọi trang trừ màn học dùng chung `components/AppShell.tsx` (thanh vai trò, chân trang).
+- Biểu đồ tự vẽ bằng SVG, không dùng thư viện: chiều rộng đo bằng `lib/useElementWidth.ts` nên chữ không bị kéo giãn; mỗi biểu đồ có tên cho trình đọc màn hình và một danh sách ẩn nói cùng nội dung.
 - Trên tablet: bấm nút dấu không làm bật bàn phím ảo; Enter để gửi, Shift+Enter xuống dòng, không gửi khi bộ gõ (Telex, VNI) đang ghép chữ.
 - Ẩn hoặc khóa nút chỉ là UX. Backend (và mock) vẫn từ chối lệnh không hợp lệ bằng 409 (CLAUDE.md, quy tắc 4).
 
@@ -54,14 +59,17 @@ src/
   api/index.ts       Chọn mock hay HTTP lúc build theo biến VITE_API
   api/mock/          Mock API chạy trong trình duyệt (xem mục dưới)
   features/student/  Màn hình học sinh; tutorSession.ts là reducer ghép snapshot với stream
+  features/parent/   Trang phụ huynh và biểu đồ tiến bộ 4 tuần
   features/teacher/  Màn hình giáo viên
-  components/, lib/  MathText, nhãn tiếng Việt, định dạng số và giờ vi-VN, id
+  features/teaching/ Bản đồ bài học (cây tri thức) và thanh 7 bước, dùng chung
+  pages/             Trang giới thiệu, trang 404
+  components/, lib/  AppShell, Mascot, MathText, nhãn tiếng Việt, định dạng số và giờ vi-VN, id
 vite-plugins/        Plugin đưa lesson.yaml vào mock và niêm phong câu EXIT lúc build
 ```
 
 Một lượt: màn hình gửi command (header `Idempotency-Key`, body có `expected_state_version`), nhận ack, rồi nhận `tutor.delta`… `tutor.final` và `state` qua stream. Khung hội thoại chỉ hiện những gì server đã xác nhận, cộng dòng "Đang gửi…" của học sinh. Gặp 409 thì đọc lại `GET /state` và giữ nguyên chữ học sinh đã gõ.
 
-Test (`pnpm test`, Vitest + Testing Library): enum của contract khớp `services/api/cavat/core/pedagogy.py`, câu EXIT bị niêm phong, bộ chấm và vòng item của mock, các kiểm tra 409 và idempotency, reducer, màn hình học sinh và giáo viên.
+Test (`pnpm test`, Vitest + Testing Library): enum của contract khớp `services/api/cavat/core/pedagogy.py`, câu EXIT bị niêm phong, bộ chấm và vòng item của mock, các kiểm tra 409 và idempotency, reducer, màn hình học sinh, phụ huynh và giáo viên.
 
 ## Buổi học theo chương (M1-7)
 
@@ -80,6 +88,22 @@ Với API thật, buổi học mặc định là **buổi học theo chương** 
   - mọi quyết định của chính sách dạy kèm mã luật `N-*`.
 
   Tất cả được tính lại từ sự kiện của buổi học.
+
+## Tiến bộ của học sinh và trang phụ huynh (UI-1)
+
+Hai endpoint đọc mọi buổi học theo chương của một học sinh và trả lời bằng chữ, không có điểm số (`services/api/cavat/modules/session/progress.py`):
+
+- `GET /v1/students/me/overview` (header `X-Demo-Student`): bài đã qua, mức hiểu từng bài, số buổi, thời gian học, ngày học, chuỗi ngày học, tuần này, việc làm tốt và cần luyện thêm, mã cho bố mẹ.
+- `GET /v1/parents/children/{code}` (header `X-Demo-Parent`): như trên, thêm xu hướng 28 ngày, gợi ý giúp con ở nhà (`home_tip` của từng bài trong `chapter.yaml`, bản nháp chờ duyệt) và danh sách buổi học. Mã sai trả 404.
+
+Các quy ước có tính diễn giải (DI):
+
+- **Mã cho bố mẹ** là 6 ký tự đầu của SHA-256 mã học sinh. Đây là liên kết phụ huynh tạm cho demo, chưa phải đăng nhập (chờ T12).
+- **Thời gian học** cộng khoảng cách giữa hai sự kiện liên tiếp trong buổi học, mỗi khoảng tính tối đa 5 phút, nên lúc nghỉ lâu không bị tính thêm.
+- **Ngày học** tính theo giờ Việt Nam, là ngày có ít nhất một lượt học sinh trả lời.
+- Bài đang học nhưng chưa có bằng chứng hiện "Đang học", không hiện "Chưa học".
+
+Mock API trong trình duyệt không có hai endpoint này: trang chủ học sinh chỉ hiện phần bắt đầu học, trang phụ huynh báo cần chạy `make demo`.
 
 ## Mock API
 

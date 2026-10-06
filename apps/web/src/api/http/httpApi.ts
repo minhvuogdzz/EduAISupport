@@ -18,8 +18,10 @@ import {
   type CommandAck,
   type SessionState,
   type SessionSummary,
+  type ParentChildView,
   type SessionTranscript,
   type StreamEvent,
+  type StudentOverview,
   type TeachingReport,
 } from "../contract";
 
@@ -36,6 +38,7 @@ export interface HttpApiOptions {
 
 const STUDENT_KEY = "cavat.demo.student-id";
 const TEACHER_HEADERS = { "X-Demo-Teacher": "web" };
+const PARENT_HEADERS = { "X-Demo-Parent": "web" };
 
 function browserStorage(): Storage | null {
   try {
@@ -198,6 +201,18 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
 
     listMySessions() {
       return request<SessionSummary[]>("GET", "/v1/sessions/mine", studentHeaders());
+    },
+
+    getMyOverview() {
+      return request<StudentOverview>("GET", "/v1/students/me/overview", studentHeaders());
+    },
+
+    getChildOverview(code) {
+      return request<ParentChildView>(
+        "GET",
+        `/v1/parents/children/${encodeURIComponent(code.trim())}`,
+        PARENT_HEADERS,
+      );
     },
 
     listSessions() {

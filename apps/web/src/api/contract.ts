@@ -457,6 +457,64 @@ export interface TeachingReport {
   decisions: DecisionEntry[];
 }
 
+// ---------------------------------------------------------------- student and parent views (PART 27.1)
+
+/** DI-14: understanding of a topic in words, shared by students and parents (no score shown). */
+export type Quality =
+  "NOT_STARTED" | "INSUFFICIENT_DATA" | "FAMILIAR" | "WITH_SUPPORT" | "INDEPENDENT" | "SOLID";
+
+export interface ProgressNode {
+  node_id: string;
+  name: string;
+  layer: NodeLayer;
+  status: NodeStatus;
+  level: number | null;
+  quality: Quality;
+  order: number;
+  passed: boolean;
+}
+
+export interface ProgressTopic {
+  node_id: string;
+  name: string;
+  quality: Quality;
+  reason?: string | null;
+}
+
+/** GET /v1/students/me/overview: the chapter so far, across the student's sessions. */
+export interface StudentOverview {
+  student_display_name: string;
+  /** The code the parent enters to follow this child (demo guardian link). */
+  parent_code: string;
+  chapter: { chapter_id: string; title: string };
+  nodes: ProgressNode[];
+  relations: KnowledgeRelation[];
+  passed: number;
+  total: number;
+  sessions: { total: number; completed: number; unfinished: number; minutes: number };
+  /** Local dates (YYYY-MM-DD) with learning. */
+  study_days: string[];
+  streak: number;
+  this_week: { study_days: number; passed: number };
+  going_well: ProgressTopic[];
+  to_practise: ProgressTopic[];
+  current_session_id: string | null;
+  last_session_at: string | null;
+}
+
+/** GET /v1/parents/children/{code}: the student's overview, four weeks of trend, help at home. */
+export interface ParentChildView extends StudentOverview {
+  trend: { date: string; studied: boolean; passed: number; started: number }[];
+  home_tips: { node_id: string; name: string; tip: string }[];
+  session_list: {
+    session_id: string;
+    started_at: string;
+    minutes: number;
+    lifecycle_state: LifecycleState;
+    passed_names: string[];
+  }[];
+}
+
 // ---------------------------------------------------------------- errors (PART 24.2, 29.1)
 
 export const API_ERROR_CODES = [

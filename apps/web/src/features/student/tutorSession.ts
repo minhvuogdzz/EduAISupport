@@ -8,7 +8,7 @@
 import type { ChatTurn, SessionState, StreamEvent } from "../../api/contract";
 
 export interface TutorView {
-  status: "loading" | "ready" | "not_found" | "error";
+  status: "loading" | "ready" | "not_found" | "not_owner" | "error";
   state: SessionState | null;
   /** Turns confirmed by a snapshot, in sequence order (kept across items, even if a snapshot trims). */
   turns: ChatTurn[];
@@ -26,7 +26,7 @@ export interface TutorView {
 
 export type TutorAction =
   | { type: "loaded"; state: SessionState }
-  | { type: "load_failed"; notFound: boolean }
+  | { type: "load_failed"; notFound: boolean; notOwner?: boolean }
   | { type: "sending"; line: string }
   | { type: "acked"; version: number }
   | { type: "rejected"; notice: string }
@@ -91,7 +91,7 @@ export function tutorReducer(view: TutorView, action: TutorAction): TutorView {
     case "loaded":
       return { ...applySnapshot(view, action.state), status: "ready" };
     case "load_failed":
-      return { ...view, status: action.notFound ? "not_found" : "error" };
+      return { ...view, status: action.notFound ? "not_found" : action.notOwner ? "not_owner" : "error" };
     case "sending":
       return { ...view, sending: true, outgoing: action.line, notice: null };
     case "acked": {

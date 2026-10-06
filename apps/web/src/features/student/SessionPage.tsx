@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router";
 import type { SessionState } from "../../api/contract";
 import { StarIcon } from "../../components/icons";
 import { ACTIVITY_LABEL, capitalize } from "../../components/labels";
+import { Mascot } from "../../components/Mascot";
 import { MockBanner } from "../../components/MockBanner";
 import { AnswerPanel } from "./AnswerPanel";
 import { ChapterSession } from "./ChapterSession";
@@ -19,6 +20,13 @@ export function SessionPage() {
   const scrollerRef = useStickToBottom(`${turns.length}:${view.typing?.text.length ?? 0}`);
 
   if (view.status === "loading") return <Message>Cô đang mở bài học…</Message>;
+  if (view.status === "not_owner") {
+    return (
+      <Message link>
+        Buổi học này của một bạn khác. Trên máy này, con hãy vào trang học sinh để học buổi của mình nhé.
+      </Message>
+    );
+  }
   if (view.status === "not_found") {
     return <Message link>Không tìm thấy buổi học này. Con quay lại trang học sinh nhé.</Message>;
   }
@@ -106,14 +114,15 @@ function SessionHeader({ state }: { state: SessionState }) {
   const { items_done, items_total } = state.progress;
   const percent = items_total ? Math.round((items_done / items_total) * 100) : 0;
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b border-gold/25 bg-white">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-        <Link to="/" className="rounded-xl bg-teal-700 px-2.5 py-1.5 text-lg font-bold text-white">
-          CAVAT
+        <Link to="/" aria-label="CAVAT, trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-2xl">
+          <Mascot size={40} />
+          <span className="hidden text-lg font-extrabold text-brand-900 sm:inline">CAVAT</span>
         </Link>
         <div className="min-w-0 flex-1">
           {state.activity && (
-            <p className="text-base font-medium text-teal-800">{ACTIVITY_LABEL[state.activity.type]}</p>
+            <p className="text-base font-medium text-brand-800">{ACTIVITY_LABEL[state.activity.type]}</p>
           )}
           <h1 className="truncate text-xl font-semibold">{state.lesson.title}</h1>
         </div>
@@ -132,7 +141,7 @@ function SessionHeader({ state }: { state: SessionState }) {
         className="h-2 bg-slate-100"
       >
         <div
-          className="h-full bg-teal-500 transition-[width] duration-500"
+          className="h-full bg-brand-500 transition-[width] duration-500"
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -148,7 +157,10 @@ function SessionComplete({ state }: { state: SessionState }) {
       <p className="text-xl text-slate-700">
         Con đã làm {state.progress.items_done}/{state.progress.items_total} câu.
       </p>
-      <Link to="/student" className="mt-2 rounded-2xl bg-teal-700 px-6 py-3 text-xl font-semibold text-white">
+      <Link
+        to="/student"
+        className="mt-2 rounded-2xl bg-brand-700 px-6 py-3 text-xl font-semibold text-white"
+      >
         Về trang học sinh
       </Link>
     </div>
@@ -164,7 +176,7 @@ function Message({ children, link = false }: { children: ReactNode; link?: boole
           {children}
         </p>
         {link && (
-          <Link to="/student" className="rounded-2xl bg-teal-700 px-6 py-3 text-xl font-semibold text-white">
+          <Link to="/student" className="rounded-2xl bg-brand-700 px-6 py-3 text-xl font-semibold text-white">
             Trang học sinh
           </Link>
         )}

@@ -214,6 +214,11 @@ class LearningSessionRepository(TenantScopedRepository):
         docs = await self._find({}, sort=[("updated_at", DESCENDING)], limit=limit)
         return [LearningSession.from_doc(d) for d in docs]
 
+    async def list_all(self, limit: int = 2000) -> list[LearningSession]:
+        """Every session of the school, oldest first (class views and the parent's link code)."""
+        docs = await self._find({}, sort=[("created_at", ASCENDING)], limit=limit)
+        return [LearningSession.from_doc(d) for d in docs]
+
     async def list_for_student(
         self, student_id: str, lifecycle: Sequence[LifecycleState] | None = None
     ) -> list[LearningSession]:

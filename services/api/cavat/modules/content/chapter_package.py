@@ -98,6 +98,7 @@ class Node(_Model):
     practice: list[str]  # PRACTICE items (stage PRACTICE)
     transfer: list[str]  # PRACTICE items of a new form (stage TRANSFER)
     pass_rule: PassRule = Field(default_factory=PassRule)
+    home_tip: str = ""  # for the parent: how to practise this node at home, in everyday words
 
 
 class Relation(_Model):

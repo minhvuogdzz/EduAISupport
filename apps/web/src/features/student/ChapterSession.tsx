@@ -5,6 +5,7 @@ import type { CurrentItem, MicroChoice, SessionState, TeachingView } from "../..
 import { StarIcon } from "../../components/icons";
 import { capitalize, TEACHING_STEPS } from "../../components/labels";
 import { MathText } from "../../components/MathText";
+import { Mascot } from "../../components/Mascot";
 import { MockBanner } from "../../components/MockBanner";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
 import { StepBar } from "../teaching/StepBar";
@@ -128,7 +129,7 @@ export function ChapterSession({
           aria-label="Bản đồ bài học"
           className="hidden w-[30rem] shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4 lg:block"
         >
-          {steps && <div className="mb-5 rounded-2xl bg-teal-50 p-3">{steps}</div>}
+          {steps && <div className="mb-5 rounded-2xl bg-brand-50 p-3">{steps}</div>}
           <h2 className="text-lg font-semibold">Bản đồ bài học</h2>
           <p className="mb-3 text-base text-slate-600">
             {teaching.passed}/{teaching.total} bài đã qua
@@ -183,13 +184,14 @@ function ChapterHeader({
   const percent = teaching.total ? Math.round((teaching.passed / teaching.total) * 100) : 0;
   const step = teaching.step ? TEACHING_STEPS[teaching.step - 1] : null;
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b border-gold/25 bg-white">
       <div className="mx-auto flex items-center gap-3 px-4 py-3 lg:max-w-none">
-        <Link to="/" className="rounded-xl bg-teal-700 px-2.5 py-1.5 text-lg font-bold text-white">
-          CAVAT
+        <Link to="/" aria-label="CAVAT, trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-2xl">
+          <Mascot size={40} />
+          <span className="hidden text-lg font-extrabold text-brand-900 sm:inline">CAVAT</span>
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-medium text-teal-800">
+          <p className="truncate text-base font-medium text-brand-800">
             {state.lifecycle_state === "COMPLETED"
               ? "Tổng kết"
               : [nodeName, step].filter(Boolean).join(" · ")}
@@ -211,7 +213,7 @@ function ChapterHeader({
         className="h-2 bg-slate-100"
       >
         <div
-          className="h-full bg-teal-500 transition-[width] duration-500"
+          className="h-full bg-brand-500 transition-[width] duration-500"
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -244,7 +246,10 @@ function ChapterComplete({ teaching }: { teaching: TeachingView }) {
       <p className="text-xl text-slate-700">
         Con đã qua {teaching.passed}/{teaching.total} bài của chương {teaching.chapter.title}.
       </p>
-      <Link to="/student" className="mt-2 rounded-2xl bg-teal-700 px-6 py-3 text-xl font-semibold text-white">
+      <Link
+        to="/student"
+        className="mt-2 rounded-2xl bg-brand-700 px-6 py-3 text-xl font-semibold text-white"
+      >
         Về trang học sinh
       </Link>
     </div>
