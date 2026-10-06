@@ -5,7 +5,7 @@
 > Bối cảnh: **đồ án tốt nghiệp**, sản phẩm **nội bộ để kiểm thử**
 > Scope đã chốt: **Math Grade 5 + English Grade 5 (Reading + Speaking)**
 
-## Revision v0.2–v0.3 — quyết định của chủ dự án (ghi đè v0.1)
+## Revision v0.2–v0.4 — quyết định của chủ dự án (ghi đè v0.1)
 
 | # | Quyết định | Hệ quả trong blueprint |
 |---|---|---|
@@ -17,6 +17,9 @@
 | **D-T6** | **Mọi thứ chạy local, không dùng Docker** | Bỏ Docker Compose và MinIO; file gốc và audio lưu ở `var/storage/`; Cloudflare Tunnel chỉ cần khi học sinh truy cập từ máy khác |
 | **D-T7** | **Database: MongoDB Atlas (M0)** thay PostgreSQL + pgvector | Thay ADR-003 (RLS), ADR-005 (ledger Postgres), ADR-008 (Postgres + pgvector): lọc `school_id` ở repository; mỗi buổi học là một document chứa state và event (M0 không có multi-document transaction); M0 không có Vector Search nên RAG dùng context loading, truy xuất khác làm trong Python. **[FACT]** Giới hạn M0: 0,5 GB, 100 ops/s, không transaction, không Atlas Search/Vector Search, không backup. Đã cập nhật ADR-003, 005, 008 và PART 10, 28 (T07) |
 | **D-T8** | **Qwen trên Groq là bộ não tutor**; Gemini chỉ cho ảnh/OCR hình học và voice/live; LlamaParse cho tài liệu giáo viên | Thay mặc định TUTOR_REASONING ở PART 12.1 (ADR-017). Gemini free chỉ 20 request/ngày cho mỗi model, Groq 1.000 request/ngày nhưng giới hạn 8.000 token/phút, nên prompt ≤ 3.000 token, tắt suy luận, tối đa 15 lần gọi LLM mỗi buổi, còn lại dùng câu mẫu. Số đo ở `docs/poc/free-tier-quota.md` |
+| **D-T9** (v0.4) | **Phạm vi demo: hai chương Toán lớp 5**, Số thập phân và Diện tích hình tam giác, hình thang. English và giọng nói ra khỏi demo | Mọi chỗ nói về English, voice, POC 6 trong blueprint không còn trên lộ trình demo. Bằng chứng khuôn mẫu dùng lại được: hai chương rất khác nhau, cộng một bài của chương thứ ba chỉ bằng nội dung |
+| **D-T10** (v0.4) | **Gia sư dạy theo đồ thị tri thức:** vòng dạy 7 bước (giảng lý thuyết, kiểm tra hiểu, dạy phương pháp, luyện tập, vận dụng); điểm từng node theo PART 25–26; chính sách dạy chọn bước tiếp theo, quay về node tiên quyết khi học sinh hổng | Kế hoạch hiện hành: `docs/plan/plan-v1-teaching-knowledge-graph.md`; ADR-018. Danh sách câu cố định của buổi học (T08) được thay bằng chính sách dạy. Tham khảo đồ thị từ bài báo 2T-KT (doi:10.1016/j.inffus.2025.103577) |
+| **D-T11** (v0.4) | **Tự xây kiến trúc AI**, hạn chế kiến trúc của bên thứ ba: Hybrid RAG, đồ thị tri thức, chấm điểm, chính sách dạy, đọc tài liệu đều tự viết; chỉ dùng API model qua `ai_gateway` | Không dùng framework RAG hay agent, dịch vụ vector database, dịch vụ đọc tài liệu. **Bỏ LlamaParse** (thay vai trò trong ADR-017) |
 
 **Stack free-first mặc định** (chi tiết PART 12.1):
 

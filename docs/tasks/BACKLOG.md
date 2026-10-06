@@ -77,7 +77,31 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 | `docs/adr/ADR-017-model-roles-qwen-gemini.md` | **Qwen trên Groq là bộ não tutor**; Gemini chỉ cho ảnh/OCR và giọng nói |
 | `docs/poc/free-tier-quota.md` | Hạn mức free đo thật của Groq và Gemini, cách tắt suy luận của Qwen |
 
-## Kế hoạch theo đợt
+## Kế hoạch v1 (hiện hành, duyệt 2026-10-06)
+
+Chi tiết: `docs/plan/plan-v1-teaching-knowledge-graph.md`, ADR-018, D-T9 đến D-T11. Gia sư **dạy** theo vòng 7 bước trên đồ thị tri thức; Hybrid RAG và mọi thành phần AI **tự xây**. Credit cloud đã hết: các task làm ở local, mỗi task một nhánh và một PR.
+
+### Mốc 1: vòng dạy chạy được ở phần đầu chương Số thập phân (7 node)
+
+| Task | Nội dung | Thay task cũ | Trạng thái |
+|---|---|---|---|
+| M1-1 | Ghi kế hoạch vào repo | — | Đang làm |
+| M1-2 | Khuôn gói chương (đồ thị hai tầng, quan hệ, nội dung theo 4 mức, quy tắc qua node), bộ đọc, bộ kiểm tra; gói chương Số thập phân phần đầu (nháp) | — | Chưa |
+| M1-3 | Điểm từng node: projector tất định theo PART 25.2 và 26.1, cổng qua node (DI-15), điểm khởi đầu từ tiên quyết (DI-16) | T10 | Chưa |
+| M1-4 | Chính sách dạy theo node (luật `N-*`) | — | Chưa |
+| M1-5 | Hybrid RAG tự xây: chia đoạn, BM25 hai bản, chỉ mục vector, RRF, xếp hạng lại theo sư phạm, ghi vết; model class `EMBEDDING`; bộ câu hỏi đánh giá đầu tiên | — | Chưa |
+| M1-6 | Bộ máy vòng dạy 7 bước, dùng vòng kèm từng câu ở bước luyện tập; test hội thoại trọn 7 node | — | Chưa |
+| M1-7 | Nối vào API buổi học và web: bản đồ node, lời giảng, ô giải thích | T08, T13 (mở rộng) | Chưa |
+| M1-8 | Học sinh ảo: lỗi sai và chỗ hổng tiên quyết; không công nhận "đã hiểu" sai | T05 | Chưa |
+| M1-9 | Qwen diễn đạt lời giảng neo vào đoạn của Hybrid RAG; chạy thử thật | T06b (mở rộng) | Chưa |
+
+### Mốc 2 và Mốc 3
+
+- **Mốc 2:** đường đọc tài liệu tự xây (thay T14; bỏ LlamaParse), dựng phần còn lại của chương Số thập phân từ tài liệu thật, chấm lời giải thích, đủ 7 chiều điểm, báo cáo giáo viên có cây tri thức và nhận xét.
+- **Mốc 3:** chương Diện tích hình tam giác và hình thang.
+- **Không làm trong demo:** T15 (giọng nói), English. T11 (`make seed`) và T12 (đăng nhập) làm khi cần cho buổi thử với học sinh thật.
+
+## Kế hoạch theo đợt (cũ, trước 2026-10-06)
 
 Mỗi dòng là một phiên cloud. Các task trong cùng một đợt chạy song song được vì chỉ phụ thuộc vào phần đã có trên `main` và vào hai file hợp đồng ở trên.
 
