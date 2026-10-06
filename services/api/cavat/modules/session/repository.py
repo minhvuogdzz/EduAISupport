@@ -219,6 +219,12 @@ class LearningSessionRepository(TenantScopedRepository):
         docs = await self._find({}, projection={"student_id": 1, "_id": 0}, limit=limit)
         return sorted({d["student_id"] for d in docs})
 
+    async def list_lesson(self, lesson_id: str, limit: int = 2000) -> list[LearningSession]:
+        """Every session of the school on one lesson or chapter, unordered (the class view sorts them).
+        No sort here: on Atlas it would sort whole session documents in memory."""
+        docs = await self._find({"lesson_id": lesson_id}, limit=limit)
+        return [LearningSession.from_doc(d) for d in docs]
+
     async def list_for_student(
         self, student_id: str, lifecycle: Sequence[LifecycleState] | None = None
     ) -> list[LearningSession]:
