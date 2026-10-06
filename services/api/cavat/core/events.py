@@ -63,6 +63,7 @@ class EventType(StrEnum):
     VOICE_FALLBACK_TO_TEXT = "VOICE_FALLBACK_TO_TEXT"
     # teaching on the chapter graph (plan v1)
     NODE_DECISION = "NODE_DECISION"
+    TEACH_MESSAGE_SENT = "TEACH_MESSAGE_SENT"
     RETELL_JUDGED = "RETELL_JUDGED"
     # assessment / teacher
     EVIDENCE_RECORDED = "EVIDENCE_RECORDED"
@@ -215,6 +216,17 @@ class NodeDecisionMade(_Payload):
     policy_version: str
 
 
+class TeachMessageSent(_Payload):
+    """A message of the teaching loop itself: theory, worked example, retell prompt, feedback, node
+    transitions, summary (``teaching/loop.py``, ``MessageKind``). Item messages stay TUTOR_MESSAGE_SENT."""
+
+    kind: Literal["NODE", "THEORY", "EXAMPLE", "RETELL_PROMPT", "FEEDBACK", "PASS", "STOP", "SUMMARY"]
+    text: str
+    node_id: str | None = None
+    ref: str | None = None  # theory variant or worked example id
+    templates_version: str
+
+
 # Which payload model validates which event type. Types not listed carry free-form payloads for now.
 class StudentMessage(_Payload):
     """What the student sent, before grading. Kept for the transcript and for replaying the item loop."""
@@ -261,4 +273,5 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.ITEM_RESOLVED: ItemResolved,
     EventType.RETELL_JUDGED: RetellJudged,
     EventType.NODE_DECISION: NodeDecisionMade,
+    EventType.TEACH_MESSAGE_SENT: TeachMessageSent,
 }

@@ -76,7 +76,11 @@ def correct_text(item_id: str) -> str:
 
 
 def start(client, headers=MINH):
-    created = client.post("/v1/sessions", json={"student_display_name": "Minh"}, headers=headers)
+    created = client.post(
+        "/v1/sessions",
+        json={"student_display_name": "Minh", "lesson_id": service.DEFAULT_LESSON_ID},
+        headers=headers,
+    )
     assert created.status_code == 201, created.text
     assert created.json()["lifecycle_state"] == "READY" and created.json()["item"] is None
     joined = client.post(f"/v1/sessions/{created.json()['session_id']}/join", headers=headers)
@@ -201,7 +205,7 @@ def test_session_rules_are_enforced_by_the_backend(client):
     assert too_long.status_code == 422
     assert get_state(client, state)["state_version"] == state["state_version"]  # nothing was written
 
-    created = client.post("/v1/sessions", json={}, headers=MINH).json()
+    created = client.post("/v1/sessions", json={"lesson_id": service.DEFAULT_LESSON_ID}, headers=MINH).json()
     not_joined = send(client, {**state, "session_id": created["session_id"]}, "<", "k4")
     assert not_joined.status_code == 409 and not_joined.json()["error"]["code"] == "INVALID_STATE"
 
@@ -395,7 +399,11 @@ def test_teacher_sees_outcomes_misconceptions_and_rules(client):
 
 
 async def walk_whole_lesson(http: httpx.AsyncClient) -> dict:
-    created = await http.post("/v1/sessions", json={"student_display_name": "Minh"}, headers=MINH)
+    created = await http.post(
+        "/v1/sessions",
+        json={"student_display_name": "Minh", "lesson_id": service.DEFAULT_LESSON_ID},
+        headers=MINH,
+    )
     assert created.status_code == 201, created.text
     sid = created.json()["session_id"]
     state = (await http.post(f"/v1/sessions/{sid}/join", headers=MINH)).json()

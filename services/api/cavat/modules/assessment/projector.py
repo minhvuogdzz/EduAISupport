@@ -140,12 +140,21 @@ class NodeState(_Out):
     missing: list[str]  # MASTERY, UNDERSTOOD, EXPLANATION, APPLICATION, MISCONCEPTION
 
 
+class TracePoint(_Out):
+    """The mastery of a node right after an event changed it: the score as it moved in the session."""
+
+    seq: int
+    node_id: str
+    mastery: float | None
+
+
 class ChapterProjection(_Out):
     policy_version: str
     chapter_id: str
     chapter_version: str
     nodes: dict[str, NodeState]
     evidence: list[Evidence]
+    trace: list[TracePoint] = []
 
 
 def answer_dimension(cognitive_level: str, transfer: str) -> str:
@@ -202,6 +211,7 @@ class _Projector:
         self.chapter, self.policy = chapter, policy
         self.nodes = {n.id: _Node() for n in chapter.nodes}
         self.evidence: list[Evidence] = []
+        self.trace: list[TracePoint] = []
         self.item_kcs: dict[str, list[str]] = {}
         self.misconception_info = {
             m.id: m for lesson in chapter.lessons.values() for m in lesson.misconceptions
@@ -228,6 +238,10 @@ class _Projector:
         for node_id in dict.fromkeys(touched):
             if self.nodes[node_id].passed_at is None and self._state(node_id).pass_now:
                 self.nodes[node_id].passed_at = seq
+            mastery = self._mastery(node_id)
+            self.trace.append(
+                TracePoint(seq=seq, node_id=node_id, mastery=None if mastery is None else round(mastery, 1))
+            )
 
     def _item(self, seq: int, p: ItemResolved) -> list[str]:
         pol = self.policy
@@ -478,6 +492,7 @@ class _Projector:
             chapter_version=pkg.version,
             nodes={n.id: self._state(n.id) for n in pkg.nodes},
             evidence=self.evidence,
+            trace=self.trace,
         )
 
 

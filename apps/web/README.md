@@ -28,12 +28,12 @@ Thử trên tablet cùng mạng LAN: `pnpm dev --host`, rồi mở `http://<IP m
 
 ## Màn hình
 
-| Đường dẫn                           | Người dùng | Nội dung                                                                                                                                        |
-| ----------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                 | —          | Chọn vai trò                                                                                                                                    |
-| `/student`                          | Học sinh   | Nhập tên gọi để tạo buổi học demo; nút "Học tiếp" nếu buổi trước trên máy này còn dở                                                            |
-| `/student/sessions/:id`             | Học sinh   | Câu hỏi, khung hội thoại, ô trả lời, nút dấu `<` `>` `=` `,`, nút "Xin gợi ý", lựa chọn nhỏ của cô, thẻ hoàn thành                              |
-| `/teacher`, `/teacher/sessions/:id` | Giáo viên  | Danh sách buổi học và transcript theo từng câu: move, mức gợi ý H0–H7 và target, rule id, kết quả chấm, misconception, kết quả câu (resolution) |
+| Đường dẫn                           | Người dùng | Nội dung                                                                                                                                                                                                                           |
+| ----------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                 | —          | Chọn vai trò                                                                                                                                                                                                                       |
+| `/student`                          | Học sinh   | Nhập tên gọi để tạo buổi học demo; nút "Học tiếp" nếu buổi trước trên máy này còn dở                                                                                                                                               |
+| `/student/sessions/:id`             | Học sinh   | Câu hỏi, khung hội thoại, ô trả lời, nút dấu `<` `>` `=` `,`, nút "Xin gợi ý", lựa chọn nhỏ của cô, thẻ hoàn thành. Buổi học theo chương có thêm bản đồ bài học, thanh 7 bước, thẻ "Cô giảng bài", "Cô làm mẫu" và ô "con nói lại" |
+| `/teacher`, `/teacher/sessions/:id` | Giáo viên  | Danh sách buổi học và transcript theo từng câu: move, mức gợi ý H0–H7 và target, rule id, kết quả chấm, misconception, kết quả câu (resolution). Buổi học theo chương mở tab "Bộ não gia sư" (xem dưới)                            |
 
 Quy ước hiển thị:
 
@@ -61,6 +61,21 @@ vite-plugins/        Plugin đưa lesson.yaml vào mock và niêm phong câu EXI
 Một lượt: màn hình gửi command (header `Idempotency-Key`, body có `expected_state_version`), nhận ack, rồi nhận `tutor.delta`… `tutor.final` và `state` qua stream. Khung hội thoại chỉ hiện những gì server đã xác nhận, cộng dòng "Đang gửi…" của học sinh. Gặp 409 thì đọc lại `GET /state` và giữ nguyên chữ học sinh đã gõ.
 
 Test (`pnpm test`, Vitest + Testing Library): enum của contract khớp `services/api/cavat/core/pedagogy.py`, câu EXIT bị niêm phong, bộ chấm và vòng item của mock, các kiểm tra 409 và idempotency, reducer, màn hình học sinh và giáo viên.
+
+## Buổi học theo chương (M1-7)
+
+Với API thật, buổi học mặc định là **buổi học theo chương** Số thập phân: gia sư dạy theo vòng 7 bước trên cây tri thức của chương (kế hoạch v1, `docs/plan/plan-v1-teaching-knowledge-graph.md`). Mock API trong trình duyệt vẫn chỉ chạy bài 1 cũ, nên muốn xem phần này thì chạy `make demo`.
+
+- **Học sinh:** `state.teaching` (contract.ts, `TeachingView`) mang bản đồ node (trạng thái và mức hiểu bằng chữ, không có điểm số), bước hiện tại của vòng dạy và câu hỏi cô đang chờ trả lời. Lời trả lời gửi qua `POST /responses` với `item_attempt_id` = `teaching.input_id`. Lời giảng và bài cô làm mẫu là `ChatTurn.kind` (`THEORY`, `EXAMPLE`...) và hiện thành thẻ riêng.
+- **Giáo viên:** tab "Bộ não gia sư" đọc `GET /v1/sessions/{id}/report` (`TeachingReport`), tự cập nhật 3 giây một lần khi buổi học đang diễn ra. Nội dung:
+  - cây tri thức có điểm M từng bài (bấm vào một bài để xem chi tiết);
+  - điểm M qua từng lượt so với ngưỡng qua bài;
+  - 7 chiều đánh giá và lượng bằng chứng của từng chiều;
+  - điều kiện qua bài (DI-15) và phần còn thiếu;
+  - bảng bằng chứng cộng/trừ điểm kèm lý do;
+  - mọi quyết định của chính sách dạy kèm mã luật `N-*`.
+
+  Tất cả được tính lại từ sự kiện của buổi học.
 
 ## Mock API
 

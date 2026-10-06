@@ -6,6 +6,7 @@ import { StarIcon } from "../../components/icons";
 import { ACTIVITY_LABEL, capitalize } from "../../components/labels";
 import { MockBanner } from "../../components/MockBanner";
 import { AnswerPanel } from "./AnswerPanel";
+import { ChapterSession } from "./ChapterSession";
 import { Conversation } from "./Conversation";
 import { QuestionCard } from "./QuestionCard";
 import { useStickToBottom } from "./useStickToBottom";
@@ -27,6 +28,33 @@ export function SessionPage() {
 
   const { state } = view;
   const tutorName = capitalize(state.persona.tutor_self);
+  const notice = view.notice && (
+    <p
+      role="status"
+      className="flex items-center justify-between gap-3 rounded-2xl bg-sky-100 px-4 py-3 text-lg text-sky-950"
+    >
+      {view.notice}
+      <button type="button" onClick={dismissNotice} className="rounded-xl px-3 py-1 font-semibold underline">
+        Đã hiểu
+      </button>
+    </p>
+  );
+  if (state.teaching) {
+    return (
+      <ChapterSession
+        state={state}
+        teaching={state.teaching}
+        turns={turns}
+        typing={view.typing}
+        notice={notice}
+        busy={busy}
+        scrollerRef={scrollerRef}
+        onSubmit={submitAnswer}
+        onHint={() => void requestHint()}
+        onChoose={(choice) => void choose(choice)}
+      />
+    );
+  }
   return (
     // App-shell layout: only the middle scrolls, so the newest message is never hidden behind the
     // answer panel, and the question stays in view on tablets.
@@ -50,21 +78,7 @@ export function SessionPage() {
             tutorName={tutorName}
             studentName={state.student_display_name}
           />
-          {view.notice && (
-            <p
-              role="status"
-              className="flex items-center justify-between gap-3 rounded-2xl bg-sky-100 px-4 py-3 text-lg text-sky-950"
-            >
-              {view.notice}
-              <button
-                type="button"
-                onClick={dismissNotice}
-                className="rounded-xl px-3 py-1 font-semibold underline"
-              >
-                Đã hiểu
-              </button>
-            </p>
-          )}
+          {notice}
         </main>
       </div>
       <footer className="shrink-0 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">

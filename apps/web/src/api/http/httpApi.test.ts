@@ -191,10 +191,12 @@ describe("createHttpApi", () => {
     const { api, calls } = client({
       "GET /v1/sessions": () => ({ body: [] }),
       "GET /v1/sessions/s%2F1/transcript": () => ({ body: { session: {}, segments: [] } }),
+      "GET /v1/sessions/s%2F1/report": () => ({ body: { nodes: [] } }),
     });
 
     await expect(api.listSessions()).resolves.toEqual([]);
     await api.getTranscript("s/1"); // the id is escaped in the path
+    await expect(api.getReport?.("s/1")).resolves.toEqual({ nodes: [] });
     for (const call of calls) {
       expect(call.headers["X-Demo-Teacher"]).toBeTruthy();
       expect(call.headers["X-Demo-Student"]).toBeUndefined();

@@ -43,7 +43,8 @@ export function StudentStartPage() {
           <section className="flex flex-col gap-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
             <p className="text-xl">
               Buổi học của <strong>{resumable.student_display_name}</strong> còn dang dở (đã xong{" "}
-              {resumable.progress.items_done}/{resumable.progress.items_total} câu).
+              {resumable.progress.items_done}/{resumable.progress.items_total}{" "}
+              {resumable.teaching ? "bài" : "câu"}).
             </p>
             <Link
               to={`/student/sessions/${resumable.session_id}`}

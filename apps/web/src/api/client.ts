@@ -9,6 +9,7 @@ import type {
   SessionSummary,
   SessionTranscript,
   StreamEvent,
+  TeachingReport,
 } from "./contract";
 
 /**
@@ -40,6 +41,11 @@ export interface SessionApi {
   listSessions(): Promise<SessionSummary[]>;
   /** Teacher: GET /v1/sessions/{id}/transcript (audited). */
   getTranscript(sessionId: string): Promise<SessionTranscript>;
+  /**
+   * Teacher: GET /v1/sessions/{id}/report, how the tutor scored and decided in a chapter session.
+   * Real API only: the in-browser mock has no teaching loop.
+   */
+  getReport?: (sessionId: string) => Promise<TeachingReport>;
 
   /** Mock only: wipe the demo data kept in this browser and seed it again. */
   resetDemoData?: () => Promise<void>;

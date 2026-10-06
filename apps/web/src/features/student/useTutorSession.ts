@@ -2,7 +2,7 @@ import { useEffect, useReducer } from "react";
 
 import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
-import type { CommandAck, MicroChoice, SessionState } from "../../api/contract";
+import type { CommandAck, MicroChoice, ResponseKind, SessionState } from "../../api/contract";
 import { newId } from "../../lib/ids";
 import { displayTurns, initialTutorView, isBusy, tutorReducer } from "./tutorSession";
 
@@ -69,8 +69,8 @@ export function useTutorSession(sessionId: string) {
       api.submitResponse(
         sessionId,
         {
-          item_attempt_id: state.item?.item_attempt_id ?? "",
-          kind: state.item?.expecting === "EXPLANATION" ? "EXPLANATION" : "ANSWER",
+          item_attempt_id: state.item?.item_attempt_id ?? state.teaching?.input_id ?? "",
+          kind: responseKind(state),
           content: { text },
           modality: "TEXT",
           expected_state_version: state.state_version,
@@ -109,4 +109,12 @@ export function useTutorSession(sessionId: string) {
     choose,
     dismissNotice: () => dispatch({ type: "dismiss_notice" }),
   };
+}
+
+/** What the student's words are: an answer, an explanation ("vì sao", retell) or a reply to a question. */
+function responseKind(state: SessionState): ResponseKind {
+  if (state.item) return state.item.expecting === "EXPLANATION" ? "EXPLANATION" : "ANSWER";
+  if (state.teaching?.awaiting === "RETELL") return "EXPLANATION";
+  if (state.teaching?.awaiting === "THEORY_REPLY") return "MESSAGE";
+  return "ANSWER";
 }

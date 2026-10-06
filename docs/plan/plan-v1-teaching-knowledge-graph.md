@@ -213,6 +213,11 @@ RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã du
 - Cây tri thức của từng học sinh tô màu theo điểm (dải màu §25), bằng chứng theo từng chiều, lỗi sai, node "cần học lại".
 - Nhận xét kiểu "tư duy giáo viên" của 2T-KT do Qwen viết từ dữ liệu tất định, ghi rõ là nhận xét của AI.
 - Transcript có nhãn hiện có (kết quả chấm, lỗi sai, mã luật, nguồn câu nói).
+- **Cài đặt (M1-7):**
+  - API: buổi học mặc định là buổi học theo chương (`session/chapter_service.py`). Mỗi lệnh dựng lại vòng dạy từ sự kiện của buổi học. `GET /v1/sessions/{id}/report` trả "bộ não gia sư" cho giáo viên.
+  - Web, phía học sinh: bản đồ bài học (cây tri thức hai tầng, trạng thái từng bài, mức hiểu bằng chữ), thanh 7 bước, thẻ "Cô giảng bài", thẻ "Cô làm mẫu", ô "con nói lại".
+  - Web, phía giáo viên: tab "Bộ não gia sư" gồm cây tri thức có điểm M từng bài, điểm M qua từng lượt so với ngưỡng, 7 chiều đánh giá, điều kiện qua bài, bảng bằng chứng cộng/trừ kèm lý do, dòng quyết định của cô kèm mã luật. Tab "Hội thoại" thêm nhãn bước dạy, mã luật và kết quả phần nói lại.
+  - Chưa làm: tô màu theo dải §25 và nhận xét kiểu "tư duy giáo viên" (Mốc 2).
 
 ## 6. Giữ, thay, bỏ
 

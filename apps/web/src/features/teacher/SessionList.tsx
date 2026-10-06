@@ -44,7 +44,8 @@ export function SessionList({
                 </span>
                 <span className="text-sm text-slate-600">
                   {session.started_at ? formatViDateTime(session.started_at) : "Chưa bắt đầu"} ·{" "}
-                  {session.progress.items_done}/{session.progress.items_total} câu
+                  {session.progress.items_done}/{session.progress.items_total}{" "}
+                  {session.mode === "CHAPTER" ? "bài" : "câu"}
                 </span>
                 {session.misconception_ids.length > 0 && (
                   <span className="flex flex-wrap gap-1">

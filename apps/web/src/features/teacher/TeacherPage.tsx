@@ -1,12 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
 import { MockBanner } from "../../components/MockBanner";
+import { BrainPanel } from "./BrainPanel";
 import { SessionList } from "./SessionList";
 import { TranscriptView } from "./TranscriptView";
 
-/** Teacher: list of sessions and the transcript of the selected one (T09). */
+/** Teacher: list of sessions; for the selected one, the tutor's reasoning (chapter sessions) and the transcript. */
 export function TeacherPage() {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -18,6 +20,7 @@ export function TeacherPage() {
     refetchInterval: 5000,
   });
   const selectedId = sessionId ?? sessions.data?.[0]?.session_id ?? null;
+  const selectedMode = sessions.data?.find((s) => s.session_id === selectedId)?.mode;
 
   async function resetDemoData() {
     if (
@@ -33,14 +36,14 @@ export function TeacherPage() {
 
   return (
     <div className="min-h-dvh bg-slate-50">
-      <title>Transcript · CAVAT</title>
+      <title>Giáo viên · CAVAT</title>
       <MockBanner />
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3">
           <Link to="/" className="rounded-lg bg-teal-700 px-2 py-1 font-bold text-white">
             CAVAT
           </Link>
-          <h1 className="flex-1 text-xl font-semibold">Giáo viên · Transcript buổi học</h1>
+          <h1 className="flex-1 text-xl font-semibold">Giáo viên · Buổi học</h1>
           {api.resetDemoData && (
             <button
               type="button"
@@ -65,7 +68,7 @@ export function TeacherPage() {
         </aside>
         <main>
           {selectedId ? (
-            <TranscriptPanel sessionId={selectedId} />
+            <SessionPanel key={selectedId} sessionId={selectedId} chapter={selectedMode === "CHAPTER"} />
           ) : (
             !sessions.isPending && <p className="text-slate-600">Chọn một buổi học để xem transcript.</p>
           )}
@@ -73,6 +76,57 @@ export function TeacherPage() {
       </div>
     </div>
   );
+}
+
+/** A chapter session opens on the tutor's reasoning; the transcript is the second tab. */
+function SessionPanel({ sessionId, chapter }: { sessionId: string; chapter: boolean }) {
+  const api = useApi();
+  const [tab, setTab] = useState<"brain" | "transcript">("brain");
+  if (!chapter || !api.getReport) return <TranscriptPanel sessionId={sessionId} />;
+  const tabs = [
+    ["brain", "Bộ não gia sư"],
+    ["transcript", "Hội thoại"],
+  ] as const;
+  return (
+    <div className="flex flex-col gap-4">
+      <div role="tablist" aria-label="Xem buổi học" className="flex gap-2">
+        {tabs.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            id={`tab-${key}`}
+            aria-selected={tab === key}
+            aria-controls={`panel-${key}`}
+            onClick={() => setTab(key)}
+            className={`rounded-xl px-4 py-2 font-semibold ${
+              tab === key
+                ? "bg-teal-700 text-white"
+                : "bg-white text-slate-800 ring-1 ring-slate-300 hover:bg-slate-100"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+        {tab === "brain" ? <ReportPanel sessionId={sessionId} /> : <TranscriptPanel sessionId={sessionId} />}
+      </div>
+    </div>
+  );
+}
+
+function ReportPanel({ sessionId }: { sessionId: string }) {
+  const api = useApi();
+  const report = useQuery({
+    queryKey: ["report", sessionId],
+    queryFn: () => api.getReport!(sessionId),
+    // Follow a session in progress live, like the transcript.
+    refetchInterval: (query) => (query.state.data?.session.lifecycle_state === "ACTIVE" ? 3000 : false),
+  });
+  if (report.isPending) return <p className="text-slate-600">Đang tải…</p>;
+  if (report.isError) return <p role="alert">Không tải được báo cáo của buổi học này.</p>;
+  return <BrainPanel report={report.data} />;
 }
 
 function TranscriptPanel({ sessionId }: { sessionId: string }) {

@@ -11,6 +11,9 @@ interface AnswerPanelProps {
   onSubmit: (text: string) => Promise<boolean>;
   onHint: () => void;
   onChoose: (choice: MicroChoice) => void;
+  /** Replies in words to the teaching loop (theory question, retell) have no hint to ask for. */
+  showHint?: boolean;
+  placeholder?: string;
 }
 
 /** Signs a 10-year-old cannot easily type on a tablet keyboard. */
@@ -46,6 +49,8 @@ export function AnswerPanel({
   onSubmit,
   onHint,
   onChoose,
+  showHint = true,
+  placeholder,
 }: AnswerPanelProps) {
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -156,7 +161,7 @@ export function AnswerPanel({
           disabled={!canAnswer}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={explaining ? "Con giải thích ở đây…" : "Con viết câu trả lời ở đây…"}
+          placeholder={placeholder ?? (explaining ? "Con giải thích ở đây…" : "Con viết câu trả lời ở đây…")}
           lang="vi"
           autoComplete="off"
           autoCorrect="off"
@@ -174,15 +179,17 @@ export function AnswerPanel({
       </form>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onHint}
-          disabled={busy || !allowed.includes("HINT_REQUEST")}
-          className={`${bigButton} inline-flex items-center gap-2 bg-amber-100 text-amber-950 ring-2 ring-amber-300 hover:bg-amber-200`}
-        >
-          <LightbulbIcon className="size-6" />
-          Xin gợi ý
-        </button>
+        {showHint && (
+          <button
+            type="button"
+            onClick={onHint}
+            disabled={busy || !allowed.includes("HINT_REQUEST")}
+            className={`${bigButton} inline-flex items-center gap-2 bg-amber-100 text-amber-950 ring-2 ring-amber-300 hover:bg-amber-200`}
+          >
+            <LightbulbIcon className="size-6" />
+            Xin gợi ý
+          </button>
+        )}
         <p className="text-base text-slate-600" aria-live="polite">
           {busy
             ? "Cô đang trả lời…"

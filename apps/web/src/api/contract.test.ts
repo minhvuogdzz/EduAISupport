@@ -11,6 +11,7 @@ import {
   ITEM_RESOLUTIONS,
   MOVES,
   OUTCOMES,
+  TEACH_ACTIONS,
 } from "./contract";
 
 const PEDAGOGY_PY = resolve(import.meta.dirname, "../../../../services/api/cavat/core/pedagogy.py");
@@ -37,6 +38,7 @@ describe("contract enums mirror services/api/cavat/core/pedagogy.py", () => {
     ["ErrorClass", ERROR_CLASSES],
     ["ActivityType", ACTIVITY_TYPES],
     ["ItemResolution", ITEM_RESOLUTIONS],
+    ["TeachAction", TEACH_ACTIONS],
   ])("%s", (className, values) => {
     expect(values).toEqual(enumValues(className));
   });

@@ -2,6 +2,7 @@ import type {
   ItemResolution,
   SessionTranscript,
   StudentAnnotation,
+  TeachAnnotation,
   TranscriptItem,
   TranscriptTurn,
   TutorAnnotation,
@@ -14,7 +15,9 @@ import {
   MOVE_LABEL,
   OUTCOME_LABEL,
   RESOLUTION_LABEL,
+  RULE_LABEL,
   STUDENT_KIND_LABEL,
+  TEACH_KIND_LABEL,
 } from "../../components/labels";
 import { MathText } from "../../components/MathText";
 import { formatViDateTime, formatViDecimal, formatViTime } from "../../lib/viNumber";
@@ -52,7 +55,8 @@ export function TranscriptView({ transcript }: { transcript: SessionTranscript }
           <div>
             <dt className="inline">Tiến độ: </dt>
             <dd className="inline">
-              {session.progress.items_done}/{session.progress.items_total} câu
+              {session.progress.items_done}/{session.progress.items_total}{" "}
+              {session.mode === "CHAPTER" ? "bài đã qua" : "câu"}
             </dd>
           </div>
           <div>
@@ -141,6 +145,7 @@ function TurnRow({ turn, studentName }: { turn: TranscriptTurn; studentName: str
           <MathText text={turn.text} />
         </p>
         {turn.tutor && <TutorChips annotation={turn.tutor} />}
+        {turn.teach && <TeachChips annotation={turn.teach} />}
         {turn.student && <StudentChips annotation={turn.student} />}
       </div>
     </li>
@@ -183,8 +188,27 @@ function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
   );
 }
 
+/** A message of the teaching loop and the node decision behind it (chapter sessions). */
+function TeachChips({ annotation }: { annotation: TeachAnnotation }) {
+  return (
+    <p className="flex flex-wrap gap-1">
+      <Chip tone="teal">{TEACH_KIND_LABEL[annotation.kind]}</Chip>
+      {annotation.rule_ids.map((rule) => (
+        <Chip key={rule} mono title={RULE_LABEL[rule]}>
+          {rule}
+        </Chip>
+      ))}
+      {annotation.reason_codes.map((code) => (
+        <Chip key={code} mono>
+          {code}
+        </Chip>
+      ))}
+    </p>
+  );
+}
+
 function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
-  const { kind, outcome, normalized_answer, misconception } = annotation;
+  const { kind, outcome, normalized_answer, misconception, retell } = annotation;
   const outcomeTone: ChipTone = outcome === "CORRECT" ? "emerald" : outcome === "WRONG" ? "rose" : "slate";
   return (
     <p className="flex flex-wrap gap-1">
@@ -195,6 +219,11 @@ function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
         <Chip tone="sky">
           Đọc là:&nbsp;
           <MathText text={normalized_answer} />
+        </Chip>
+      )}
+      {retell && (
+        <Chip tone={retell.score >= 0.5 ? "emerald" : "rose"} title="Số ý bắt buộc con nói được">
+          Nói lại: {retell.ideas_found}/{retell.ideas_total} ý
         </Chip>
       )}
       {misconception && (
