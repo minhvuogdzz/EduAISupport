@@ -8,11 +8,13 @@ Tài liệu này dành cho mọi phiên Claude Code (local và cloud) làm việ
 - **Bối cảnh:** đồ án tốt nghiệp. Chủ repo làm một mình cùng AI; sản phẩm nội bộ để kiểm thử. **Chủ repo là giáo viên kiểm soát** và duyệt mọi đặc tả sư phạm, DI, item bank.
 - **Pháp lý và dữ liệu trẻ em đã được chủ dự án xử lý** (hợp đồng luật sư đã ký). Không thêm track, bước chờ hay điều kiện chặn vì lý do pháp lý/consent. Được dùng dữ liệu thật, kể cả giọng nói học sinh, cho kiểm thử.
 - **Free-first:** mặc định dùng dịch vụ miễn phí (free tier, mã nguồn mở, chạy local); xem ADR-016 và mục Revision trong `docs/blueprint/00-START-HERE.md`.
-- **Vai trò model (ADR-017):** Qwen trên Groq (`qwen/qwen3.8-27b`) là bộ não tutor và Whisper trên Groq cho giọng nói tiếng Việt; Gemini chỉ dùng cho ảnh/OCR (hình học, đề bài chụp) và voice/live; LlamaParse để đọc tài liệu giáo viên. Prompt gửi Groq phải ≤ 3.000 token và tắt suy luận (`reasoning_effort: "none"`), vì giới hạn 8.000 token/phút (`docs/poc/free-tier-quota.md`).
+- **Vai trò model (ADR-017, ADR-018):** Qwen trên Groq (`qwen/qwen3.8-27b`) là bộ não tutor; Gemini chỉ dùng cho ảnh/OCR (hình học, đề bài chụp) và tạo vector embedding cho Hybrid RAG. Không dùng LlamaParse. Prompt gửi Groq phải ≤ 3.000 token và tắt suy luận (`reasoning_effort: "none"`), vì giới hạn 8.000 token/phút (`docs/poc/free-tier-quota.md`).
 - **Chạy local, không dùng Docker.** Database là **MongoDB Atlas (gói M0)**. File gốc và audio lưu trên ổ đĩa (`var/storage/`, đã gitignore).
-- **Scope khóa:** Math Grade 5 + English Grade 5 (Reading + Speaking). Không tự mở rộng sang lớp hoặc môn khác.
+- **Scope khóa (D-T9):** demo gồm hai chương Toán lớp 5: **Số thập phân** và **Diện tích hình tam giác, hình thang**. English và giọng nói ra khỏi demo. Không tự mở rộng sang chương, lớp hoặc môn khác.
 - **Nguyên tắc cốt lõi:** thiết kế *learning system* trước, đặt AI vào trong. **Socratic Tutor Mode** là mặc định và xuyên suốt: System Prompt + Tutor Policy/State Machine + Multi-level Hint Engine. LLM không tự quản lý session, hint level, completion hay mastery.
-- **Blueprint (nguồn sự thật về thiết kế):** `docs/blueprint/00-START-HERE.md` → các file 01–15. Bản hiện hành là **v0.3**; mục Revision ở đầu 00 ghi đè v0.1 khi có mâu thuẫn.
+- **Blueprint (nguồn sự thật về thiết kế):** `docs/blueprint/00-START-HERE.md` → các file 01–15. Bản hiện hành là **v0.4**; mục Revision ở đầu 00 ghi đè v0.1 khi có mâu thuẫn.
+- **Kế hoạch hiện hành (D-T10):** `docs/plan/plan-v1-teaching-knowledge-graph.md`. Gia sư phải **dạy** (lý thuyết và phương pháp) theo vòng 7 bước trên đồ thị tri thức; bài tập chỉ là một bước. Đọc trước khi làm task Mốc 1–3.
+- **Tự xây kiến trúc AI (D-T11):** Hybrid RAG, đồ thị tri thức, chấm điểm, chính sách dạy, đọc tài liệu đều tự viết. Chỉ dùng API model qua `ai_gateway`. Không thêm framework RAG hay agent (LangChain, LlamaIndex...), dịch vụ vector database hay dịch vụ đọc tài liệu.
 - **Việc giao cho phiên cloud:** `docs/tasks/BACKLOG.md`. Mỗi phiên làm một task. Nhóm tutor dùng chung hợp đồng `cavat/modules/tutor/contracts.py` và `cavat/core/events.py`, không định nghĩa lại.
 
 ## Chạy dự án

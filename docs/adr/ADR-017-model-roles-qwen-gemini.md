@@ -13,7 +13,8 @@
 | VISION_OCR (ảnh hình học, đề bài chụp) | `gemini-3.8-flash` | — |
 | REALTIME_VOICE (English Speaking) | `gemini-3.8-live` | Cascade: Whisper + Qwen + TTS trình duyệt |
 | TTS | `SpeechSynthesis` của trình duyệt | `gemini-3.8-flash-tts` (10 req/ngày) |
-| Phân tích tài liệu giáo viên (PDF/PPTX) | LlamaParse (LlamaCloud) | Gemini vision cho trang scan và hình vẽ |
+| Phân tích tài liệu giáo viên (PDF/PPTX) | ~~LlamaParse (LlamaCloud)~~ **bỏ (ADR-018, D-T11):** tự đọc PDF và tự dựng bố cục | Gemini vision cho trang scan và hình vẽ |
+| EMBEDDING (Hybrid RAG, ADR-018) | Model embedding đa ngôn ngữ của Gemini, tên trong cấu hình | Chỉ dùng từ khóa và cấu trúc đồ thị; model chạy local ở Mốc 2 nếu cần |
 
 ## Lý do
 
