@@ -144,6 +144,12 @@ Bảng DI-8 của blueprint (dải M → hành động) dùng để chọn mức
   - Mỗi quyết định được ghi thành sự kiện `NODE_DECISION`, có mã luật và lý do.
   - Trạng thái dạy của buổi học (`teaching/state.py`) được tính lại từ các quyết định đó cùng kết quả từng câu và phần con nói lại, nên phát lại được.
 - **[FACT] Đo bằng học sinh giả lập làm đúng hết:** cả 7 node qua theo đúng thứ tự học, mất 73 quyết định (khoảng 10 bước mỗi node, 2 câu ôn xen kẽ).
+- **Vòng dạy (M1-6):** `services/api/cavat/modules/teaching/loop.py`.
+  - Thực hiện từng quyết định của chính sách: giảng, câu hỏi (qua item loop với gợi ý 5 mức và "vì sao"), con nói lại (chấm bằng `assessment/retell.py`), cô làm mẫu, chuyển node.
+  - Tự đi tiếp cho tới khi cần học sinh trả lời.
+  - `TeachingLoop.resume` dựng lại vòng dạy từ sự kiện đã lưu: câu đang làm phát lại các lần trả lời bằng mẫu câu.
+- **[FACT] Đo bằng học sinh giả lập:** cả chương mất 70 lượt trả lời (khoảng 10 mỗi node).
+- **[OPEN] Câu hỏi cuối phần giảng chưa có đáp án mẫu:** cô chỉ đáp "Cô cảm ơn con." mà không nhận xét câu trả lời. Cách sửa: thêm đáp án mẫu cho câu hỏi của từng cách giảng (nội dung), hoặc để Qwen nhận xét có căn cứ ở M1-9.
 - **[OPEN] Kho câu còn mỏng:** mỗi node mới có 2 câu luyện. Khi quay về node tiên quyết giữa buổi, gia sư giảng lại được (cách giảng và ví dụ mẫu chưa dùng), nhưng không còn câu luyện mới nên phải dừng node với lý do `NO_ITEMS_LEFT`. Đề xuất: thêm 2–3 câu luyện cho mỗi node (task M1-2c).
 
 ### 5.5. Hybrid RAG (tự xây)
