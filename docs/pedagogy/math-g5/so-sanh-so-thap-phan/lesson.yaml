@@ -733,7 +733,7 @@ items:
       - {target: TASK, level: 1, text: "Con tìm số bé nhất trong ba số trước nhé?"}
 
   # ----- Bổ sung cho gói chương Số thập phân (M1-2b, 2026-10-06, AI soạn nháp, chờ duyệt) -----
-  # Câu kiểm tra hiểu (CC-04..06), bài làm cùng (CP-01..05), bài luyện (PL-01..02), bài vận dụng (TR-01..03).
+  # Câu kiểm tra hiểu (CC-04..06), bài làm cùng (CP-01..05), bài luyện (PL-01..03), bài vận dụng (TR-01..03).
 
   - id: CP-01
     purpose: PRACTICE
@@ -1011,3 +1011,22 @@ items:
       - "Ở hàng phần mười: 2,35 có chữ số 3, còn 2,4 có chữ số 4, và 3 bé hơn 4."
       - "Vậy 2,35 < 2,4, bao gạo B nặng hơn."
     explanation: "Phần nguyên đều là 2, ở hàng phần mười 3 bé hơn 4, nên 2,35 < 2,4. Bao gạo B nặng hơn."
+
+  - id: PL-03
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-APPLY]
+    cognitive_level: D
+    difficulty: 0.5
+    stem: "Bạn Tú nói: trong cuộc thi chạy 50 m, bạn chạy hết 10,2 giây chạy nhanh hơn bạn chạy hết 10,15 giây, vì 10,2 lớn hơn 10,15. Bạn Tú nói đúng hay sai?"
+    answer: {type: boolean, value: false, wrong_answers: {"true": APPLY-TIME-SPEED}}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn Tú so sánh hai số nào, và bạn ấy kết luận điều gì?"}
+      - {target: CONCEPT, level: 2, text: "Chạy cùng quãng đường, bạn tốn nhiều giây hơn thì về đích trước hay về đích sau?"}
+      - {target: STRATEGY, level: 3, text: "Con thử so sánh 10,2 và 10,15 trước, rồi nghĩ xem ai tốn ít thời gian hơn nhé?"}
+      - {target: STEP, level: 4, text: "10,2 > 10,15, nên bạn chạy hết 10,2 giây tốn nhiều thời gian hơn. Tốn nhiều thời gian hơn thì chạy nhanh hơn hay chậm hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Phần nguyên của 10,2 và 10,15 là mấy?"}
+    worked_solution:
+      - "So sánh hai số: phần nguyên đều là 10; ở hàng phần mười 2 lớn hơn 1, nên 10,2 > 10,15."
+      - "Bạn chạy hết 10,2 giây tốn nhiều thời gian hơn, nên về đích sau."
+      - "Vậy bạn chạy hết 10,2 giây chạy chậm hơn, và bạn Tú nói sai."
+    explanation: "10,2 > 10,15 nên bạn chạy hết 10,2 giây tốn nhiều thời gian hơn. Chạy cùng quãng đường, ai tốn ít thời gian hơn thì chạy nhanh hơn, nên bạn Tú nói sai."

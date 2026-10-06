@@ -298,13 +298,14 @@ def _pass_rule_problems(chapter: Chapter, node: Node) -> list[str]:
     """The node's items must make its pass rule reachable (§52 UNDERSTOOD, DI-15).
 
     A cognitive level is A-E (DIAG items diagnose, they are not a level); a question form is the answer
-    type (DI: choice, numeric, compare, order, boolean, open).
+    type (DI: choice, numeric, compare, order, boolean, open). "Cùng làm" items give part of the solution,
+    so they are not counted (DI): the student must reach the rule with the items done alone.
     """
     lesson = chapter.lessons.get(node.lesson_id)
     if lesson is None:
         return []
     known = {it.id: it for it in lesson.items}
-    refs = (*node.checks, *node.completion, *node.practice, *node.transfer)
+    refs = (*node.checks, *node.practice, *node.transfer)
     items = [known[ref] for ref in refs if ref in known]
     rule = node.pass_rule
     levels = {it.cognitive_level for it in items} - {"DIAG"}

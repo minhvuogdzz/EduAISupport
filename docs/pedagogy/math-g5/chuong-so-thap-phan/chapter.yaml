@@ -364,7 +364,7 @@ nodes:
         - ["ý nghĩa", "ít thời gian", "ít giây", "nhiều hơn", "nặng hơn", "nhanh hơn"]
     checks: [CC-06]
     completion: [CP-05]
-    practice: [GP-10, GP-10b]
+    practice: [GP-10, GP-10b, PL-03]
     transfer: [GP-08, GP-08b]
 
 relations:

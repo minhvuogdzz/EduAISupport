@@ -196,7 +196,7 @@ def test_the_pass_rule_must_be_reachable_with_the_node_items(tmp_path):
 
     found = [p for p in problems(tmp_path, strict) if p.startswith("A:")]
     assert found == [
-        "A: 5 item(s), the pass rule needs 6 successes",
+        "A: 4 item(s), the pass rule needs 6 successes",
         "A: items cover 3 cognitive level(s), the pass rule needs 4",
         "A: items cover 2 question form(s), the pass rule needs 3",
         "A: the pass rule needs more successes than its item budget",
