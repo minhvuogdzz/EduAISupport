@@ -1,4 +1,9 @@
-"""Session API for one lesson (T08, blueprint PART 24 and 29). Shapes follow apps/web/src/api/contract.ts.
+"""Session API (T08, blueprint PART 24 and 29). Shapes follow apps/web/src/api/contract.ts.
+
+Two kinds of session share the endpoints: a **chapter** session (M1-7, the default) runs the teaching
+loop of plan v1 on the chapter's knowledge graph (``chapter_service``); a **lesson** session runs the
+fixed demo plan of lesson 1 (``service``). ``GET /{id}/report`` shows the teacher how the tutor scored
+and decided in a chapter session.
 
 Not implemented yet: ``GET /v1/sessions/{id}/stream`` (SSE); the web polls ``/state`` after each command.
 
@@ -27,8 +32,9 @@ from cavat.config import get_settings
 from cavat.core.events import EventType
 from cavat.core.repository import utc_now
 from cavat.modules.ai_gateway.router import AIRouter, build_router
+from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
-from cavat.modules.session import service
+from cavat.modules.session import chapter_service, service
 from cavat.modules.session.repository import (
     DuplicateCommand,
     EventRepository,
@@ -92,6 +98,8 @@ class ChatTurn(BaseModel):
     occurred_at: datetime
     move: str | None
     hint_level: int | None
+    kind: str | None = None  # chapter sessions: THEORY, EXAMPLE, RETELL_PROMPT, FEEDBACK, NODE, PASS...
+    node_id: str | None = None
 
 
 class ItemOption(BaseModel):
@@ -134,6 +142,39 @@ class Progress(BaseModel):
     items_total: int
 
 
+class NodeView(BaseModel):
+    node_id: str
+    name: str
+    layer: Literal["BASIC", "IMPLEMENT"]
+    status: Literal["PASSED", "CURRENT", "ON_HOLD", "STOPPED", "AVAILABLE", "LOCKED"]
+    level: int | None  # 0-5 once the node has evidence
+    order: int  # place in the learning order
+
+
+class RelationView(BaseModel):
+    source: str
+    target: str
+    type: Literal["PREREQUISITE", "SUBCLASS", "SIMILAR", "APPLICATION"]
+
+
+class ChapterRef(BaseModel):
+    chapter_id: str
+    title: str
+
+
+class TeachingView(BaseModel):
+    chapter: ChapterRef
+    current_node_id: str | None
+    step: int | None  # 1-7: the step of the teaching cycle (plan v1, 5.2)
+    awaiting: Literal["ANSWER", "THEORY_REPLY", "RETELL", "NOTHING"]
+    input_id: str | None  # sent back as item_attempt_id
+    prompt: str | None
+    nodes: list[NodeView]
+    relations: list[RelationView]
+    passed: int
+    total: int
+
+
 class SessionStateView(BaseModel):
     session_id: str
     state_version: int
@@ -147,6 +188,7 @@ class SessionStateView(BaseModel):
     allowed_commands: list[Literal["ANSWER", "HINT_REQUEST", "CHOICE"]]
     progress: Progress
     transcript: list[ChatTurn]
+    teaching: TeachingView | None = None
 
 
 class SessionSummaryView(BaseModel):
@@ -159,6 +201,7 @@ class SessionSummaryView(BaseModel):
     progress: Progress
     misconception_ids: list[str]
     engine: Literal["mock", "live"]
+    mode: Literal["LESSON", "CHAPTER"] = "LESSON"  # CHAPTER: GET /{id}/report explains the teaching
 
 
 class TutorAnnotation(BaseModel):
@@ -176,11 +219,25 @@ class MisconceptionView(BaseModel):
     confidence: float
 
 
+class RetellView(BaseModel):
+    score: float
+    ideas_found: int
+    ideas_total: int
+
+
 class StudentAnnotation(BaseModel):
     kind: Literal["ANSWER", "STEP", "EXPLANATION", "MESSAGE", "HINT_REQUEST", "CHOICE"]
     outcome: str | None
     normalized_answer: str | None
     misconception: MisconceptionView | None
+    retell: RetellView | None = None
+
+
+class TeachAnnotation(BaseModel):
+    kind: str
+    node_id: str | None
+    rule_ids: list[str]
+    reason_codes: list[str]
 
 
 class TranscriptTurn(BaseModel):
@@ -190,6 +247,7 @@ class TranscriptTurn(BaseModel):
     text: str
     tutor: TutorAnnotation | None
     student: StudentAnnotation | None
+    teach: TeachAnnotation | None = None
 
 
 class SessionSegment(BaseModel):
@@ -212,6 +270,101 @@ class ItemSegment(BaseModel):
 class SessionTranscriptView(BaseModel):
     session: SessionSummaryView
     segments: list[Annotated[SessionSegment | ItemSegment, Field(discriminator="kind")]]
+
+
+class DimensionView(BaseModel):
+    mean: float
+    n_eff: float
+    in_mastery: bool
+
+
+class ReportMisconception(BaseModel):
+    id: str
+    name: str
+    severity: str
+    count: int
+    status: str
+
+
+class PassRuleView(BaseModel):
+    min_mastery: float
+    min_successes: int
+    min_levels: int
+    min_forms: int
+    max_items: int
+
+
+class ReportNode(BaseModel):
+    node_id: str
+    name: str
+    layer: Literal["BASIC", "IMPLEMENT"]
+    status: str
+    prior: float
+    mastery: float | None
+    confidence: float
+    level: int
+    state: str
+    insufficient_data: bool
+    dimensions: dict[str, DimensionView]
+    items: int
+    successes: int
+    levels: list[str]
+    forms: list[str]
+    understood: bool
+    has_explanation: bool
+    has_application: bool
+    misconceptions: list[ReportMisconception]
+    pass_now: bool
+    passed: bool
+    missing: list[str]
+    pass_rule: PassRuleView
+
+
+class EvidenceView(BaseModel):
+    sequence_no: int
+    occurred_at: datetime
+    node_id: str
+    dimension: str
+    score: float
+    weight: float
+    reason: str
+    item_id: str | None
+
+
+class TraceView(BaseModel):
+    sequence_no: int
+    occurred_at: datetime
+    node_id: str
+    mastery: float | None
+
+
+class DecisionView(BaseModel):
+    sequence_no: int
+    occurred_at: datetime
+    action: str
+    node_id: str | None
+    ref: str | None
+    support: str | None
+    rule_ids: list[str]
+    reason_codes: list[str]
+
+
+class ChapterVersion(BaseModel):
+    chapter_id: str
+    title: str
+    version: str
+
+
+class TeachingReportView(BaseModel):
+    session: SessionSummaryView
+    chapter: ChapterVersion
+    versions: dict[str, str]
+    current_node_id: str | None
+    nodes: list[ReportNode]
+    relations: list[RelationView]
+    evidence: list[EvidenceView]
+    trace: list[TraceView]
+    decisions: list[DecisionView]
 
 
 class CommandAck(BaseModel):
@@ -268,6 +421,19 @@ def _package(lesson_id: str) -> LessonPackage:
     return pkg
 
 
+def _chapter(chapter_id: str) -> Chapter:
+    chapter = chapter_service.chapters().get(chapter_id)
+    if chapter is None:
+        raise ApiError(404, "NOT_FOUND", f"chapter {chapter_id!r} not found")
+    return chapter
+
+
+def _view(session: LearningSession) -> dict[str, Any]:
+    if chapter_service.is_chapter(session):
+        return chapter_service.student_view(_chapter(session.lesson_id), session)
+    return service.student_view(_package(session.lesson_id), session)
+
+
 async def _load(database: Any, session_id: str, student: str) -> LearningSession:
     session = await _repo(database).get(session_id)
     if session is None:
@@ -283,7 +449,8 @@ def _ack_for_key(session: LearningSession, key: str) -> CommandAck | None:
     if not events:
         return None
     version = next((e.correlation["state_version"] for e in events if "state_version" in e.correlation), None)
-    tutor = [e.event_id for e in events if e.event_type == EventType.TUTOR_MESSAGE_SENT]
+    said = (EventType.TUTOR_MESSAGE_SENT, EventType.TEACH_MESSAGE_SENT)
+    tutor = [e.event_id for e in events if e.event_type in said]
     return CommandAck(
         state_version=int(version) if version is not None else session.state_version,
         tutor_turn_id=tutor[-1] if tutor else None,
@@ -315,11 +482,15 @@ async def _command(
     if item_attempt_id is not None and item_attempt_id != current:
         raise ApiError(409, "STALE_ITEM", "this item is no longer the current one")
 
-    pkg = _package(session.lesson_id)
+    if chapter_service.is_chapter(session):
+        content: Any = _chapter(session.lesson_id)
+        command_fn: Any = chapter_service.apply_command
+    else:
+        content, command_fn = _package(session.lesson_id), service.apply_command
     try:
         router = tutor_router()
         live = service.llm_renderer(session, router) if router is not None else None
-        apply = partial(service.apply_command, pkg, session, command, utc_now(), live_renderer=live)
+        apply = partial(command_fn, content, session, command, utc_now(), live_renderer=live)
         step = await run_in_threadpool(apply, **kwargs)  # the model call blocks; keep the event loop free
     except service.CommandNotAllowed as exc:
         raise ApiError(409, "COMMAND_NOT_ALLOWED_IN_ACTIVITY", f"{exc} is not allowed now") from exc
@@ -345,19 +516,34 @@ async def _command(
 
 @router.post("", status_code=201, response_model=SessionStateView)
 async def create_session(body: CreateSession, database: Database, student: Student):
-    """Create a demo session (lifecycle READY). No data is created unless this endpoint is called."""
-    pkg = _package(body.lesson_id or service.DEFAULT_LESSON_ID)
-    session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, body.student_display_name)
+    """Create a demo session (lifecycle READY). No data is created unless this endpoint is called.
+
+    ``lesson_id`` names a chapter (teaching loop, the default) or a lesson (the fixed plan of lesson 1).
+    """
+    target = body.lesson_id or chapter_service.DEFAULT_CHAPTER_ID
+    chapter = chapter_service.chapters().get(target)
+    if chapter is not None:
+        session = chapter_service.new_session(
+            chapter, service.DEMO_SCHOOL_ID, student, body.student_display_name
+        )
+    else:
+        pkg = _package(target)
+        session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, body.student_display_name)
     session = await _repo(database).create(session)
-    return service.student_view(pkg, session)
+    return _view(session)
 
 
 @router.get("", response_model=list[SessionSummaryView])
 async def list_sessions(database: Database, teacher: Teacher):
     """Teacher: the school's latest sessions, newest first."""
-    packages = service.lesson_packages()
+    packages, chapters = service.lesson_packages(), chapter_service.chapters()
     sessions = await _repo(database).list_recent()
-    return [service.summary(packages.get(s.lesson_id), s) for s in sessions]
+    return [
+        chapter_service.summary(chapters[s.lesson_id], s)
+        if chapter_service.is_chapter(s) and s.lesson_id in chapters
+        else service.summary(packages.get(s.lesson_id), s)
+        for s in sessions
+    ]
 
 
 @router.get("/{session_id}/transcript", response_model=SessionTranscriptView)
@@ -366,29 +552,42 @@ async def get_transcript(session_id: str, database: Database, teacher: Teacher):
     session = await _repo(database).get(session_id)
     if session is None:
         raise ApiError(404, "NOT_FOUND", "session not found")
+    if chapter_service.is_chapter(session):
+        return chapter_service.teacher_transcript(_chapter(session.lesson_id), session)
     return service.teacher_transcript(_package(session.lesson_id), session)
+
+
+@router.get("/{session_id}/report", response_model=TeachingReportView)
+async def get_report(session_id: str, database: Database, teacher: Teacher):
+    """Teacher: how the tutor scored and decided in a chapter session (nodes, evidence, rules)."""
+    session = await _repo(database).get(session_id)
+    if session is None or not chapter_service.is_chapter(session):
+        raise ApiError(404, "NOT_FOUND", "no teaching report for this session")
+    return chapter_service.report(_chapter(session.lesson_id), session)
 
 
 @router.post("/{session_id}/join", response_model=SessionStateView)
 async def join_session(session_id: str, database: Database, student: Student):
     """READY -> ACTIVE and show the first item. Joining again returns the current state."""
     session = await _load(database, session_id, student)
-    pkg = _package(session.lesson_id)
     if session.state.lifecycle == LifecycleState.READY:
-        step = service.join(pkg, session, utc_now())
+        if chapter_service.is_chapter(session):
+            step = chapter_service.join(_chapter(session.lesson_id), session, utc_now())
+        else:
+            step = service.join(_package(session.lesson_id), session, utc_now())
         try:
             session = await _repo(database).commit(
                 session, state=step.state, events=step.events, **step.fields
             )
         except StateVersionConflict:  # joined from another tab at the same moment
             session = await _load(database, session_id, student)
-    return service.student_view(pkg, session)
+    return _view(session)
 
 
 @router.get("/{session_id}/state", response_model=SessionStateView)
 async def get_state(session_id: str, database: Database, student: Student):
     session = await _load(database, session_id, student)
-    return service.student_view(_package(session.lesson_id), session)
+    return _view(session)
 
 
 @router.post("/{session_id}/responses", response_model=CommandAck)

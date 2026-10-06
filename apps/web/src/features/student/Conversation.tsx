@@ -1,6 +1,7 @@
 import { memo } from "react";
 
-import { LightbulbIcon } from "../../components/icons";
+import { BookIcon, LightbulbIcon, PencilIcon, StarIcon } from "../../components/icons";
+import { TEACH_KIND_LABEL } from "../../components/labels";
 import { MathText } from "../../components/MathText";
 import type { DisplayTurn, TutorView } from "./tutorSession";
 
@@ -26,7 +27,11 @@ export function Conversation({ turns, typing, tutorName, studentName }: Conversa
                 <span className="h-px flex-1 bg-slate-200" />
               </p>
             )}
-            <Bubble turn={turn} speaker={turn.actor === "tutor" ? tutorName : studentName} />
+            {turn.kind && CARD_KINDS.has(turn.kind) ? (
+              <TeachCard turn={turn} tutorName={tutorName} />
+            ) : (
+              <Bubble turn={turn} speaker={turn.actor === "tutor" ? tutorName : studentName} />
+            )}
           </li>
         ))}
       </ol>
@@ -59,6 +64,11 @@ const Bubble = memo(function Bubble({ turn, speaker }: { turn: DisplayTurn; spea
           tutor ? "rounded-bl-md bg-white ring-1 ring-slate-200" : "rounded-br-md bg-sky-100 text-sky-950"
         } ${turn.pending ? "opacity-60" : ""}`}
       >
+        {turn.kind === "RETELL_PROMPT" && (
+          <p className="mb-1 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-0.5 text-sm font-medium text-sky-900">
+            Con nói lại bằng lời của con
+          </p>
+        )}
         {tutor && turn.hint_level !== null && turn.hint_level > 0 && (
           <p className="mb-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-900">
             <LightbulbIcon className="size-4" />
@@ -95,5 +105,110 @@ function TypingBubble({ text, tutorName }: { text: string; tutorName: string }) 
         )}
       </div>
     </div>
+  );
+}
+
+/** Messages of the teaching loop shown as cards rather than chat bubbles (chapter sessions). */
+const CARD_KINDS = new Set(["NODE", "THEORY", "EXAMPLE", "PASS", "STOP", "SUMMARY"]);
+
+const TeachCard = memo(function TeachCard({ turn, tutorName }: { turn: DisplayTurn; tutorName: string }) {
+  const speaker = <span className="sr-only">{tutorName}: </span>;
+  switch (turn.kind) {
+    case "NODE":
+      return (
+        <p className="my-2 flex items-center gap-3 text-lg font-medium text-teal-900">
+          <span aria-hidden="true" className="h-px flex-1 bg-teal-200" />
+          <span className="max-w-[80%] text-center text-pretty">
+            {speaker}
+            <MathText text={turn.text} />
+          </span>
+          <span aria-hidden="true" className="h-px flex-1 bg-teal-200" />
+        </p>
+      );
+    case "THEORY":
+      return (
+        <article className="rounded-3xl bg-white p-5 shadow-sm ring-2 ring-teal-200">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-base font-semibold text-teal-900">
+            <BookIcon className="size-5" />
+            {tutorName} giảng bài
+          </p>
+          <p className="text-xl leading-relaxed whitespace-pre-wrap">
+            {speaker}
+            <MathText text={turn.text} />
+          </p>
+        </article>
+      );
+    case "EXAMPLE":
+      return <ExampleCard turn={turn} tutorName={tutorName} />;
+    case "PASS":
+      return (
+        <article className="flex items-center gap-4 rounded-3xl bg-emerald-50 p-5 ring-2 ring-emerald-300">
+          <StarIcon className="size-10 shrink-0 text-amber-500" />
+          <p className="text-2xl font-semibold text-emerald-950">
+            {speaker}
+            <MathText text={turn.text} />
+          </p>
+        </article>
+      );
+    case "STOP":
+      return (
+        <article className="rounded-3xl bg-amber-50 p-5 text-xl text-amber-950 ring-2 ring-amber-300">
+          {speaker}
+          <MathText text={turn.text} />
+        </article>
+      );
+    default: // SUMMARY
+      return (
+        <article className="flex items-center gap-4 rounded-3xl bg-teal-700 p-5 text-white">
+          <StarIcon className="size-10 shrink-0 text-amber-300" />
+          <p className="text-xl leading-relaxed font-medium">
+            {speaker}
+            <MathText text={turn.text} />
+          </p>
+        </article>
+      );
+  }
+});
+
+/** "Cô làm mẫu": the problem, the numbered steps, the answer (the text has one part per line). */
+function ExampleCard({ turn, tutorName }: { turn: DisplayTurn; tutorName: string }) {
+  const lines = turn.text.split("\n");
+  const problem = lines.find((line) => line.startsWith("Bài:"));
+  const steps = lines.filter((line) => /^Bước \d+:/.test(line));
+  const answer = lines.find((line) => line.startsWith("Đáp số:"));
+  return (
+    <article className="rounded-3xl bg-white p-5 shadow-sm ring-2 ring-sky-200">
+      <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-base font-semibold text-sky-900">
+        <PencilIcon className="size-5" />
+        {TEACH_KIND_LABEL.EXAMPLE}
+      </p>
+      <span className="sr-only">{tutorName}: </span>
+      {problem && (
+        <p className="text-xl font-semibold">
+          <MathText text={problem} />
+        </p>
+      )}
+      <ol className="mt-3 flex flex-col gap-2">
+        {steps.map((step, index) => (
+          <li key={step} className="flex gap-3 text-xl leading-relaxed">
+            <span
+              aria-hidden="true"
+              className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-base font-semibold text-sky-900"
+            >
+              {index + 1}
+            </span>
+            <span>
+              <span className="sr-only">Bước {index + 1}: </span>
+              <MathText text={step.replace(/^Bước \d+:\s*/, "")} />
+            </span>
+          </li>
+        ))}
+      </ol>
+      {answer && (
+        <p className="mt-3 rounded-2xl bg-emerald-50 px-4 py-2 text-xl font-semibold text-emerald-950">
+          <MathText text={answer} />
+        </p>
+      )}
+    </article>
   );
 }

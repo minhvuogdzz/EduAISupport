@@ -30,7 +30,15 @@ from cavat.modules.session.repository import (
     SessionState,
 )
 from cavat.modules.tutor.contracts import MessageRenderer
-from cavat.modules.tutor.item_loop import HINT_REQUEST_TEXT, ItemTutor, Phase, TutorEvent
+from cavat.modules.tutor.item_loop import (
+    CHOICE_HINT,
+    CHOICE_RETRY,
+    CHOICES,
+    HINT_REQUEST_TEXT,
+    ItemTutor,
+    Phase,
+    TutorEvent,
+)
 from cavat.modules.tutor.llm_renderer import LLMRenderer
 from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn
 from cavat.modules.tutor.renderer import TemplateRenderer
@@ -55,11 +63,6 @@ DEMO_PLAN: tuple[tuple[str, ActivityType], ...] = (
     ("EX-03", ActivityType.EXIT_ASSESSMENT),
 )
 
-# Micro choices after OFFER_CHOICE (PART 24.3). Wording approved by the owner on 2026-10-01.
-CHOICE_HINT = "HINT"
-CHOICE_RETRY = "RETRY"
-CHOICES: dict[str, str] = {CHOICE_HINT: "Cho con gợi ý", CHOICE_RETRY: "Con tự thử lại"}
-
 # Wording approved by the owner on 2026-10-01. It never says which exit answers were right
 # (assessment feedback is the teacher's).
 SUMMARY_TEXT = "{T} và {s} đã học xong bài hôm nay. {S} đã rất cố gắng. Hẹn gặp lại {s} ở buổi sau nhé."
@@ -75,7 +78,9 @@ _STUDENT_EVENTS = frozenset(
         EventType.CHOICE_MADE,
     }
 )
-_TUTOR_EVENTS = frozenset({EventType.TUTOR_MESSAGE_SENT, EventType.HINT_DELIVERED})
+_TUTOR_EVENTS = frozenset(
+    {EventType.TUTOR_MESSAGE_SENT, EventType.HINT_DELIVERED, EventType.TEACH_MESSAGE_SENT}
+)
 _EXPLAINING = frozenset({Phase.VERIFYING, Phase.TEACH_BACK})
 # The tutor asked for words, not for a sign or an option. After "con làm thế nào?" a hint may still be asked.
 _EXPECTS_WORDS = _EXPLAINING | {Phase.AWAITING_REASON}
@@ -358,8 +363,11 @@ def transcript(session: LearningSession) -> list[dict[str, Any]]:
         text: str | None = None
         move: str | None = None
         level: int | None = None
+        teach_kind: str | None = None
         actor = e.actor.type
-        if e.event_type == EventType.POLICY_DECISION:
+        if e.event_type == EventType.TEACH_MESSAGE_SENT:
+            text, teach_kind = p["text"], p["kind"]
+        elif e.event_type == EventType.POLICY_DECISION:
             hint_level = p.get("hint_level")
         elif e.event_type == EventType.TUTOR_MESSAGE_SENT:
             # The level is shown only on a real hint: an offer or a nudge carries the level it is about.
@@ -385,6 +393,8 @@ def transcript(session: LearningSession) -> list[dict[str, Any]]:
                 "occurred_at": e.occurred_at,
                 "move": move,
                 "hint_level": level,
+                "kind": teach_kind,
+                "node_id": p.get("node_id") if teach_kind else None,
             }
         )
     return turns
@@ -454,6 +464,7 @@ def summary(pkg: LessonPackage | None, session: LearningSession) -> dict[str, An
         "progress": {"items_done": min(activity.get("index", 0), len(plan)), "items_total": len(plan)},
         "misconception_ids": misconceptions,
         "engine": "live",
+        "mode": "LESSON",
     }
 
 
@@ -465,10 +476,20 @@ def teacher_transcript(pkg: LessonPackage, session: LearningSession) -> dict[str
     """
     stems = {it.id: it.stem for it in pkg.items}
     names = {m.id: m.name for m in pkg.misconceptions}
+    return build_teacher_transcript(stems, names, summary(pkg, session), session)
+
+
+def build_teacher_transcript(
+    stems: dict[str, str], names: dict[str, str], session_summary: dict[str, Any], session: LearningSession
+) -> dict[str, Any]:
+    """Segments of the teacher transcript. Chapter sessions add the teaching loop's messages, each with
+    the node decision (rule ids) behind it, and the verdict of every retell."""
     segments: list[dict[str, Any]] = []
     blocks: dict[str, dict[str, Any]] = {}
     decisions: dict[str | None, dict[str, Any]] = {}  # the POLICY_DECISION that the next message carries out
     graded: dict[str | None, dict[str, Any]] = {}  # the student turn that the next graded event annotates
+    node_decision: dict[str, Any] = {}  # the NODE_DECISION that the next teaching message carries out
+    retell: dict[str, Any] | None = None  # the student's retell that RETELL_JUDGED annotates
 
     def add(turn: dict[str, Any], attempt: str | None) -> None:
         block = blocks.get(attempt) if attempt else None
@@ -516,6 +537,26 @@ def teacher_transcript(pkg: LessonPackage, session: LearningSession) -> dict[str
                 "source": p["source"],
             }
             add({**base, "actor": "tutor", "text": p["text"], "tutor": tutor, "student": None}, attempt)
+        elif kind == EventType.NODE_DECISION:
+            node_decision = p
+        elif kind == EventType.TEACH_MESSAGE_SENT:
+            teach = {
+                "kind": p["kind"],
+                "node_id": p.get("node_id"),
+                "rule_ids": node_decision.get("rule_ids", []),
+                "reason_codes": node_decision.get("reason_codes", []),
+            }
+            add(
+                {**base, "actor": "tutor", "text": p["text"], "tutor": None, "student": None, "teach": teach},
+                None,
+            )
+        elif kind == EventType.RETELL_JUDGED and retell is not None:
+            retell["retell"] = {
+                "score": p["score"],
+                "ideas_found": len(p["ideas_found"]),
+                "ideas_total": p["ideas_total"],
+            }
+            retell = None
         elif kind == EventType.SESSION_COMPLETED and p.get("summary_text"):
             add({**base, "actor": "tutor", "text": p["summary_text"], "tutor": None, "student": None}, None)
         elif kind in (EventType.STUDENT_MESSAGE, EventType.HINT_REQUESTED, EventType.CHOICE_MADE):
@@ -528,6 +569,8 @@ def teacher_transcript(pkg: LessonPackage, session: LearningSession) -> dict[str
             student = {"kind": turn_kind, "outcome": None, "normalized_answer": None, "misconception": None}
             if kind == EventType.STUDENT_MESSAGE:
                 graded[attempt] = student
+                if str(p.get("item_id", "")).endswith(":RETELL"):
+                    retell = student
             add({**base, "actor": "student", "text": text, "tutor": None, "student": student}, attempt)
         elif kind == EventType.ANSWER_SUBMITTED and attempt in graded:
             student = graded[attempt]
@@ -539,4 +582,4 @@ def teacher_transcript(pkg: LessonPackage, session: LearningSession) -> dict[str
             # A probe answer is not graded as an attempt, yet it is what revealed the cause.
             if graded[attempt]["misconception"] is None:
                 graded[attempt]["misconception"] = misconception(p["misconception_id"], p["confidence"])
-    return {"session": summary(pkg, session), "segments": segments}
+    return {"session": session_summary, "segments": segments}

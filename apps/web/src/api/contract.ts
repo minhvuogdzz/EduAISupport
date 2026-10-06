@@ -114,6 +114,19 @@ export type ActorType = "student" | "tutor" | "system" | "teacher";
 /** Answer types of the lesson package; tells the UI which quick-answer buttons fit the item. */
 export type AnswerFormat = "compare" | "order" | "numeric" | "choice" | "boolean" | "open";
 
+/** Messages of the teaching loop (chapter sessions); item messages have no kind. */
+export const TEACH_MESSAGE_KINDS = [
+  "NODE",
+  "THEORY",
+  "EXAMPLE",
+  "RETELL_PROMPT",
+  "FEEDBACK",
+  "PASS",
+  "STOP",
+  "SUMMARY",
+] as const;
+export type TeachMessageKind = (typeof TEACH_MESSAGE_KINDS)[number];
+
 /** One line of the conversation the student sees. */
 export interface ChatTurn {
   turn_id: string;
@@ -127,6 +140,9 @@ export interface ChatTurn {
   move: Move | null;
   /** Tutor turns that deliver a hint (the UI shows "Gợi ý mức n", PART 29.3). */
   hint_level: HintLevel | null;
+  /** Chapter sessions: what the teaching loop said (theory, worked example, retell prompt...). */
+  kind?: TeachMessageKind | null;
+  node_id?: string | null;
 }
 
 export interface ItemOption {
@@ -167,11 +183,54 @@ export interface SessionState {
   pending_choice: MicroChoice[] | null;
   allowed_commands: CommandType[];
   progress: { items_done: number; items_total: number };
+  /** Chapter sessions only (M1-7): the node map and the step of the teaching cycle. */
+  teaching?: TeachingView | null;
   /**
    * Turns the student may see. PART 29 asks for at least the current item's turns; the mock sends the
    * whole session. The UI handles both.
    */
   transcript: ChatTurn[];
+}
+
+// ---------------------------------------------------------------- teaching on the knowledge graph (M1-7)
+
+export type NodeLayer = "BASIC" | "IMPLEMENT";
+export type NodeStatus = "PASSED" | "CURRENT" | "ON_HOLD" | "STOPPED" | "AVAILABLE" | "LOCKED";
+export type RelationType = "PREREQUISITE" | "SUBCLASS" | "SIMILAR" | "APPLICATION";
+/** What the tutor waits for: an item answer, the reply to a theory question, a retell, or nothing. */
+export type TeachingAwaiting = "ANSWER" | "THEORY_REPLY" | "RETELL" | "NOTHING";
+
+export interface KnowledgeNode {
+  node_id: string;
+  name: string;
+  layer: NodeLayer;
+  status: NodeStatus;
+  /** 0–5 (blueprint §4–§8) once the node has evidence; the student sees words, never the score. */
+  level: number | null;
+  /** Place in the learning order. */
+  order: number;
+}
+
+export interface KnowledgeRelation {
+  source: string;
+  target: string;
+  type: RelationType;
+}
+
+export interface TeachingView {
+  chapter: { chapter_id: string; title: string };
+  current_node_id: string | null;
+  /** 1–7: step of the teaching cycle (plan v1, 5.2). */
+  step: number | null;
+  awaiting: TeachingAwaiting;
+  /** Sent back as `item_attempt_id` with the student's reply. */
+  input_id: string | null;
+  /** The question being answered when awaiting THEORY_REPLY or RETELL. */
+  prompt: string | null;
+  nodes: KnowledgeNode[];
+  relations: KnowledgeRelation[];
+  passed: number;
+  total: number;
 }
 
 /** Response to every state-changing command (PART 29.3). */
@@ -225,6 +284,8 @@ export interface SessionSummary {
   misconception_ids: string[];
   /** "mock" when the data comes from the in-browser mock, so nobody mistakes it for a real session. */
   engine: EngineKind;
+  /** CHAPTER sessions have a teaching report (GET /v1/sessions/{id}/report). Absent: LESSON. */
+  mode?: "LESSON" | "CHAPTER";
 }
 
 /** Who worded a tutor message. The move itself always comes from the policy. */
@@ -247,6 +308,16 @@ export interface StudentAnnotation {
   /** Checker's reading of the answer, already formatted vi-VN (e.g. "0,25 > 0,3"). */
   normalized_answer: string | null;
   misconception: { id: string; name: string; confidence: number } | null;
+  /** A retell judged against the node's key ideas (chapter sessions). */
+  retell?: { score: number; ideas_found: number; ideas_total: number } | null;
+}
+
+/** The node decision behind a teaching-loop message (chapter sessions). */
+export interface TeachAnnotation {
+  kind: TeachMessageKind;
+  node_id: string | null;
+  rule_ids: string[];
+  reason_codes: string[];
 }
 
 export interface TranscriptTurn {
@@ -256,6 +327,7 @@ export interface TranscriptTurn {
   text: string;
   tutor: TutorAnnotation | null;
   student: StudentAnnotation | null;
+  teach?: TeachAnnotation | null;
 }
 
 export interface TranscriptItem {
@@ -278,6 +350,106 @@ export type TranscriptSegment =
 export interface SessionTranscript {
   session: SessionSummary;
   segments: TranscriptSegment[];
+}
+
+/** Decisions of the node teaching policy (TeachAction in pedagogy.py). */
+export const TEACH_ACTIONS = [
+  "ENTER_NODE",
+  "WARMUP_ITEM",
+  "SWITCH_TO_PREREQUISITE",
+  "TEACH_THEORY",
+  "CHECK_ITEM",
+  "ASK_RETELL",
+  "SHOW_WORKED_EXAMPLE",
+  "COMPLETION_ITEM",
+  "PRACTICE_ITEM",
+  "TRANSFER_ITEM",
+  "REVIEW_ITEM",
+  "PASS_NODE",
+  "STOP_NODE",
+  "FINISH",
+] as const;
+export type TeachAction = (typeof TEACH_ACTIONS)[number];
+
+/** The seven dimensions of the math framework (blueprint PART 26.1). */
+export const DIMENSIONS = ["C", "R", "A", "T", "I", "S", "D"] as const;
+export type Dimension = (typeof DIMENSIONS)[number];
+
+export interface ReportNode {
+  node_id: string;
+  name: string;
+  layer: NodeLayer;
+  status: NodeStatus;
+  prior: number;
+  /** M on 0–100; null until a dimension has enough evidence. */
+  mastery: number | null;
+  confidence: number;
+  level: number;
+  state: string;
+  insufficient_data: boolean;
+  dimensions: Record<Dimension, { mean: number; n_eff: number; in_mastery: boolean }>;
+  items: number;
+  successes: number;
+  levels: string[];
+  forms: string[];
+  understood: boolean;
+  has_explanation: boolean;
+  has_application: boolean;
+  misconceptions: { id: string; name: string; severity: string; count: number; status: string }[];
+  pass_now: boolean;
+  passed: boolean;
+  /** MASTERY, UNDERSTOOD, EXPLANATION, APPLICATION, MISCONCEPTION. */
+  missing: string[];
+  pass_rule: {
+    min_mastery: number;
+    min_successes: number;
+    min_levels: number;
+    min_forms: number;
+    max_items: number;
+  };
+}
+
+export interface EvidenceEntry {
+  sequence_no: number;
+  occurred_at: string;
+  node_id: string;
+  dimension: Dimension;
+  /** 1 counts fully for the node, 0 against it. */
+  score: number;
+  weight: number;
+  reason: string;
+  item_id: string | null;
+}
+
+export interface MasteryPoint {
+  sequence_no: number;
+  occurred_at: string;
+  node_id: string;
+  mastery: number | null;
+}
+
+export interface DecisionEntry {
+  sequence_no: number;
+  occurred_at: string;
+  action: TeachAction;
+  node_id: string | null;
+  ref: string | null;
+  support: string | null;
+  rule_ids: string[];
+  reason_codes: string[];
+}
+
+/** GET /v1/sessions/{id}/report (teacher): how the tutor scored and decided, replayed from the events. */
+export interface TeachingReport {
+  session: SessionSummary;
+  chapter: { chapter_id: string; title: string; version: string };
+  versions: Record<string, string>;
+  current_node_id: string | null;
+  nodes: ReportNode[];
+  relations: KnowledgeRelation[];
+  evidence: EvidenceEntry[];
+  trace: MasteryPoint[];
+  decisions: DecisionEntry[];
 }
 
 // ---------------------------------------------------------------- errors (PART 24.2, 29.1)

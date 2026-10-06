@@ -18,7 +18,14 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from cavat.core.events import EventType, HintRequested, NodeDecisionMade, StudentMessage
+from cavat.core.events import (
+    ChoiceMade,
+    EventType,
+    HintRequested,
+    NodeDecisionMade,
+    StudentMessage,
+    TeachMessageSent,
+)
 from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, TeachAction
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
 from cavat.modules.assessment.retell import judge_retell
@@ -26,11 +33,22 @@ from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator
-from cavat.modules.tutor.item_loop import HINT_REQUEST_TEXT, ItemTutor, Phase, TutorEvent
+from cavat.modules.tutor.item_loop import (
+    CHOICE_HINT,
+    CHOICE_RETRY,
+    CHOICES,
+    HINT_REQUEST_TEXT,
+    ItemTutor,
+    Phase,
+    TutorEvent,
+)
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
 TEMPLATES_VERSION = "teaching-templates/0.1.0"
+
+# Item phases where the student answers in words ("vì sao", teach-back, "con làm thế nào?").
+_WORDS = frozenset({Phase.VERIFYING, Phase.TEACH_BACK, Phase.AWAITING_REASON})
 
 # Guard: decisions taken without a student input in between (a node holds about ten steps).
 MAX_AUTO_STEPS = 60
@@ -116,6 +134,8 @@ class TeachTurn:
     item_id: str | None = None  # the open item when awaiting ANSWER
     item_phase: Phase | None = None
     choice_open: bool = False  # the item loop offered "gợi ý thêm hay tự thử lại?"
+    node_id: str | None = None  # the node of the theory or retell being waited for
+    prompt: str | None = None  # the question of a THEORY_REPLY or RETELL wait
 
 
 class TeachingLoop:
@@ -141,6 +161,8 @@ class TeachingLoop:
         self.awaiting: Awaiting | None = None
         self._node: str | None = None  # node of the theory or retell being waited for
         self._ref: str | None = None
+        self._prompt: str | None = None
+        self._retry = False  # "Con tự thử lại" closed the micro choice until the next input
         p = chapter.package.persona
         self._persona = {
             "t": p.tutor_self,
@@ -177,15 +199,19 @@ class TeachingLoop:
         if self.awaiting == Awaiting.ANSWER:
             assert self.tutor is not None
             item_id = self.tutor.item.id
-            message = StudentMessage(item_id=item_id, kind="ANSWER", text=text, seconds=seconds)
+            kind = "EXPLANATION" if self.tutor.phase in _WORDS else "ANSWER"
+            message = StudentMessage(item_id=item_id, kind=kind, text=text, seconds=seconds)
             return self._item_input(now, self._record(now, EventType.STUDENT_MESSAGE, message), text, seconds)
         assert self._node is not None
         node_id, kind = self._node, "MESSAGE" if self.awaiting == Awaiting.THEORY_REPLY else "EXPLANATION"
         ref = self._ref if self.awaiting == Awaiting.THEORY_REPLY else "RETELL"
         message = StudentMessage(item_id=f"{node_id}:{ref}", kind=kind, text=text, seconds=seconds)
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
+        messages: list[TeachMessage] = []
         if self.awaiting == Awaiting.THEORY_REPLY:
-            messages = [TeachMessage(MessageKind.FEEDBACK, self._phrase("theory_ack"), node_id)]
+            self._say(
+                now, messages, events, TeachMessage(MessageKind.FEEDBACK, self._phrase("theory_ack"), node_id)
+            )
             return self._advance(now, messages, events)
         judged = judge_retell(node_id, text, self.chapter.node(node_id).explain)
         events.append(self._record(now, EventType.RETELL_JUDGED, judged))
@@ -193,7 +219,8 @@ class TeachingLoop:
             key = "retell_good"
         else:
             key = "retell_partial" if judged.ideas_found else "retell_none"
-        return self._advance(now, [TeachMessage(MessageKind.FEEDBACK, self._phrase(key), node_id)], events)
+        self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, self._phrase(key), node_id))
+        return self._advance(now, messages, events)
 
     def on_hint_request(self, now: datetime, seconds: float = 0.0) -> TeachTurn:
         if self.awaiting != Awaiting.ANSWER or self.tutor is None:
@@ -203,6 +230,23 @@ class TeachingLoop:
             now, self._record(now, EventType.HINT_REQUESTED, requested), HINT_REQUEST_TEXT, seconds
         )
 
+    def on_choice(self, choice_id: str, now: datetime, seconds: float = 0.0) -> TeachTurn:
+        """A micro choice after OFFER_CHOICE: HINT asks for the next hint, RETRY only closes the choice
+        (the item loop already reads the next message as a normal attempt)."""
+        if not self.choice_open or choice_id not in CHOICES:
+            raise RuntimeError(f"choice {choice_id!r} is not open")
+        assert self.tutor is not None
+        made = ChoiceMade(item_id=self.tutor.item.id, choice_id=choice_id, label=CHOICES[choice_id])
+        recorded = self._record(now, EventType.CHOICE_MADE, made)
+        if choice_id == CHOICE_RETRY:
+            self._retry = True
+            return self._waiting_for_item([], [recorded])
+        return self._item_input(now, recorded, HINT_REQUEST_TEXT, seconds)
+
+    @property
+    def choice_open(self) -> bool:
+        return self.tutor is not None and self.tutor.phase == Phase.AWAITING_CHOICE and not self._retry
+
     def projection(self):
         return project_chapter([*self.history, *self.events], self.chapter, self.mastery)
 
@@ -210,6 +254,7 @@ class TeachingLoop:
 
     def _item_input(self, now: datetime, recorded: LoopEvent, text: str, seconds: float) -> TeachTurn:
         assert self.tutor is not None
+        self._retry = False
         turn = self.tutor.on_student(text, seconds)
         events = [recorded, *self._tutor_events(now, turn.events)]
         item_id = self.tutor.item.id
@@ -237,7 +282,10 @@ class TeachingLoop:
     ) -> TeachTurn | None:
         a, node_id = d.action, d.node_id
         name = self.chapter.node(node_id).name if node_id else ""
-        say = messages.append
+
+        def say(message: TeachMessage) -> None:
+            self._say(now, messages, events, message)
+
         if a == TeachAction.ENTER_NODE:
             key = "resume" if "RESUME" in d.reason_codes else "enter"
             say(TeachMessage(MessageKind.NODE, self._phrase(key, name=name), node_id))
@@ -246,13 +294,13 @@ class TeachingLoop:
         elif a == TeachAction.TEACH_THEORY:
             variant = next(t for t in self.chapter.node(node_id).theory if t.id == d.ref)
             say(TeachMessage(MessageKind.THEORY, f"{variant.text} {variant.ask}", node_id, d.ref))
-            return self._wait(Awaiting.THEORY_REPLY, node_id, d.ref, messages, events)
+            return self._wait(Awaiting.THEORY_REPLY, node_id, d.ref, variant.ask, messages, events)
         elif a == TeachAction.ASK_RETELL:
             prompt = self.chapter.node(node_id).explain.prompt
             if "EXPLANATION_MISSING" in d.reason_codes:
                 prompt = f"{self._phrase('retell_again')} {prompt}"
             say(TeachMessage(MessageKind.RETELL_PROMPT, prompt, node_id))
-            return self._wait(Awaiting.RETELL, node_id, None, messages, events)
+            return self._wait(Awaiting.RETELL, node_id, None, prompt, messages, events)
         elif a == TeachAction.SHOW_WORKED_EXAMPLE:
             example = next(w for w in self.chapter.node(node_id).worked_examples if w.id == d.ref)
             steps = "\n".join(f"Bước {i}: {step}" for i, step in enumerate(example.steps, 1))
@@ -292,14 +340,14 @@ class TeachingLoop:
     def _waiting_for_item(self, messages: list[TeachMessage], events: list[LoopEvent]) -> TeachTurn:
         assert self.tutor is not None
         self.awaiting = Awaiting.ANSWER
-        phase = self.tutor.phase
         return TeachTurn(
             tuple(messages),
             tuple(events),
             Awaiting.ANSWER,
             item_id=self.tutor.item.id,
-            item_phase=phase,
-            choice_open=phase == Phase.AWAITING_CHOICE,
+            item_phase=self.tutor.phase,
+            choice_open=self.choice_open,
+            node_id=self._item_node(self.tutor.item.id),
         )
 
     def _wait(
@@ -307,11 +355,20 @@ class TeachingLoop:
         awaiting: Awaiting,
         node_id: str | None,
         ref: str | None,
+        prompt: str,
         messages: list[TeachMessage],
         events: list[LoopEvent],
     ) -> TeachTurn:
-        self.awaiting, self._node, self._ref = awaiting, node_id, ref
-        return TeachTurn(tuple(messages), tuple(events), awaiting)
+        self.awaiting, self._node, self._ref, self._prompt = awaiting, node_id, ref, prompt
+        return TeachTurn(tuple(messages), tuple(events), awaiting, node_id=node_id, prompt=prompt)
+
+    def current_turn(self) -> TeachTurn:
+        """What the loop waits for now, without messages or events (for a view after ``resume``)."""
+        if self.awaiting == Awaiting.ANSWER:
+            return self._waiting_for_item([], [])
+        if self.awaiting in (Awaiting.THEORY_REPLY, Awaiting.RETELL):
+            return TeachTurn((), (), self.awaiting, node_id=self._node, prompt=self._prompt)
+        return TeachTurn((), (), Awaiting.NOTHING)
 
     # ------------------------------------------------------------------ replay
 
@@ -332,21 +389,49 @@ class TeachingLoop:
             self.tutor = self._new_tutor(d)
             self.tutor.start()
             for e in after:
-                if e.event_type == EventType.STUDENT_MESSAGE and e.payload.get("item_id") == d.ref:
-                    self.tutor.on_student(e.payload["text"], e.payload.get("seconds", 0.0))
-                elif e.event_type == EventType.HINT_REQUESTED and e.payload.get("item_id") == d.ref:
-                    self.tutor.on_student(HINT_REQUEST_TEXT, e.payload.get("seconds", 0.0))
+                if e.payload.get("item_id") != d.ref:
+                    continue
+                seconds = e.payload.get("seconds", 0.0)
+                if e.event_type == EventType.STUDENT_MESSAGE:
+                    self._retry = False
+                    self.tutor.on_student(e.payload["text"], seconds)
+                elif e.event_type == EventType.HINT_REQUESTED or (
+                    e.event_type == EventType.CHOICE_MADE and e.payload.get("choice_id") == CHOICE_HINT
+                ):
+                    self._retry = False
+                    self.tutor.on_student(HINT_REQUEST_TEXT, seconds)
+                elif e.event_type == EventType.CHOICE_MADE and e.payload.get("choice_id") == CHOICE_RETRY:
+                    self._retry = True
             if self.tutor.phase == Phase.RESOLVED:
                 raise ValueError(f"item {d.ref} is resolved but no decision follows it")
             self.awaiting = Awaiting.ANSWER
-        elif d.action == TeachAction.TEACH_THEORY:
-            self.awaiting, self._node, self._ref = Awaiting.THEORY_REPLY, d.node_id, d.ref
-        elif d.action == TeachAction.ASK_RETELL:
-            self.awaiting, self._node, self._ref = Awaiting.RETELL, d.node_id, None
+        elif d.action in (TeachAction.TEACH_THEORY, TeachAction.ASK_RETELL):
+            asked = next((e.payload for e in after if e.event_type == EventType.TEACH_MESSAGE_SENT), None)
+            if d.action == TeachAction.TEACH_THEORY:
+                variant = next(t for t in self.chapter.node(d.node_id).theory if t.id == d.ref)
+                self.awaiting, self._ref, self._prompt = Awaiting.THEORY_REPLY, d.ref, variant.ask
+            else:
+                prompt = asked["text"] if asked else self.chapter.node(d.node_id).explain.prompt
+                self.awaiting, self._ref, self._prompt = Awaiting.RETELL, None, prompt
+            self._node = d.node_id
         else:
             raise ValueError(f"the events end on {d.action}, which waits for nothing")
 
     # ------------------------------------------------------------------ helpers
+
+    def _say(
+        self, now: datetime, messages: list[TeachMessage], events: list[LoopEvent], message: TeachMessage
+    ) -> None:
+        """Show a teaching message and record it, so the conversation can be rebuilt from the events."""
+        messages.append(message)
+        sent = TeachMessageSent(
+            kind=message.kind.value,
+            text=message.text,
+            node_id=message.node_id,
+            ref=message.ref,
+            templates_version=TEMPLATES_VERSION,
+        )
+        events.append(self._record(now, EventType.TEACH_MESSAGE_SENT, sent))
 
     def _record(self, now: datetime, event_type: EventType, payload: Any) -> LoopEvent:
         event = self._event(now, event_type, payload)

@@ -4,13 +4,17 @@
  */
 import type {
   ActivityType,
+  Dimension,
   HintLevel,
   HintTarget,
   ItemResolution,
   LifecycleState,
   Move,
+  NodeStatus,
   Outcome,
   StudentAnnotation,
+  TeachAction,
+  TeachMessageKind,
 } from "../api/contract";
 
 export const ACTIVITY_LABEL: Record<ActivityType, string> = {
@@ -103,6 +107,124 @@ export const STUDENT_KIND_LABEL: Record<StudentAnnotation["kind"], string> = {
   MESSAGE: "Tin nhắn",
   HINT_REQUEST: "Bấm xin gợi ý",
   CHOICE: "Chọn",
+};
+
+// ---------------------------------------------------------------- teaching on the knowledge graph (M1-7)
+
+export const NODE_STATUS_LABEL: Record<NodeStatus, string> = {
+  PASSED: "Đã qua",
+  CURRENT: "Đang học",
+  ON_HOLD: "Chờ ôn bài nền",
+  STOPPED: "Cần học lại",
+  AVAILABLE: "Sẵn sàng",
+  LOCKED: "Chưa mở",
+};
+
+/** The teaching cycle (plan v1, 5.2), step 1 to 7. Student-facing wording: draft for the teacher. */
+export const TEACHING_STEPS = [
+  "Ôn bài nền",
+  "Giảng bài",
+  "Kiểm tra hiểu",
+  "Học cách làm",
+  "Luyện tập",
+  "Vận dụng",
+  "Qua bài",
+] as const;
+
+/** Levels of understanding 0–5 (blueprint §4–§8), in words for the student. */
+export const LEVEL_LABEL = [
+  "Mới bắt đầu",
+  "Nhận biết",
+  "Làm theo mẫu",
+  "Hiểu bài",
+  "Vận dụng được",
+  "Thành thạo",
+] as const;
+
+export const TEACH_KIND_LABEL: Record<TeachMessageKind, string> = {
+  NODE: "Chuyển bài",
+  THEORY: "Giảng bài",
+  EXAMPLE: "Cô làm mẫu",
+  RETELL_PROMPT: "Mời nói lại",
+  FEEDBACK: "Nhận xét",
+  PASS: "Qua bài",
+  STOP: "Dừng bài",
+  SUMMARY: "Tổng kết",
+};
+
+export const TEACH_ACTION_LABEL: Record<TeachAction, string> = {
+  ENTER_NODE: "Vào bài",
+  WARMUP_ITEM: "Câu ôn bài nền",
+  SWITCH_TO_PREREQUISITE: "Quay về bài nền",
+  TEACH_THEORY: "Giảng lý thuyết",
+  CHECK_ITEM: "Câu kiểm tra hiểu",
+  ASK_RETELL: "Mời nói lại",
+  SHOW_WORKED_EXAMPLE: "Làm mẫu",
+  COMPLETION_ITEM: "Bài cùng làm",
+  PRACTICE_ITEM: "Bài luyện tập",
+  TRANSFER_ITEM: "Bài vận dụng",
+  REVIEW_ITEM: "Câu ôn xen kẽ",
+  PASS_NODE: "Qua bài",
+  STOP_NODE: "Dừng bài",
+  FINISH: "Kết thúc buổi",
+};
+
+/** Teacher-facing: the dimensions of the math framework (blueprint PART 26.1), code kept beside. */
+export const DIMENSION_LABEL: Record<Dimension, string> = {
+  C: "Làm đúng",
+  R: "Lập luận",
+  A: "Vận dụng",
+  T: "Chuyển giao",
+  I: "Tự làm",
+  S: "Ghi nhớ",
+  D: "Phát hiện lỗi",
+};
+
+/** Weights of M (blueprint §20); a dimension without enough evidence is left out (DI-1). */
+export const DIMENSION_WEIGHT: Record<Dimension, number> = {
+  C: 0.2,
+  R: 0.2,
+  A: 0.15,
+  T: 0.15,
+  I: 0.1,
+  S: 0.1,
+  D: 0.1,
+};
+
+export const EVIDENCE_REASON_LABEL: Record<string, string> = {
+  ANSWER: "kết quả câu",
+  INDEPENDENCE: "mức tự làm",
+  NO_EXPLANATION: "không giải thích",
+  GUESS: "đoán",
+  CONCEPTUAL_ERROR: "lỗi khái niệm",
+  EXPLANATION: "trả lời vì sao",
+  RETELL: "nói lại quy tắc",
+};
+
+/** What a node still lacks before it can be passed (DI-15). */
+export const MISSING_LABEL: Record<string, string> = {
+  MASTERY: "Điểm M chưa tới ngưỡng",
+  UNDERSTOOD: "Chưa đủ bằng chứng hiểu bài",
+  EXPLANATION: "Chưa giải thích được",
+  APPLICATION: "Chưa làm đúng bài vận dụng",
+  MISCONCEPTION: "Còn lỗi sai nghiêm trọng",
+};
+
+/** Rules of the node teaching policy (plan v1, 5.4). */
+export const RULE_LABEL: Record<string, string> = {
+  "N-NEXT": "Chọn bài tiếp theo",
+  "N-WARMUP": "Ôn bài nền",
+  "N-TEACH": "Giảng bài",
+  "N-CHECK": "Kiểm tra hiểu",
+  "N-RETEACH": "Giảng lại cách khác",
+  "N-METHOD": "Dạy cách làm",
+  "N-PRACTICE": "Luyện tập",
+  "N-TRANSFER": "Vận dụng",
+  "N-PASS": "Qua bài",
+  "N-REVIEW": "Ôn xen kẽ",
+  "N-REMEDIATE": "Quay về bài nền",
+  "N-BUDGET": "Dừng bài",
+  "N-FINISH": "Kết thúc",
 };
 
 /** "Cô" from the persona's "cô". */

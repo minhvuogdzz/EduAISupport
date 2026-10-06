@@ -20,6 +20,7 @@ import {
   type SessionSummary,
   type SessionTranscript,
   type StreamEvent,
+  type TeachingReport,
 } from "../contract";
 
 export interface HttpApiOptions {
@@ -201,6 +202,10 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
 
     getTranscript(sessionId) {
       return request<SessionTranscript>("GET", sessionPath(sessionId, "transcript"), TEACHER_HEADERS);
+    },
+
+    getReport(sessionId) {
+      return request<TeachingReport>("GET", sessionPath(sessionId, "report"), TEACHER_HEADERS);
     },
   };
 }
