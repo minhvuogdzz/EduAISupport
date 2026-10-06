@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo db-ping db-indexes ai-ping web web-live web-install web-check
+.PHONY: setup test lint fmt api api-memory demo teach db-ping db-indexes ai-ping web web-live web-install web-check
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -26,6 +26,9 @@ api:
 
 api-memory: ## Run the API on an in-memory database: nothing is written to Atlas, sessions are lost on restart
 	cd services/api && .venv/bin/python scripts/dev_memory_api.py
+
+teach: ## Talk with the AI tutor in the terminal: the teaching loop on the decimals chapter, offline
+	cd services/api && .venv/bin/python scripts/teach_cli.py
 
 db-ping:
 	cd services/api && .venv/bin/python -m cavat.db
