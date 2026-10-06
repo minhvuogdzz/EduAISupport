@@ -1,10 +1,11 @@
 """Event vocabulary and typed payloads shared by tutor, session and assessment (blueprint PART 10.3-10.4).
 
 The envelope itself is ``cavat.modules.session.repository.SessionEvent`` (``payload`` is a plain dict).
-This module is the **contract between the item loop (producer, T04) and the assessment projector
-(consumer, T10)**: producers build a payload model and store ``model.model_dump(mode="json")``; consumers
-validate with ``PAYLOAD_MODELS[event_type]``. Add fields only with defaults, and bump
-``EVENT_SCHEMA_VERSION`` in the session repository when a change is not backwards compatible.
+This module is the **contract between the producers (the item loop, T04; the teaching loop, M1-6) and
+the node mastery projector (consumer, ``assessment/projector.py``, M1-3)**: producers build a payload model
+and store ``model.model_dump(mode="json")``; consumers validate with ``PAYLOAD_MODELS[event_type]``.
+Add fields only with defaults, and bump ``EVENT_SCHEMA_VERSION`` in the session repository when a change
+is not backwards compatible.
 """
 
 from __future__ import annotations
@@ -52,6 +53,8 @@ class EventType(StrEnum):
     # voice
     VOICE_UTTERANCE = "VOICE_UTTERANCE"
     VOICE_FALLBACK_TO_TEXT = "VOICE_FALLBACK_TO_TEXT"
+    # teaching on the chapter graph (plan v1)
+    RETELL_JUDGED = "RETELL_JUDGED"
     # assessment / teacher
     EVIDENCE_RECORDED = "EVIDENCE_RECORDED"
     TEACHER_OVERRIDE = "TEACHER_OVERRIDE"
@@ -173,6 +176,23 @@ class ItemResolved(_Payload):
     asr_confidence: float | None = None
 
 
+class RetellJudged(_Payload):
+    """The student's own retell of a node ("con nói lại", plan v1 step 3), judged against its key ideas.
+
+    ``score`` is the share of key ideas found. RUBRIC_RULE is the deterministic keyword rubric of
+    milestone 1; an LLM label (milestone 2) is only a proposal and keeps its confidence (PART 26.5).
+    """
+
+    node_id: str
+    text: str
+    ideas_found: list[int] = Field(default_factory=list)
+    ideas_total: int = Field(ge=1)
+    score: float = Field(ge=0.0, le=1.0)
+    label_source: Literal["RUBRIC_RULE", "LLM", "TEACHER"] = "RUBRIC_RULE"
+    label_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    modality: Literal["TEXT", "VOICE"] = "TEXT"
+
+
 # Which payload model validates which event type. Types not listed carry free-form payloads for now.
 class StudentMessage(_Payload):
     """What the student sent, before grading. Kept for the transcript and for replaying the item loop."""
@@ -217,4 +237,5 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.OUTPUT_REJECTED: OutputRejected,
     EventType.MODEL_FALLBACK: ModelFallback,
     EventType.ITEM_RESOLVED: ItemResolved,
+    EventType.RETELL_JUDGED: RetellJudged,
 }

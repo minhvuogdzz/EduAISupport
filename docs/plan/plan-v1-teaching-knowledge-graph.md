@@ -115,6 +115,8 @@ Một file cho mỗi chương (ví dụ `docs/pedagogy/math-g5/so-thap-phan/chap
 - **Thành thạo** (§53) cần thêm ghi nhớ S từ lần ôn sau một thời gian: Mốc 2.
 - **Điểm khởi đầu của node mới** (DI-16, chờ duyệt; ý tưởng cold start của 2T-KT): prior của node lấy từ trung bình điểm các node tiên quyết, với khối lượng nhỏ để bằng chứng thật nhanh chóng lấn át.
 - **Tất định:** điểm là hàm thuần của chuỗi sự kiện và version của quy tắc (quy tắc 3). AI không ghi điểm. Lời giải thích do AI chấm (Mốc 2) chỉ là một bằng chứng có độ tin cậy; quy tắc quyết định cộng bao nhiêu.
+- **Cài đặt (M1-3):** `services/api/cavat/modules/assessment/projector.py`, policy `node-mastery/0.1.0`. Đọc ba loại sự kiện: `ITEM_RESOLVED` (kết quả từng câu), `EXPLANATION_SUBMITTED` (câu trả lời "vì sao") và `RETELL_JUDGED` (phần con nói lại, chấm bằng `assessment/retell.py`). Mỗi lần cộng trừ được ghi thành một bằng chứng kèm lý do, để giáo viên xem lại được.
+- **[FACT] Đo trên nội dung hiện tại:** học sinh làm đúng hết node đầu (FRAC: 5 câu và một lần nói lại đủ ý) được M = 75,3, vừa đủ qua node. Chỉ cần một gợi ý, kể cả H1, là chưa qua (74,6), khi đó chính sách dạy phải thu thêm bằng chứng (giải thích, câu luyện). Node sau dễ hơn nếu node tiên quyết tốt: làm đúng hết CONCEPT được 86,9 nhờ điểm khởi đầu 0,75 (DI-16). Node đầu chương vì vậy khó qua nhất. M1-8 (học sinh ảo) sẽ đo lại; nếu cần, thêm câu luyện cho mỗi node hoặc chỉnh DI.
 
 ### 5.4. Chính sách dạy theo node
 
@@ -257,8 +259,20 @@ Chạy song song từ Mốc 1:
 
 ## 9. DI và việc chờ chủ dự án
 
-- **DI-15:** điều kiện qua node (mục 5.3).
-- **DI-16:** điểm khởi đầu của node mới lấy từ node tiên quyết.
+- **DI-15:** điều kiện qua node (mục 5.3). Cách hiểu khi cài đặt:
+  - câu "thành công" là câu giải đúng với gợi ý cao nhất ≤ H3, không đoán, không phải bài cùng làm;
+  - "mức nhận thức" là A–E (câu DIAG không tính); "dạng câu" là loại đáp án (trắc nghiệm, điền số, điền dấu, sắp xếp, đúng/sai, tự luận);
+  - "có bằng chứng giải thích": chiều R có ít nhất 1 đơn vị bằng chứng và μ_R ≥ 0,6;
+  - "có bằng chứng vận dụng": một câu thành công ở mức D/E hoặc câu transfer (chiều A hoặc T);
+  - lỗi sai CRITICAL được coi là đã sửa sau 2 câu thành công kể từ lần phát hiện cuối, ở kiến thức nơi lỗi đã xuất hiện.
+- **DI-16:** điểm khởi đầu của node mới lấy từ node tiên quyết. Mỗi chiều bắt đầu từ Beta(2m, 2(1 − m)), với m là trung bình M (thang 0–1) của các node tiên quyết đã có điểm lúc node nhận bằng chứng đầu tiên; không có thì m = 0,5, tức Beta(1, 1) như DI-12. Điểm khởi đầu giữ nguyên từ đó.
+- **DI-18 (tham số khác của `node-mastery/0.1.0`):**
+  - bài cùng làm có trọng số × 0,5;
+  - câu trả lời "vì sao" chưa được chấm tính R = 1 với trọng số 0,3, như nhãn chưa kiểm chứng (PART 26.5); được hỏi "vì sao" mà không giải thích, hoặc đoán, thì R = 0;
+  - lỗi khái niệm chưa sửa được thì R cũng nhận điểm 0;
+  - chiều của câu theo mức: A/B → C, C → R, D → A, E hoặc câu transfer → T, DIAG → D;
+  - độc lập I chỉ tính từ câu giải được, theo gợi ý cao nhất;
+  - mức 5 chỉ đạt khi qua cổng thành thạo tạm thời (M ≥ 85, độ tin cậy ≥ 75, μ_A ≥ 0,8), vì Mốc 1 chưa có chiều ghi nhớ S.
 - **DI-17:** tham số Hybrid RAG: BM25 k1 = 1,2, b = 0,75; RRF k = 60; hệ số phạt theo khoảng cách đồ thị; ngưỡng "không đủ căn cứ để trả lời".
 - Số câu tối đa mỗi node (N-BUDGET), số cách giảng tối thiểu, các ý bắt buộc khi chấm lời giải thích: đặt giá trị mặc định ở Mốc 1, duyệt sau.
 - Nội dung gói chương do AI soạn nháp: chủ dự án duyệt từng node trước khi học sinh thật dùng.
