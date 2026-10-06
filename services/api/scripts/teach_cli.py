@@ -25,7 +25,8 @@ def show(turn: TeachTurn) -> None:
 
 def node_map(loop: TeachingLoop) -> None:
     for node_id, state in loop.projection().nodes.items():
-        mark = "đã qua" if state.passed_at is not None else "đang học" if state.mastery is not None else "chưa học"
+        learning = "đang học" if state.mastery is not None else "chưa học"
+        mark = "đã qua" if state.passed_at is not None else learning
         score = "--" if state.mastery is None else f"{state.mastery:.1f}"
         missing = ", ".join(state.missing) if state.passed_at is None and state.mastery is not None else ""
         print(f"  {loop.chapter.node(node_id).name:<40} {mark:<9} M={score:>5}  {missing}")
