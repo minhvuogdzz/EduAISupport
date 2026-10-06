@@ -39,6 +39,10 @@ from cavat.modules.tutor.validator import validate_message
 # Temporary (T12 adds real accounts): every demo session belongs to this school.
 DEMO_SCHOOL_ID = "demo-school"
 
+# The lesson a session uses when the client names none: the only lesson with the demo plan below.
+# Chapter teaching (M1-6) replaces this fixed plan.
+DEFAULT_LESSON_ID = "math-g5-dec-compare"
+
 # DI: minimal plan for lesson 1, the same items as the web mock (apps/web/README.md).
 DEMO_PLAN: tuple[tuple[str, ActivityType], ...] = (
     ("CC-01", ActivityType.CONCEPT_CHECK),

@@ -1,10 +1,14 @@
 """Chapter package (M1-2): graph shape, references and teaching content checks on a small chapter."""
 
 import copy
+from pathlib import Path
 
 import pytest
 import yaml
 from cavat.modules.content.chapter_package import load_chapter, validate_chapter
+from cavat.modules.content.lesson_package import validate_package
+
+CHAPTER_FILE = Path(__file__).resolve().parents[3] / "docs/pedagogy/math-g5/chuong-so-thap-phan/chapter.yaml"
 
 
 def _item(item_id, kc, purpose="PRACTICE", level="B", transfer="none"):
@@ -16,7 +20,9 @@ def _item(item_id, kc, purpose="PRACTICE", level="B", transfer="none"):
         "difficulty": 0.4,
         "transfer": transfer,
         "stem": f"Câu {item_id}",
-        "answer": {"type": "numeric", "value": "1"},
+        "answer": {"type": "boolean", "value": True}
+        if purpose == "CONCEPT_CHECK"
+        else {"type": "numeric", "value": "1"},
     }
 
 
@@ -170,3 +176,46 @@ def test_item_references_are_checked(tmp_path):
 def test_lesson_prerequisites_must_agree_with_the_graph(tmp_path):
     found = problems(tmp_path, edit_lesson=lambda le: le["kcs"][1].update(prerequisites=[]))
     assert any("B: lesson prerequisites [] differ from the graph ['A']" in p for p in found)
+
+
+def test_item_ids_must_be_unique_across_the_chapter_lessons(tmp_path):
+    other = copy.deepcopy(LESSON) | {"lesson_id": "other", "items": [copy.deepcopy(LESSON["items"][0])]}
+    (tmp_path / "other.yaml").write_text(yaml.safe_dump(other, allow_unicode=True), encoding="utf-8")
+    found = problems(tmp_path, lambda ch: ch["lessons"].append("other.yaml"))
+    assert "item A-CHK1 is in lessons mini and other" in found
+
+
+def test_a_lesson_cannot_be_listed_twice(tmp_path):
+    with pytest.raises(ValueError, match="listed twice"):
+        make(tmp_path, lambda ch: ch["lessons"].append("lesson.yaml"))
+
+
+def test_the_pass_rule_must_be_reachable_with_the_node_items(tmp_path):
+    def strict(ch):
+        ch["nodes"][0]["pass_rule"] = {"min_levels": 4, "min_forms": 3, "min_successes": 6, "max_items": 5}
+
+    found = [p for p in problems(tmp_path, strict) if p.startswith("A:")]
+    assert found == [
+        "A: 5 item(s), the pass rule needs 6 successes",
+        "A: items cover 3 cognitive level(s), the pass rule needs 4",
+        "A: items cover 2 question form(s), the pass rule needs 3",
+        "A: the pass rule needs more successes than its item budget",
+    ]
+
+
+def test_the_decimals_chapter_is_valid():
+    chapter = load_chapter(CHAPTER_FILE)
+    assert validate_chapter(chapter) == []
+    for lesson in chapter.lessons.values():
+        assert validate_package(lesson) == [], lesson.lesson_id
+    assert chapter.topological_order() == [
+        "KC-DEC-FRAC",
+        "KC-DEC-CONCEPT",
+        "KC-DEC-PLACE",
+        "KC-DEC-EQ",
+        "KC-DEC-CMP",
+        "KC-DEC-ORDER",
+        "KC-DEC-APPLY",
+    ]
+    implement = [n.id for n in chapter.nodes if n.layer == "IMPLEMENT"]
+    assert implement == ["KC-DEC-CMP", "KC-DEC-ORDER", "KC-DEC-APPLY"]

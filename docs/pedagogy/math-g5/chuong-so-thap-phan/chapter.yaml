@@ -1,0 +1,379 @@
+# Chapter package — Toán 5: Số thập phân
+# TRẠNG THÁI: DRAFT — AI soạn nháp (M1-2b, 2026-10-06), chờ giáo viên kiểm soát (chủ dự án) duyệt từng node.
+# Kế hoạch v1, mục 5.1 (docs/plan/plan-v1-teaching-knowledge-graph.md) và ADR-018.
+#
+# Đồ thị hai tầng theo 2T-KT: BASIC là khái niệm, IMPLEMENT là thao tác vận dụng khái niệm.
+# Mỗi node mang nội dung dạy theo 4 giai đoạn: giảng lý thuyết (ít nhất 2 cách, mỗi cách kết thúc bằng
+# một câu hỏi), quy tắc và phương pháp, bài cô làm mẫu, câu hỏi "con nói lại" với các ý bắt buộc,
+# và mã câu hỏi để kiểm tra hiểu, cùng làm, luyện tập, vận dụng. Câu hỏi nằm trong hai bài (lesson.yaml).
+#
+# Số trong lời giảng và bài mẫu được chọn để không trùng cặp số của câu luyện tập và câu kiểm tra cuối bài.
+# key_ideas: mỗi ý liệt kê các cách nói được tính là có ý đó (so khớp sau khi chuẩn hóa chữ; DI tạm thời
+# đến khi Mốc 2 có nhãn của LLM).
+
+chapter_id: math-g5-decimals
+version: 0.1.0
+status: DRAFT
+subject: math
+grade: 5
+locale: vi-VN
+title: Số thập phân
+persona:
+  tutor_self: cô
+  student_address: con
+
+lessons:
+  - ../khai-niem-so-thap-phan/lesson.yaml
+  - ../so-sanh-so-thap-phan/lesson.yaml
+
+nodes:
+  # ---------------------------------------------------------------- BASIC
+  - id: KC-DEC-FRAC
+    name: Phân số thập phân
+    layer: BASIC
+    description: "Phân số có mẫu số là 10, 100, 1000... là phân số thập phân; viết được thành số thập phân và ngược lại."
+    lesson_id: math-g5-dec-concept
+    theory:
+      - id: T1
+        representation: hình vuông chia ô
+        text: "Cô chia một hình vuông thành 10 phần bằng nhau và tô màu 1 phần: phần tô màu là 1/10 hình vuông, viết là 0,1. Nếu chia hình vuông thành 100 ô bằng nhau và tô 1 ô thì phần tô màu là 1/100, viết là 0,01. Những phân số có mẫu số là 10, 100, 1000... gọi là phân số thập phân."
+        ask: "Nếu tô màu 4 ô trong 100 ô thì phần tô màu là phân số nào?"
+      - id: T2
+        representation: đo độ dài
+        text: "Cái thước dài 1 m chia thành 10 đoạn bằng nhau, mỗi đoạn là 1 dm. Vậy 1 dm = 1/10 m, viết là 0,1 m. Mỗi đề-xi-mét lại chia thành 10 xăng-ti-mét, nên 1 cm = 1/100 m, viết là 0,01 m. Mẫu số 10 thì sau dấu phẩy có một chữ số, mẫu số 100 thì có hai chữ số."
+        ask: "1 m có 1000 mm. Vậy 1 mm bằng phân số nào của mét?"
+    method:
+      rule: "Phân số thập phân là phân số có mẫu số 10, 100, 1000... Mẫu số có bao nhiêu chữ số 0 thì số thập phân có bấy nhiêu chữ số ở phần thập phân."
+      steps:
+        - "Đếm số chữ số 0 ở mẫu số: đó là số chữ số ở phần thập phân."
+        - "Tử số bé hơn mẫu số thì phần nguyên là 0: viết 0 rồi viết dấu phẩy."
+        - "Viết tử số vào phần thập phân; nếu tử số có ít chữ số hơn thì thêm chữ số 0 ngay sau dấu phẩy cho đủ."
+        - "Viết ngược lại: phần thập phân có mấy chữ số thì mẫu số có bấy nhiêu chữ số 0."
+    worked_examples:
+      - id: W1
+        problem: "Viết 6/100 dưới dạng số thập phân."
+        steps:
+          - "Mẫu số 100 có hai chữ số 0, nên phần thập phân có hai chữ số."
+          - "Tử số 6 bé hơn 100, nên phần nguyên là 0."
+          - "Tử số 6 chỉ có một chữ số, nên thêm chữ số 0 ngay sau dấu phẩy: 0,06."
+        answer: "0,06"
+      - id: W2
+        problem: "Viết 0,5 thành phân số thập phân."
+        steps:
+          - "0,5 có một chữ số ở phần thập phân, nên mẫu số có một chữ số 0, tức là 10."
+          - "Chữ số 5 là tử số, nên 0,5 = 5/10."
+        answer: "5/10"
+    explain:
+      prompt: "Con nói lại giúp cô: phân số thập phân là phân số thế nào, và viết nó thành số thập phân ra sao?"
+      key_ideas:
+        - ["mẫu số là 10", "mẫu số 10", "mẫu số là mười", "10, 100", "10 100 1000"]
+        - ["bao nhiêu chữ số 0", "mấy chữ số 0", "bao nhiêu số 0", "mấy số 0", "số chữ số 0"]
+        - ["thêm chữ số 0", "thêm số 0", "thêm 0", "viết thêm 0"]
+    checks: [TP-CC-01]
+    completion: [TP-CP-01]
+    practice: [TP-PR-01, TP-PR-02]
+    transfer: [TP-TR-01]
+
+  - id: KC-DEC-CONCEPT
+    name: Khái niệm số thập phân
+    layer: BASIC
+    description: "Số thập phân gồm phần nguyên và phần thập phân, ngăn cách bởi dấu phẩy; đọc và viết được số thập phân."
+    lesson_id: math-g5-dec-concept
+    theory:
+      - id: T1
+        representation: đo độ dài
+        text: "Sợi dây dài 2 m 7 dm. Vì 7 dm = 7/10 m = 0,7 m, nên sợi dây dài 2 m và 0,7 m, viết gọn là 2,7 m. Số 2,7 là một số thập phân: chữ số 2 bên trái dấu phẩy là phần nguyên, chữ số 7 bên phải dấu phẩy là phần thập phân."
+        ask: "Trong số đo 2,7 m, phần nào cho biết số mét tròn?"
+      - id: T2
+        representation: hình vuông tô màu
+        text: "Cô tô màu kín 3 hình vuông, rồi tô thêm 45 ô trong một hình vuông có 100 ô. Phần tô màu là 3 hình vuông và 45/100 hình vuông, viết là 3,45 và đọc là ba phẩy bốn mươi lăm. Khi đọc, con đọc phần nguyên, đọc chữ phẩy, rồi đọc phần thập phân."
+        ask: "Theo con, số 6,25 đọc thế nào?"
+    method:
+      rule: "Số thập phân có hai phần ngăn cách bởi dấu phẩy: phần nguyên bên trái, phần thập phân bên phải. Đọc phần nguyên, đọc chữ phẩy, rồi đọc phần thập phân; viết cũng theo đúng thứ tự đó."
+      steps:
+        - "Tìm dấu phẩy."
+        - "Bên trái dấu phẩy là phần nguyên: đọc như số tự nhiên."
+        - "Đọc chữ phẩy."
+        - "Bên phải dấu phẩy là phần thập phân: chữ số 0 đứng ngay sau dấu phẩy cũng phải đọc, đọc là không."
+        - "Khi viết, hàng nào không có thì viết chữ số 0 giữ chỗ."
+    worked_examples:
+      - id: W1
+        problem: "Đọc số 7,25 và cho biết phần nguyên, phần thập phân."
+        steps:
+          - "Dấu phẩy nằm giữa 7 và 25."
+          - "Bên trái dấu phẩy là 7 nên phần nguyên là 7; bên phải là 25 nên phần thập phân là 25."
+          - "Đọc phần nguyên, chữ phẩy, rồi phần thập phân: bảy phẩy hai mươi lăm."
+        answer: "bảy phẩy hai mươi lăm"
+      - id: W2
+        problem: "Viết số thập phân gồm 9 đơn vị và 4 phần trăm."
+        steps:
+          - "Phần nguyên là 9: viết 9 rồi viết dấu phẩy."
+          - "Không có phần mười nên viết chữ số 0 giữ chỗ, rồi viết 4 cho 4 phần trăm."
+          - "Được 9,04, đọc là chín phẩy không bốn."
+        answer: "9,04"
+    explain:
+      prompt: "Con nói lại giúp cô: số thập phân gồm những phần nào, và con đọc số thập phân thế nào?"
+      key_ideas:
+        - ["phần nguyên"]
+        - ["phần thập phân"]
+        - ["dấu phẩy", "chữ phẩy", "đọc phẩy"]
+    checks: [KN-CC-01]
+    completion: [KN-CP-01]
+    practice: [KN-PR-01, KN-PR-02]
+    transfer: [KN-TR-01]
+
+  - id: KC-DEC-PLACE
+    name: Giá trị theo hàng của số thập phân
+    layer: BASIC
+    description: "Nhận biết hàng phần mười, phần trăm, phần nghìn và giá trị của mỗi chữ số."
+    lesson_id: math-g5-dec-compare
+    theory:
+      - id: T1
+        representation: bảng hàng
+        text: "Cô kẻ bảng hàng cho số 6,384. Bên trái dấu phẩy là hàng đơn vị, có chữ số 6. Từ dấu phẩy sang phải lần lượt là hàng phần mười (chữ số 3), hàng phần trăm (chữ số 8) và hàng phần nghìn (chữ số 4). Mỗi đơn vị của một hàng bằng 10 đơn vị của hàng thấp hơn liền sau nó."
+        ask: "Chữ số 4 lớn hơn chữ số 3, nhưng trong số 6,384 thì giá trị của chữ số 4 có lớn hơn giá trị của chữ số 3 không?"
+      - id: T2
+        representation: đo độ dài
+        text: "1 m bằng 10 dm, bằng 100 cm, bằng 1000 mm. Số đo 1,234 m nghĩa là 1 m 2 dm 3 cm 4 mm: chữ số 2 ở hàng phần mười chỉ 2 dm, chữ số 3 ở hàng phần trăm chỉ 3 cm, chữ số 4 ở hàng phần nghìn chỉ 4 mm."
+        ask: "Vậy trong số đo 4,56 m, chữ số 6 chỉ mấy xăng-ti-mét?"
+    method:
+      rule: "Từ dấu phẩy đếm sang phải: chữ số thứ nhất ở hàng phần mười, thứ hai ở hàng phần trăm, thứ ba ở hàng phần nghìn. Hàng nào không có thì viết chữ số 0 giữ chỗ."
+      steps:
+        - "Tìm dấu phẩy."
+        - "Đếm từ dấu phẩy sang phải xem chữ số đứng ở vị trí thứ mấy."
+        - "Gọi tên hàng: thứ nhất là phần mười, thứ hai là phần trăm, thứ ba là phần nghìn."
+        - "Khi viết số theo hàng, hàng nào không có thì viết chữ số 0."
+    worked_examples:
+      - id: W1
+        problem: "Trong số 7,692, chữ số 9 thuộc hàng nào?"
+        steps:
+          - "Từ dấu phẩy đếm sang phải: chữ số 6 ở vị trí thứ nhất, chữ số 9 ở vị trí thứ hai."
+          - "Vị trí thứ hai là hàng phần trăm."
+        answer: "hàng phần trăm"
+      - id: W2
+        problem: "Viết số thập phân gồm 4 đơn vị, 0 phần mười, 0 phần trăm và 5 phần nghìn."
+        steps:
+          - "Phần nguyên là 4: viết 4 rồi viết dấu phẩy."
+          - "Hàng phần mười và hàng phần trăm không có nên viết hai chữ số 0, rồi viết 5 ở hàng phần nghìn."
+          - "Được 4,005."
+        answer: "4,005"
+    explain:
+      prompt: "Con nói lại giúp cô: làm sao biết một chữ số ở phần thập phân thuộc hàng nào?"
+      key_ideas:
+        - ["từ dấu phẩy", "sau dấu phẩy", "đếm sang phải", "bên phải dấu phẩy"]
+        - ["phần mười"]
+        - ["phần trăm", "phần nghìn"]
+    checks: [CC-01]
+    completion: [CP-01]
+    practice: [PL-01, PL-02]
+    transfer: [TR-01]
+
+  - id: KC-DEC-EQ
+    name: Số thập phân bằng nhau
+    layer: BASIC
+    description: "Viết thêm hoặc bỏ chữ số 0 ở tận cùng bên phải phần thập phân thì giá trị không đổi."
+    lesson_id: math-g5-dec-compare
+    theory:
+      - id: T1
+        representation: đo độ dài
+        text: "Đoạn dây dài 0,2 m, tức là 2 dm. Mà 2 dm = 20 cm, và 20 cm viết theo mét là 0,20 m. Cùng một đoạn dây nên 0,2 m = 0,20 m: viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị của số không đổi."
+        ask: "Nếu viết thêm một chữ số 0 nữa thành 0,200 m thì đoạn dây có dài hơn không?"
+      - id: T2
+        representation: hình vuông chia ô
+        text: "Hình vuông chia thành 10 cột, cô tô 9 cột: phần tô màu là 0,9. Chia mỗi cột thành 10 ô thì hình vuông có 100 ô, 9 cột là 90 ô: phần tô màu là 0,90. Phần tô màu vẫn thế, nên 0,9 = 0,90. Nhưng chữ số 0 đứng ngay sau dấu phẩy thì khác: 0,02 là 2 ô, còn 0,2 là 2 cột."
+        ask: "Vậy 0,02 có bằng 0,2 không?"
+    method:
+      rule: "Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân, hoặc bỏ chữ số 0 ở tận cùng bên phải phần thập phân, thì được một số thập phân bằng số đã cho. Chữ số 0 đứng giữa dấu phẩy và một chữ số khác thì không được bỏ."
+      steps:
+        - "Tìm chữ số 0 cần thêm hoặc bỏ."
+        - "Kiểm tra chữ số 0 đó có nằm ở tận cùng bên phải phần thập phân không."
+        - "Nếu có thì thêm hoặc bỏ được, giá trị không đổi; nếu nó đứng trước một chữ số khác thì giữ nguyên."
+    worked_examples:
+      - id: W1
+        problem: "Viết 1,7 thành số thập phân có hai chữ số ở phần thập phân."
+        steps:
+          - "Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân của 1,7."
+          - "Được 1,70; chữ số 0 thêm ở tận cùng không làm đổi giá trị, nên 1,70 = 1,7."
+        answer: "1,70"
+      - id: W2
+        problem: "Bỏ các chữ số 0 ở tận cùng bên phải phần thập phân của 5,600."
+        steps:
+          - "Hai chữ số 0 nằm ở tận cùng bên phải phần thập phân, nên bỏ được."
+          - "Được 5,6; vậy 5,600 = 5,6."
+        answer: "5,6"
+      - id: W3
+        problem: "Trong số 3,05, có bỏ được chữ số 0 không?"
+        steps:
+          - "Chữ số 0 đứng giữa dấu phẩy và chữ số 5, không ở tận cùng bên phải phần thập phân."
+          - "Nên không bỏ được: 3,05 là 3 và 5 phần trăm, còn 3,5 là 3 và 5 phần mười."
+        answer: "không"
+    explain:
+      prompt: "Con nói lại giúp cô: khi nào viết thêm hay bỏ chữ số 0 mà số thập phân vẫn không đổi?"
+      key_ideas:
+        - ["tận cùng bên phải", "bên phải phần thập phân", "cuối phần thập phân", "ở cuối", "tận cùng"]
+        - ["không đổi", "không thay đổi", "bằng nhau", "vẫn bằng", "giữ nguyên"]
+    checks: [CC-04]
+    completion: [CP-02]
+    practice: [GP-05, GP-05b]
+    transfer: [TR-02]
+
+  # ---------------------------------------------------------------- IMPLEMENT
+  - id: KC-DEC-CMP
+    name: So sánh hai số thập phân
+    layer: IMPLEMENT
+    description: "So sánh phần nguyên, nếu bằng nhau thì so sánh lần lượt từng hàng của phần thập phân."
+    lesson_id: math-g5-dec-compare
+    theory:
+      - id: T1
+        representation: bảng hàng
+        text: "Cô viết 0,9 và 0,87 vào bảng hàng, thẳng cột theo dấu phẩy. Phần nguyên đều là 0. Ở hàng phần mười, 0,9 có chữ số 9, còn 0,87 có chữ số 8; 9 lớn hơn 8, nên 0,9 > 0,87, dù 87 lớn hơn 9."
+        ask: "Vậy số có nhiều chữ số hơn ở phần thập phân có chắc là lớn hơn không?"
+      - id: T2
+        representation: đo độ dài
+        text: "Muốn so sánh 0,2 m và 0,19 m, cô đổi cả hai ra xăng-ti-mét: 0,2 m = 20 cm, còn 0,19 m = 19 cm. Đổi về cùng một đơn vị nhỏ hơn rồi so sánh thì không bị lừa bởi số chữ số."
+        ask: "Vậy 0,2 m và 0,19 m, độ dài nào lớn hơn?"
+      - id: T3
+        representation: tia số
+        text: "Cô vẽ tia số từ 0 đến 1, chia thành 10 đoạn bằng nhau: 0,1; 0,2; ...; 0,9. Số 0,55 nằm giữa 0,5 và 0,6, còn 0,8 nằm xa hơn về bên phải. Trên tia số, số nằm bên phải thì lớn hơn."
+        ask: "Vậy 0,55 và 0,8, số nào lớn hơn?"
+    method:
+      rule: "Muốn so sánh hai số thập phân, so sánh phần nguyên trước: phần nguyên lớn hơn thì số đó lớn hơn. Nếu phần nguyên bằng nhau thì so sánh lần lượt hàng phần mười, hàng phần trăm, hàng phần nghìn...; đến hàng nào có chữ số lớn hơn thì số đó lớn hơn. Nếu mọi hàng đều bằng nhau thì hai số bằng nhau."
+      steps:
+        - "So sánh phần nguyên."
+        - "Phần nguyên bằng nhau thì so sánh chữ số hàng phần mười."
+        - "Vẫn bằng nhau thì so sánh tiếp hàng phần trăm, rồi hàng phần nghìn."
+        - "Có thể viết thêm chữ số 0 vào tận cùng bên phải để hai số có cùng số chữ số ở phần thập phân rồi mới so sánh."
+    worked_examples:
+      - id: W1
+        problem: "So sánh 5,1 và 4,98."
+        steps:
+          - "So sánh phần nguyên: 5 lớn hơn 4."
+          - "Phần nguyên đã khác nhau nên không cần xét phần thập phân: 5,1 > 4,98."
+        answer: "5,1 > 4,98"
+      - id: W2
+        problem: "So sánh 0,93 và 0,9."
+        steps:
+          - "Phần nguyên đều là 0, hàng phần mười đều là 9."
+          - "Viết 0,9 thành 0,90 rồi so sánh hàng phần trăm: 3 lớn hơn 0."
+          - "Vậy 0,93 > 0,9."
+        answer: "0,93 > 0,9"
+      - id: W3
+        problem: "So sánh 0,04 và 0,4."
+        steps:
+          - "Phần nguyên đều là 0."
+          - "Ở hàng phần mười: 0,04 có chữ số 0, còn 0,4 có chữ số 4; 0 bé hơn 4."
+          - "Vậy 0,04 < 0,4."
+        answer: "0,04 < 0,4"
+    explain:
+      prompt: "Con nói lại giúp cô: muốn so sánh hai số thập phân thì con làm thế nào?"
+      key_ideas:
+        - ["phần nguyên"]
+        - ["phần mười"]
+        - ["lần lượt", "từng hàng", "phần trăm", "hàng tiếp theo"]
+    checks: [CC-02, CC-03]
+    completion: [CP-03]
+    practice: [GP-01, GP-01b, GP-02, GP-02b, GP-03, GP-03b, GP-04, GP-04b, GP-09, GP-09b]
+    transfer: [GP-07, GP-07b]
+
+  - id: KC-DEC-ORDER
+    name: Sắp xếp thứ tự các số thập phân
+    layer: IMPLEMENT
+    description: "Xếp các số thập phân theo thứ tự từ bé đến lớn hoặc ngược lại."
+    lesson_id: math-g5-dec-compare
+    theory:
+      - id: T1
+        representation: tia số
+        text: "Trên tia số, số nằm bên trái thì bé hơn. Cô đặt ba số 1,6; 1,45 và 1,9 lên tia số: 1,45 nằm bên trái 1,6, còn 1,9 nằm xa nhất về bên phải. Đọc các số từ trái sang phải, ta được thứ tự từ bé đến lớn: 1,45; 1,6; 1,9."
+        ask: "Nếu đọc từ phải sang trái thì con được thứ tự nào?"
+      - id: T2
+        representation: bảng hàng
+        text: "Cô viết ba số 5,3; 5,07 và 5,25 thẳng cột theo dấu phẩy, thêm chữ số 0 cho đủ hai chữ số ở phần thập phân: 5,30; 5,07; 5,25. Phần nguyên đều là 5, nên cô nhìn cột phần mười: 3, 0 và 2. Số có chữ số hàng phần mười bé nhất thì viết trước."
+        ask: "Vậy trong ba số đó, số nào con viết đầu tiên?"
+    method:
+      rule: "Muốn sắp xếp các số thập phân từ bé đến lớn, so sánh các số như khi so sánh hai số, tìm số bé nhất viết trước, rồi tìm số bé nhất trong các số còn lại. Xếp từ lớn đến bé thì tìm số lớn nhất trước."
+      steps:
+        - "Viết các số thẳng cột theo dấu phẩy, thêm chữ số 0 cho các số có cùng số chữ số ở phần thập phân."
+        - "So sánh phần nguyên, rồi lần lượt từng hàng để tìm số bé nhất (hoặc lớn nhất)."
+        - "Viết số đó ra và gạch đi, rồi làm tiếp với các số còn lại."
+        - "Kiểm tra lại: mỗi số phải bé hơn số đứng sau nó (xếp từ lớn đến bé thì ngược lại)."
+    worked_examples:
+      - id: W1
+        problem: "Sắp xếp theo thứ tự từ bé đến lớn: 4,2; 4,18; 4,3."
+        steps:
+          - "Thêm chữ số 0 cho đủ hai chữ số ở phần thập phân: 4,20; 4,18; 4,30. Phần nguyên đều là 4."
+          - "Ở hàng phần mười: 2, 1 và 3. Số bé nhất là 4,18, tiếp theo là 4,2, lớn nhất là 4,3."
+        answer: "4,18; 4,2; 4,3"
+      - id: W2
+        problem: "Sắp xếp theo thứ tự từ lớn đến bé: 0,15; 0,5; 0,105."
+        steps:
+          - "Thêm chữ số 0 cho đủ ba chữ số ở phần thập phân: 0,150; 0,500; 0,105."
+          - "Ở hàng phần mười: 1, 5 và 1, nên 0,5 lớn nhất."
+          - "So sánh 0,150 và 0,105 ở hàng phần trăm: 5 lớn hơn 0, nên 0,15 > 0,105."
+        answer: "0,5; 0,15; 0,105"
+    explain:
+      prompt: "Con nói lại giúp cô: muốn xếp các số thập phân từ bé đến lớn thì con làm thế nào?"
+      key_ideas:
+        - ["so sánh"]
+        - ["bé nhất", "nhỏ nhất"]
+        - ["còn lại", "lặp lại", "làm tiếp", "tiếp tục"]
+    checks: [CC-05]
+    completion: [CP-04]
+    practice: [GP-06, GP-06b]
+    transfer: [TR-03]
+
+  - id: KC-DEC-APPLY
+    name: Vận dụng so sánh số thập phân
+    layer: IMPLEMENT
+    description: "Dùng so sánh số thập phân trong bài toán thực tế (thời gian, khối lượng, chiều cao...)."
+    lesson_id: math-g5-dec-compare
+    theory:
+      - id: T1
+        representation: cân nặng
+        text: "Hai quả dưa nặng 2,3 kg và 2,25 kg. Cùng đơn vị ki-lô-gam, nên cô chỉ cần so sánh hai số: phần nguyên đều là 2, ở hàng phần mười 3 lớn hơn 2, nên 2,3 > 2,25. Với khối lượng, độ dài hay dung tích, số đo lớn hơn thì đại lượng lớn hơn."
+        ask: "Vậy quả dưa nào nặng hơn?"
+      - id: T2
+        representation: thời gian chạy
+        text: "Hai bạn cùng chạy 50 m: Hùng chạy hết 8,6 giây, Dũng chạy hết 8,45 giây. So sánh thì 8,6 > 8,45, tức là Hùng tốn nhiều thời gian hơn và về đích sau. Chạy cùng một quãng đường, ai tốn ít thời gian hơn thì chạy nhanh hơn."
+        ask: "Vậy trong hai bạn, bạn nào chạy nhanh hơn?"
+    method:
+      rule: "Gặp bài toán so sánh hai số đo: tìm hai số đo và đơn vị, so sánh hai số thập phân, rồi trả lời theo ý nghĩa của đại lượng. Khối lượng, độ dài, dung tích: số lớn hơn là nhiều hơn. Thời gian chạy cùng quãng đường: số lớn hơn là chậm hơn."
+      steps:
+        - "Đọc đề, tìm hai số đo cần so sánh và đơn vị của chúng."
+        - "Kiểm tra hai số đo có cùng đơn vị."
+        - "So sánh hai số thập phân như đã học."
+        - "Trả lời câu hỏi theo ý nghĩa của đại lượng."
+    worked_examples:
+      - id: W1
+        problem: "Can A chứa 3,5 lít nước, can B chứa 3,45 lít nước. Can nào chứa nhiều nước hơn?"
+        steps:
+          - "Hai số đo cùng đơn vị lít, nên so sánh 3,5 và 3,45."
+          - "Phần nguyên đều là 3; ở hàng phần mười 5 lớn hơn 4, nên 3,5 > 3,45."
+          - "Số đo dung tích lớn hơn thì chứa nhiều hơn: can A chứa nhiều nước hơn."
+        answer: "can A"
+      - id: W2
+        problem: "Trong cuộc thi bơi 25 m, Hằng bơi hết 20,4 giây, Linh bơi hết 21,05 giây. Bạn nào bơi nhanh hơn?"
+        steps:
+          - "So sánh 20,4 và 21,05: phần nguyên 20 bé hơn 21, nên 20,4 < 21,05."
+          - "Hằng tốn ít thời gian hơn trên cùng quãng đường, nên Hằng bơi nhanh hơn."
+        answer: "Hằng"
+    explain:
+      prompt: "Con nói lại giúp cô: gặp bài toán so sánh hai số đo, con làm những bước nào?"
+      key_ideas:
+        - ["đơn vị"]
+        - ["so sánh"]
+        - ["ý nghĩa", "ít thời gian", "ít giây", "nhiều hơn", "nặng hơn", "nhanh hơn"]
+    checks: [CC-06]
+    completion: [CP-05]
+    practice: [GP-10, GP-10b]
+    transfer: [GP-08, GP-08b]
+
+relations:
+  - {source: KC-DEC-FRAC, target: KC-DEC-CONCEPT, type: PREREQUISITE}
+  - {source: KC-DEC-CONCEPT, target: KC-DEC-PLACE, type: PREREQUISITE}
+  - {source: KC-DEC-PLACE, target: KC-DEC-EQ, type: PREREQUISITE}
+  - {source: KC-DEC-PLACE, target: KC-DEC-CMP, type: APPLICATION}
+  - {source: KC-DEC-EQ, target: KC-DEC-CMP, type: APPLICATION}
+  - {source: KC-DEC-CMP, target: KC-DEC-ORDER, type: PREREQUISITE}
+  - {source: KC-DEC-PLACE, target: KC-DEC-ORDER, type: APPLICATION}
+  - {source: KC-DEC-CMP, target: KC-DEC-APPLY, type: PREREQUISITE}
+  - {source: KC-DEC-CONCEPT, target: KC-DEC-APPLY, type: APPLICATION}

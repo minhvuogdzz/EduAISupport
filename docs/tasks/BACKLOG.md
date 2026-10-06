@@ -85,8 +85,8 @@ Chi tiết: `docs/plan/plan-v1-teaching-knowledge-graph.md`, ADR-018, D-T9 đế
 
 | Task | Nội dung | Thay task cũ | Trạng thái |
 |---|---|---|---|
-| M1-1 | Ghi kế hoạch vào repo | — | Đang làm |
-| M1-2 | Khuôn gói chương (đồ thị hai tầng, quan hệ, nội dung theo 4 mức, quy tắc qua node), bộ đọc, bộ kiểm tra; gói chương Số thập phân phần đầu (nháp) | — | Chưa |
+| M1-1 | Ghi kế hoạch vào repo | — | Xong (PR #24) |
+| M1-2 | Khuôn gói chương (đồ thị hai tầng, quan hệ, nội dung theo 4 mức, quy tắc qua node), bộ đọc, bộ kiểm tra; gói chương Số thập phân phần đầu (nháp) | — | Xong: khuôn và bộ kiểm tra (PR #25); gói chương 7 node `docs/pedagogy/math-g5/chuong-so-thap-phan/chapter.yaml` và bài `khai-niem-so-thap-phan` (M1-2b, nháp chờ duyệt) |
 | M1-3 | Điểm từng node: projector tất định theo PART 25.2 và 26.1, cổng qua node (DI-15), điểm khởi đầu từ tiên quyết (DI-16) | T10 | Chưa |
 | M1-4 | Chính sách dạy theo node (luật `N-*`) | — | Chưa |
 | M1-5 | Hybrid RAG tự xây: chia đoạn, BM25 hai bản, chỉ mục vector, RRF, xếp hạng lại theo sư phạm, ghi vết; model class `EMBEDDING`; bộ câu hỏi đánh giá đầu tiên | — | Chưa |

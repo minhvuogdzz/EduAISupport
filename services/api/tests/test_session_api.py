@@ -28,7 +28,7 @@ from cavat.modules.session.api import get_database
 from cavat.modules.session.repository import LearningSessionRepository
 from fastapi.testclient import TestClient
 
-PKG = next(iter(service.lesson_packages().values()))
+PKG = service.lesson_packages()[service.DEFAULT_LESSON_ID]
 MINH = {"X-Demo-Student": "minh"}
 TEACHER = {"X-Demo-Teacher": "1"}
 

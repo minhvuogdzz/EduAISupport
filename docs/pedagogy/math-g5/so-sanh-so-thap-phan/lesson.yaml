@@ -52,7 +52,7 @@ kcs:
   - id: KC-DEC-ORDER
     name: Sắp xếp thứ tự các số thập phân
     description: "Xếp các số thập phân theo thứ tự từ bé đến lớn hoặc ngược lại."
-    prerequisites: [KC-DEC-CMP]
+    prerequisites: [KC-DEC-CMP, KC-DEC-PLACE]
   - id: KC-DEC-APPLY
     name: Vận dụng so sánh số thập phân
     description: "Dùng so sánh số thập phân trong bài toán thực tế (thời gian, khối lượng, chiều cao...)."
@@ -731,3 +731,283 @@ items:
     answer: {type: order, numbers: ["0,9", "0,75", "0,8"], direction: asc}
     hints:
       - {target: TASK, level: 1, text: "Con tìm số bé nhất trong ba số trước nhé?"}
+
+  # ----- Bổ sung cho gói chương Số thập phân (M1-2b, 2026-10-06, AI soạn nháp, chờ duyệt) -----
+  # Câu kiểm tra hiểu (CC-04..06), bài làm cùng (CP-01..05), bài luyện (PL-01..02), bài vận dụng (TR-01..03).
+
+  - id: CP-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-PLACE]
+    cognitive_level: B
+    difficulty: 0.3
+    stem: "Cô làm cùng con: trong số 5,26, chữ số 2 đứng ngay sau dấu phẩy nên thuộc hàng phần mười. Còn chữ số 6 thuộc hàng nào?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "hàng phần mười", aliases: ["phần mười"]}
+        - {id: B, text: "hàng phần trăm", correct: true, aliases: ["phần trăm"]}
+        - {id: C, text: "hàng phần nghìn", aliases: ["phần nghìn"]}
+    hints:
+      - {target: TASK, level: 1, text: "Chữ số 6 đứng ở vị trí thứ mấy sau dấu phẩy?"}
+      - {target: CONCEPT, level: 2, text: "Vị trí thứ nhất sau dấu phẩy là hàng phần mười. Vị trí ngay sau đó là hàng gì?"}
+      - {target: STRATEGY, level: 3, text: "Con thử kẻ bảng hàng rồi đặt từng chữ số của 5,26 vào đúng cột xem?"}
+      - {target: STEP, level: 4, text: "Từ dấu phẩy đếm sang phải: chữ số 2 ở vị trí thứ nhất, chữ số 6 ở vị trí thứ hai. Vị trí thứ hai ứng với hàng nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số nào đứng ngay sau dấu phẩy trong 5,26?"}
+    worked_solution:
+      - "Từ dấu phẩy đếm sang phải: chữ số 2 ở vị trí thứ nhất, chữ số 6 ở vị trí thứ hai."
+      - "Vị trí thứ nhất là hàng phần mười, vị trí thứ hai là hàng phần trăm."
+      - "Vậy chữ số 6 thuộc hàng phần trăm."
+    explanation: "Từ dấu phẩy đếm sang phải, chữ số 6 đứng ở vị trí thứ hai nên thuộc hàng phần trăm."
+
+  - id: PL-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-PLACE]
+    cognitive_level: B
+    difficulty: 0.35
+    stem: "Trong số 8,153, chữ số 3 thuộc hàng nào: hàng phần mười, hàng phần trăm hay hàng phần nghìn?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "hàng phần mười", aliases: ["phần mười"]}
+        - {id: B, text: "hàng phần trăm", aliases: ["phần trăm"]}
+        - {id: C, text: "hàng phần nghìn", correct: true, aliases: ["phần nghìn"]}
+    hints:
+      - {target: TASK, level: 1, text: "Chữ số 3 đứng ở vị trí thứ mấy sau dấu phẩy?"}
+      - {target: CONCEPT, level: 2, text: "Sau dấu phẩy lần lượt là hàng phần mười, hàng phần trăm, rồi hàng gì?"}
+      - {target: STRATEGY, level: 3, text: "Con thử kẻ bảng hàng rồi đặt từng chữ số của 8,153 vào đúng cột xem?"}
+      - {target: STEP, level: 4, text: "Từ dấu phẩy đếm sang phải: 1 ở vị trí thứ nhất, 5 ở vị trí thứ hai, 3 ở vị trí thứ ba. Vị trí thứ ba là hàng nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số nào đứng ngay sau dấu phẩy trong 8,153?"}
+    worked_solution:
+      - "Từ dấu phẩy đếm sang phải: 1 ở vị trí thứ nhất, 5 ở vị trí thứ hai, 3 ở vị trí thứ ba."
+      - "Vị trí thứ ba là hàng phần nghìn."
+      - "Vậy chữ số 3 thuộc hàng phần nghìn."
+    explanation: "Trong 8,153, chữ số 3 đứng ở vị trí thứ ba sau dấu phẩy nên thuộc hàng phần nghìn."
+
+  - id: PL-02
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-PLACE]
+    cognitive_level: B
+    difficulty: 0.45
+    stem: "Viết số thập phân gồm 3 đơn vị, 0 phần mười và 6 phần trăm."
+    answer:
+      type: numeric
+      value: "3,06"
+      wrong_answers: {"3,6": DEC-M03}
+    hints:
+      - {target: TASK, level: 1, text: "Số cần viết có mấy đơn vị, mấy phần mười và mấy phần trăm?"}
+      - {target: CONCEPT, level: 2, text: "Có 0 phần mười thì ở hàng phần mười con viết chữ số nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử kẻ bảng hàng đơn vị, phần mười, phần trăm rồi điền từng chữ số vào đúng cột xem?"}
+      - {target: STEP, level: 4, text: "Phần nguyên là 3, hàng phần mười là 0, hàng phần trăm là 6. Vậy số đó viết thế nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Phần nguyên của số này là mấy?"}
+    worked_solution:
+      - "3 đơn vị là phần nguyên, viết 3 rồi đặt dấu phẩy."
+      - "Hàng phần mười có 0 nên viết chữ số 0, hàng phần trăm viết chữ số 6."
+      - "Vậy số đó là 3,06."
+    explanation: "Phần nguyên là 3, hàng phần mười là 0 và hàng phần trăm là 6, nên số đó là 3,06. Chữ số 0 giữ chỗ cho hàng phần mười."
+
+  - id: TR-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-PLACE]
+    cognitive_level: D
+    difficulty: 0.5
+    transfer: near
+    stem: "Sợi dây dài 2,5 m. Chữ số 5 cho biết sợi dây dài thêm bao nhiêu so với 2 m: 5 m, 5 dm hay 5 cm?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "5 m", aliases: ["5 mét"]}
+        - {id: B, text: "5 dm", correct: true, aliases: ["5 đề-xi-mét"]}
+        - {id: C, text: "5 cm", aliases: ["5 xăng-ti-mét"]}
+    hints:
+      - {target: TASK, level: 1, text: "Chữ số 5 trong 2,5 thuộc hàng nào?"}
+      - {target: CONCEPT, level: 2, text: "Chữ số ở hàng phần mười cho biết bao nhiêu phần mười của mét?"}
+      - {target: STRATEGY, level: 3, text: "Con nhớ lại: 1 mét có bao nhiêu đề-xi-mét?"}
+      - {target: STEP, level: 4, text: "Chữ số 5 ở hàng phần mười, tức là 5 phần mười mét. Một phần mười mét là 1 dm. Vậy 5 phần mười mét là bao nhiêu?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. 1 mét có bao nhiêu đề-xi-mét?"}
+    worked_solution:
+      - "Chữ số 5 trong 2,5 ở hàng phần mười, tức là 5 phần mười mét."
+      - "1 mét có 10 đề-xi-mét, nên một phần mười mét là 1 dm."
+      - "Vậy chữ số 5 cho biết sợi dây dài thêm 5 dm."
+    explanation: "Chữ số 5 ở hàng phần mười, tức là 5 phần mười mét. Một phần mười mét là 1 dm, nên sợi dây dài thêm 5 dm so với 2 m."
+
+  - id: CC-04
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-EQ]
+    cognitive_level: A
+    difficulty: 0.25
+    expected_time_s: 30
+    stem: "Đúng hay sai: 0,6 = 0,60?"
+    answer: {type: boolean, value: true, wrong_answers: {"false": DEC-M05}}
+    hints:
+      - {target: TASK, level: 1, text: "Con nhìn chữ số 0 của 0,60 đứng ở vị trí nào nhé?"}
+      - {target: CONCEPT, level: 2, text: "Viết thêm chữ số 0 ở tận cùng bên phải phần thập phân thì giá trị có thay đổi không?"}
+    worked_solution:
+      - "Chữ số 0 của 0,60 đứng ở tận cùng bên phải phần thập phân."
+      - "Bỏ chữ số 0 đó đi thì được 0,6, giá trị không đổi."
+      - "Vậy 0,6 = 0,60 là đúng."
+    explanation: "Viết thêm hoặc bỏ chữ số 0 ở tận cùng bên phải phần thập phân thì giá trị không đổi, nên 0,6 = 0,60 là đúng."
+
+  - id: CP-02
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-EQ]
+    cognitive_level: B
+    difficulty: 0.3
+    stem: "Cô làm cùng con: viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị không đổi. Vậy số nào dưới đây bằng 0,3: 0,03, 0,30 hay 3,0?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "0,03", misconceptions: [DEC-M03]}
+        - {id: B, text: "0,30", correct: true}
+        - {id: C, text: "3,0"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần tìm số bằng 0,3. Con xem chữ số 0 được viết thêm ở đâu trong từng số nhé?"}
+      - {target: CONCEPT, level: 2, text: "Chữ số 0 thêm vào tận cùng bên phải phần thập phân thì giá trị có đổi không?"}
+      - {target: STRATEGY, level: 3, text: "Con thử đặt từng số vào bảng hàng rồi nhìn chữ số hàng phần mười xem?"}
+      - {target: STEP, level: 4, text: "0,30 có chữ số 3 ở hàng phần mười giống 0,3, còn 0,03 có chữ số 3 ở hàng phần trăm. Vậy số nào bằng 0,3?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 0,3 là mấy?"}
+    worked_solution:
+      - "Chữ số 0 của 0,30 đứng ở tận cùng bên phải phần thập phân, nên bỏ đi giá trị không đổi."
+      - "0,03 có chữ số 3 ở hàng phần trăm nên khác 0,3; còn 3,0 bằng 3."
+      - "Vậy số bằng 0,3 là 0,30."
+    explanation: "Chữ số 0 ở tận cùng bên phải phần thập phân không làm thay đổi giá trị, nên 0,30 = 0,3. Còn 0,03 có chữ số 3 ở hàng phần trăm nên khác 0,3."
+
+  - id: TR-02
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-EQ]
+    cognitive_level: D
+    difficulty: 0.5
+    transfer: near
+    stem: "Bạn Mai nói: chai nước 1,50 lít nhiều hơn chai nước 1,5 lít vì 150 lớn hơn 15. Bạn Mai nói đúng hay sai?"
+    answer: {type: boolean, value: false, wrong_answers: {"true": DEC-M05}}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn Mai so sánh hai số nào, và bạn ấy dựa vào điều gì?"}
+      - {target: CONCEPT, level: 2, text: "1,50 và 1,5 chỉ khác nhau ở chữ số 0 tận cùng bên phải. Chữ số 0 đó có làm thay đổi giá trị không?"}
+      - {target: STRATEGY, level: 3, text: "Con thử bỏ chữ số 0 ở tận cùng của 1,50 rồi so sánh với 1,5 xem?"}
+      - {target: STEP, level: 4, text: "Bỏ chữ số 0 ở tận cùng của 1,50 thì được 1,5, giá trị không đổi. Vậy hai chai chứa lượng nước thế nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số 0 của 1,50 đứng ở đâu?"}
+    worked_solution:
+      - "Chữ số 0 của 1,50 đứng ở tận cùng bên phải phần thập phân."
+      - "Bỏ chữ số 0 đó đi thì được 1,5, nên hai chai chứa lượng nước bằng nhau."
+      - "So sánh 150 với 15 như số tự nhiên là sai cách, nên bạn Mai nói sai."
+    explanation: "Chữ số 0 ở tận cùng bên phải phần thập phân không làm thay đổi giá trị, nên 1,50 = 1,5 và hai chai chứa lượng nước bằng nhau. Bạn Mai nói sai."
+
+  - id: CP-03
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CMP]
+    cognitive_level: B
+    difficulty: 0.35
+    stem: "Cô làm cùng con: so sánh 4,32 và 4,4. Phần nguyên đều là 4, nên mình so sánh tiếp hàng phần mười: 3 và 4. Con điền dấu >, < hoặc = vào chỗ chấm: 4,32 … 4,4"
+    answer: {type: compare, left: "4,32", right: "4,4"}
+    rephrase: "Giữa 4,32 và 4,4, con điền dấu >, < hay = giúp cô nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình so sánh 4,32 và 4,4. Phần nguyên của hai số là mấy?"}
+      - {target: CONCEPT, level: 2, text: "Phần nguyên bằng nhau thì mình so sánh tiếp hàng nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 4,4 thành 4,40 để hai số cùng có hai chữ số ở phần thập phân, rồi so sánh xem?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 4,32 có chữ số 3, còn 4,4 có chữ số 4. Chữ số nào lớn hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 4,32 là mấy?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 4."
+      - "Ở hàng phần mười: 4,32 có chữ số 3, còn 4,4 có chữ số 4, và 3 bé hơn 4."
+      - "Vậy 4,32 < 4,4."
+    explanation: "Phần nguyên đều là 4, nên so sánh hàng phần mười: 3 bé hơn 4. Vậy 4,32 < 4,4."
+
+  - id: CC-05
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-ORDER]
+    cognitive_level: A
+    difficulty: 0.3
+    expected_time_s: 40
+    stem: "Muốn sắp xếp các số thập phân từ bé đến lớn, con làm cách nào: so sánh các số như khi so sánh hai số rồi viết số bé nhất trước, hay xếp theo số chữ số ở phần thập phân?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "so sánh các số rồi viết số bé nhất trước", correct: true, aliases: ["số bé nhất trước", "so sánh các số"]}
+        - {id: B, text: "xếp theo số chữ số ở phần thập phân", aliases: ["số chữ số"], misconceptions: [DEC-M01]}
+    hints:
+      - {target: TASK, level: 1, text: "Khi so sánh hai số thập phân, mình so sánh phần nào trước?"}
+      - {target: CONCEPT, level: 2, text: "Số có nhiều chữ số ở phần thập phân hơn có chắc là lớn hơn không?"}
+    worked_solution:
+      - "Sắp xếp là so sánh các số với nhau giống như khi so sánh hai số."
+      - "Số nhiều chữ số hơn chưa chắc lớn hơn, ví dụ 0,9 > 0,85."
+      - "Vậy ta so sánh các số rồi viết số bé nhất trước."
+    explanation: "Sắp xếp các số thập phân là so sánh chúng như khi so sánh hai số rồi viết số bé nhất trước. Không xếp theo số chữ số, vì số nhiều chữ số hơn chưa chắc lớn hơn."
+
+  - id: CP-04
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-ORDER]
+    cognitive_level: B
+    difficulty: 0.45
+    stem: "Cô làm cùng con: trong ba số 0,6; 0,52; 0,7, phần nguyên đều là 0, ở hàng phần mười 0,52 có chữ số 5 nhỏ nhất nên 0,52 bé nhất. Con sắp xếp ba số này theo thứ tự từ bé đến lớn giúp cô?"
+    answer: {type: order, numbers: ["0,6", "0,52", "0,7"], direction: asc}
+    hints:
+      - {target: TASK, level: 1, text: "Cô đã tìm được số bé nhất là 0,52. Trong hai số còn lại, số nào bé hơn?"}
+      - {target: CONCEPT, level: 2, text: "Để so sánh 0,6 và 0,7, mình nhìn hàng nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết ba số cùng có hai chữ số ở phần thập phân: 0,60; 0,52; 0,70 rồi so sánh xem?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười: 0,6 có chữ số 6, 0,7 có chữ số 7. Vậy số nào đứng ngay sau 0,52?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 0,6 là mấy?"}
+    worked_solution:
+      - "Phần nguyên của ba số đều là 0."
+      - "Ở hàng phần mười: 0,6 có chữ số 6, 0,52 có chữ số 5, 0,7 có chữ số 7."
+      - "Vậy thứ tự từ bé đến lớn là 0,52; 0,6; 0,7."
+    explanation: "Phần nguyên đều là 0. Ở hàng phần mười, chữ số 5 nhỏ nhất rồi đến 6, 7, nên thứ tự từ bé đến lớn là 0,52; 0,6; 0,7."
+
+  - id: TR-03
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-ORDER]
+    cognitive_level: E
+    difficulty: 0.55
+    transfer: far
+    stem: "Ba bạn thi nhảy xa: An nhảy được 2,8 m, Bình nhảy được 2,75 m, Chi nhảy được 2,9 m. Con viết các số đo theo thứ tự từ lớn đến bé."
+    answer: {type: order, numbers: ["2,8", "2,75", "2,9"], direction: desc}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần xếp ba số đo từ lớn đến bé. Phần nguyên của ba số là mấy?"}
+      - {target: CONCEPT, level: 2, text: "Phần nguyên bằng nhau thì mình so sánh tiếp hàng nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết ba số cùng có hai chữ số ở phần thập phân: 2,80; 2,75; 2,90 rồi so sánh xem?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười: 2,8 có chữ số 8, 2,75 có chữ số 7, 2,9 có chữ số 9. Số nào lớn nhất?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 2,9 là mấy?"}
+    worked_solution:
+      - "Phần nguyên của ba số đều là 2."
+      - "Ở hàng phần mười: 2,8 có chữ số 8, 2,75 có chữ số 7, 2,9 có chữ số 9."
+      - "Vậy thứ tự từ lớn đến bé là 2,9; 2,8; 2,75."
+    explanation: "Phần nguyên đều là 2. Ở hàng phần mười, chữ số 9 lớn nhất rồi đến 8, 7, nên thứ tự từ lớn đến bé là 2,9; 2,8; 2,75."
+
+  - id: CC-06
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-APPLY]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 30
+    stem: "Hai bạn chạy cùng một quãng đường. Bạn nào chạy nhanh hơn: bạn chạy hết nhiều giây hơn hay bạn chạy hết ít giây hơn?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "bạn chạy hết nhiều giây hơn", aliases: ["nhiều giây hơn", "nhiều giây"], misconceptions: [APPLY-TIME-SPEED]}
+        - {id: B, text: "bạn chạy hết ít giây hơn", correct: true, aliases: ["ít giây hơn", "ít giây"]}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn nào về đích trước thì bạn đó chạy thế nào?"}
+      - {target: CONCEPT, level: 2, text: "Chạy cùng quãng đường, ai tốn ít thời gian hơn thì về đích trước hay về sau?"}
+    worked_solution:
+      - "Hai bạn chạy cùng một quãng đường."
+      - "Bạn chạy hết ít giây hơn thì về đích trước."
+      - "Vậy bạn chạy hết ít giây hơn là bạn chạy nhanh hơn."
+    explanation: "Chạy cùng một quãng đường, bạn nào chạy hết ít giây hơn thì về đích trước, tức là chạy nhanh hơn."
+
+  - id: CP-05
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-APPLY, KC-DEC-CMP]
+    cognitive_level: D
+    difficulty: 0.45
+    stem: "Cô làm cùng con: bao gạo A nặng 2,35 kg, bao gạo B nặng 2,4 kg. Phần nguyên đều là 2, nên con so sánh tiếp hàng phần mười. Con điền dấu >, < hoặc = vào chỗ chấm: 2,35 … 2,4"
+    answer: {type: compare, left: "2,35", right: "2,4"}
+    rephrase: "Giữa 2,35 và 2,4, con điền dấu >, < hay = giúp cô nhé?"
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần so sánh khối lượng hai bao gạo, 2,35 kg và 2,4 kg. Phần nguyên của hai số là mấy?"}
+      - {target: CONCEPT, level: 2, text: "Phần nguyên bằng nhau thì mình so sánh tiếp hàng nào?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết 2,4 thành 2,40 rồi so sánh với 2,35 theo từng hàng xem?"}
+      - {target: STEP, level: 4, text: "Ở hàng phần mười, 2,35 có chữ số 3, còn 2,4 có chữ số 4. Chữ số nào lớn hơn?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số hàng phần mười của 2,35 là mấy?"}
+    worked_solution:
+      - "Phần nguyên của hai số đều là 2."
+      - "Ở hàng phần mười: 2,35 có chữ số 3, còn 2,4 có chữ số 4, và 3 bé hơn 4."
+      - "Vậy 2,35 < 2,4, bao gạo B nặng hơn."
+    explanation: "Phần nguyên đều là 2, ở hàng phần mười 3 bé hơn 4, nên 2,35 < 2,4. Bao gạo B nặng hơn."
