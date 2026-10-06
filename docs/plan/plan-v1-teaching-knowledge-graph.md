@@ -139,6 +139,13 @@ Luật tất định, mỗi luật một mã `N-*`, có version như policy gợ
 
 Bảng DI-8 của blueprint (dải M → hành động) dùng để chọn mức hỗ trợ trong N-PRACTICE và N-TRANSFER.
 
+- **Cài đặt (M1-4):** `services/api/cavat/modules/teaching/node_policy.py`, policy `node-policy/0.1.0`.
+  - Thêm luật N-NEXT: chưa ở node nào thì quay về node đang chờ, không thì vào node đầu tiên đã mở khóa mà chưa qua.
+  - Mỗi quyết định được ghi thành sự kiện `NODE_DECISION`, có mã luật và lý do.
+  - Trạng thái dạy của buổi học (`teaching/state.py`) được tính lại từ các quyết định đó cùng kết quả từng câu và phần con nói lại, nên phát lại được.
+- **[FACT] Đo bằng học sinh giả lập làm đúng hết:** cả 7 node qua theo đúng thứ tự học, mất 73 quyết định (khoảng 10 bước mỗi node, 2 câu ôn xen kẽ).
+- **[OPEN] Kho câu còn mỏng:** mỗi node mới có 2 câu luyện. Khi quay về node tiên quyết giữa buổi, gia sư giảng lại được (cách giảng và ví dụ mẫu chưa dùng), nhưng không còn câu luyện mới nên phải dừng node với lý do `NO_ITEMS_LEFT`. Đề xuất: thêm 2–3 câu luyện cho mỗi node (task M1-2c).
+
 ### 5.5. Hybrid RAG (tự xây)
 
 RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã duyệt nào** cho lượt này. Kết quả là một hoặc vài đoạn làm **neo** cho lời nói (mục 5.6). LLM không bao giờ trả lời mà không có neo.
@@ -266,6 +273,14 @@ Chạy song song từ Mốc 1:
   - "có bằng chứng vận dụng": một câu thành công ở mức D/E hoặc câu transfer (chiều A hoặc T);
   - lỗi sai CRITICAL được coi là đã sửa sau 2 câu thành công kể từ lần phát hiện cuối, ở kiến thức nơi lỗi đã xuất hiện.
 - **DI-16:** điểm khởi đầu của node mới lấy từ node tiên quyết. Mỗi chiều bắt đầu từ Beta(2m, 2(1 − m)), với m là trung bình M (thang 0–1) của các node tiên quyết đã có điểm lúc node nhận bằng chứng đầu tiên; không có thì m = 0,5, tức Beta(1, 1) như DI-12. Điểm khởi đầu giữ nguyên từ đó.
+- **DI-19 (tham số của `node-policy/0.1.0`):**
+  - kiểm tra hiểu đạt khi câu kiểm tra thành công và con nói lại được ít nhất nửa số ý bắt buộc;
+  - cần 2 câu luyện thành công trước bài vận dụng;
+  - mời nói lại tối đa 3 lần mỗi lượt ở node;
+  - mỗi cặp (node, node tiên quyết) chỉ quay về một lần mỗi buổi, không quay về node đã dừng;
+  - chỉ lỗi sai CRITICAL của node tiên quyết (kể cả tiên quyết gián tiếp) mới kích hoạt N-REMEDIATE;
+  - câu ôn xen kẽ lấy từ node đã qua có điểm thấp nhất;
+  - ưu tiên câu chưa gặp ở buổi nào, câu dò được lỗi sai đang hoạt động được ưu tiên trước.
 - **DI-18 (tham số khác của `node-mastery/0.1.0`):**
   - bài cùng làm có trọng số × 0,5;
   - câu trả lời "vì sao" chưa được chấm tính R = 1 với trọng số 0,3, như nhãn chưa kiểm chứng (PART 26.5); được hỏi "vì sao" mà không giải thích, hoặc đoán, thì R = 0;
