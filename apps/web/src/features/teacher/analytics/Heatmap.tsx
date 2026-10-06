@@ -45,6 +45,9 @@ export function Heatmap({ overview }: { overview: ClassOverview }) {
   const cols = columns(overview.nodes);
   const basic = cols.filter((n) => n.layer === "BASIC").length;
   const byNode = new Map(overview.by_node.map((b) => [b.node_id, b]));
+  // Two students with the same given name: show the start of their id to tell them apart.
+  const sameName = new Map<string, number>();
+  for (const s of overview.students) sameName.set(s.display_name, (sameName.get(s.display_name) ?? 0) + 1);
   return (
     <div className="flex flex-col gap-3">
       <div role="group" aria-label="Sắp xếp học sinh" className="flex flex-wrap gap-2">
@@ -113,6 +116,11 @@ export function Heatmap({ overview }: { overview: ClassOverview }) {
                       className="inline-flex items-center gap-1.5 font-semibold text-brand-900 hover:underline"
                     >
                       {s.display_name}
+                      {(sameName.get(s.display_name) ?? 0) > 1 && (
+                        <span className="font-mono text-xs font-normal text-slate-500">
+                          {s.student_id.slice(0, 4)}
+                        </span>
+                      )}
                       {s.attention.length > 0 && (
                         <>
                           <AlertIcon className="size-4 text-rose-600" />

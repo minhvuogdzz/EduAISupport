@@ -102,8 +102,8 @@ Chủ dự án yêu cầu giao diện hoàn chỉnh, đẹp, có thêm vai trò 
 
 | Task | Nội dung | Trạng thái |
 |---|---|---|
-| UI-1 | Hệ thiết kế (màu, font Be Vietnam Pro, thẻ, linh vật tự vẽ), trang giới thiệu, trang chủ học sinh có tiến bộ của chương, vai trò phụ huynh (`/parent`, mức hiểu bằng chữ DI-14, xu hướng 4 tuần, gợi ý ở nhà), màn học và trang giáo viên theo giao diện mới; endpoint `GET /v1/students/me/overview`, `GET /v1/parents/children/{code}` | Đang làm |
-| UI-2 | Bảng theo dõi lớp cho giáo viên: chỉ số tổng, bản đồ nhiệt học sinh × bài theo vùng màu PART 25, biểu đồ lỗi hay gặp, học sinh cần chú ý; chi tiết buổi học có đồng hồ điểm M kèm độ tin cậy và biểu đồ 7 chiều (PART 56) | Chưa |
+| UI-1 | Hệ thiết kế (màu, font Be Vietnam Pro, thẻ, linh vật tự vẽ), trang giới thiệu, trang chủ học sinh có tiến bộ của chương, vai trò phụ huynh (`/parent`, mức hiểu bằng chữ DI-14, xu hướng 4 tuần, gợi ý ở nhà), màn học và trang giáo viên theo giao diện mới; endpoint `GET /v1/students/me/overview`, `GET /v1/parents/children/{code}` | Xong (PR #32) |
+| UI-2 | Bảng theo dõi lớp cho giáo viên: chỉ số tổng, bản đồ nhiệt học sinh × bài theo vùng màu PART 25, biểu đồ lỗi hay gặp, học sinh cần chú ý; báo cáo từng học sinh có đồng hồ điểm M kèm độ tin cậy, radar 6 trục, tiến bộ theo ngày, hoạt động học, chi tiết từng bài (khung Toán §23–§28, §39, §43–§46, §56, §57) | Xong: `GET /v1/teachers/class`, `GET /v1/teachers/students/{id}`, trang Lớp học và Báo cáo học sinh |
 
 ### Mốc 2 và Mốc 3
 

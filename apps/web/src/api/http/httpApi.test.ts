@@ -199,11 +199,16 @@ describe("createHttpApi", () => {
       "GET /v1/sessions": () => ({ body: [] }),
       "GET /v1/sessions/s%2F1/transcript": () => ({ body: { session: {}, segments: [] } }),
       "GET /v1/sessions/s%2F1/report": () => ({ body: { nodes: [] } }),
+      "GET /v1/teachers/class": () => ({ body: { students: [] } }),
+      "GET /v1/teachers/students/a%2Fb": () => ({ body: { nodes: [] } }),
     });
 
     await expect(api.listSessions()).resolves.toEqual([]);
     await api.getTranscript("s/1"); // the id is escaped in the path
     await expect(api.getReport?.("s/1")).resolves.toEqual({ nodes: [] });
+    await expect(api.getClassOverview?.()).resolves.toEqual({ students: [] });
+    await expect(api.getStudentReport?.("a/b")).resolves.toEqual({ nodes: [] });
+    expect(calls).toHaveLength(5);
     for (const call of calls) {
       expect(call.headers["X-Demo-Teacher"]).toBeTruthy();
       expect(call.headers["X-Demo-Student"]).toBeUndefined();
