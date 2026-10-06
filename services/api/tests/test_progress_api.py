@@ -63,6 +63,8 @@ def test_the_student_sees_the_chapter_in_words_across_sessions(client):
 
 def test_the_parent_follows_the_child_with_the_code(client):
     pass_first_node(client)
+    lan = {"X-Demo-Student": "lan"}
+    assert client.post("/v1/sessions", json={"student_display_name": "Lan"}, headers=lan).status_code == 201
     code = client.get("/v1/students/me/overview", headers=MINH).json()["parent_code"]
     assert client.get(f"/v1/parents/children/{code}").status_code == 401  # parents only
     assert client.get("/v1/parents/children/ZZZZZZ", headers=PARENT).status_code == 404
@@ -71,6 +73,7 @@ def test_the_parent_follows_the_child_with_the_code(client):
     assert len(view["trend"]) == 28 and view["trend"][-1]["passed"] == 1 and view["trend"][-1]["studied"]
     assert view["home_tips"] and view["home_tips"][0]["tip"]
     assert view["session_list"][0]["passed_names"] == ["Phân số thập phân"]
+    assert view["sessions"]["total"] == 1  # Lan's session is not Minh's
     assert "transcript" not in view  # no drill-down into the conversation for parents (PART 27.4)
 
 

@@ -807,15 +807,14 @@ async def my_overview(database: Database, student: Student, today: Today):
 @parents.get("/children/{code}", response_model=ParentChildView)
 async def child_overview(code: str, database: Database, parent: Parent, today: Today):
     """Parent: the child's progress in plain words, the trend over four weeks and how to help at home."""
-    sessions = await _repo(database).list_all()
-    student_id = next(
-        (s.student_id for s in sessions if progress.parent_code(s.student_id) == code.strip().upper()), None
-    )
+    repo = _repo(database)
+    wanted = code.strip().upper()
+    student_id = next((s for s in await repo.student_ids() if progress.parent_code(s) == wanted), None)
     if student_id is None:
         raise ApiError(404, "NOT_FOUND", "no student has this code")
     chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
-    own = [s for s in sessions if s.student_id == student_id]
-    view = _chapter_overview(sessions, student_id, today)
+    own = await repo.list_for_student(student_id)
+    view = _chapter_overview(own, student_id, today)
     practise = view["to_practise"] or [n for n in view["nodes"] if not n["passed"]][:1]
     return {
         **view,
