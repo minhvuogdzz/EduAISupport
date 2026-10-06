@@ -30,7 +30,7 @@ from cavat.modules.session.repository import (
     SessionState,
 )
 from cavat.modules.tutor.contracts import MessageRenderer
-from cavat.modules.tutor.item_loop import ItemTutor, Phase, TutorEvent
+from cavat.modules.tutor.item_loop import HINT_REQUEST_TEXT, ItemTutor, Phase, TutorEvent
 from cavat.modules.tutor.llm_renderer import LLMRenderer
 from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn
 from cavat.modules.tutor.renderer import TemplateRenderer
@@ -54,9 +54,6 @@ DEMO_PLAN: tuple[tuple[str, ActivityType], ...] = (
     ("EX-01", ActivityType.EXIT_ASSESSMENT),
     ("EX-03", ActivityType.EXIT_ASSESSMENT),
 )
-
-# What the item loop reads when the student presses "gợi ý" (classified as HELP_REQUEST).
-HINT_REQUEST_TEXT = "con cần gợi ý"
 
 # Micro choices after OFFER_CHOICE (PART 24.3). Wording approved by the owner on 2026-10-01.
 CHOICE_HINT = "HINT"

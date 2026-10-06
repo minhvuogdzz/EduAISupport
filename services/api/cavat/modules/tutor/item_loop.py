@@ -70,6 +70,9 @@ from cavat.modules.tutor.renderer import PHRASES, counter_example
 # replies can keep an item open forever.
 MAX_STUDENT_TURNS = 12
 
+# What the loop reads when the student presses "gợi ý" (classified as HELP_REQUEST).
+HINT_REQUEST_TEXT = "con cần gợi ý"
+
 # DI: confidence of a misconception attributed by a probe answer (same as one bug-rule match in the
 # checker): a targeted comparison is strong evidence, so the policy may answer with R-MISC-HIGH.
 PROBE_CONFIDENCE = 0.8
