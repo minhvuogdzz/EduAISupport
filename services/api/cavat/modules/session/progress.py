@@ -15,12 +15,13 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from cavat.core.events import EventType
-from cavat.modules.assessment.projector import NodeState, project_chapter
+from cavat.modules.assessment.projector import ChapterProjection, NodeState, project_chapter
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.session.chapter_service import is_chapter, node_statuses
 from cavat.modules.session.repository import LearningSession, LifecycleState
@@ -63,11 +64,11 @@ def chapter_sessions(chapter: Chapter, sessions: Sequence[LearningSession]) -> l
     return sorted(found, key=lambda s: s.created_at)
 
 
-def _local_day(moment: datetime) -> date:
+def local_day(moment: datetime) -> date:
     return moment.astimezone(LOCAL_TZ).date()
 
 
-def _learning_seconds(session: LearningSession) -> float:
+def learning_seconds(session: LearningSession) -> float:
     times = sorted(e.occurred_at for e in session.events)
     return sum(min(b - a, GAP_CAP).total_seconds() for a, b in zip(times, times[1:], strict=False))
 
@@ -82,18 +83,43 @@ def _streak(days: set[date], today: date) -> int:
     return count
 
 
-def overview(
-    chapter: Chapter, sessions: Sequence[LearningSession], today: date, display_name: str | None = None
-) -> dict[str, Any]:
-    """The student's progress on the chapter, from every session of the student (oldest first)."""
+@dataclass(frozen=True)
+class Folded:
+    """Every chapter session of one student folded into the node projection, oldest first."""
+
+    sessions: list[LearningSession]
+    events: list[Any]
+    projection: ChapterProjection
+    statuses: dict[str, str]
+    unfinished: list[LearningSession]
+
+    @property
+    def display_name(self) -> str:
+        return next((s.student_display_name for s in reversed(self.sessions) if s.student_display_name), "")
+
+
+def fold(chapter: Chapter, sessions: Sequence[LearningSession]) -> Folded:
     mine = chapter_sessions(chapter, sessions)
     events = [e for s in mine for e in s.events]
     projection = project_chapter(events, chapter)
     unfinished = [s for s in mine if s.state.lifecycle in (LifecycleState.READY, LifecycleState.ACTIVE)]
+    state = teaching_state(unfinished[-1].events) if unfinished else TeachingState()
+    return Folded(mine, events, projection, node_statuses(chapter, projection, state), unfinished)
+
+
+def misconception_names(chapter: Chapter) -> dict[str, str]:
+    return {m.id: m.name for lesson in chapter.lessons.values() for m in lesson.misconceptions}
+
+
+def overview(
+    chapter: Chapter, sessions: Sequence[LearningSession], today: date, display_name: str | None = None
+) -> dict[str, Any]:
+    """The student's progress on the chapter, from every session of the student (oldest first)."""
+    folded = fold(chapter, sessions)
+    mine, events, projection, statuses = folded.sessions, folded.events, folded.projection, folded.statuses
+    unfinished = folded.unfinished
     current = unfinished[-1] if unfinished else None
-    state = teaching_state(current.events) if current else TeachingState()
-    statuses = node_statuses(chapter, projection, state)
-    names = {m.id: m.name for lesson in chapter.lessons.values() for m in lesson.misconceptions}
+    names = misconception_names(chapter)
 
     nodes = []
     for order, node_id in enumerate(chapter.topological_order()):
@@ -128,19 +154,17 @@ def overview(
         to_practise.append({**n, "reason": reason, "severity": 0 if active else 1, "m": ns.mastery or 0.0})
     to_practise.sort(key=lambda n: (n["severity"], n["m"]))
 
-    days = {_local_day(e.occurred_at) for s in mine for e in s.events if e.event_type in STUDENT_EVENTS}
+    days = {local_day(e.occurred_at) for s in mine for e in s.events if e.event_type in STUDENT_EVENTS}
     week_start = today - timedelta(days=today.weekday())
     passed_this_week = sum(
         1
         for n in nodes
         if n["passed"]
-        and _local_day(events[projection.nodes[n["node_id"]].passed_at].occurred_at) >= week_start
+        and local_day(events[projection.nodes[n["node_id"]].passed_at].occurred_at) >= week_start
     )
     latest = mine[-1] if mine else None
     return {
-        "student_display_name": display_name
-        or next((s.student_display_name for s in reversed(mine) if s.student_display_name), "")
-        or "",
+        "student_display_name": display_name or folded.display_name,
         "chapter": {"chapter_id": chapter.package.chapter_id, "title": chapter.package.title},
         "nodes": nodes,
         "relations": [
@@ -152,7 +176,7 @@ def overview(
             "total": len(mine),
             "completed": sum(1 for s in mine if s.state.lifecycle == LifecycleState.COMPLETED),
             "unfinished": len(unfinished),
-            "minutes": round(sum(_learning_seconds(s) for s in mine) / 60),
+            "minutes": round(sum(learning_seconds(s) for s in mine) / 60),
         },
         "study_days": sorted(d.isoformat() for d in days),
         "streak": _streak(days, today),
@@ -177,7 +201,7 @@ def trend(chapter: Chapter, sessions: Sequence[LearningSession], today: date) ->
     mine = chapter_sessions(chapter, sessions)
     events = [e for s in mine for e in s.events]
     projection = project_chapter(events, chapter)
-    day_of = [_local_day(e.occurred_at) for e in events]
+    day_of = [local_day(e.occurred_at) for e in events]
     studied_days = {day_of[i] for i, e in enumerate(events) if e.event_type in STUDENT_EVENTS}
     first = today - timedelta(days=TREND_DAYS - 1)
     passed_on = {
@@ -234,7 +258,7 @@ def sessions_list(chapter: Chapter, sessions: Sequence[LearningSession]) -> list
             {
                 "session_id": s.id,
                 "started_at": s.started_at or s.created_at,
-                "minutes": round(_learning_seconds(s) / 60),
+                "minutes": round(learning_seconds(s) / 60),
                 "lifecycle_state": s.state.lifecycle,
                 "passed_names": newly,
             }

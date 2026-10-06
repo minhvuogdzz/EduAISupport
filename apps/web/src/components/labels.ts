@@ -4,19 +4,23 @@
  */
 import type {
   ActivityType,
+  AttentionReason,
   Dimension,
   HintLevel,
   HintTarget,
   ItemResolution,
+  KcGroup,
   LifecycleState,
   Move,
   NodeStatus,
   Outcome,
   Quality,
+  Recommendation,
   StudentAnnotation,
   TeachAction,
   TeachMessageKind,
 } from "../api/contract";
+import { formatViDecimal } from "../lib/viNumber";
 
 export const ACTIVITY_LABEL: Record<ActivityType, string> = {
   OPENING: "Mở đầu",
@@ -293,4 +297,69 @@ export const RULE_LABEL: Record<string, string> = {
 /** "Cô" from the persona's "cô". */
 export function capitalize(word: string): string {
   return word.charAt(0).toLocaleUpperCase("vi-VN") + word.slice(1);
+}
+
+// ---------------------------------------------------------------- the teacher's analytics (PART 27, §56)
+
+/** The six levels of understanding with the names of the Math framework (§4–§8), for the teacher. */
+export const LEVEL_NAME = [
+  "Chưa hình thành kiến thức",
+  "Nhận biết",
+  "Thực hiện theo quy trình",
+  "Hiểu bản chất",
+  "Vận dụng",
+  "Làm chủ",
+] as const;
+
+/** §43: mastered ✓, not yet stable ⚠, weak ✕ (DI-27), plus the KCs without enough evidence. */
+export const KC_GROUP_LABEL: Record<KcGroup, string> = {
+  PASSED: "Đã qua bài",
+  UNSTABLE: "Chưa ổn định",
+  WEAK: "Còn yếu",
+  INSUFFICIENT: "Chưa đủ dữ liệu",
+  NOT_STARTED: "Chưa học",
+};
+
+export const KC_GROUP_MARK: Record<KcGroup, string> = {
+  PASSED: "✓",
+  UNSTABLE: "⚠",
+  WEAK: "✕",
+  INSUFFICIENT: "?",
+  NOT_STARTED: "–",
+};
+
+/** The tutor's next move by the band of M: DI-8 (blueprint 26.1), waiting for the owner's approval. */
+export const RECOMMENDATION_LABEL: Record<Recommendation, string> = {
+  DIAGNOSE: "Hỏi một câu chẩn đoán để biết con đang ở đâu",
+  EXPLAIN: "Giảng ngắn rồi làm mẫu (Micro Explain → Guided Example)",
+  GUIDED: "Hỏi gợi mở, gợi ý sớm (Guided Question)",
+  PRACTICE: "Cho tự luyện và hỏi “vì sao” (Independent Practice)",
+  TRANSFER: "Cho bài biến thể, bài chuyển giao (Transfer)",
+  CHALLENGE: "Cho bài thử thách hoặc sang bài tiếp theo (Challenge)",
+};
+
+/** §27: progress, standing still, decline (DI-24: against the score three changes earlier). */
+export const DIRECTION_LABEL: Record<"UP" | "FLAT" | "DOWN", string> = {
+  UP: "↗ Tiến bộ",
+  FLAT: "→ Đứng yên",
+  DOWN: "↘ Suy giảm",
+};
+
+/** One sentence per reason the teacher should look at a student (DI-20). */
+export function attentionText(
+  reason: AttentionReason,
+  nodeName: (id: string) => string,
+  misconceptionName: (id: string) => string,
+): string {
+  const node = reason.node_id ? nodeName(reason.node_id) : "";
+  switch (reason.kind) {
+    case "STOPPED":
+      return `Gia sư đã dừng bài “${node}”: cần cô giáo hỗ trợ trực tiếp`;
+    case "MISCONCEPTION":
+      return `Lặp lại lỗi “${misconceptionName(reason.misconception_id ?? "")}” (${reason.count ?? 0} lần)`;
+    case "WEAK":
+      return `Bài “${node}” còn yếu: M ${formatViDecimal(reason.mastery ?? 0)}`;
+    default:
+      return `Buổi học còn dở, ${reason.days ?? 0} ngày chưa quay lại`;
+  }
 }

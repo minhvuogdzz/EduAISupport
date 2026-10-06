@@ -300,6 +300,36 @@ Chạy song song từ Mốc 1:
   - chiều của câu theo mức: A/B → C, C → R, D → A, E hoặc câu transfer → T, DIAG → D;
   - độc lập I chỉ tính từ câu giải được, theo gợi ý cao nhất;
   - mức 5 chỉ đạt khi qua cổng thành thạo tạm thời (M ≥ 85, độ tin cậy ≥ 75, μ_A ≥ 0,8), vì Mốc 1 chưa có chiều ghi nhớ S.
+- **DI-20 đến DI-31 (giao diện UI-1, UI-2; theo khung Toán §23–§28, §39, §43, §45, §46, §56, §57):**
+  - **DI-20, học sinh cần chú ý.** Một em vào danh sách khi:
+    - có lỗi sai đang mắc là CRITICAL, hoặc đã gặp từ 2 lần;
+    - gia sư đã dừng một bài;
+    - một bài chưa qua có M < 40 khi đã đủ dữ liệu (độ tin cậy ≥ 30, DI-7);
+    - có buổi học dở dang mà 7 ngày chưa học.
+  - **DI-21, điểm tổng và phủ kiến thức (§23).**
+    - Điểm tổng là trung bình M của các bài đã có điểm.
+    - Phủ kiến thức là tỉ lệ bài đã có điểm.
+    - Độ tin cậy tổng là trung bình độ tin cậy của các bài đó.
+  - **DI-22, mỗi chiều trên cả chương (radar §24).**
+    - Giá trị là trung bình μ của chiều ở các bài mà chiều được tính vào M (DI-1), theo trọng số lượng bằng chứng hiệu dụng.
+    - Trục Kiến thức của §24 lấy chiều C (blueprint C1). D hiện bên cạnh radar.
+  - **DI-23, điểm mạnh và điểm yếu (§23).** Tối đa 2 chiều từ 75 trở lên (vùng xanh §25) là điểm mạnh; tối đa 2 chiều dưới 60 là điểm yếu.
+  - **DI-24, xu hướng (§27).** So M hiện tại với M ở 3 lần thay đổi trước: chênh từ 3 điểm là tiến bộ hoặc suy giảm, còn lại là đứng yên.
+  - **DI-25, tốc độ học (§39).** Điểm tổng hiện tại trừ điểm tổng cuối ngày học gần nhất trước tuần này (tuần tính từ thứ Hai).
+  - **DI-26, dòng thời gian (§27).** Điểm tổng cuối mỗi ngày có bằng chứng mới, theo giờ Việt Nam.
+  - **DI-27, nhóm kiến thức (§43).**
+    - ✓ đã qua bài theo DI-15. Chưa gọi là "làm chủ" vì §53 cần chiều ghi nhớ.
+    - ✕ còn yếu: M < 60 khi đủ dữ liệu.
+    - ⚠ chưa ổn định: M ≥ 60 nhưng chưa qua.
+    - Thêm hai nhóm: "chưa đủ dữ liệu" (DI-7) và "chưa học".
+  - **DI-28, lỗi tái diễn (§28).**
+    - Lỗi tái diễn nhiều nhất là lỗi gặp nhiều lần nhất trong 14 ngày.
+    - "Cần can thiệp": lỗi CRITICAL, hoặc gặp từ 3 lần trong 14 ngày, mà còn em đang mắc.
+    - "Đã sửa được": không còn em nào mắc.
+    - Còn lại là "Theo dõi".
+  - **DI-29, thời gian học.** Cộng khoảng cách giữa hai sự kiện liên tiếp trong buổi; mỗi khoảng tính tối đa 5 phút.
+  - **DI-30, ngày học.** Ngày theo giờ Việt Nam có ít nhất một lượt học sinh.
+  - **DI-31, hai nhãn thêm cho học sinh và phụ huynh (ngoài DI-14).** "Chưa học" cho bài chưa có bằng chứng; "Đang học" cho bài đang học mà chưa có bằng chứng.
 - **DI-17:** tham số Hybrid RAG: BM25 k1 = 1,2, b = 0,75; RRF k = 60; hệ số phạt theo khoảng cách đồ thị; ngưỡng "không đủ căn cứ để trả lời".
 - Số câu tối đa mỗi node (N-BUDGET), số cách giảng tối thiểu, các ý bắt buộc khi chấm lời giải thích: đặt giá trị mặc định ở Mốc 1, duyệt sau.
 - Nội dung gói chương do AI soạn nháp: chủ dự án duyệt từng node trước khi học sinh thật dùng.

@@ -34,7 +34,7 @@ from cavat.core.repository import utc_now
 from cavat.modules.ai_gateway.router import AIRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
-from cavat.modules.session import chapter_service, progress, service
+from cavat.modules.session import chapter_service, progress, service, teacher_view
 from cavat.modules.session.repository import (
     DuplicateCommand,
     EventRepository,
@@ -451,6 +451,193 @@ class ParentChildView(StudentOverviewView):
     session_list: list[ParentSession]
 
 
+# ---------------------------------------------------------------- the teacher's class view (PART 27.1, §56)
+
+
+class TeacherNode(BaseModel):
+    node_id: str
+    name: str
+    layer: Literal["BASIC", "IMPLEMENT"]
+    order: int
+    min_mastery: float
+
+
+class MasteryCell(BaseModel):
+    """One student on one KC: M, confidence (DI-7 below 30), the level of §4-§8 and the pass (DI-15)."""
+
+    node_id: str
+    mastery: float | None
+    confidence: float
+    level: int
+    state: str
+    insufficient_data: bool
+    passed: bool
+    status: str
+    active_misconceptions: int
+
+
+class AttentionReason(BaseModel):
+    kind: Literal["STOPPED", "MISCONCEPTION", "WEAK", "INACTIVE"]
+    node_id: str | None = None
+    misconception_id: str | None = None
+    count: int | None = None
+    mastery: float | None = None
+    days: int | None = None
+
+
+class OverallView(BaseModel):
+    """§23: overall mastery and knowledge coverage (DI-21)."""
+
+    mastery: float | None
+    confidence: float | None
+    level: int | None
+    coverage: float
+
+
+class ClassStudent(BaseModel):
+    student_id: str
+    display_name: str
+    sessions: SessionCounts
+    last_active_at: datetime | None
+    passed: int
+    overall: OverallView
+    cells: list[MasteryCell]
+    attention: list[AttentionReason]
+
+
+class ClassNodeSummary(BaseModel):
+    """§45: the class on one KC."""
+
+    node_id: str
+    mean_mastery: float | None
+    students: int
+    passed: int
+
+
+class ClassMisconception(BaseModel):
+    """§28: one misconception in the class."""
+
+    id: str
+    name: str
+    node_id: str | None
+    severity: str
+    count: int
+    share: float
+    students: int
+    active_students: int
+    recent: int
+
+
+class ClassKpis(BaseModel):
+    students: int
+    active_this_week: int
+    sessions: int
+    minutes: int
+    passed: int
+    cells: int
+    mean_mastery: float | None
+    attention: int
+
+
+class ClassOverviewView(BaseModel):
+    """GET /v1/teachers/class: the Student × KC heatmap (§46, zones of §25), the class per KC (§45),
+    the misconception chart (§28) and the students who need attention."""
+
+    chapter: ChapterRef
+    nodes: list[TeacherNode]
+    students: list[ClassStudent]
+    by_node: list[ClassNodeSummary]
+    misconceptions: list[ClassMisconception]
+    kpis: ClassKpis
+
+
+class DimensionValue(BaseModel):
+    value: float | None
+    n_eff: float
+
+
+class NodeDimension(BaseModel):
+    value: float
+    n_eff: float
+    in_mastery: bool
+
+
+class TrendPoint(BaseModel):
+    at: datetime
+    mastery: float
+
+
+class NodeMisconception(BaseModel):
+    id: str
+    name: str
+    severity: str
+    count: int
+    status: str
+
+
+class TeacherNodeDetail(TeacherNode, MasteryCell):
+    """§57: one KC of one student."""
+
+    group: Literal["PASSED", "UNSTABLE", "WEAK", "INSUFFICIENT", "NOT_STARTED"]
+    dimensions: dict[str, NodeDimension]
+    items: int
+    solved: int
+    attempts: int
+    hints: int
+    seconds: int | None
+    misconceptions: list[NodeMisconception]
+    trend: list[TrendPoint]
+    direction: Literal["UP", "FLAT", "DOWN"] | None
+    recommendation: Literal["DIAGNOSE", "EXPLAIN", "GUIDED", "PRACTICE", "TRANSFER", "CHALLENGE"]
+
+
+class StudentOverall(OverallView):
+    passed: int
+    total: int
+
+
+class TimelinePoint(BaseModel):
+    date: str
+    mastery: float
+
+
+class Velocity(BaseModel):
+    change: float
+    since: str
+
+
+class ActivityDay(BaseModel):
+    date: str
+    independent: int
+    supported: int
+    worked: int
+    unresolved: int
+    hints: int
+    passed: int
+
+
+class TeacherStudentView(BaseModel):
+    """GET /v1/teachers/students/{id}: §23 and §43 overview, §24 radar, §27 timeline, §39 velocity, §56
+    activity and the §57 detail of every KC."""
+
+    student_id: str
+    display_name: str
+    chapter: ChapterRef
+    relations: list[RelationView]
+    sessions: SessionCounts
+    session_list: list[ParentSession]
+    last_active_at: datetime | None
+    overall: StudentOverall
+    dimensions: dict[str, DimensionValue]
+    strengths: list[str]
+    weaknesses: list[str]
+    nodes: list[TeacherNodeDetail]
+    timeline: list[TimelinePoint]
+    velocity: Velocity | None
+    activity: list[ActivityDay]
+    attention: list[AttentionReason]
+
+
 class CommandAck(BaseModel):
     accepted: Literal[True] = True
     state_version: int
@@ -509,6 +696,7 @@ IdempotencyKey = Annotated[str | None, Header(max_length=100)]
 router = APIRouter(prefix="/v1/sessions", tags=["sessions"])
 students = APIRouter(prefix="/v1/students", tags=["students"])
 parents = APIRouter(prefix="/v1/parents", tags=["parents"])
+teachers = APIRouter(prefix="/v1/teachers", tags=["teachers"])
 
 
 def _repo(database: Any) -> LearningSessionRepository:
@@ -824,6 +1012,26 @@ async def child_overview(code: str, database: Database, parent: Parent, today: T
     }
 
 
+@teachers.get("/class", response_model=ClassOverviewView)
+async def class_view(database: Database, teacher: Teacher, today: Today):
+    """Teacher: the class on the chapter, replayed from every student's sessions (rule 3)."""
+    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+    by_student: dict[str, list[LearningSession]] = {}
+    for session in await _repo(database).list_lesson(chapter.package.chapter_id):
+        by_student.setdefault(session.student_id, []).append(session)
+    return teacher_view.class_overview(chapter, by_student, today)
+
+
+@teachers.get("/students/{student_id}", response_model=TeacherStudentView)
+async def teacher_student(student_id: str, database: Database, teacher: Teacher, today: Today):
+    """Teacher: one student on the chapter, with every KC in detail."""
+    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+    sessions = await _repo(database).list_for_student(student_id)
+    if not progress.chapter_sessions(chapter, sessions):
+        raise ApiError(404, "NOT_FOUND", "this student has no session on the chapter")
+    return teacher_view.student_detail(chapter, student_id, sessions, today)
+
+
 def register(app: FastAPI) -> None:
     """Mount the router and the error format ``{"error": {"code", "message", "details"}}``."""
 
@@ -843,3 +1051,4 @@ def register(app: FastAPI) -> None:
     app.include_router(router)
     app.include_router(students)
     app.include_router(parents)
+    app.include_router(teachers)

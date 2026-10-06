@@ -14,7 +14,7 @@ describe("teacher transcript screen", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("lists sessions, newest first, and opens the first one", async () => {
-    renderApp("/teacher", seeded());
+    renderApp("/teacher/sessions", seeded());
     const list = await screen.findByRole("navigation", { name: "Danh sách buổi học" });
     const links = within(list).getAllByRole("link");
     expect(links.map((link) => link.textContent)).toEqual([
@@ -27,7 +27,7 @@ describe("teacher transcript screen", () => {
   });
 
   it("annotates every turn with the decision behind it", async () => {
-    renderApp("/teacher", seeded());
+    renderApp("/teacher/sessions", seeded());
     await screen.findByRole("heading", { level: 2, name: "Lan" });
     const cc02 = itemBlock(/Câu 2 · CC-02/);
     expect(within(cc02).getByText("Đang làm")).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe("teacher transcript screen", () => {
   });
 
   it("shows item results, the checker's reading of each answer and ungraded EXIT items", async () => {
-    const { user } = renderApp("/teacher", seeded());
+    const { user } = renderApp("/teacher/sessions", seeded());
     await user.click(await screen.findByRole("link", { name: /Minh/ }));
     await screen.findByRole("heading", { level: 2, name: "Minh" });
 
@@ -76,7 +76,7 @@ describe("teacher transcript screen", () => {
   });
 
   it("says so when there is no session yet", async () => {
-    renderApp("/teacher", testApi());
+    renderApp("/teacher/sessions", testApi());
     expect(await screen.findAllByText("Chưa có buổi học nào.")).not.toHaveLength(0);
   });
 });

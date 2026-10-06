@@ -15,6 +15,7 @@ import {
   API_ERROR_CODES,
   type ApiErrorCode,
   type ChatTurn,
+  type ClassOverview,
   type CommandAck,
   type SessionState,
   type SessionSummary,
@@ -23,6 +24,7 @@ import {
   type StreamEvent,
   type StudentOverview,
   type TeachingReport,
+  type TeacherStudentView,
 } from "../contract";
 
 export interface HttpApiOptions {
@@ -217,6 +219,18 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
 
     listSessions() {
       return request<SessionSummary[]>("GET", "/v1/sessions", TEACHER_HEADERS);
+    },
+
+    getClassOverview() {
+      return request<ClassOverview>("GET", "/v1/teachers/class", TEACHER_HEADERS);
+    },
+
+    getStudentReport(studentId) {
+      return request<TeacherStudentView>(
+        "GET",
+        `/v1/teachers/students/${encodeURIComponent(studentId)}`,
+        TEACHER_HEADERS,
+      );
     },
 
     getTranscript(sessionId) {

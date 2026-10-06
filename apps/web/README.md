@@ -29,13 +29,15 @@ Thử trên tablet cùng mạng LAN: `pnpm dev --host`, rồi mở `http://<IP m
 
 ## Màn hình
 
-| Đường dẫn                           | Người dùng | Nội dung                                                                                                                                                                                                                                   |
-| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/`                                 | —          | Trang giới thiệu: vòng dạy 7 bước, khác gì chatbot, cây tri thức của chương, góc nhìn của ba vai trò                                                                                                                                       |
-| `/student`                          | Học sinh   | Lời chào, "Học tiếp" buổi còn dở, bắt đầu buổi mới; tiến bộ của chương (API thật): chuỗi ngày học, bài đã qua, bản đồ chương với "Đã nắm chắc / Cần luyện thêm", tuần này, mã cho bố mẹ, "Lịch sử học"                                     |
-| `/student/sessions/:id`             | Học sinh   | Câu hỏi, khung hội thoại, ô trả lời, nút dấu `<` `>` `=` `,`, nút "Xin gợi ý", lựa chọn nhỏ của cô, thẻ hoàn thành. Buổi học theo chương có thêm bản đồ bài học, thanh 7 bước, thẻ "Cô giảng bài", "Cô làm mẫu" và ô "con nói lại"         |
-| `/parent`, `/parent/:code`          | Phụ huynh  | Nhập mã của con; xem số buổi, thời gian học, bài đã vững, chuỗi ngày học, mức hiểu từng bài bằng chữ (DI-14), việc con làm tốt và cần luyện thêm, gợi ý giúp con ở nhà, tiến bộ 4 tuần, các buổi học. Không có điểm số, không có hội thoại |
-| `/teacher`, `/teacher/sessions/:id` | Giáo viên  | Danh sách buổi học và transcript theo từng câu: move, mức gợi ý H0–H7 và target, rule id, kết quả chấm, misconception, kết quả câu (resolution). Buổi học theo chương mở tab "Bộ não gia sư" (xem dưới)                                    |
+| Đường dẫn                                    | Người dùng | Nội dung                                                                                                                                                                                                                                   |
+| -------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                                          | —          | Trang giới thiệu: vòng dạy 7 bước, khác gì chatbot, cây tri thức của chương, góc nhìn của ba vai trò                                                                                                                                       |
+| `/student`                                   | Học sinh   | Lời chào, "Học tiếp" buổi còn dở, bắt đầu buổi mới; tiến bộ của chương (API thật): chuỗi ngày học, bài đã qua, bản đồ chương với "Đã nắm chắc / Cần luyện thêm", tuần này, mã cho bố mẹ, "Lịch sử học"                                     |
+| `/student/sessions/:id`                      | Học sinh   | Câu hỏi, khung hội thoại, ô trả lời, nút dấu `<` `>` `=` `,`, nút "Xin gợi ý", lựa chọn nhỏ của cô, thẻ hoàn thành. Buổi học theo chương có thêm bản đồ bài học, thanh 7 bước, thẻ "Cô giảng bài", "Cô làm mẫu" và ô "con nói lại"         |
+| `/parent`, `/parent/:code`                   | Phụ huynh  | Nhập mã của con; xem số buổi, thời gian học, bài đã vững, chuỗi ngày học, mức hiểu từng bài bằng chữ (DI-14), việc con làm tốt và cần luyện thêm, gợi ý giúp con ở nhà, tiến bộ 4 tuần, các buổi học. Không có điểm số, không có hội thoại |
+| `/teacher`                                   | Giáo viên  | Bảng theo dõi lớp: chỉ số tổng, bản đồ nhiệt học sinh × bài, lỗi sai phổ biến, học sinh cần chú ý, cả lớp theo từng bài (xem dưới)                                                                                                         |
+| `/teacher/students/:id`                      | Giáo viên  | Báo cáo một học sinh: đồng hồ điểm và độ tin cậy, radar, nhận định, cây tri thức, chi tiết từng bài, tiến bộ theo ngày, hoạt động học, các buổi học                                                                                        |
+| `/teacher/sessions`, `/teacher/sessions/:id` | Giáo viên  | Danh sách buổi học và transcript theo từng câu: move, mức gợi ý H0–H7 và target, rule id, kết quả chấm, misconception, kết quả câu (resolution). Buổi học theo chương mở tab "Bộ não gia sư" (xem dưới)                                    |
 
 **Mỗi vai trò thấy gì về mức hiểu bài (blueprint PART 27.1):** học sinh thấy hai cụm "Đã nắm chắc / Cần luyện thêm"; phụ huynh thấy 6 mức nhận xét bằng chữ của DI-14 (Chưa học, Chưa đủ dữ liệu, Đang làm quen, Làm được khi có hỗ trợ, Tự làm được, Vững và vận dụng) và xu hướng 4 tuần; chỉ giáo viên thấy điểm M, độ tin cậy và 7 chiều đánh giá.
 
@@ -99,11 +101,51 @@ Hai endpoint đọc mọi buổi học theo chương của một học sinh và 
 Các quy ước có tính diễn giải (DI):
 
 - **Mã cho bố mẹ** là 6 ký tự đầu của SHA-256 mã học sinh. Đây là liên kết phụ huynh tạm cho demo, chưa phải đăng nhập (chờ T12).
-- **Thời gian học** cộng khoảng cách giữa hai sự kiện liên tiếp trong buổi học, mỗi khoảng tính tối đa 5 phút, nên lúc nghỉ lâu không bị tính thêm.
-- **Ngày học** tính theo giờ Việt Nam, là ngày có ít nhất một lượt học sinh trả lời.
-- Bài đang học nhưng chưa có bằng chứng hiện "Đang học", không hiện "Chưa học".
+- **Thời gian học** (DI-29) cộng khoảng cách giữa hai sự kiện liên tiếp trong buổi học, mỗi khoảng tính tối đa 5 phút, nên lúc nghỉ lâu không bị tính thêm.
+- **Ngày học** (DI-30) tính theo giờ Việt Nam, là ngày có ít nhất một lượt học sinh trả lời.
+- Bài đang học nhưng chưa có bằng chứng hiện "Đang học", không hiện "Chưa học" (DI-31).
 
 Mock API trong trình duyệt không có hai endpoint này: trang chủ học sinh chỉ hiện phần bắt đầu học, trang phụ huynh báo cần chạy `make demo`.
+
+## Bảng theo dõi của giáo viên (UI-2)
+
+Hai endpoint chỉ đọc (`services/api/cavat/modules/session/teacher_view.py`, header `X-Demo-Teacher`). Mọi con số được tính lại từ sự kiện qua projector điểm từng bài (quy tắc 3).
+
+- `GET /v1/teachers/class` trả về:
+  - bản đồ nhiệt học sinh × bài;
+  - cả lớp theo từng bài;
+  - lỗi sai phổ biến;
+  - chỉ số tổng;
+  - lý do cần chú ý của từng em.
+- `GET /v1/teachers/students/{id}` trả về:
+  - điểm tổng, phủ kiến thức và các chiều;
+  - từng bài chi tiết;
+  - dòng thời gian, tốc độ học, hoạt động theo ngày;
+  - danh sách buổi học.
+
+Mỗi biểu đồ bám một mục của khung đánh giá Toán:
+
+| Biểu đồ                                                                                                   | Khung Toán | Ở đâu            |
+| --------------------------------------------------------------------------------------------------------- | ---------- | ---------------- |
+| Bản đồ nhiệt học sinh × bài, 5 vùng màu (90–100 xanh đậm, 75–89 xanh, 60–74 vàng, 40–59 cam, 0–39 đỏ)     | §46, §25   | Lớp học          |
+| Cả lớp theo từng bài (hàng cuối bản đồ nhiệt và biểu đồ thanh)                                            | §45        | Lớp học          |
+| Lỗi sai phổ biến: tỉ lệ, số lần, lỗi tái diễn nhiều nhất trong 14 ngày, mức độ                            | §28        | Lớp học          |
+| Đồng hồ điểm M kèm thanh độ tin cậy                                                                       | §56.1, §21 | Báo cáo học sinh |
+| Radar 6 trục: Kiến thức (C), Lập luận, Vận dụng, Chuyển giao, Tự làm, Ghi nhớ                             | §24        | Báo cáo học sinh |
+| Nhận định: điểm mạnh, điểm yếu, rủi ro, nhóm ✓ ⚠ ✕                                                        | §23, §43   | Báo cáo học sinh |
+| Cây tri thức có vạch màu vùng điểm                                                                        | §26        | Báo cáo học sinh |
+| Chi tiết một bài: M, độ tin cậy, mức, các chiều, số câu, gợi ý, thời gian, lỗi sai, xu hướng, khuyến nghị | §57, DI-8  | Báo cáo học sinh |
+| Tiến bộ theo ngày và tốc độ học                                                                           | §27, §39   | Báo cáo học sinh |
+| Hoạt động học theo ngày: câu tự làm, nhờ gợi ý, cần làm mẫu, chưa giải quyết                              | §56        | Báo cáo học sinh |
+
+Quy ước hiển thị:
+
+- **Độ tin cậy thấp:** ô có độ tin cậy dưới 30 vẫn hiện số cho giáo viên nhưng có gạch chéo và dấu "?" (DI-7, PART 27.3).
+- **Số trong ô:** số trong ô bản đồ nhiệt được làm tròn xuống, nên luôn nằm trong khoảng của vùng màu; số chính xác có trong chú thích của ô.
+- **Không dùng màu một mình:** mỗi màu luôn đi kèm số hoặc chữ.
+- **Các ngưỡng tự đặt:** những ngưỡng không có trong khung là DI-20 đến DI-28, ghi trong mục 9 của `docs/plan/plan-v1-teaching-knowledge-graph.md`.
+
+Mock API không có hai endpoint này: trang "Lớp học" báo cần chạy `make demo` và dẫn sang "Buổi học".
 
 ## Mock API
 

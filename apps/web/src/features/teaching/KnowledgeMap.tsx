@@ -20,6 +20,8 @@ interface KnowledgeMapProps {
   relations: KnowledgeRelation[];
   title: string;
   showMastery?: boolean;
+  /** An SVG fill class per node, drawn as a strip on the box (the zones of M, khung Toán §26). */
+  zoneFill?: (node: MapNode) => string | null;
   selectedId?: string | null;
   onSelect?: (nodeId: string) => void;
 }
@@ -157,6 +159,7 @@ export function KnowledgeMap({
   relations,
   title,
   showMastery,
+  zoneFill,
   selectedId,
   onSelect,
 }: KnowledgeMapProps) {
@@ -275,6 +278,16 @@ export function KnowledgeMap({
                 />
               )}
               <rect width={BOX_W} height={BOX_H} rx={14} strokeWidth={2} className={style.box} />
+              {zoneFill?.(node) && (
+                <rect
+                  x={BOX_W - 11}
+                  y={9}
+                  width={6}
+                  height={BOX_H - 18}
+                  rx={3}
+                  className={zoneFill(node) ?? undefined}
+                />
+              )}
               {node.status === "CURRENT" && (
                 <rect
                   x={-3}
