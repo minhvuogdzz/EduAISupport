@@ -15,7 +15,15 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from cavat.core.pedagogy import ActivityType, ErrorClass, ItemResolution, Move, Outcome
+from cavat.core.pedagogy import (
+    ActivityType,
+    ErrorClass,
+    ItemResolution,
+    Move,
+    Outcome,
+    PracticeSupport,
+    TeachAction,
+)
 
 
 class EventType(StrEnum):
@@ -54,6 +62,7 @@ class EventType(StrEnum):
     VOICE_UTTERANCE = "VOICE_UTTERANCE"
     VOICE_FALLBACK_TO_TEXT = "VOICE_FALLBACK_TO_TEXT"
     # teaching on the chapter graph (plan v1)
+    NODE_DECISION = "NODE_DECISION"
     RETELL_JUDGED = "RETELL_JUDGED"
     # assessment / teacher
     EVIDENCE_RECORDED = "EVIDENCE_RECORDED"
@@ -193,6 +202,19 @@ class RetellJudged(_Payload):
     modality: Literal["TEXT", "VOICE"] = "TEXT"
 
 
+class NodeDecisionMade(_Payload):
+    """A decision of the node teaching policy (plan v1, 5.4). The decisions of a session, with the item
+    results and retells that follow them, are the whole teaching state (``teaching/state.py``)."""
+
+    action: TeachAction
+    node_id: str | None = None
+    ref: str | None = None  # theory variant, worked example or item id
+    support: PracticeSupport | None = None
+    rule_ids: list[str] = Field(default_factory=list)
+    reason_codes: list[str] = Field(default_factory=list)
+    policy_version: str
+
+
 # Which payload model validates which event type. Types not listed carry free-form payloads for now.
 class StudentMessage(_Payload):
     """What the student sent, before grading. Kept for the transcript and for replaying the item loop."""
@@ -238,4 +260,5 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.MODEL_FALLBACK: ModelFallback,
     EventType.ITEM_RESOLVED: ItemResolved,
     EventType.RETELL_JUDGED: RetellJudged,
+    EventType.NODE_DECISION: NodeDecisionMade,
 }

@@ -1,0 +1,314 @@
+"""Node teaching policy: deterministic rules N-* over the chapter graph (plan v1, 5.4; ADR-018).
+
+``decide`` maps the chapter, the node mastery projection (M1-3) and the session's teaching state to one
+``NodeDecisionMade``. Each decision names its rule, so it can be explained, tested rule by rule and
+replayed (rule 7: the policy is versioned). The LLM only phrases what a decision points to: a theory
+variant, a worked example, an item or the retell prompt. Rules, in priority order:
+
+- N-FINISH    no node left to learn: end the session with a summary;
+- N-REVIEW    just after a pass: one item of a node passed earlier (interleaving);
+- N-NEXT      no current node: resume the node on hold, else the first unlocked node not passed;
+- N-PASS      the pass rule holds (DI-15);
+- N-BUDGET    the node used its item budget, or has no item left: stop it, "cần học lại";
+- N-REMEDIATE a critical misconception of an earlier node, a failed warm-up item, or a second failed
+              check while a prerequisite is weak: put the node on hold and teach that prerequisite;
+- N-WARMUP    entering a node whose prerequisite has no evidence in this session: one quick item of it;
+- N-TEACH     nothing taught in this visit: the first theory variant not used in the session;
+- N-CHECK     after teaching: a concept-check item, then the retell; later also when explanation is missing;
+- N-RETEACH   the check failed: the next theory variant; none left, a worked example with high support;
+- N-METHOD    the check passed: a worked example, then the "cùng làm" item;
+- N-PRACTICE  successes, mastery or a misconception still missing: the next practice item;
+- N-TRANSFER  enough practice but no application evidence: a transfer item.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Collection, Iterable
+
+from cavat.core.events import NodeDecisionMade
+from cavat.core.pedagogy import PracticeSupport, TeachAction
+from cavat.modules.assessment.projector import ChapterProjection, NodeState
+from cavat.modules.content.chapter_package import Chapter, Node
+from cavat.modules.content.lesson_package import Item
+from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, TeachingState, Visit
+
+_SUPPORT_BY_BAND = (
+    PracticeSupport.EXPLAIN_FIRST,
+    PracticeSupport.GUIDED,
+    PracticeSupport.ASK_WHY,
+    PracticeSupport.TRANSFER,
+    PracticeSupport.CHALLENGE,
+)
+
+
+class PendingResult(RuntimeError):
+    """The last item or retell has no result yet: the teaching loop must finish it first."""
+
+
+def decide(
+    chapter: Chapter,
+    projection: ChapterProjection,
+    state: TeachingState,
+    config: NodePolicyConfig = DEFAULT_CONFIG,
+) -> NodeDecisionMade:
+    return _Policy(chapter, projection, state, config).decide()
+
+
+def misconceptions_probed(item: Item) -> set[str]:
+    """Misconceptions an item can reveal from its answer spec (compare and order items use bug rules)."""
+    answer = item.answer
+    if answer.type in ("numeric", "boolean"):
+        return set(answer.wrong_answers.values())
+    if answer.type == "choice":
+        found = {m for o in answer.options for m in o.misconceptions}
+        return found | {m for o in answer.options if o.probe for m in (o.probe.if_wrong, o.probe.if_correct)}
+    return set()
+
+
+class _Policy:
+    def __init__(
+        self, chapter: Chapter, projection: ChapterProjection, state: TeachingState, config: NodePolicyConfig
+    ) -> None:
+        self.chapter, self.state, self.config = chapter, state, config
+        self.nodes: dict[str, NodeState] = projection.nodes
+        self.order = chapter.topological_order()
+        self.seen = {e.item_id for e in projection.evidence if e.item_id}  # items met in any session
+
+    def decide(self) -> NodeDecisionMade:
+        st = self.state
+        if st.finished:
+            return self._make(TeachAction.FINISH, "N-FINISH", reasons=["ALREADY_FINISHED"])
+        visit = st.current
+        if visit is None:
+            return self._between_nodes()
+        if visit.pending is not None or visit.retell_pending:
+            raise PendingResult(f"waiting for {visit.pending or 'the retell'} at {visit.node_id}")
+        return self._in_node(visit)
+
+    # ------------------------------------------------------------------ between nodes
+
+    def _between_nodes(self) -> NodeDecisionMade:
+        st = self.state
+        if st.review_due and not st.waiting and (review := self._review()) is not None:
+            return review
+        if st.waiting:
+            return self._make(TeachAction.ENTER_NODE, "N-NEXT", st.waiting[-1], reasons=["RESUME"])
+        for node_id in self.order:
+            ns = self.nodes[node_id]
+            if node_id in st.stopped or ns.passed_at is not None:
+                continue
+            if all(self.nodes[p].passed_at is not None for p in self.chapter.prerequisites(node_id)):
+                return self._make(TeachAction.ENTER_NODE, "N-NEXT", node_id, reasons=["UNLOCKED"])
+        return self._make(TeachAction.FINISH, "N-FINISH", reasons=["NO_NODE_LEFT"])
+
+    def _review(self) -> NodeDecisionMade | None:
+        just = self.state.passed[-1] if self.state.passed else None
+        passed = [n for n in self.order if n != just and self.nodes[n].passed_at is not None]
+        for node_id in sorted(passed, key=lambda n: (self.nodes[n].mastery or 0.0, self.order.index(n))):
+            node = self.chapter.node(node_id)
+            fresh = self._fresh([*node.practice, *node.transfer])
+            if fresh:
+                return self._make(
+                    TeachAction.REVIEW_ITEM, "N-REVIEW", node_id, fresh[0], reasons=[f"AFTER_PASS:{just}"]
+                )
+        return None
+
+    # ------------------------------------------------------------------ in a node
+
+    def _in_node(self, visit: Visit) -> NodeDecisionMade:
+        node_id = visit.node_id
+        node, ns = self.chapter.node(node_id), self.nodes[node_id]
+        if ns.pass_now:
+            return self._make(TeachAction.PASS_NODE, "N-PASS", node_id)
+        if visit.items >= node.pass_rule.max_items:
+            return self._make(TeachAction.STOP_NODE, "N-BUDGET", node_id, reasons=["BUDGET", *ns.missing])
+        switch = self._misconception_remediation(node_id)
+        if switch is not None:
+            return switch
+        if visit.phase == "NEW":
+            return self._start(visit, node)
+        if visit.phase == "CHECK":
+            return self._check(visit, node)
+        if visit.phase == "CHECK_FAILED":
+            return self._reteach(visit, node)
+        return self._practice(visit, node, ns)
+
+    def _misconception_remediation(self, node_id: str) -> NodeDecisionMade | None:
+        for home in self._ancestors(node_id):
+            active = [
+                m
+                for m in self.nodes[home].misconceptions
+                if m.severity == "CRITICAL" and m.status != "RESOLVED"
+            ]
+            if active and self._may_remediate(node_id, home):
+                return self._make(
+                    TeachAction.SWITCH_TO_PREREQUISITE,
+                    "N-REMEDIATE",
+                    home,
+                    reasons=[f"MISCONCEPTION:{active[0].id}"],
+                )
+        return None
+
+    def _start(self, visit: Visit, node: Node) -> NodeDecisionMade:
+        if visit.warmup_item is None:
+            warmup = self._warmup(node)
+            if warmup is not None:
+                return warmup
+        elif (
+            visit.warmup_ok is False and visit.warmup_node and self._may_remediate(node.id, visit.warmup_node)
+        ):
+            return self._make(
+                TeachAction.SWITCH_TO_PREREQUISITE,
+                "N-REMEDIATE",
+                visit.warmup_node,
+                reasons=["WARMUP_FAILED"],
+            )
+        return self._teach(visit, node, "N-TEACH")
+
+    def _warmup(self, node: Node) -> NodeDecisionMade | None:
+        missing = [p for p in self.chapter.prerequisites(node.id) if p not in self.state.evidence_nodes]
+        for prereq in sorted(missing, key=lambda p: (self.nodes[p].mastery or 0.0, self.order.index(p))):
+            pn = self.chapter.node(prereq)
+            fresh = self._fresh([*pn.practice, *pn.checks, *pn.transfer])
+            if fresh:
+                return self._make(
+                    TeachAction.WARMUP_ITEM, "N-WARMUP", prereq, fresh[0], reasons=[f"FOR:{node.id}"]
+                )
+        return None
+
+    def _teach(self, visit: Visit, node: Node, rule: str, reasons: Iterable[str] = ()) -> NodeDecisionMade:
+        used = self.state.variants_used.get(node.id, [])
+        ids = [t.id for t in node.theory]
+        variant = next((v for v in ids if v not in used), None)
+        variant = variant or next((v for v in ids if v not in visit.taught), ids[0])
+        return self._make(TeachAction.TEACH_THEORY, rule, node.id, variant, reasons=reasons)
+
+    def _check(self, visit: Visit, node: Node) -> NodeDecisionMade:
+        if visit.check_item is None:
+            fresh = self._fresh(node.checks)
+            if fresh:
+                return self._make(TeachAction.CHECK_ITEM, "N-CHECK", node.id, fresh[0])
+        if not visit.retell_asked:
+            return self._make(TeachAction.ASK_RETELL, "N-CHECK", node.id)
+        raise PendingResult(f"the check of {node.id} has no verdict")
+
+    def _reteach(self, visit: Visit, node: Node) -> NodeDecisionMade:
+        failures = visit.check_failures
+        if failures >= self.config.remediate_after_check_failures:
+            weak = [
+                p
+                for p in self.chapter.prerequisites(node.id)
+                if not self.nodes[p].pass_now and self._may_remediate(node.id, p)
+            ]
+            if weak:
+                weakest = min(weak, key=lambda p: (self.nodes[p].mastery or 0.0, self.order.index(p)))
+                return self._make(
+                    TeachAction.SWITCH_TO_PREREQUISITE, "N-REMEDIATE", weakest, reasons=["CHECK_FAILED_TWICE"]
+                )
+        untaught = [t.id for t in node.theory if t.id not in visit.taught]
+        used = self.state.variants_used.get(node.id, [])
+        variant = next((v for v in untaught if v not in used), untaught[0] if untaught else None)
+        if variant is not None:
+            return self._make(
+                TeachAction.TEACH_THEORY, "N-RETEACH", node.id, variant, reasons=[f"CHECK_FAILED:{failures}"]
+            )
+        example = self._unused_example(visit, node)
+        if example is not None:
+            return self._make(
+                TeachAction.SHOW_WORKED_EXAMPLE,
+                "N-RETEACH",
+                node.id,
+                example,
+                support=PracticeSupport.EXPLAIN_FIRST,
+                reasons=["NO_VARIANT_LEFT"],
+            )
+        return self._practice(visit, node, self.nodes[node.id], modelled=True)
+
+    def _practice(self, visit: Visit, node: Node, ns: NodeState, modelled: bool = False) -> NodeDecisionMade:
+        support = self._support(ns)
+        if not visit.examples and not modelled:
+            example = self._unused_example(visit, node)
+            if example is not None:
+                return self._make(TeachAction.SHOW_WORKED_EXAMPLE, "N-METHOD", node.id, example)
+        if not visit.completion_asked:
+            fresh = self._fresh(node.completion)
+            if fresh:
+                return self._make(TeachAction.COMPLETION_ITEM, "N-METHOD", node.id, fresh[0], support)
+        missing = set(ns.missing)
+        active = {m.id for m in ns.misconceptions if m.status != "RESOLVED"}
+        practice = self._fresh(node.practice, probing=active)
+        transfer = self._fresh(node.transfer)
+        reasons = sorted(missing)
+        enough_practice = visit.practice_successes >= self.config.practice_before_transfer or not practice
+        if "APPLICATION" in missing and transfer and enough_practice:
+            return self._make(TeachAction.TRANSFER_ITEM, "N-TRANSFER", node.id, transfer[0], support, reasons)
+        if missing & {"UNDERSTOOD", "MASTERY", "MISCONCEPTION"} and practice:
+            return self._make(TeachAction.PRACTICE_ITEM, "N-PRACTICE", node.id, practice[0], support, reasons)
+        if "APPLICATION" in missing and transfer:
+            return self._make(TeachAction.TRANSFER_ITEM, "N-TRANSFER", node.id, transfer[0], support, reasons)
+        if "EXPLANATION" in missing and visit.retells < self.config.max_retells:
+            return self._make(TeachAction.ASK_RETELL, "N-CHECK", node.id, reasons=["EXPLANATION_MISSING"])
+        if transfer:
+            return self._make(TeachAction.TRANSFER_ITEM, "N-PRACTICE", node.id, transfer[0], support, reasons)
+        checks = self._fresh(node.checks)
+        if checks:
+            return self._make(TeachAction.CHECK_ITEM, "N-PRACTICE", node.id, checks[0], support, reasons)
+        return self._make(TeachAction.STOP_NODE, "N-BUDGET", node.id, reasons=["NO_ITEMS_LEFT", *reasons])
+
+    # ------------------------------------------------------------------ helpers
+
+    def _make(
+        self,
+        action: TeachAction,
+        rule: str,
+        node_id: str | None = None,
+        ref: str | None = None,
+        support: PracticeSupport | None = None,
+        reasons: Iterable[str] = (),
+    ) -> NodeDecisionMade:
+        return NodeDecisionMade(
+            action=action,
+            node_id=node_id,
+            ref=ref,
+            support=support,
+            rule_ids=[rule],
+            reason_codes=list(reasons),
+            policy_version=self.config.version,
+        )
+
+    def _may_remediate(self, node_id: str, prereq: str) -> bool:
+        """Each (node, prerequisite) detour happens once per session, never to a node stopped already."""
+        return prereq not in self.state.stopped and (node_id, prereq) not in self.state.remediated
+
+    def _ancestors(self, node_id: str) -> list[str]:
+        found: set[str] = set()
+        todo = list(self.chapter.prerequisites(node_id))
+        while todo:
+            n = todo.pop()
+            if n not in found:
+                found.add(n)
+                todo.extend(self.chapter.prerequisites(n))
+        return [n for n in self.order if n in found]
+
+    def _fresh(self, item_ids: Iterable[str], probing: Collection[str] = ()) -> list[str]:
+        """Items not asked in this session: those probing an active misconception first, then those
+        never met in any session, then file order."""
+        candidates = [i for i in item_ids if i not in self.state.asked]
+
+        def key(pair: tuple[int, str]) -> tuple[bool, bool, int]:
+            index, item_id = pair
+            probes = bool(probing) and bool(misconceptions_probed(self.chapter.item(item_id)) & set(probing))
+            return (not probes, item_id in self.seen, index)
+
+        return [item_id for _, item_id in sorted(enumerate(candidates), key=key)]
+
+    def _unused_example(self, visit: Visit, node: Node) -> str | None:
+        used = self.state.examples_used.get(node.id, [])
+        ids = [w.id for w in node.worked_examples if w.id not in visit.examples]
+        return next((w for w in ids if w not in used), ids[0] if ids else None)
+
+    def _support(self, ns: NodeState) -> PracticeSupport:
+        """DI-8: the band of the node's mastery picks the support; no score yet means GUIDED."""
+        if ns.mastery is None:
+            return PracticeSupport.GUIDED
+        return _SUPPORT_BY_BAND[sum(ns.mastery >= b for b in self.config.support_bands)]

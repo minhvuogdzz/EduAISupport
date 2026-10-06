@@ -125,6 +125,48 @@ class ActivityType(StrEnum):
     SUMMARY = "SUMMARY"
 
 
+class TeachAction(StrEnum):
+    """What the node teaching policy decides (plan v1, 5.4). One action per decision."""
+
+    ENTER_NODE = "ENTER_NODE"
+    WARMUP_ITEM = "WARMUP_ITEM"  # step 1: a quick item of a prerequisite
+    SWITCH_TO_PREREQUISITE = "SWITCH_TO_PREREQUISITE"  # the current node waits; teach the prerequisite
+    TEACH_THEORY = "TEACH_THEORY"  # step 2 (and re-teaching): one theory variant
+    CHECK_ITEM = "CHECK_ITEM"  # step 3: a concept-check item
+    ASK_RETELL = "ASK_RETELL"  # step 3: "con nói lại" the rule in the student's own words
+    SHOW_WORKED_EXAMPLE = "SHOW_WORKED_EXAMPLE"  # step 4: "cô làm mẫu"
+    COMPLETION_ITEM = "COMPLETION_ITEM"  # step 4: "cô làm nửa, con làm nửa"
+    PRACTICE_ITEM = "PRACTICE_ITEM"  # step 5
+    TRANSFER_ITEM = "TRANSFER_ITEM"  # step 6
+    REVIEW_ITEM = "REVIEW_ITEM"  # interleaved review of a node passed before
+    PASS_NODE = "PASS_NODE"  # step 7
+    STOP_NODE = "STOP_NODE"  # step 7: out of budget or items, "cần học lại"
+    FINISH = "FINISH"
+
+
+# Actions that put an item in front of the student (the item loop runs it to the end).
+ITEM_ACTIONS = frozenset(
+    {
+        TeachAction.WARMUP_ITEM,
+        TeachAction.CHECK_ITEM,
+        TeachAction.COMPLETION_ITEM,
+        TeachAction.PRACTICE_ITEM,
+        TeachAction.TRANSFER_ITEM,
+        TeachAction.REVIEW_ITEM,
+    }
+)
+
+
+class PracticeSupport(StrEnum):
+    """How much help an item gets, from the node's mastery band (blueprint DI-8)."""
+
+    EXPLAIN_FIRST = "EXPLAIN_FIRST"  # M < 40: micro explanation, guided example
+    GUIDED = "GUIDED"  # 40-59: Socratic questions, early hints
+    ASK_WHY = "ASK_WHY"  # 60-74: independent practice and "vì sao"
+    TRANSFER = "TRANSFER"  # 75-89: new forms
+    CHALLENGE = "CHALLENGE"  # >= 90
+
+
 class ItemResolution(StrEnum):
     """How an item ended, used to weight the evidence it produces."""
 
