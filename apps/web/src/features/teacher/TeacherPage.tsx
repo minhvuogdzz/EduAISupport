@@ -6,6 +6,7 @@ import { useApi } from "../../api/apiContext";
 import { AppShell } from "../../components/AppShell";
 import { BrainPanel } from "./BrainPanel";
 import { SessionList } from "./SessionList";
+import { TeacherHeader } from "./TeacherHeader";
 import { TranscriptView } from "./TranscriptView";
 
 /** Teacher: list of sessions; for the selected one, the tutor's reasoning (chapter sessions) and the transcript. */
@@ -31,14 +32,13 @@ export function TeacherPage() {
     }
     await api.resetDemoData();
     await queryClient.invalidateQueries();
-    await navigate("/teacher");
+    await navigate("/teacher/sessions");
   }
 
   return (
     <AppShell>
       <title>Giáo viên · CAVAT</title>
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 pt-6">
-        <h1 className="text-3xl font-extrabold">Giáo viên · Buổi học</h1>
+      <TeacherHeader title="Buổi học">
         {api.resetDemoData && (
           <button
             type="button"
@@ -48,8 +48,8 @@ export function TeacherPage() {
             Tạo lại dữ liệu demo
           </button>
         )}
-      </div>
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[20rem_1fr]">
+      </TeacherHeader>
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 pb-6 lg:grid-cols-[20rem_1fr]">
         <aside>
           <h2 className="mb-3 text-lg font-semibold">Buổi học</h2>
           {sessions.isPending ? (

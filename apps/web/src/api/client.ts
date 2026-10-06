@@ -1,16 +1,18 @@
 import type {
   ApiErrorCode,
   ChoiceCommand,
+  ClassOverview,
   CommandAck,
   EngineKind,
   HintRequestCommand,
+  ParentChildView,
   ResponseCommand,
   SessionState,
   SessionSummary,
   SessionTranscript,
-  ParentChildView,
   StreamEvent,
   StudentOverview,
+  TeacherStudentView,
   TeachingReport,
 } from "./contract";
 
@@ -45,6 +47,10 @@ export interface SessionApi {
   getMyOverview?: () => Promise<StudentOverview>;
   /** Parent: the child behind a code (real API only). */
   getChildOverview?: (code: string) => Promise<ParentChildView>;
+  /** Teacher: the class on the chapter, Student × KC (real API only). */
+  getClassOverview?: () => Promise<ClassOverview>;
+  /** Teacher: one student on the chapter, every KC in detail (real API only). */
+  getStudentReport?: (studentId: string) => Promise<TeacherStudentView>;
   /** Teacher: sessions to review. Not in PART 29 yet; proposal: GET /v1/sessions?class_id=… */
   listSessions(): Promise<SessionSummary[]>;
   /** Teacher: GET /v1/sessions/{id}/transcript (audited). */

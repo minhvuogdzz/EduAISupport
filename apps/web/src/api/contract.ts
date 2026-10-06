@@ -515,6 +515,144 @@ export interface ParentChildView extends StudentOverview {
   }[];
 }
 
+// ---------------------------------------------------------------- the teacher's class view (PART 27.1, §56)
+
+export interface TeacherNode {
+  node_id: string;
+  name: string;
+  layer: NodeLayer;
+  order: number;
+  /** The pass threshold of M for this node (DI-15). */
+  min_mastery: number;
+}
+
+/** One student on one KC (§46): M on 0-100, confidence (DI-7: below 30 shown with a warning). */
+export interface MasteryCell {
+  node_id: string;
+  mastery: number | null;
+  confidence: number;
+  level: number;
+  state: string;
+  insufficient_data: boolean;
+  passed: boolean;
+  status: NodeStatus;
+  active_misconceptions: number;
+}
+
+/** Why the teacher should look at a student (PART 27.1, DI-20). */
+export interface AttentionReason {
+  kind: "STOPPED" | "MISCONCEPTION" | "WEAK" | "INACTIVE";
+  node_id?: string | null;
+  misconception_id?: string | null;
+  count?: number | null;
+  mastery?: number | null;
+  days?: number | null;
+}
+
+/** §23: overall mastery of the KCs with a score, and the share of KCs that have one (DI-21). */
+export interface OverallMastery {
+  mastery: number | null;
+  confidence: number | null;
+  level: number | null;
+  coverage: number;
+}
+
+export interface ClassStudent {
+  student_id: string;
+  display_name: string;
+  sessions: { total: number; completed: number; unfinished: number; minutes: number };
+  last_active_at: string | null;
+  passed: number;
+  overall: OverallMastery;
+  cells: MasteryCell[];
+  attention: AttentionReason[];
+}
+
+/** §28: one misconception in the class. `share` is its percentage of all detections. */
+export interface ClassMisconception {
+  id: string;
+  name: string;
+  node_id: string | null;
+  severity: string;
+  count: number;
+  share: number;
+  students: number;
+  active_students: number;
+  /** Detections in the last 14 days (§28). */
+  recent: number;
+}
+
+/** GET /v1/teachers/class. */
+export interface ClassOverview {
+  chapter: { chapter_id: string; title: string };
+  nodes: TeacherNode[];
+  students: ClassStudent[];
+  /** §45: the class on each KC, over the students with a score. */
+  by_node: { node_id: string; mean_mastery: number | null; students: number; passed: number }[];
+  misconceptions: ClassMisconception[];
+  kpis: {
+    students: number;
+    active_this_week: number;
+    sessions: number;
+    minutes: number;
+    passed: number;
+    cells: number;
+    mean_mastery: number | null;
+    attention: number;
+  };
+}
+
+export type KcGroup = "PASSED" | "UNSTABLE" | "WEAK" | "INSUFFICIENT" | "NOT_STARTED";
+export type Recommendation = "DIAGNOSE" | "EXPLAIN" | "GUIDED" | "PRACTICE" | "TRANSFER" | "CHALLENGE";
+
+/** §57: one KC of one student. */
+export interface TeacherNodeDetail extends TeacherNode, Omit<MasteryCell, "node_id"> {
+  group: KcGroup;
+  dimensions: Record<Dimension, { value: number; n_eff: number; in_mastery: boolean }>;
+  items: number;
+  solved: number;
+  attempts: number;
+  hints: number;
+  /** Average seconds per item. */
+  seconds: number | null;
+  misconceptions: { id: string; name: string; severity: string; count: number; status: string }[];
+  trend: { at: string; mastery: number }[];
+  direction: "UP" | "FLAT" | "DOWN" | null;
+  recommendation: Recommendation;
+}
+
+/** GET /v1/teachers/students/{id}. */
+export interface TeacherStudentView {
+  student_id: string;
+  display_name: string;
+  chapter: { chapter_id: string; title: string };
+  relations: KnowledgeRelation[];
+  sessions: { total: number; completed: number; unfinished: number; minutes: number };
+  session_list: ParentChildView["session_list"];
+  last_active_at: string | null;
+  overall: OverallMastery & { passed: number; total: number };
+  /** Each dimension over the chapter on 0-100 (DI-22); null: not enough evidence. */
+  dimensions: Record<Dimension, { value: number | null; n_eff: number }>;
+  strengths: Dimension[];
+  weaknesses: Dimension[];
+  nodes: TeacherNodeDetail[];
+  /** §27: overall M at the end of each day with evidence (DI-26). */
+  timeline: { date: string; mastery: number }[];
+  /** §39: change of overall M since before this week (DI-25). */
+  velocity: { change: number; since: string } | null;
+  /** §56: per day, how the items ended, hints and KCs passed. */
+  activity: {
+    date: string;
+    independent: number;
+    supported: number;
+    worked: number;
+    unresolved: number;
+    hints: number;
+    passed: number;
+  }[];
+  attention: AttentionReason[];
+}
+
 // ---------------------------------------------------------------- errors (PART 24.2, 29.1)
 
 export const API_ERROR_CODES = [
