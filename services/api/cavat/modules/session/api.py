@@ -346,9 +346,7 @@ async def _command(
 @router.post("", status_code=201, response_model=SessionStateView)
 async def create_session(body: CreateSession, database: Database, student: Student):
     """Create a demo session (lifecycle READY). No data is created unless this endpoint is called."""
-    packages = service.lesson_packages()
-    lesson_id = body.lesson_id or next(iter(packages), "")
-    pkg = _package(lesson_id)
+    pkg = _package(body.lesson_id or service.DEFAULT_LESSON_ID)
     session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, body.student_display_name)
     session = await _repo(database).create(session)
     return service.student_view(pkg, session)

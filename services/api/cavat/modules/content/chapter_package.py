@@ -180,6 +180,8 @@ def load_chapter(path: str | Path) -> Chapter:
     lessons: dict[str, LessonPackage] = {}
     for rel in package.lessons:
         lesson = load_lesson_package(path.parent / rel)
+        if lesson.lesson_id in lessons:
+            raise ValueError(f"lesson {lesson.lesson_id} is listed twice in {path.name}")
         lessons[lesson.lesson_id] = lesson
     items = {it.id: (it, lesson) for lesson in lessons.values() for it in lesson.items}
     return Chapter(package=package, lessons=lessons, _items=items)
@@ -216,6 +218,13 @@ def validate_chapter(chapter: Chapter) -> list[str]:
     except ValueError as exc:
         problems.append(str(exc))
 
+    owner: dict[str, str] = {}  # item ids are chapter-wide: Chapter.item() looks them up without a lesson
+    for lesson in chapter.lessons.values():
+        for it in lesson.items:
+            if it.id in owner and owner[it.id] != lesson.lesson_id:
+                problems.append(f"item {it.id} is in lessons {owner[it.id]} and {lesson.lesson_id}")
+            owner.setdefault(it.id, lesson.lesson_id)
+
     for node in pkg.nodes:
         if node.layer == "IMPLEMENT" and not any(
             r.target == node.id and r.type == "APPLICATION" for r in pkg.relations
@@ -223,6 +232,7 @@ def validate_chapter(chapter: Chapter) -> list[str]:
             problems.append(f"{node.id}: an IMPLEMENT node must apply at least one BASIC node")
         problems += _node_content_problems(chapter, node)
         problems += _node_item_problems(chapter, node)
+        problems += _pass_rule_problems(chapter, node)
         problems += _lesson_prerequisite_problems(chapter, node)
     if not any(not chapter.prerequisites(n.id) for n in pkg.nodes):
         problems.append("no starting node: every node has a prerequisite")
@@ -281,6 +291,35 @@ def _node_item_problems(chapter: Chapter, node: Node) -> list[str]:
                 problems.append(f"{node.id}: {name} item {item_id} does not practise this node")
             if name == "transfer" and item.transfer == "none" and item.cognitive_level not in ("D", "E"):
                 problems.append(f"{node.id}: transfer item {item_id} is neither a transfer nor level D/E")
+    return problems
+
+
+def _pass_rule_problems(chapter: Chapter, node: Node) -> list[str]:
+    """The node's items must make its pass rule reachable (§52 UNDERSTOOD, DI-15).
+
+    A cognitive level is A-E (DIAG items diagnose, they are not a level); a question form is the answer
+    type (DI: choice, numeric, compare, order, boolean, open). "Cùng làm" items give part of the solution,
+    so they are not counted (DI): the student must reach the rule with the items done alone.
+    """
+    lesson = chapter.lessons.get(node.lesson_id)
+    if lesson is None:
+        return []
+    known = {it.id: it for it in lesson.items}
+    refs = (*node.checks, *node.practice, *node.transfer)
+    items = [known[ref] for ref in refs if ref in known]
+    rule = node.pass_rule
+    levels = {it.cognitive_level for it in items} - {"DIAG"}
+    forms = {it.answer.type for it in items}
+    problems: list[str] = []
+    needs = "the pass rule needs"
+    if len(items) < rule.min_successes:
+        problems.append(f"{node.id}: {len(items)} item(s), {needs} {rule.min_successes} successes")
+    if len(levels) < rule.min_levels:
+        problems.append(f"{node.id}: items cover {len(levels)} cognitive level(s), {needs} {rule.min_levels}")
+    if len(forms) < rule.min_forms:
+        problems.append(f"{node.id}: items cover {len(forms)} question form(s), {needs} {rule.min_forms}")
+    if rule.min_successes > rule.max_items:
+        problems.append(f"{node.id}: the pass rule needs more successes than its item budget")
     return problems
 
 

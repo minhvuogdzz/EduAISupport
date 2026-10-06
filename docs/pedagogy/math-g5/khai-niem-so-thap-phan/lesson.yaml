@@ -1,0 +1,296 @@
+# Lesson package — Toán 5: Phân số thập phân và khái niệm số thập phân
+# TRẠNG THÁI: DRAFT — AI soạn nháp (M1-2b, 2026-10-06), chờ giáo viên kiểm soát (chủ dự án) duyệt.
+# Hai node đầu của gói chương Số thập phân (docs/pedagogy/math-g5/chuong-so-thap-phan/chapter.yaml).
+#
+# Quy ước như bài so sánh số thập phân: số viết kiểu Việt Nam (0,25); hint.level 1..7 ứng với H1..H7.
+# Mã câu có tiền tố riêng (TP- phân số thập phân, KN- khái niệm số thập phân) để không trùng mã trong chương.
+
+lesson_id: math-g5-dec-concept
+version: 0.1.0
+status: DRAFT
+subject: math
+grade: 5
+locale: vi-VN
+title: Phân số thập phân và khái niệm số thập phân
+persona:
+  tutor_self: cô
+  student_address: con
+
+objectives:
+  - id: LO1
+    text: "Nhận biết phân số thập phân; viết phân số thập phân thành số thập phân và ngược lại."
+    kc_ids: [KC-DEC-FRAC]
+  - id: LO2
+    text: "Nhận biết phần nguyên, phần thập phân của số thập phân; đọc, viết số thập phân."
+    kc_ids: [KC-DEC-CONCEPT]
+
+kcs:
+  - id: KC-DEC-FRAC
+    name: Phân số thập phân
+    description: "Phân số có mẫu số là 10, 100, 1000... là phân số thập phân; viết được thành số thập phân và ngược lại."
+    prerequisites: []
+  - id: KC-DEC-CONCEPT
+    name: Khái niệm số thập phân
+    description: "Số thập phân gồm phần nguyên và phần thập phân, ngăn cách bởi dấu phẩy; đọc và viết được số thập phân."
+    prerequisites: [KC-DEC-FRAC]
+
+misconceptions:
+  - id: FRAC-M01
+    kc_id: KC-DEC-FRAC
+    name: "Quên chữ số 0 giữ chỗ khi viết phân số thập phân"
+    description: "Viết 7/100 thành 0,7 vì chỉ chép tử số sau dấu phẩy, không để ý mẫu số 100 cần hai chữ số ở phần thập phân."
+    severity: CRITICAL
+    counter_examples:
+      - "Nếu 7/100 viết thành 0,7 thì 7/10 viết thành số nào? Hai phân số khác nhau mà lại viết ra cùng một số thì có đúng không?"
+      - "1 mét có 100 xăng-ti-mét. 7 xăng-ti-mét là 7/100 mét, còn 0,7 mét là 70 xăng-ti-mét. Hai độ dài đó có bằng nhau không?"
+  - id: CONCEPT-M01
+    kc_id: KC-DEC-CONCEPT
+    name: "Nhầm phần nguyên với phần thập phân"
+    description: "Lấy các chữ số sau dấu phẩy làm phần nguyên, ví dụ nói 12,45 có phần nguyên là 45."
+    severity: NORMAL
+    counter_examples:
+      - "Bạn Lan cao 1,35 m, tức là 1 mét 35 xăng-ti-mét. Phần chỉ số mét tròn là số đứng trước hay sau dấu phẩy?"
+  - id: CONCEPT-M02
+    kc_id: KC-DEC-CONCEPT
+    name: "Bỏ chữ số 0 ngay sau dấu phẩy"
+    description: "Đọc 4,06 là bốn phẩy sáu, hoặc viết ba phẩy không bảy thành 3,7."
+    severity: CRITICAL
+    counter_examples:
+      - "4,06 m là 4 mét 6 xăng-ti-mét, còn 4,6 m là 4 mét 60 xăng-ti-mét. Hai độ dài đó có bằng nhau không?"
+
+generic_hints:
+  - {target: TASK, level: 1, text: "Con đọc lại đề bài giúp cô và cho cô biết đề hỏi gì nhé?"}
+  - {target: CONCEPT, level: 2, text: "Con nhớ lại xem: mẫu số 10, 100, 1000 cho biết phần thập phân có mấy chữ số?"}
+  - {target: STRATEGY, level: 3, text: "Con thử viết số đó vào bảng hàng: phần nguyên, phần mười, phần trăm xem sao?"}
+  - {target: STEP, level: 4, text: "Con tìm dấu phẩy trước: bên trái là phần nguyên, bên phải là phần thập phân. Vậy con làm bước tiếp theo thế nào?"}
+  - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Bước 1: con chỉ cho cô dấu phẩy nằm ở đâu?"}
+  - {target: SELF_CHECK, level: 1, text: "Con đọc lại số con vừa viết xem có đúng với đề không nhé?"}
+  - {target: FORMAT, level: 1, text: "Con trả lời đúng theo yêu cầu của đề giúp cô nhé?"}
+
+default_verify_prompt: "Đúng rồi! Con giải thích cho cô vì sao con làm như vậy được không?"
+
+items:
+  # ----- KC-DEC-FRAC: phân số thập phân -----
+  - id: TP-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-FRAC]
+    cognitive_level: A
+    difficulty: 0.2
+    expected_time_s: 30
+    stem: "Phân số nào dưới đây là phân số thập phân: 3/7, 7/10 hay 10/3?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "3/7", aliases: ["ba phần bảy"]}
+        - {id: B, text: "7/10", correct: true, aliases: ["bảy phần mười"]}
+        - {id: C, text: "10/3", aliases: ["mười phần ba"]}
+    hints:
+      - {target: TASK, level: 1, text: "Phân số thập phân có mẫu số đặc biệt. Con nhìn mẫu số của từng phân số nhé?"}
+      - {target: CONCEPT, level: 2, text: "Phân số thập phân có mẫu số là 10, 100 hay 1000. Phân số nào có mẫu số như vậy?"}
+    worked_solution:
+      - "Phân số thập phân có mẫu số là 10, 100, 1000..."
+      - "Mẫu số của 3/7 là 7, của 10/3 là 3, chỉ 7/10 có mẫu số là 10."
+      - "Vậy 7/10 là phân số thập phân."
+    explanation: "Phân số thập phân có mẫu số là 10, 100, 1000... Trong ba phân số, chỉ 7/10 có mẫu số 10 nên 7/10 là phân số thập phân."
+
+  - id: TP-CP-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-FRAC]
+    cognitive_level: B
+    difficulty: 0.35
+    stem: "Cô làm cùng con: 7/100 có mẫu số 100 nên phần thập phân có hai chữ số; tử số 7 mới có một chữ số nên phải thêm chữ số 0 vào bên trái. Con viết 7/100 thành số thập phân giúp cô?"
+    answer:
+      type: numeric
+      value: "0,07"
+      wrong_answers: {"0,7": FRAC-M01}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần viết 7/100 thành số thập phân. Mẫu số của phân số này là bao nhiêu?"}
+      - {target: CONCEPT, level: 2, text: "Mẫu số 100 cho biết phần thập phân có mấy chữ số?"}
+      - {target: STRATEGY, level: 3, text: "Con thử viết tử số 7 sao cho đủ hai chữ số ở phần thập phân, thêm chữ số 0 ở đâu nhỉ?"}
+      - {target: STEP, level: 4, text: "Phần thập phân cần hai chữ số mà 7 chỉ có một chữ số, nên mình viết 07 sau dấu phẩy. Phần nguyên là 0. Vậy số đó là bao nhiêu?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Phần nguyên của số này là mấy?"}
+    worked_solution:
+      - "Mẫu số là 100 nên phần thập phân có hai chữ số."
+      - "Tử số 7 mới có một chữ số, nên thêm chữ số 0 vào bên trái thành 07."
+      - "Vậy 7/100 = 0,07."
+    explanation: "Mẫu số 100 cho biết phần thập phân có hai chữ số. Tử số 7 chỉ có một chữ số nên ta thêm chữ số 0 vào bên trái: 7/100 = 0,07."
+
+  - id: TP-PR-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-FRAC]
+    cognitive_level: B
+    difficulty: 0.3
+    stem: "Viết phân số 9/10 dưới dạng số thập phân."
+    answer:
+      type: numeric
+      value: "0,9"
+      wrong_answers: {"0,09": FRAC-M01}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần viết 9/10 thành số thập phân. Con đọc phân số này giúp cô nhé?"}
+      - {target: CONCEPT, level: 2, text: "Mẫu số 10 cho biết phần thập phân có mấy chữ số?"}
+      - {target: STRATEGY, level: 3, text: "9/10 là chín phần mười. Con thử viết chữ số 9 vào hàng phần mười xem sao?"}
+      - {target: STEP, level: 4, text: "Phần nguyên là 0, hàng phần mười là chữ số 9. Vậy số thập phân đó viết thế nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Mẫu số của 9/10 là bao nhiêu?"}
+    worked_solution:
+      - "Mẫu số là 10 nên phần thập phân có một chữ số."
+      - "Chín phần mười: chữ số 9 ở hàng phần mười, phần nguyên là 0."
+      - "Vậy 9/10 = 0,9."
+    explanation: "Mẫu số 10 cho biết phần thập phân có một chữ số: chín phần mười viết là 0,9."
+
+  - id: TP-PR-02
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-FRAC]
+    cognitive_level: B
+    difficulty: 0.4
+    stem: "Số 0,07 viết thành phân số thập phân nào: 7/10, 7/100 hay 7/1000?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "7/10", aliases: ["bảy phần mười"], misconceptions: [FRAC-M01]}
+        - {id: B, text: "7/100", correct: true, aliases: ["bảy phần trăm"]}
+        - {id: C, text: "7/1000", aliases: ["bảy phần nghìn"]}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần tìm phân số thập phân bằng 0,07. Phần thập phân của 0,07 có mấy chữ số?"}
+      - {target: CONCEPT, level: 2, text: "Phần thập phân có hai chữ số thì mẫu số là 10, 100 hay 1000?"}
+      - {target: STRATEGY, level: 3, text: "Con thử đọc 0,07 thành lời xem, là bảy phần mấy?"}
+      - {target: STEP, level: 4, text: "0,07 có chữ số 0 ở hàng phần mười và chữ số 7 ở hàng phần trăm. Vậy 7 là bảy phần mấy?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số 7 trong 0,07 đứng ở vị trí thứ mấy sau dấu phẩy?"}
+    worked_solution:
+      - "Phần thập phân của 0,07 có hai chữ số."
+      - "Chữ số 7 đứng ở hàng phần trăm."
+      - "Vậy 0,07 = 7/100."
+    explanation: "0,07 có hai chữ số ở phần thập phân, chữ số 7 đứng ở hàng phần trăm, nên 0,07 = 7/100."
+
+  - id: TP-TR-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-FRAC]
+    cognitive_level: D
+    difficulty: 0.45
+    transfer: near
+    stem: "Mẹ cắt một chiếc bánh thành 10 phần bằng nhau, Lan ăn 3 phần. Viết số phần bánh Lan đã ăn dưới dạng số thập phân."
+    answer:
+      type: numeric
+      value: "0,3"
+      wrong_answers: {"0,03": FRAC-M01}
+    hints:
+      - {target: TASK, level: 1, text: "Chiếc bánh được chia thành mấy phần bằng nhau, và Lan ăn mấy phần?"}
+      - {target: CONCEPT, level: 2, text: "Lan ăn 3 trong 10 phần bằng nhau. Con viết số phần đó thành phân số nhé?"}
+      - {target: STRATEGY, level: 3, text: "Con có phân số 3/10 rồi. Mẫu số 10 thì phần thập phân có mấy chữ số?"}
+      - {target: STEP, level: 4, text: "3/10 là ba phần mười: chữ số 3 ở hàng phần mười, phần nguyên là 0. Vậy số thập phân là bao nhiêu?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Lan ăn bao nhiêu phần của chiếc bánh, viết thành phân số?"}
+    worked_solution:
+      - "Lan ăn 3 trong 10 phần bằng nhau, tức là 3/10 chiếc bánh."
+      - "Mẫu số 10 nên phần thập phân có một chữ số: chữ số 3 ở hàng phần mười."
+      - "Vậy Lan đã ăn 0,3 chiếc bánh."
+    explanation: "Lan ăn 3 trong 10 phần bằng nhau, tức là 3/10 chiếc bánh. Ba phần mười viết thành số thập phân là 0,3."
+
+  # ----- KC-DEC-CONCEPT: khái niệm số thập phân -----
+  - id: KN-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [KC-DEC-CONCEPT]
+    cognitive_level: A
+    difficulty: 0.2
+    expected_time_s: 30
+    stem: "Số 12,45 có phần nguyên là bao nhiêu?"
+    answer:
+      type: numeric
+      value: "12"
+      wrong_answers: {"45": CONCEPT-M01}
+    hints:
+      - {target: TASK, level: 1, text: "Con tìm dấu phẩy trong số 12,45 trước nhé?"}
+      - {target: CONCEPT, level: 2, text: "Phần nguyên là những chữ số đứng bên trái hay bên phải dấu phẩy?"}
+    worked_solution:
+      - "Dấu phẩy ngăn số thành hai phần."
+      - "Bên trái dấu phẩy là phần nguyên, bên phải là phần thập phân."
+      - "Vậy 12,45 có phần nguyên là 12."
+    explanation: "Phần nguyên là các chữ số đứng bên trái dấu phẩy, nên 12,45 có phần nguyên là 12."
+
+  - id: KN-CP-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CONCEPT]
+    cognitive_level: B
+    difficulty: 0.4
+    stem: "Cô làm cùng con: số ba phẩy không bảy có phần nguyên là 3; phần thập phân có chữ số 0 ở hàng phần mười và chữ số 7 ở hàng phần trăm. Con viết số đó giúp cô?"
+    answer:
+      type: numeric
+      value: "3,07"
+      wrong_answers: {"3,7": CONCEPT-M02}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần viết số ba phẩy không bảy. Phần nguyên của số này là mấy?"}
+      - {target: CONCEPT, level: 2, text: "Chữ số 0 đứng ngay sau dấu phẩy có được bỏ đi không?"}
+      - {target: STRATEGY, level: 3, text: "Con viết phần nguyên trước, rồi dấu phẩy, rồi lần lượt chữ số hàng phần mười và hàng phần trăm nhé?"}
+      - {target: STEP, level: 4, text: "Phần nguyên là 3, hàng phần mười là 0, hàng phần trăm là 7. Vậy con viết số đó thế nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Con viết phần nguyên và dấu phẩy trước được không?"}
+    worked_solution:
+      - "Phần nguyên là 3, viết 3 rồi đặt dấu phẩy."
+      - "Hàng phần mười là chữ số 0, hàng phần trăm là chữ số 7."
+      - "Vậy số đó là 3,07."
+    explanation: "Ba phẩy không bảy có phần nguyên 3, hàng phần mười là 0 và hàng phần trăm là 7, nên viết là 3,07. Chữ số 0 sau dấu phẩy không được bỏ."
+
+  - id: KN-PR-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CONCEPT]
+    cognitive_level: B
+    difficulty: 0.35
+    stem: "Viết số thập phân gồm 5 đơn vị và 8 phần mười."
+    answer:
+      type: numeric
+      value: "5,8"
+      wrong_answers: {"8,5": CONCEPT-M01}
+    hints:
+      - {target: TASK, level: 1, text: "Số cần viết có mấy đơn vị và mấy phần mười?"}
+      - {target: CONCEPT, level: 2, text: "Đơn vị thuộc phần nguyên hay phần thập phân?"}
+      - {target: STRATEGY, level: 3, text: "Con viết phần nguyên trước dấu phẩy, phần mười ngay sau dấu phẩy nhé?"}
+      - {target: STEP, level: 4, text: "Phần nguyên là 5, chữ số hàng phần mười là 8. Vậy số đó viết thế nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Phần nguyên của số này là mấy?"}
+    worked_solution:
+      - "5 đơn vị là phần nguyên, viết trước dấu phẩy."
+      - "8 phần mười viết ngay sau dấu phẩy, ở hàng phần mười."
+      - "Vậy số đó là 5,8."
+    explanation: "5 đơn vị là phần nguyên, 8 phần mười đứng ngay sau dấu phẩy, nên số đó là 5,8."
+
+  - id: KN-PR-02
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CONCEPT]
+    cognitive_level: B
+    difficulty: 0.45
+    stem: "Số 4,06 đọc là: bốn phẩy sáu, bốn phẩy không sáu, hay bốn mươi sáu?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "bốn phẩy sáu", misconceptions: [CONCEPT-M02]}
+        - {id: B, text: "bốn phẩy không sáu", correct: true}
+        - {id: C, text: "bốn mươi sáu"}
+    hints:
+      - {target: TASK, level: 1, text: "Mình cần đọc số 4,06. Phần nguyên của số này là mấy?"}
+      - {target: CONCEPT, level: 2, text: "Khi đọc số thập phân, mình đọc phần nguyên, đọc phẩy, rồi đọc phần thập phân. Chữ số 0 sau dấu phẩy có cần đọc không?"}
+      - {target: STRATEGY, level: 3, text: "Con đọc lần lượt từng chữ số sau dấu phẩy, kể cả chữ số 0 xem sao?"}
+      - {target: STEP, level: 4, text: "Phần nguyên là bốn, rồi đọc phẩy, phần thập phân là 06. Vậy con đọc phần 06 thế nào?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Chữ số ngay sau dấu phẩy của 4,06 là chữ số mấy?"}
+    worked_solution:
+      - "Phần nguyên là 4, đọc là bốn, rồi đọc phẩy."
+      - "Phần thập phân là 06: chữ số 0 vẫn phải đọc là không, rồi đọc sáu."
+      - "Vậy 4,06 đọc là bốn phẩy không sáu."
+    explanation: "Ta đọc phần nguyên, đọc phẩy, rồi đọc phần thập phân. Chữ số 0 sau dấu phẩy vẫn phải đọc, nên 4,06 đọc là bốn phẩy không sáu."
+
+  - id: KN-TR-01
+    purpose: PRACTICE
+    kc_ids: [KC-DEC-CONCEPT]
+    cognitive_level: D
+    difficulty: 0.5
+    transfer: near
+    stem: "Bạn Nam cao 1 mét 35 xăng-ti-mét. Viết chiều cao của Nam dưới dạng số thập phân với đơn vị mét."
+    answer:
+      type: numeric
+      value: "1,35"
+    hints:
+      - {target: TASK, level: 1, text: "Nam cao bao nhiêu mét tròn và bao nhiêu xăng-ti-mét lẻ?"}
+      - {target: CONCEPT, level: 2, text: "Số mét tròn là phần nguyên hay phần thập phân?"}
+      - {target: STRATEGY, level: 3, text: "1 mét có 100 xăng-ti-mét, nên 35 xăng-ti-mét là 35/100 mét. Con viết 35/100 thành phần thập phân thế nào?"}
+      - {target: STEP, level: 4, text: "Phần nguyên là 1 (mét tròn), phần thập phân là 35 phần trăm. Vậy chiều cao của Nam là bao nhiêu mét?"}
+      - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Nam cao bao nhiêu mét tròn?"}
+    worked_solution:
+      - "Nam cao 1 mét tròn: phần nguyên là 1."
+      - "35 xăng-ti-mét là 35/100 mét, viết ở phần thập phân là 35."
+      - "Vậy Nam cao 1,35 m."
+    explanation: "1 mét tròn là phần nguyên, còn 35 xăng-ti-mét là 35/100 mét, nên chiều cao của Nam là 1,35 m."
