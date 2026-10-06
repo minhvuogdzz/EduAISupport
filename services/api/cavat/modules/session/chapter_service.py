@@ -8,7 +8,11 @@ the new events and state, so a session stays one document written atomically (ru
 The student's view (node map, step of the teaching cycle, what to answer) and the teacher's report
 (scores per node with the evidence behind them, the policy's decisions) are folds of the same events.
 
-Sessions start from nothing: mastery from earlier sessions is not carried over yet (Mốc 2).
+**History.** Every function takes ``history``: the events of the student's earlier sessions of the same
+chapter, oldest first (the API reads them from the student's session documents). The scores are folded
+over history then this session, so a new session continues where the student stopped: nodes passed
+stay passed, the next node starts from its prerequisites' scores (DI-16), and its prerequisites get a
+warm-up item (N-WARMUP). The teaching state (what was taught, asked, decided) is this session's own.
 """
 
 from __future__ import annotations
@@ -120,9 +124,9 @@ def new_session(
     )
 
 
-def join(chapter: Chapter, session: LearningSession, now: datetime) -> Step:
-    """READY -> ACTIVE: the teaching loop starts on the first node."""
-    loop = TeachingLoop(chapter, session.id)
+def join(chapter: Chapter, session: LearningSession, now: datetime, history: Sequence[Any] = ()) -> Step:
+    """READY -> ACTIVE: the teaching loop starts on the first node the student has not passed yet."""
+    loop = TeachingLoop(chapter, session.id, history)
     turn = loop.start(now)
     started = NewEvent(
         event_type=EventType.SESSION_STARTED.value,
@@ -162,6 +166,7 @@ def apply_command(
     modality: str = "TEXT",  # noqa: ARG001 - text only in the demo (D-T9)
     choice_id: str | None = None,
     live_renderer: MessageRenderer | None = None,
+    history: Sequence[Any] = (),
 ) -> Step:
     """One student command. Raises ``CommandNotAllowed`` when it does not fit what the loop waits for."""
     if command not in allowed_commands(session):
@@ -169,7 +174,7 @@ def apply_command(
     if command == "CHOICE" and choice_id not in CHOICES:
         raise CommandNotAllowed(f"unknown choice {choice_id!r}")
     act = session.state.activity or {}
-    loop = TeachingLoop.resume(chapter, session.id, [], session.events)
+    loop = TeachingLoop.resume(chapter, session.id, history, session.events)
     if live_renderer is not None:  # the replay above used templates; only this turn may call the model
         loop.item_renderer = live_renderer
         if loop.tutor is not None:
@@ -313,14 +318,14 @@ def _relations(chapter: Chapter) -> list[dict[str, str]]:
     return [{"source": r.source, "target": r.target, "type": r.type} for r in chapter.package.relations]
 
 
-def student_view(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
+def student_view(chapter: Chapter, session: LearningSession, history: Sequence[Any] = ()) -> dict[str, Any]:
     """``SessionState`` of the web contract, with ``teaching``: the node map and the step of the cycle.
 
     The student sees the level of each node (0-5, in words on screen), never the scores behind it.
     """
     st, pkg = session.state, chapter.package
     act, item = st.activity or {}, st.item or {}
-    projection = project_chapter(session.events, chapter)
+    projection = project_chapter([*history, *session.events], chapter)
     state = teaching_state(session.events)
     statuses = node_statuses(chapter, projection, state)
     order = chapter.topological_order()
@@ -397,9 +402,9 @@ def _misconception_names(chapter: Chapter) -> dict[str, str]:
     return {m.id: m.name for lesson in chapter.lessons.values() for m in lesson.misconceptions}
 
 
-def summary(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
-    """``SessionSummary`` of the web contract; progress counts nodes passed."""
-    projection = project_chapter(session.events, chapter)
+def summary(chapter: Chapter, session: LearningSession, history: Sequence[Any] = ()) -> dict[str, Any]:
+    """``SessionSummary`` of the web contract; progress counts the nodes passed so far, history included."""
+    projection = project_chapter([*history, *session.events], chapter)
     misconceptions: list[str] = []
     for e in session.events:
         if e.event_type == EventType.MISCONCEPTION_DETECTED:
@@ -421,18 +426,23 @@ def summary(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
     }
 
 
-def teacher_transcript(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
+def teacher_transcript(
+    chapter: Chapter, session: LearningSession, history: Sequence[Any] = ()
+) -> dict[str, Any]:
     stems = {it.id: it.stem for lesson in chapter.lessons.values() for it in lesson.items}
-    return build_teacher_transcript(stems, _misconception_names(chapter), summary(chapter, session), session)
+    names = _misconception_names(chapter)
+    return build_teacher_transcript(stems, names, summary(chapter, session, history), session)
 
 
-def report(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
+def report(chapter: Chapter, session: LearningSession, history: Sequence[Any] = ()) -> dict[str, Any]:
     """The tutor's reasoning for the teacher: per node the score, its 7 dimensions, the gates and what is
-    still missing; every piece of evidence with its reason; the score after each event; every decision
-    of the teaching policy with its rule. All of it is replayed from the session's events (rule 3)."""
-    events = session.events
+    still missing; every piece of evidence with its reason (``earlier`` when it comes from an earlier
+    session); the score after each event; every decision of the teaching policy in this session with its
+    rule. All of it is replayed from the events (rule 3)."""
+    events = [*history, *session.events]
+    earlier = len(history)
     projection = project_chapter(events, chapter)
-    state = teaching_state(events)
+    state = teaching_state(session.events)
     statuses = node_statuses(chapter, projection, state)
     names = _misconception_names(chapter)
     nodes = []
@@ -486,7 +496,8 @@ def report(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
         )
 
     def at(seq: int) -> dict[str, Any]:
-        return {"sequence_no": events[seq].sequence_no, "occurred_at": events[seq].occurred_at}
+        e = events[seq]
+        return {"sequence_no": e.sequence_no, "occurred_at": e.occurred_at, "earlier": seq < earlier}
 
     evidence = [
         {
@@ -502,7 +513,7 @@ def report(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
     ]
     trace = [{**at(t.seq), "node_id": t.node_id, "mastery": t.mastery} for t in projection.trace]
     decisions = []
-    for i, e in enumerate(events):
+    for i, e in enumerate(events[earlier:], start=earlier):
         if e.event_type == EventType.NODE_DECISION:
             d = NodeDecisionMade.model_validate(e.payload)
             decisions.append(
@@ -518,7 +529,8 @@ def report(chapter: Chapter, session: LearningSession) -> dict[str, Any]:
             )
     pkg = chapter.package
     return {
-        "session": summary(chapter, session),
+        "session": summary(chapter, session, history),
+        "earlier_sessions": len({e.session_id for e in history}),
         "chapter": {"chapter_id": pkg.chapter_id, "title": pkg.title, "version": pkg.version},
         "versions": {
             "mastery": MASTERY_POLICY_VERSION,

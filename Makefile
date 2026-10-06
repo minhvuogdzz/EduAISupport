@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo teach db-ping db-indexes ai-ping web web-live web-install web-check
+.PHONY: setup test lint fmt api api-memory demo demo-memory teach db-ping db-indexes ai-ping web web-live web-install web-check
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -48,8 +48,16 @@ web: web-install ## Run the web app with the mock API at http://localhost:5173
 web-live: web-install ## Run the web app against the real API (start "make api" in another terminal first)
 	cd $(WEB) && VITE_API=http pnpm dev
 
-demo: web-install ## One command for the whole demo: API on an in-memory database + web app. Ctrl+C stops both
+demo: web-install ## The whole demo, saved: API on the database of services/api/.env (cavat_dev) + web app. Ctrl+C stops both
+	@echo "Buổi học và hội thoại được lưu vào database trong services/api/.env (cavat_dev). Chạy thử không lưu: make demo-memory."
+	@cd services/api && .venv/bin/python -m cavat.db --ensure-indexes
 	@echo "Mở http://localhost:$(WEB_PORT) khi thấy dòng 'Local:'. Bấm Ctrl+C để dừng cả hai server."
+	@trap 'kill 0' EXIT; \
+	(cd services/api && exec .venv/bin/uvicorn cavat.main:app --port $(API_PORT)) & \
+	cd $(WEB) && CAVAT_API_PORT=$(API_PORT) VITE_API=http pnpm dev --port $(WEB_PORT) --strictPort
+
+demo-memory: web-install ## The demo on an in-memory database: nothing is saved, everything is lost on Ctrl+C
+	@echo "Database trong bộ nhớ: không lưu gì, Ctrl+C là mất hết. Mở http://localhost:$(WEB_PORT) khi thấy dòng 'Local:'."
 	@trap 'kill 0' EXIT; \
 	(cd services/api && CAVAT_API_PORT=$(API_PORT) exec .venv/bin/python scripts/dev_memory_api.py) & \
 	cd $(WEB) && CAVAT_API_PORT=$(API_PORT) VITE_API=http pnpm dev --port $(WEB_PORT) --strictPort

@@ -3,7 +3,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { useApi } from "../../api/apiContext";
+import type { SessionSummary } from "../../api/contract";
+import { LIFECYCLE_LABEL } from "../../components/labels";
 import { MockBanner } from "../../components/MockBanner";
+import { formatViDateTime } from "../../lib/viNumber";
 import { readLastSessionId, rememberSession } from "./lastSession";
 
 /**
@@ -23,6 +26,8 @@ export function StudentStartPage() {
     retry: false,
   });
   const resumable = last.data && last.data.lifecycle_state !== "COMPLETED" ? last.data : null;
+  // Every session of this student is kept with its whole conversation (the real API stores them).
+  const history = useQuery({ queryKey: ["my-sessions"], queryFn: () => api.listMySessions(), retry: false });
 
   const start = useMutation({
     mutationFn: (studentName: string) => api.createDemoSession({ student_display_name: studentName }),
@@ -91,10 +96,53 @@ export function StudentStartPage() {
           )}
         </form>
 
+        {history.data && history.data.length > 0 && <SessionHistory sessions={history.data} />}
+
         <Link to="/" className="text-lg text-teal-800 underline">
           Về trang chính
         </Link>
       </main>
     </div>
+  );
+}
+
+/** "Lịch sử học": every session of this student, newest first; each opens with its whole conversation. */
+function SessionHistory({ sessions }: { sessions: SessionSummary[] }) {
+  return (
+    <section
+      aria-labelledby="history-title"
+      className="flex flex-col gap-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+    >
+      <h2 id="history-title" className="text-2xl font-semibold">
+        Lịch sử học
+      </h2>
+      <ol className="flex flex-col divide-y divide-slate-100">
+        {sessions.map((session) => {
+          const done = session.lifecycle_state === "COMPLETED";
+          const unit = session.mode === "CHAPTER" ? "bài đã qua" : "câu";
+          const when = session.started_at ? formatViDateTime(session.started_at) : "chưa bắt đầu";
+          return (
+            <li key={session.session_id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div className="flex flex-col">
+                <span className="text-xl font-medium">{session.lesson_title}</span>
+                <span className="text-base text-slate-600">
+                  {when} · {session.progress.items_done}/{session.progress.items_total} {unit} ·{" "}
+                  {LIFECYCLE_LABEL[session.lifecycle_state]}
+                </span>
+              </div>
+              <Link
+                to={`/student/sessions/${session.session_id}`}
+                aria-label={`${done ? "Xem lại" : "Học tiếp"} buổi ${session.lesson_title} lúc ${when}`}
+                className={`rounded-2xl px-5 py-2 text-lg font-semibold ${
+                  done ? "bg-white text-teal-800 ring-2 ring-teal-700" : "bg-teal-700 text-white"
+                }`}
+              >
+                {done ? "Xem lại" : "Học tiếp"}
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }

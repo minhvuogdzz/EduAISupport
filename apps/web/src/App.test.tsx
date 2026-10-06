@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { renderApp, testApi } from "./test/renderApp";
@@ -34,6 +34,20 @@ describe("App", () => {
     );
     await user.click(screen.getByRole("link", { name: "Học tiếp" }));
     expect(await screen.findByRole("heading", { name: "Câu 1/8" })).toBeInTheDocument();
+  });
+
+  it("lists this student's sessions under Lịch sử học, each one to open again", async () => {
+    const api = testApi();
+    const first = await api.createDemoSession({ student_display_name: "Chi" });
+    await api.join(first.session_id);
+    await api.createDemoSession({ student_display_name: "Chi" });
+
+    renderApp("/student", api);
+    const history = await screen.findByRole("region", { name: "Lịch sử học" });
+    const links = within(history).getAllByRole("link");
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAccessibleName(/^Học tiếp buổi So sánh hai số thập phân lúc /);
+    expect(within(history).getAllByText(/0\/8 câu/)).toHaveLength(2);
   });
 
   it("shows a not-found page for unknown paths", () => {

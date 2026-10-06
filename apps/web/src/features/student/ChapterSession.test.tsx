@@ -29,6 +29,7 @@ function chapterApi() {
       return () => listeners.delete(onEvent);
     },
     listSessions: () => Promise.resolve([]),
+    listMySessions: () => Promise.resolve([]),
     getTranscript: () => Promise.reject(new Error("not used")),
   };
   return { api, sent };

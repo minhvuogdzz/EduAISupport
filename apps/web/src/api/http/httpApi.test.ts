@@ -187,6 +187,13 @@ describe("createHttpApi", () => {
     expect(events).toEqual([]);
   });
 
+  it("lists the student's own sessions with the student identity", async () => {
+    const { api, calls } = client({ "GET /v1/sessions/mine": () => ({ body: [] }) });
+    await expect(api.listMySessions()).resolves.toEqual([]);
+    expect(calls[0].headers["X-Demo-Student"]).toBeTruthy();
+    expect(calls[0].headers["X-Demo-Teacher"]).toBeUndefined();
+  });
+
   it("uses the teacher header, not the student identity, for the teacher's calls", async () => {
     const { api, calls } = client({
       "GET /v1/sessions": () => ({ body: [] }),

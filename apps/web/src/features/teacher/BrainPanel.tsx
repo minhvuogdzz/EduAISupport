@@ -61,6 +61,12 @@ export function BrainPanel({ report }: { report: TeachingReport }) {
         {node && <NodeDetail node={node} report={report} />}
       </div>
       <DecisionTimeline decisions={report.decisions} names={names} />
+      {report.earlier_sessions ? (
+        <p className="text-sm text-slate-700">
+          Điểm tính cả {report.earlier_sessions} buổi học trước của {report.session.student_display_name} ở
+          chương này: cô nhớ con đã học tới đâu. Bằng chứng từ buổi trước có nhãn "buổi trước".
+        </p>
+      ) : null}
       <p className="text-xs text-slate-500">
         Tính lại từ sự kiện của buổi học ·{" "}
         {Object.entries(report.versions)
@@ -389,6 +395,7 @@ function EvidenceTable({ evidence }: { evidence: EvidenceEntry[] }) {
                 <tr key={`${e.sequence_no}-${e.dimension}-${index}`}>
                   <td className="py-1 pr-3 font-mono text-xs whitespace-nowrap text-slate-500">
                     #{e.sequence_no}
+                    {e.earlier && <span className="ml-1 font-sans">(buổi trước)</span>}
                   </td>
                   <td className="py-1 pr-3 font-mono text-xs whitespace-nowrap">{e.item_id ?? "–"}</td>
                   <td className="py-1 pr-3">

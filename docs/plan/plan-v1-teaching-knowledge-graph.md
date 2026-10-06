@@ -217,6 +217,7 @@ RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã du
   - API: buổi học mặc định là buổi học theo chương (`session/chapter_service.py`). Mỗi lệnh dựng lại vòng dạy từ sự kiện của buổi học. `GET /v1/sessions/{id}/report` trả "bộ não gia sư" cho giáo viên.
   - Web, phía học sinh: bản đồ bài học (cây tri thức hai tầng, trạng thái từng bài, mức hiểu bằng chữ), thanh 7 bước, thẻ "Cô giảng bài", thẻ "Cô làm mẫu", ô "con nói lại".
   - Web, phía giáo viên: tab "Bộ não gia sư" gồm cây tri thức có điểm M từng bài, điểm M qua từng lượt so với ngưỡng, 7 chiều đánh giá, điều kiện qua bài, bảng bằng chứng cộng/trừ kèm lý do, dòng quyết định của cô kèm mã luật. Tab "Hội thoại" thêm nhãn bước dạy, mã luật và kết quả phần nói lại.
+  - Lịch sử (M1-7b): `make demo` lưu vào `cavat_dev`; học sinh có "Lịch sử học"; buổi mới đọc sự kiện các buổi trước của cùng học sinh trên chương. Bài đã qua giữ nguyên, điểm cộng dồn, gia sư vào bài tiếp bằng câu ôn bài nền (N-WARMUP).
   - Chưa làm: tô màu theo dải §25 và nhận xét kiểu "tư duy giáo viên" (Mốc 2).
 
 ## 6. Giữ, thay, bỏ

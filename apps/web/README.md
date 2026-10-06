@@ -7,13 +7,14 @@ Web app React + TypeScript + Vite cho hai màn hình của vertical slice: **h�
 Yêu cầu: Node ≥ 22.13 (khuyên dùng Node 22 LTS) và pnpm 10. Bật pnpm bằng `corepack enable`.
 
 ```bash
-make demo       # một lệnh cho cả bản demo: API (database trong bộ nhớ) + web ở http://localhost:5173
+make demo        # một lệnh cho cả bản demo: API (lưu vào database của .env, cavat_dev) + web ở http://localhost:5173
+make demo-memory # như trên nhưng database trong bộ nhớ: không lưu gì, Ctrl+C là mất
 make web        # chỉ web, mock API trong trình duyệt, không cần backend
 make web-live   # chỉ web, nối API thật; cần `make api` hoặc `make api-memory` đang chạy ở một terminal khác
 make web-check  # lint + type-check + test + build, giống job `web` của CI
 ```
 
-`make demo` chạy `make api-memory` và `make web-live` trong cùng một terminal; bấm Ctrl+C là dừng cả hai. Mỗi lệnh chạy server chiếm một terminal cho tới khi dừng, nên `make api` và `make web-live` phải nằm ở hai tab khác nhau. Khi cổng bận, đổi cổng bằng `make demo API_PORT=8010 WEB_PORT=5183`.
+`make demo` chạy API (database của `services/api/.env`, tức `cavat_dev`) và `make web-live` trong cùng một terminal; bấm Ctrl+C là dừng cả hai. Buổi học và hội thoại được lưu, tắt rồi bật lại vẫn còn. `make demo-memory` dùng database trong bộ nhớ thay vì Atlas. Mỗi lệnh chạy server chiếm một terminal cho tới khi dừng, nên `make api` và `make web-live` phải nằm ở hai tab khác nhau. Khi cổng bận, đổi cổng bằng `make demo API_PORT=8010 WEB_PORT=5183`.
 
 Hai cách chạy backend cho `make web-live`:
 
@@ -65,6 +66,9 @@ Test (`pnpm test`, Vitest + Testing Library): enum của contract khớp `servic
 ## Buổi học theo chương (M1-7)
 
 Với API thật, buổi học mặc định là **buổi học theo chương** Số thập phân: gia sư dạy theo vòng 7 bước trên cây tri thức của chương (kế hoạch v1, `docs/plan/plan-v1-teaching-knowledge-graph.md`). Mock API trong trình duyệt vẫn chỉ chạy bài 1 cũ, nên muốn xem phần này thì chạy `make demo`.
+
+- **Lịch sử hội thoại:** mỗi buổi học là một document trên database, giữ toàn bộ hội thoại. Trang học sinh có mục "Lịch sử học" (`GET /v1/sessions/mine`): mở lại buổi đã xong để xem lại, buổi chưa xong thì học tiếp đúng chỗ cũ. Giáo viên xem mọi buổi ở trang giáo viên.
+- **Học tiếp qua nhiều buổi:** buổi mới của cùng học sinh đọc lại sự kiện các buổi trước của chương. Bài đã qua vẫn là đã qua, điểm được cộng dồn, và gia sư vào bài tiếp theo bằng một câu ôn bài nền. Báo cáo giáo viên ghi số buổi trước và đánh dấu bằng chứng "buổi trước".
 
 - **Học sinh:** `state.teaching` (contract.ts, `TeachingView`) mang bản đồ node (trạng thái và mức hiểu bằng chữ, không có điểm số), bước hiện tại của vòng dạy và câu hỏi cô đang chờ trả lời. Lời trả lời gửi qua `POST /responses` với `item_attempt_id` = `teaching.input_id`. Lời giảng và bài cô làm mẫu là `ChatTurn.kind` (`THEORY`, `EXAMPLE`...) và hiện thành thẻ riêng.
 - **Giáo viên:** tab "Bộ não gia sư" đọc `GET /v1/sessions/{id}/report` (`TeachingReport`), tự cập nhật 3 giây một lần khi buổi học đang diễn ra. Nội dung:
