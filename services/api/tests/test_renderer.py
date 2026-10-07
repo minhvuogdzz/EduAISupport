@@ -14,7 +14,7 @@ from cavat.modules.tutor.contracts import (
     PolicyDecision,
     RenderContext,
 )
-from cavat.modules.tutor.renderer import TemplateRenderer, select_hint
+from cavat.modules.tutor.renderer import TemplateRenderer, counter_example, select_hint
 from cavat.modules.tutor.validator import validate_message
 
 LESSON = Path(__file__).resolve().parents[3] / "docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml"
@@ -209,3 +209,11 @@ def test_persona_is_used_in_fixed_sentences():
 def test_renderer_is_deterministic():
     for move in Move:
         assert render("GP-07", move)[0] == render("GP-07", move)[0]
+
+
+def test_a_counter_example_with_two_questions_is_skipped():
+    """Live run TQ-2: the first FRAC-M01 counter-example asks two questions, the validator rejected it and
+    the child got the fixed fallback sentence twice. The one-question counter-example is used instead."""
+    lesson = load_lesson_package(LESSON.parents[1] / "khai-niem-so-thap-phan/lesson.yaml")
+    text, ref = counter_example(lesson.item("TP-PR-01"), lesson, "FRAC-M01")
+    assert ref == "FRAC-M01:COUNTER:2" and text.count("?") == 1
