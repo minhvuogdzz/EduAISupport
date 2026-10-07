@@ -204,7 +204,7 @@ def _ask_item(ctx: RenderContext) -> tuple[str, str]:
         return item.rephrase, f"{item.id}:REPHRASE"
     if "?" in item.stem:
         return item.stem, f"{item.id}:STEM"
-    return f"{item.stem}. {_say(ctx, 'try_it')}", f"{item.id}:STEM"
+    return f"{item.stem.rstrip(' .')}. {_say(ctx, 'try_it')}", f"{item.id}:STEM"
 
 
 def _present(ctx: RenderContext) -> RenderedMessage:

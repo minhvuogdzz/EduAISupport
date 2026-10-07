@@ -165,8 +165,10 @@ def test_the_tutor_handles_every_role_and_still_teaches(role: Role) -> None:
         intent = classify_intent(said or "")
         where = f"{role.name}: {said!r} -> {said_text!r}"
 
-        # One question per message; no message said three times in a row (anti-loop).
-        assert all(m.text.count("?") <= 1 for m in turn.messages), where
+        # One question per message, no doubled full stop; no message said three times in a row.
+        assert all(m.text.count("?") <= 1 and ".." not in m.text.replace("...", "") for m in turn.messages), (
+            where
+        )
         repeats = repeats + 1 if said_text and said_text == text(previous) else 0
         assert repeats < 2, where
 
