@@ -13,6 +13,11 @@ import os
 # The tests that came before the accounts (ACC-1) identify callers with the X-Demo-* headers; the account
 # tests switch to AUTH_MODE=accounts with the `accounts_mode` fixture. Set before the settings are read.
 os.environ["AUTH_MODE"] = "demo"
+# No test reaches a model, even on the owner's machine where services/api/.env holds real keys (a cloud
+# session has none): blank keys win over the .env file, so the gateway stays in template-only mode and the
+# Hybrid RAG uses its offline embedder. Tests that need a provider pass a fake one.
+os.environ["GROQ_API_KEY"] = ""
+os.environ["GEMINI_API_KEY"] = ""
 
 import pytest  # noqa: E402
 from cavat.config import get_settings  # noqa: E402

@@ -11,6 +11,9 @@ import type {
   EngineKind,
   HintRequestCommand,
   ParentChildView,
+  RagMode,
+  RagSearch,
+  RagStatus,
   ResponseCommand,
   SessionState,
   SessionSummary,
@@ -76,6 +79,12 @@ export interface SessionApi {
     original(documentId: string): Promise<Blob>;
     chapters(): Promise<ChapterSummary[]>;
     chapter(chapterId: string): Promise<ChapterContent>;
+  };
+  /** Teacher: the Hybrid RAG, its sources and a search with every signal (RAG-1, real API only). */
+  rag?: {
+    status(): Promise<RagStatus>;
+    rebuild(): Promise<RagStatus>;
+    search(query: string, options: { nodeId?: string; mode: RagMode; k?: number }): Promise<RagSearch>;
   };
   /** Teacher: the class on the chapter, Student × KC (real API only). */
   getClassOverview?: () => Promise<ClassOverview>;

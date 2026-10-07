@@ -19,6 +19,7 @@ from .base import (
     ChatProvider,
     ChatRequest,
     ChatResult,
+    EmbeddingProvider,
     InvalidModelOutput,
     ModelClass,
     ModelUnavailable,
@@ -85,6 +86,7 @@ class AIRouter:
         chat_provider: ChatProvider | None = None,
         stt_provider: SpeechToText | None = None,
         vision_provider: VisionProvider | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
         chains: Mapping[ModelClass, tuple[str, ...]] | None = None,
         stt_model: str = "whisper-large-v3",
         max_calls_per_session: int = DEFAULT_MAX_LLM_CALLS_PER_SESSION,
@@ -94,6 +96,7 @@ class AIRouter:
         self._chat = chat_provider
         self._stt = stt_provider
         self._vision = vision_provider
+        self._embedding = embedding_provider
         self._chains = dict(chains or default_chat_chains())
         self._stt_model = stt_model
         self.max_calls_per_session = max_calls_per_session
@@ -144,6 +147,17 @@ class AIRouter:
             raise ModelUnavailable("no speech-to-text provider configured")
         return self._stt.transcribe(audio, model=self._stt_model, language=language, filename=filename)
 
+    @property
+    def embedding_model(self) -> str | None:
+        """The EMBEDDING model, or None without a Gemini key (the RAG then uses keywords and structure)."""
+        return _embedding_name(self._embedding)
+
+    def embed(self, texts: list[str], task: str) -> list[list[float]]:
+        """EMBEDDING (Gemini). Not counted in the per-session LLM cap; the RAG caches every vector."""
+        if self._embedding is None:
+            raise ModelUnavailable("no embedding provider configured")
+        return self._embedding.embed(texts, task=task)
+
     def describe_image(
         self, image_bytes: bytes, prompt: str, *, mime_type: str = "image/png"
     ) -> VisionResult:
@@ -151,6 +165,10 @@ class AIRouter:
         if self._vision is None:
             raise ModelUnavailable("no vision provider configured")
         return self._vision.describe_image(image_bytes, prompt, mime_type=mime_type)
+
+
+def _embedding_name(provider: EmbeddingProvider | None) -> str | None:
+    return getattr(provider, "model", None)
 
 
 def build_router(
@@ -166,15 +184,17 @@ def build_router(
         from .groq import GroqClient
 
         groq = GroqClient(settings.groq_api_key)
-    vision = None
+    vision = embeddings = None
     if settings.gemini_api_key is not None and settings.gemini_api_key.get_secret_value():
-        from .gemini import GeminiVision
+        from .gemini import GeminiEmbeddings, GeminiVision
 
         vision = GeminiVision(settings.gemini_api_key, model=settings.gemini_vision_model)
+        embeddings = GeminiEmbeddings(settings.gemini_api_key, model=settings.gemini_embedding_model)
     return AIRouter(
         chat_provider=groq,
         stt_provider=groq,
         vision_provider=vision,
+        embedding_provider=embeddings,
         chains={**default_chat_chains(settings.groq_model), **(chains or {})},
         stt_model=settings.groq_stt_model,
         max_calls_per_session=settings.max_llm_calls_per_session,

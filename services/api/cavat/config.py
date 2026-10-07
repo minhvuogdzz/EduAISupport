@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr | None = None
     gemini_vision_model: str = "gemini-3.8-flash"
     gemini_live_model: str = "gemini-3.8-live"
+    gemini_embedding_model: str = "gemini-embedding-001"  # Hybrid RAG vectors (plan v1 5.5.2)
     llama_cloud_api_key: SecretStr | None = None
     # Hard cap on LLM calls per session; above it the tutor runs on approved templates only.
     max_llm_calls_per_session: int = 15

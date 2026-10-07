@@ -24,6 +24,8 @@ import {
   type SessionState,
   type SessionSummary,
   type ParentChildView,
+  type RagSearch,
+  type RagStatus,
   type SessionTranscript,
   type StreamEvent,
   type StudentOverview,
@@ -335,6 +337,20 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
           `/v1/teachers/chapters/${encodeURIComponent(chapterId)}`,
           teacher(),
         );
+      },
+    },
+
+    rag: {
+      status() {
+        return request<RagStatus>("GET", "/v1/teachers/rag/status", teacher());
+      },
+      rebuild() {
+        return request<RagStatus>("POST", "/v1/teachers/rag/rebuild", teacher());
+      },
+      search(query, { nodeId, mode, k = 5 }) {
+        const params = new URLSearchParams({ q: query, mode, k: String(k) });
+        if (nodeId) params.set("node", nodeId);
+        return request<RagSearch>("GET", `/v1/teachers/rag/search?${params.toString()}`, teacher());
       },
     },
 

@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -35,6 +35,9 @@ teach: ## Talk with the AI tutor in the terminal: the teaching loop on the decim
 
 eval-hard: ## Ten hard students with the real Qwen and an LLM judge (uses the free-tier quota; not run by make test)
 	cd services/api && .venv/bin/python scripts/eval_hard_students.py
+
+eval-rag: ## Hybrid RAG ablation on the labelled questions (offline; LIVE=1 for Gemini embeddings, cached)
+	cd services/api && .venv/bin/python scripts/eval_rag.py $(if $(LIVE),--live,)
 
 db-ping:
 	cd services/api && .venv/bin/python -m cavat.db
