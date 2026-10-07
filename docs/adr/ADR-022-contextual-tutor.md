@@ -1,6 +1,6 @@
 # ADR-022: Gia sư hiểu và đáp theo ngữ cảnh (CTX-1)
 
-**Trạng thái:** Đề xuất, 2026-10-08.
+**Trạng thái:** Đề xuất, 2026-10-07.
 - Chủ dự án chờ duyệt:
   - prompt `constitution.v3.md`;
   - câu mẫu `explain_lead`;
