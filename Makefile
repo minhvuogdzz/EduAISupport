@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -25,7 +25,10 @@ api:
 	cd services/api && .venv/bin/uvicorn cavat.main:app --reload --port 8000
 
 api-memory: ## Run the API on an in-memory database: nothing is written to Atlas, sessions are lost on restart
-	cd services/api && .venv/bin/python scripts/dev_memory_api.py
+	cd services/api && AUTH_MODE=demo .venv/bin/python scripts/dev_memory_api.py
+
+accounts: ## Create or update the three trial accounts (one student, one parent, one teacher) in the database of .env
+	cd services/api && .venv/bin/python -m cavat.accounts
 
 teach: ## Talk with the AI tutor in the terminal: the teaching loop on the decimals chapter, offline
 	cd services/api && .venv/bin/python scripts/teach_cli.py
@@ -62,7 +65,7 @@ demo: web-install ## The whole demo, saved: API on the database of services/api/
 demo-memory: web-install ## The demo on an in-memory database: nothing is saved, everything is lost on Ctrl+C
 	@echo "Database trong bộ nhớ: không lưu gì, Ctrl+C là mất hết. Mở http://localhost:$(WEB_PORT) khi thấy dòng 'Local:'."
 	@trap 'kill 0' EXIT; \
-	(cd services/api && CAVAT_API_PORT=$(API_PORT) exec .venv/bin/python scripts/dev_memory_api.py) & \
+	(cd services/api && AUTH_MODE=demo CAVAT_API_PORT=$(API_PORT) exec .venv/bin/python scripts/dev_memory_api.py) & \
 	cd $(WEB) && CAVAT_API_PORT=$(API_PORT) VITE_API=http pnpm dev --port $(WEB_PORT) --strictPort
 
 web-check: web-install ## Lint, type-check, test and build the web app (same as CI)

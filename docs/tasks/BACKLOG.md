@@ -116,6 +116,17 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | TQ-2 | Chạy 10 vai học sinh khó với Qwen thật, giám khảo LLM chấm từng lượt (sư phạm, an toàn, cảm xúc, chính xác, lộ đáp án) như Edubot; báo cáo `docs/poc/` | Xong: `make eval-hard`, báo cáo `evals/reports/2026-10-07-hard-students-live.md` (19 lượt, 0 lộ đáp án) |
 | TQ-3 | Chấm lời giải thích "vì sao" (vai "đúng mà lý do sai": "vì con đoán") | Mốc 2 |
 
+### Tài khoản, tài liệu giáo viên, RAG (yêu cầu 2026-10-07, ADR-020)
+
+| Task | Nội dung | Trạng thái |
+|---|---|---|
+| ACC-1 | 1 học sinh, 1 phụ huynh, 1 giáo viên cố định (`make accounts`), đăng nhập bằng PIN, token ký HMAC, phụ huynh gắn với con, tên học sinh lấy từ tài khoản | Đang làm |
+| DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Chưa |
+| RAG-1 | Hybrid RAG tự xây (M1-5): chia đoạn theo cấu trúc, BM25 hai bản, embedding Gemini, chỉ mục vector tự viết, RRF, xếp hạng lại theo sư phạm, ghi vết; trang tra cứu cho giáo viên; bộ câu hỏi Recall@k, MRR | Chưa |
+| RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án | Chưa |
+| DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án | Chờ tài liệu |
+| DATA-2 | Chương Diện tích hình tam giác, hình thang (có hình vẽ: OCR và mô tả hình bằng Gemini) | Chờ tài liệu |
+
 ### Mốc 2 và Mốc 3
 
 - **Mốc 2:** đường đọc tài liệu tự xây (thay T14; bỏ LlamaParse), dựng phần còn lại của chương Số thập phân từ tài liệu thật, chấm lời giải thích, đủ 7 chiều điểm, báo cáo giáo viên có cây tri thức và nhận xét.

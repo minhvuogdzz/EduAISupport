@@ -1,5 +1,7 @@
 import type {
   ApiErrorCode,
+  AuthConfig,
+  AuthUser,
   ChoiceCommand,
   ClassOverview,
   CommandAck,
@@ -47,6 +49,15 @@ export interface SessionApi {
   getMyOverview?: () => Promise<StudentOverview>;
   /** Parent: the child behind a code (real API only). */
   getChildOverview?: (code: string) => Promise<ParentChildView>;
+  /** Accounts (ACC-1, real API only): the login of the trial's student, parent and teacher. */
+  auth?: {
+    config(): Promise<AuthConfig>;
+    login(loginName: string, pin: string): Promise<AuthUser>;
+    me(): Promise<AuthUser>;
+    logout(): void;
+  };
+  /** Parent account: the linked child (real API only). */
+  getMyChild?: () => Promise<ParentChildView>;
   /** Teacher: the class on the chapter, Student × KC (real API only). */
   getClassOverview?: () => Promise<ClassOverview>;
   /** Teacher: one student on the chapter, every KC in detail (real API only). */

@@ -8,12 +8,18 @@ Atlas tests only ever use ``cavat_test_<12 hex>`` databases; ``cavat.core.db_gua
 before the first write and before the cleanup drop (CLAUDE.md rules 12-14).
 """
 
-import pytest
-from cavat.config import get_settings
-from cavat.core.db_guard import assert_test_database, drop_test_database, new_test_database_name
-from cavat.core.memory_db import InMemoryDatabase
-from cavat.db import ensure_indexes
-from pymongo import AsyncMongoClient
+import os
+
+# The tests that came before the accounts (ACC-1) identify callers with the X-Demo-* headers; the account
+# tests switch to AUTH_MODE=accounts with the `accounts_mode` fixture. Set before the settings are read.
+os.environ["AUTH_MODE"] = "demo"
+
+import pytest  # noqa: E402
+from cavat.config import get_settings  # noqa: E402
+from cavat.core.db_guard import assert_test_database, drop_test_database, new_test_database_name  # noqa: E402
+from cavat.core.memory_db import InMemoryDatabase  # noqa: E402
+from cavat.db import ensure_indexes  # noqa: E402
+from pymongo import AsyncMongoClient  # noqa: E402
 
 
 def _mongodb_uri() -> str:
@@ -48,3 +54,13 @@ async def db(request):
             await drop_test_database(client, database)  # guarded; runs even when the test failed
         finally:
             await client.close()
+
+
+@pytest.fixture
+def accounts_mode(monkeypatch):
+    """AUTH_MODE=accounts with a fixed signing key, for the tests of the accounts (ACC-1)."""
+    monkeypatch.setenv("AUTH_MODE", "accounts")
+    monkeypatch.setenv("AUTH_SECRET", "test-signing-key")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
