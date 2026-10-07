@@ -39,15 +39,16 @@
    Hai trường hợp đặc biệt:
    - Câu hỏi thuộc **bài học sau:** gia sư nói tên bài đó và không dạy trước.
    - Con hỏi lại đúng câu gia sư đang hỏi: gia sư mời con tự nghĩ.
-4. **Chính sách vẫn quyết định** (quy tắc 1):
+4. **Câu đáng lo được xét trước mọi thứ khác** (DI-41): bị đánh, bị bắt nạt, muốn làm đau mình… Gia sư nói câu ân cần và ghi cờ an toàn cho giáo viên, không bao giờ coi là câu ngoài bài.
+5. **Chính sách vẫn quyết định** (quy tắc 1):
    - Phần nói có căn cứ chỉ chạy khi vòng dạy đang chờ con trả lời câu hỏi của cách giảng hoặc nói lại bài.
    - Tối đa 2 câu hỏi mỗi lượt chờ (DI-39).
    - Đòi đáp án, than chán, lạc đề giữ đường riêng của ADR-019, kể cả khi viết thành câu hỏi.
    - Câu hỏi trong lúc làm bài tập giữ luồng hiện có (RAG-3).
-5. **Không lộ đáp án:**
+6. **Không lộ đáp án:**
    - Lời đáp của câu đang chờ con trả lời bị bỏ khỏi đoạn nguồn đưa cho Qwen.
    - Đáp án bài tập không vào kho RAG.
-6. **Ghi vết:**
+7. **Ghi vết:**
    - Sự kiện `RAG_RETRIEVED` ghi đoạn được chọn và điểm từng tín hiệu.
    - Sự kiện `QUESTION_PARKED` ghi lý do không trả lời.
    - `TEACH_MESSAGE_SENT` ghi thêm `source`, `sources`, `rejected`.

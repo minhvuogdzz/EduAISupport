@@ -304,6 +304,47 @@ def asks_question(text: str) -> bool:
     return len(folded.split()) >= 3 and bool(_ENDING_RE.search(folded))
 
 
+# DI-41 (drafted for the owner's review): words of a child in danger or in distress. Whatever else the message
+# is, the tutor answers with care and flags it for the teacher; it is never parked or treated as off-topic.
+_DISTRESS_RE = phrase_regex(
+    [
+        "bắt nạt",
+        "bị đánh",
+        "đánh con",
+        "đánh em",
+        "bị chửi",
+        "chửi con",
+        "muốn chết",
+        "không muốn sống",
+        "tự tử",
+        "tự làm đau",
+        "làm đau bản thân",
+        "làm đau mình",
+        "cắt tay",
+        "rạch tay",
+        "bị sờ",
+        "sờ vào người",
+        "sợ về nhà",
+        "bỏ nhà",
+        "bị nhốt",
+        "bị bỏ đói",
+        "bị dọa",
+        "đe dọa",
+    ]
+)
+
+
+# "bị bạn đánh", "bị anh ấy dọa": who did it comes between "bị" and the act (with or without diacritics).
+_HARMED_RE = re.compile(r"\bbị(?:\s+\w+){0,2}\s+(?:đánh|chửi|tát|dọa|đe dọa|nhốt|bắt nạt|sờ)\b")
+_HARMED_FOLDED_RE = re.compile(r"\bbi(?:\s+\w+){0,2}\s+(?:danh|chui|tat|doa|nhot|bat nat)\b")
+
+
+def signals_distress(text: str) -> bool:
+    """The child says something worrying (DI-41): for the teacher, whatever the lesson is doing."""
+    t = expand_short_forms(text)
+    return bool(_DISTRESS_RE.search(t) or _HARMED_RE.search(t) or _HARMED_FOLDED_RE.search(fold(t)))
+
+
 _ASK_HINT_RE = phrase_regex(["gợi ý", "giúp con", "giúp em", "giúp với"])
 
 

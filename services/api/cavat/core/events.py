@@ -287,7 +287,7 @@ class SafetyFlagged(_Payload):
     """The model judged the student's message worrying (constitution rule 8). For the teacher to review."""
 
     item_id: str
-    source: Literal["LLM"] = "LLM"
+    source: Literal["LLM", "RULE"] = "LLM"  # RULE: the distress phrases of DI-41
 
 
 PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {

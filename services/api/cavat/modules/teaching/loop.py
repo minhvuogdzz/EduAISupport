@@ -38,6 +38,7 @@ from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, Outcome, TeachAction
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
 from cavat.modules.assessment.retell import judge_retell
+from cavat.modules.assessment.student_intent import signals_distress
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 from cavat.modules.content.chapter_package import Chapter, TheoryVariant
 from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
@@ -107,6 +108,11 @@ PHRASES: dict[str, str] = {
     "question_later": (
         "Câu này mình sẽ học ở bài {name}, tới bài đó {t} giảng kỹ cho {s} nhé. "
         "Mình quay lại câu của {t}: {ask}"
+    ),
+    # DI-41 (drafted for the owner's review): the child says something worrying.
+    "distress": (
+        "{T} nghe {s} nói rồi. Chuyện này quan trọng lắm: {s} hãy kể ngay với thầy cô hoặc bố mẹ, "
+        "người lớn mà {s} tin nhé. {T} ghi lại để thầy cô biết."
     ),
     "question_limit": (
         "{T} ghi lại các câu {s} hỏi để mình nói sau nhé. Bây giờ {s} trả lời câu của {t}: {ask}"
@@ -257,6 +263,15 @@ class TeachingLoop:
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
         messages: list[TeachMessage] = []
         intent = classify_intent(text)
+        if signals_distress(text):  # DI-41: care and the teacher first, whatever else the message is
+            flagged = SafetyFlagged(item_id=f"{node_id}:{self._ref or 'RETELL'}", source="RULE")
+            events.append(self._record(now, EventType.SAFETY_FLAGGED, flagged))
+            self._say(
+                now, messages, events, TeachMessage(MessageKind.FEEDBACK, self._phrase("distress"), node_id)
+            )
+            return TeachTurn(
+                tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=self._prompt
+            )
         if self.speaker is not None and intent not in _OWN_PATH and self.speaker.is_question(text):
             return self._on_question(text, now, node_id, messages, events)
         if intent == Outcome.OFF_TOPIC and self._replies_since_decision() <= MAX_OFF_TOPIC_REDIRECTS:

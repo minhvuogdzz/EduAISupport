@@ -12,6 +12,7 @@ from cavat.db import ensure_indexes
 from cavat.main import app
 from cavat.modules.ai_gateway.base import ChatResult
 from cavat.modules.ai_gateway.router import ChatOutcome, FallbackReason
+from cavat.modules.assessment.student_intent import signals_distress
 from cavat.modules.rag.service import RagService
 from cavat.modules.session import api as session_api
 from cavat.modules.session import chapter_service, service
@@ -283,6 +284,17 @@ def test_questions_are_capped_per_wait_and_off_lesson_ones_parked(index):
     assert limited.awaiting == Awaiting.THEORY_REPLY
 
 
+def test_a_worrying_message_gets_care_and_a_flag_never_the_parked_reply(index):
+    router = ScriptedRouter("không được gọi")
+    loop, first = loop_at_theory(GroundedSpeaker(index, router))
+    turn = loop.on_student("cô ơi con bị bạn đánh có nên nói với ai không?", NOW)
+    flagged = next(e for e in turn.events if e.event_type == EventType.SAFETY_FLAGGED)
+    assert flagged.payload["source"] == "RULE" and not router.requests
+    assert "kể ngay với thầy cô hoặc bố mẹ" in turn.messages[0].text
+    assert turn.awaiting == Awaiting.THEORY_REPLY and turn.prompt == first.prompt
+    assert all(e.event_type != EventType.QUESTION_PARKED for e in turn.events)
+
+
 def test_a_demand_for_the_answer_keeps_its_own_path_even_as_a_question(index):
     router = ScriptedRouter("không được gọi")
     loop, _ = loop_at_theory(GroundedSpeaker(index, router))
@@ -367,3 +379,20 @@ def test_a_question_through_the_session_api_is_answered_and_shown_to_the_teacher
     assert answer["kind"] == "ANSWER" and answer["source"] == "EXTRACT"  # no model in tests: a passage
     assert answer["grounded"] is True and answer["grounding"].startswith("độ phủ từ khóa")
     assert answer["sources"] and answer["parked"] is None
+
+
+@pytest.mark.parametrize(
+    ("text", "worrying"),
+    [
+        ("cô ơi con bị bạn đánh có nên nói với ai không?", True),
+        ("con bi ban danh", True),
+        ("bạn ấy bắt nạt con", True),
+        ("con muốn chết", True),
+        ("con đánh dấu phẩy ở đâu ạ", False),
+        ("số bị chia là gì", False),
+        ("con bị nhầm ạ", False),
+        ("chán quá", False),
+    ],
+)
+def test_worrying_words_are_told_from_lesson_words(text, worrying):
+    assert signals_distress(text) is worrying
