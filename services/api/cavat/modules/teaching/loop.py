@@ -17,7 +17,8 @@ service already does, so past turns never call a model again.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+import re
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -38,7 +39,7 @@ from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, Outcome, TeachAction
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
 from cavat.modules.assessment.retell import judge_retell
-from cavat.modules.assessment.student_intent import signals_distress
+from cavat.modules.assessment.student_intent import expand_short_forms, signals_distress
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 from cavat.modules.content.chapter_package import Chapter, TheoryVariant
 from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
@@ -54,6 +55,7 @@ from cavat.modules.tutor.item_loop import (
     Phase,
     TutorEvent,
 )
+from cavat.modules.tutor.reader import ContextReader, recorded
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
@@ -133,6 +135,17 @@ PHRASES: dict[str, str] = {
 }
 
 
+def _bare_no(text: str) -> bool:
+    """A reply that is only "không" or "chưa" ("ko", "k", "hông" included)."""
+    words = [w for w in re.findall(r"\w+", expand_short_forms(text)) if w not in ("ạ", "a", "cô", "nhé")]
+    return words in (["không"], ["chưa"])
+
+
+def _yes_no(question: str) -> bool:
+    """A question answered by yes or no ("... có dài hơn không?", "... chưa?")."""
+    return bool(re.search(r"\b(không|chưa|phải không|đúng không)\s*\?\s*$", question.strip().lower()))
+
+
 class Awaiting(StrEnum):
     """What the student is expected to do next."""
 
@@ -204,9 +217,11 @@ class TeachingLoop:
         config: NodePolicyConfig = DEFAULT_CONFIG,
         mastery: MasteryPolicy = DEFAULT_POLICY,
         speaker: GroundedSpeaker | None = None,
+        item_reader: ContextReader | None = None,
     ) -> None:
         self.chapter, self.session_id = chapter, session_id
         self.speaker = speaker  # live turns only: a replay never calls the RAG or a model again
+        self.item_reader = item_reader  # CTX-1: reads an unclear item message in context (live turns only)
         self.history = list(history)  # events of earlier sessions: the projection reads them too
         self.events: list[Any] = []  # events of this session
         self.item_renderer = item_renderer or TemplateRenderer()
@@ -241,6 +256,22 @@ class TeachingLoop:
         loop.events = list(session_events)
         loop._restore()
         return loop
+
+    def go_live(
+        self,
+        renderer: MessageRenderer | None = None,
+        reader: ContextReader | None = None,
+        speaker: GroundedSpeaker | None = None,
+    ) -> None:
+        """What this turn may call (a model, the RAG); the replay before it used templates and records."""
+        if renderer is not None:
+            self.item_renderer = renderer
+        self.item_reader, self.speaker = reader, speaker
+        if self.tutor is not None:
+            if renderer is not None:
+                self.tutor.renderer = renderer
+            self.tutor.reader = reader
+            self.tutor.explainer = self._explainer(self._item_node(self.tutor.item.id))
 
     def start(self, now: datetime) -> TeachTurn:
         if self.awaiting is not None:
@@ -327,9 +358,15 @@ class TeachingLoop:
             return Spoken(self._phrase("theory_ack"), "TEMPLATE")
         if intent == Outcome.NEGATIVE_AFFECT:
             return Spoken(self._phrase("theory_affect", reply=variant.reply), "TEMPLATE")
-        if intent is not None:
+        if intent is not None or (_bare_no(text) and not _yes_no(variant.ask)):
+            # "ko" to "phân số nào?" is "con không biết" (seen live), not a wrong answer; to "có dài hơn
+            # không?" it is an answer and goes on to the check below.
             return Spoken(self._phrase("theory_explain", reply=variant.reply), "TEMPLATE")
-        right = bool(variant.accept) and phrase_regex(variant.accept).search(normalize_text(text)) is not None
+        accept = phrase_regex(variant.accept) if variant.accept else None
+        # "ko" is "không": the short forms children type count as the words they stand for
+        right = accept is not None and any(
+            accept.search(t) for t in (normalize_text(text), expand_short_forms(text))
+        )
         if right:
             return Spoken(self._phrase("theory_right", reply=variant.reply), "TEMPLATE")
         judged, lead = ("chưa đúng", "theory_check_lead") if variant.accept else ("chưa rõ", "theory_ack")
@@ -355,7 +392,7 @@ class TeachingLoop:
             if self.awaiting == Awaiting.THEORY_REPLY and self._ref is not None:
                 variant = next(t for t in self.chapter.node(node_id).theory if t.id == self._ref)
                 hide = [variant.reply]  # the question that waits keeps its answer to itself
-            turn = self.speaker.answer(text, node_id=node_id, pending=ask, hide=hide)
+            turn = self.speaker.answer(text, node_id=node_id, pending=ask, hide=hide, recent=self._recent(4))
             if turn.retrieval is not None:
                 payload = RagRetrieved(**retrieval_payload(turn.retrieval, "QUESTION", node_id))
                 events.append(self._record(now, EventType.RAG_RETRIEVED, payload))
@@ -387,6 +424,16 @@ class TeachingLoop:
                     said = TeachMessage(MessageKind.ANSWER, self._phrase(key, ask=ask), node_id)
         self._say(now, messages, events, said)
         return TeachTurn(tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=ask)
+
+    def _recent(self, n: int) -> list[tuple[str, str]]:
+        """The last ``n`` turns before the message being answered: (role, text), oldest first."""
+        said = []
+        for e in self.events[:-1]:  # the last event is the message being answered
+            if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT):
+                said.append(("tutor", e.payload.get("text", "")))
+            elif e.event_type == EventType.STUDENT_MESSAGE:
+                said.append(("student", e.payload.get("text", "")))
+        return said[-n:]
 
     def _answers_since_decision(self) -> int:
         """Replies to the child's questions since the last teaching decision."""
@@ -521,10 +568,25 @@ class TeachingLoop:
         messages.append(TeachMessage(MessageKind.ITEM, turn.text, self._item_node(d.ref), d.ref))
         return self._waiting_for_item(messages, events)
 
-    def _new_tutor(self, d: NodeDecisionMade) -> ItemTutor:
+    def _new_tutor(self, d: NodeDecisionMade, reader: ContextReader | None = None) -> ItemTutor:
         assert d.ref is not None
         item, lesson = self.chapter.item(d.ref), self.chapter.lesson_of(d.ref)
-        return ItemTutor(item, lesson, ACTIVITY_FOR[d.action], self.item_renderer, self.validator)
+        return ItemTutor(
+            item,
+            lesson,
+            ACTIVITY_FOR[d.action],
+            self.item_renderer,
+            self.validator,
+            reader=reader or self.item_reader,
+            explainer=self._explainer(self._item_node(d.ref)),
+        )
+
+    def _explainer(self, node_id: str | None) -> Callable[[str, str], Sequence[str]] | None:
+        """Approved passages on what the child asks about in an item (CTX-1), from the speaker's index."""
+        speaker = self.speaker
+        if speaker is None:
+            return None
+        return lambda focus, last_tutor: speaker.passages(focus, node_id, context=last_tutor)
 
     def _waiting_for_item(self, messages: list[TeachMessage], events: list[LoopEvent]) -> TeachTurn:
         assert self.tutor is not None
@@ -575,7 +637,12 @@ class TeachingLoop:
         d = NodeDecisionMade.model_validate(self.events[last].payload)
         after = self.events[last + 1 :]
         if d.action in ITEM_ACTIONS:
-            self.tutor = self._new_tutor(d)
+            readings = [
+                e.payload
+                for e in after
+                if e.event_type == EventType.MESSAGE_READ and e.payload.get("item_id") == d.ref
+            ]
+            self.tutor = self._new_tutor(d, reader=recorded(readings))
             self.tutor.start()
             for e in after:
                 if e.payload.get("item_id") != d.ref:
@@ -593,6 +660,13 @@ class TeachingLoop:
                     self._retry = True
             if self.tutor.phase == Phase.RESOLVED:
                 raise ValueError(f"item {d.ref} is resolved but no decision follows it")
+            said = [
+                e.payload["text"]
+                for e in after
+                if e.event_type == EventType.TUTOR_MESSAGE_SENT and e.payload.get("item_id") == d.ref
+            ]
+            if said:  # the words the child saw (a model's), not the template the replay rendered
+                self.tutor.last_tutor = said[-1]
             self.awaiting = Awaiting.ANSWER
         elif d.action in (TeachAction.TEACH_THEORY, TeachAction.ASK_RETELL):
             asked = next((e.payload for e in after if e.event_type == EventType.TEACH_MESSAGE_SENT), None)

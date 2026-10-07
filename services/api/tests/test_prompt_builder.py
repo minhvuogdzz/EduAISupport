@@ -116,9 +116,13 @@ def test_prompt_of_every_practice_item_stays_under_the_token_cap(item):
 
 @pytest.mark.parametrize("item", PKG.items, ids=lambda i: i.id)
 def test_typical_prompt_is_well_under_the_cap(item):
-    """No history, a short answer: the fixed part of the prompt leaves room for the conversation."""
+    """No history, a short answer: the fixed part of the prompt leaves room for the conversation.
+
+    The conversation takes at most RECENT_TURNS turns of MAX_TURN_CHARS and a student message of
+    MAX_STUDENT_CHARS, about 800 tokens; 1 300 are kept for it (v3 added the contextual guidance and two
+    examples, about 90 tokens, to a fixed part that was already near half of the cap)."""
     request = build(ctx_for(item, PolicyDecision(move=Move.PROBE), student_text="0,25 > 0,3"))
-    assert estimate_prompt_tokens(request) <= MAX_PROMPT_TOKENS // 2
+    assert estimate_prompt_tokens(request) <= MAX_PROMPT_TOKENS - 1300
 
 
 @pytest.mark.parametrize("item", PKG.items_for("EXIT"), ids=lambda i: i.id)
@@ -175,7 +179,7 @@ def test_prompt_has_constitution_subject_module_item_anchor_and_directive():
     request = build(ctx)
     system, user = request.messages
     assert system.role == "system" and user.role == "user"
-    assert "gia sư của một học sinh lớp 5" in system.content
+    assert "gia sư Toán của một học sinh lớp 5" in system.content and "Đáp theo ngữ cảnh" in system.content
     assert "Môn Toán lớp 5" in system.content
     assert "<!--" not in system.content and "DRAFT" not in system.content
     assert PKG.item("GP-01").stem in user.content

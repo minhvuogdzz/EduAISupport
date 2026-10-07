@@ -48,6 +48,7 @@ export const MOVE_LABEL: Record<Move, string> = {
   FULL_EXPLANATION: "Giải thích đầy đủ",
   TEACH_BACK: "Mời nói lại",
   CLOSE_ITEM: "Đóng câu",
+  EXPLAIN: "Giải thích điều con hỏi",
 };
 
 /** Names of the hint ladder (comments of HintLevel in pedagogy.py, blueprint PART 15.1). */
@@ -84,6 +85,7 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
   CLARIFY_REQUEST: "Hỏi lại đề",
   OFF_TOPIC: "Nói chuyện ngoài bài",
   NEGATIVE_AFFECT: "Nản, mệt",
+  ASKS_ABOUT: "Hỏi về điều cô nói",
 };
 
 export const RESOLUTION_LABEL: Record<ItemResolution, string> = {

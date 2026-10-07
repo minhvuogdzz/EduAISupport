@@ -5,9 +5,10 @@ Run by hand, with GROQ_API_KEY in services/api/.env: `make eval-hard`. The ten r
 the real policy and the LLM renderer (validator and template fallback included); the judge sees the item,
 its answer, what the child said and what the tutor replied, and scores the reply.
 
-Cost (free tier, docs/poc/free-tier-quota.md): about 20 to 40 Qwen calls, under a quarter of its 200 000
-tokens a day, and 20 judge calls on openai/gpt-oss-120b, which has its own quota. Not part of `make test`:
-the tests stay offline. The report goes to evals/reports/<date>-hard-students-live.md.
+Cost (free tier, docs/poc/free-tier-quota.md): about 30 to 50 Qwen calls (13 roles, CTX-1 reads included),
+under a third of its 200 000 tokens a day, and about 25 judge calls on openai/gpt-oss-120b, which has its own
+quota. Not part of `make test`: the tests stay offline. The report goes to
+evals/reports/<date>-hard-students-live.md.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.content.chapter_package import load_chapter
 from cavat.modules.tutor.item_loop import ItemTutor
 from cavat.modules.tutor.llm_renderer import LLMRenderer
+from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
@@ -51,6 +53,10 @@ SCENARIOS: list[tuple[str, str, list[str]]] = [
     ("Mít, sai mà chắc chắn", "TP-PR-01", ["0,09", "0,09 chứ cô, con đúng mà"]),
     ("Bi, đoán bừa", "TP-CC-01", ["A", "C"]),
     ("Nấm, đúng mà lý do chưa chắc", "TP-PR-01", ["0,9", "vì con đoán ạ"]),
+    # CTX-1: the owner's live case and its kin, the child asking about what the tutor just said
+    ("Vân, hỏi lại gợi ý (ca của chủ dự án)", "TP-CC-01", ["cho con gợi ý", "mẫu như nào"]),
+    ("Khoa, hỏi nghĩa một từ trong gợi ý", "TP-PR-01", ["con cần gợi ý", "phân số thập phân là gì ạ"]),
+    ("Hà, trả lời bằng lời", "TP-CC-01", ["cái có mẫu là mười ạ"]),
 ]
 
 JUDGE_SYSTEM = (
@@ -133,7 +139,12 @@ def run() -> list[Turn]:
         package = chapter.lesson_of(item_id)
         renderer = LLMRenderer(tutor_router, TemplateRenderer(), validate_message, student_name="An")
         tutor = ItemTutor(
-            package.item(item_id), package, ActivityType.GUIDED_PRACTICE, renderer, validate_message
+            package.item(item_id),
+            package,
+            ActivityType.GUIDED_PRACTICE,
+            renderer,
+            validate_message,
+            reader=LiveReader(ModelReader(tutor_router)),  # CTX-1: unclear messages read in context
         )
         before = tutor.start().text
         for said in messages:

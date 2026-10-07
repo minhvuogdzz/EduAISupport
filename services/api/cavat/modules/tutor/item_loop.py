@@ -11,6 +11,7 @@ The loop never calls a model and never writes mastery; it only produces events f
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any
@@ -23,6 +24,7 @@ from cavat.core.events import (
     ExplanationSubmitted,
     HintDelivered,
     ItemResolved,
+    MessageRead,
     MisconceptionDetected,
     OutputRejected,
     PolicyDecisionMade,
@@ -52,6 +54,7 @@ from cavat.modules.content.lesson_package import (
     NumericAnswer,
     OrderAnswer,
 )
+from cavat.modules.rag.bm25 import content_words
 from cavat.modules.tutor.contracts import (
     ItemState,
     MessageRenderer,
@@ -64,6 +67,7 @@ from cavat.modules.tutor.contracts import (
     TurnTrigger,
 )
 from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, decide
+from cavat.modules.tutor.reader import ContextReader
 from cavat.modules.tutor.renderer import PHRASES, counter_example, ladder_top
 
 # DI, approved by the owner on 2026-10-01: hard stop for one item. Every policy path ends well before
@@ -91,6 +95,14 @@ PROBE_CORRECT_ERROR = ErrorClass.REASONING
 # wrong answers followed by "Xin gợi ý" jumped straight to the worked solution; the request must get the
 # next hint instead. (Help requests still feed the negative-affect signal of R-ESCALATE.)
 _UNPRODUCTIVE = frozenset({Outcome.WRONG, Outcome.UNPARSEABLE, Outcome.NO_RESPONSE})
+# CTX-1: what a reading in context turns a message into (an ANSWER is graded by the checker instead).
+_READ_OUTCOME = {
+    "ASKS_ABOUT": Outcome.ASKS_ABOUT,
+    "ASK_TASK": Outcome.CLARIFY_REQUEST,
+    "DONT_KNOW": Outcome.HELP_REQUEST,
+    "OFF_TOPIC": Outcome.OFF_TOPIC,
+    "AFFECT": Outcome.NEGATIVE_AFFECT,
+}
 _HELP = frozenset({Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
 
 # Fixed fallback sentence (renderer.PHRASES key) used when a message fails the validator twice.
@@ -151,8 +163,16 @@ class ItemTutor:
         validator: MessageValidator,
         cfg: PolicyConfig = DEFAULT_CONFIG,
         snapshot: StudentSnapshot | None = None,
+        reader: ContextReader | None = None,
+        explainer: Callable[[str, str], Sequence[str]] | None = None,
     ) -> None:
+        """``reader``: reads an unclear message in context (CTX-1; a ``RecordedReader`` on replay).
+        ``explainer``: approved passages on what the child asks about (the Hybrid RAG of the chapter)."""
         self.item = item
+        self.reader = reader
+        self.explainer = explainer
+        self.last_tutor = ""  # what the tutor said last on this item: what "mẫu như nào" asks about
+        self._focus: str | None = None  # what the child asks about (EXPLAIN)
         self.package = package
         self.renderer = renderer
         self.validator = validator
@@ -225,6 +245,8 @@ class ItemTutor:
             return self._on_reason(text, seconds)
 
         check = self._check(text)
+        if self.reader is not None and self._unclear(check, text):
+            check = self._read(check, text)
         if self.phase == Phase.AWAITING_CHOICE and check.outcome in _HELP and self._offer is not None:
             # The student took the offered hint: deliver what the policy offered (level and target).
             offer = self._offer
@@ -247,6 +269,42 @@ class ItemTutor:
             # Several misconceptions predict this answer: attribute none (no COGNITIVE_CONFLICT).
             check = replace(check, misconception_id=None, misconception_confidence=0.0)
         return check
+
+    @staticmethod
+    def _unclear(check: CheckResult, text: str) -> bool:
+        """Messages the checker and the phrase lists cannot settle: unparsed words, a "là gì" about a word."""
+        if check.outcome in (Outcome.UNPARSEABLE, Outcome.NEEDS_LLM):
+            return True
+        return check.outcome == Outcome.CLARIFY_REQUEST and bool(content_words(text))
+
+    def _read(self, check: CheckResult, text: str) -> CheckResult:
+        """CTX-1: the reader's proposal, recorded; an answer it finds is graded by the checker (rule 2)."""
+        assert self.reader is not None
+        reading = self.reader.read(
+            stem=self.item.stem, last_tutor=self.last_tutor, said=text, turn=self._turns
+        )
+        if reading is None:
+            return check
+        self._emit(
+            EventType.MESSAGE_READ,
+            MessageRead(
+                item_id=self.item.id,
+                turn=self._turns,
+                label=reading.label,  # type: ignore[arg-type]
+                focus=reading.focus,
+                answer=reading.answer,
+                source=reading.source,
+            ),
+        )
+        if reading.label == "ANSWER" and reading.answer:
+            graded = self._check(reading.answer)
+            return graded if graded.outcome in GRADED_OUTCOMES else check
+        outcome = _READ_OUTCOME.get(reading.label)
+        if outcome is None:
+            return check
+        if outcome == Outcome.ASKS_ABOUT:
+            self._focus = reading.focus or text
+        return CheckResult(outcome, normalized=text.strip(), detail={"read": reading.label})
 
     def _record_answer(self, check: CheckResult, text: str, seconds: float) -> None:
         st = self.state
@@ -422,6 +480,8 @@ class ItemTutor:
         )
         if d.move == Move.NUDGE:
             st.nudges_sent += 1
+        if d.move == Move.EXPLAIN:
+            st.explanations += 1
         if d.move in HINT_MOVES and d.level is not None and d.target is not None:
             st.hint_levels.append(d.level)
             st.hint_targets.append(d.target)
@@ -437,6 +497,7 @@ class ItemTutor:
             st.probes_sent += 1  # R-FIRST-WRONG asks "con làm thế nào?" once per item
 
         msg, attempts = self._render(d, student_text)
+        self.last_tutor = msg.text
         if d.move in HINT_MOVES and d.level is not None and msg.source != "FALLBACK":
             self._emit(
                 EventType.HINT_DELIVERED,
@@ -498,6 +559,10 @@ class ItemTutor:
         return Phase.AWAITING
 
     def _render(self, d: PolicyDecision, student_text: str | None) -> tuple[RenderedMessage, int]:
+        explaining = d.move == Move.EXPLAIN
+        evidence = (
+            tuple(self.explainer(self._focus or "", self.last_tutor)) if explaining and self.explainer else ()
+        )
         ctx = RenderContext(
             decision=d,
             item=self.item,
@@ -505,6 +570,9 @@ class ItemTutor:
             state=self.state,
             student_text=student_text,
             persona=self.package.persona,
+            focus=self._focus if explaining else None,
+            last_tutor=self.last_tutor or None,
+            evidence=evidence,
         )
         for attempt in (1, 2):
             msg = self.renderer.render(ctx)

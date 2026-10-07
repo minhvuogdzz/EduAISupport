@@ -60,6 +60,7 @@ from cavat.modules.teaching.loop import (
 from cavat.modules.teaching.state import NODE_POLICY_VERSION, TeachingState, teaching_state
 from cavat.modules.tutor.contracts import MessageRenderer
 from cavat.modules.tutor.item_loop import Phase
+from cavat.modules.tutor.reader import ContextReader
 
 MODE = "CHAPTER"
 DEFAULT_CHAPTER_ID = "math-g5-decimals"
@@ -174,12 +175,14 @@ def apply_command(
     choice_id: str | None = None,
     live_renderer: MessageRenderer | None = None,
     speaker: GroundedSpeaker | None = None,
+    reader: ContextReader | None = None,
     history: Sequence[Any] = (),
 ) -> Step:
     """One student command. Raises ``CommandNotAllowed`` when it does not fit what the loop waits for.
 
-    ``live_renderer`` and ``speaker`` serve this turn only (the replay above them uses templates): the item
-    renderer phrases item moves, the speaker answers the child's questions from the RAG (RAG-2).
+    ``live_renderer``, ``speaker`` and ``reader`` serve this turn only (the replay above them uses templates
+    and the recorded readings): the item renderer phrases item moves, the speaker answers the child's
+    questions from the RAG (RAG-2), the reader reads an unclear item message in context (CTX-1).
     """
     if command not in allowed_commands(session):
         raise CommandNotAllowed(command)
@@ -187,11 +190,7 @@ def apply_command(
         raise CommandNotAllowed(f"unknown choice {choice_id!r}")
     act = session.state.activity or {}
     loop = TeachingLoop.resume(chapter, session.id, history, session.events)
-    if live_renderer is not None:  # the replay above used templates; only this turn may call the model
-        loop.item_renderer = live_renderer
-        if loop.tutor is not None:
-            loop.tutor.renderer = live_renderer
-    loop.speaker = speaker
+    loop.go_live(live_renderer, reader, speaker)  # the replay above used templates; this turn may call models
     seconds = max((now - session.updated_at).total_seconds(), 0.0)
     if command == "CHOICE":
         assert choice_id is not None
@@ -212,6 +211,7 @@ def apply_command(
         )
     llm_calls = getattr(live_renderer, "calls_used", act.get("llm_calls", 0))
     llm_calls += speaker.calls_made if speaker is not None else 0
+    llm_calls += getattr(reader, "calls_made", 0)
     state = _state_after(chapter, loop, turn, attempt, node_id, llm_calls)
     if turn.awaiting == Awaiting.NOTHING:
         events.append(NewEvent(event_type=EventType.SESSION_COMPLETED.value, payload={}))

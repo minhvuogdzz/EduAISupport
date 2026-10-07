@@ -17,6 +17,7 @@ from cavat.core.pedagogy import MOVES_ALLOWED_TO_REVEAL, MOVES_REQUIRING_QUESTIO
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text, parse_literal, parse_number
 from cavat.modules.content.lesson_package import (
     ChoiceAnswer,
+    ChoiceOption,
     CompareAnswer,
     Item,
     NumericAnswer,
@@ -152,6 +153,33 @@ def _states_order(sentence: str, ans: OrderAnswer) -> bool:
     return any(said[i : i + k] == target for i in range(len(said) - k + 1))
 
 
+def _mentions(sentence: str, name: str) -> bool:
+    """``name`` as a whole: "0,3" is not in "0,35", but "3/7," (a comma after it) names 3/7."""
+    name = normalize_text(name)
+    found = re.search(rf"(?<![\w/])(?<!\d[,.]){re.escape(name)}(?![\w/])(?![,.]\d)", sentence)
+    return bool(name) and found is not None
+
+
+def _option_names(option: ChoiceOption) -> list[str]:
+    return [option.text, *option.aliases, option.id]
+
+
+def _states_choice(sentence: str, ans: ChoiceAnswer) -> bool:
+    right = any(_mentions(sentence, n) for o in ans.options if o.correct for n in _option_names(o))
+    other = any(_mentions(sentence, n) for o in ans.options if not o.correct for n in _option_names(o))
+    return right and not other
+
+
+def singles_out_choice(text: str, item: Item) -> bool:
+    """A sentence names the right option and no other ("đáp án là 7/10", "con chọn 7/10 là đúng"); naming
+    them all ("3/7, 7/10 hay 10/3") tells nothing. Found in CTX-1: a choice item without leak_patterns let
+    such a model message through since T03. Approved hints may point at the option on purpose, so the LLM
+    renderer applies it to model output only, unless the anchor itself singles it out."""
+    if not isinstance(item.answer, ChoiceAnswer):
+        return False
+    return any(_states_choice(s, item.answer) for s in _sentences(normalize_text(text)))
+
+
 def _leak(text: str, ctx: RenderContext) -> str | None:
     item = ctx.item
     lowered = normalize_text(text)
@@ -182,7 +210,7 @@ def grounded_values(ctx: RenderContext) -> set[Fraction]:
     item, pkg = ctx.item, ctx.package
     texts = [item.stem, item.rephrase or "", item.verify_prompt or "", item.explanation or ""]
     texts += item.worked_solution + [h.text for h in item.hints] + [h.text for h in pkg.generic_hints]
-    texts += [pkg.default_verify_prompt or "", ctx.student_text or ""]
+    texts += [pkg.default_verify_prompt or "", ctx.student_text or "", ctx.last_tutor or "", *ctx.evidence]
     ans = item.answer
     if isinstance(ans, CompareAnswer):
         texts += [ans.left, ans.right]

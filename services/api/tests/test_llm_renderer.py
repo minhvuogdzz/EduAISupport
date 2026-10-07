@@ -241,7 +241,11 @@ def test_a_message_that_goes_beyond_the_anchor_is_rejected():
 def test_a_message_that_repeats_an_earlier_tutor_turn_is_rejected():
     """Real Qwen output: asked for a stronger hint, it sent back the sentence it had just said."""
     said = ON_ANCHOR_H2
-    fresh = "Con ơi, khi hai số có phần nguyên bằng nhau thì mình so sánh hàng nào trước: mười hay trăm?"
+    # v3: reworded freely, the anchor's terms kept ("mười hay trăm" alone would lose "hàng phần mười")
+    fresh = (
+        "Con ơi, khi phần nguyên của hai số bằng nhau thì mình so sánh hàng nào trước: "
+        "hàng phần mười hay hàng phần trăm?"
+    )
     renderer, fake = make([turn(said), turn(said.upper()), turn(fresh)])
     ctx = ctx_for("GP-01", Move.HINT, "con không biết", level=HintLevel.H2, target=HintTarget.CONCEPT)
     assert renderer.render(ctx).text == said
@@ -252,25 +256,35 @@ def test_a_message_that_repeats_an_earlier_tutor_turn_is_rejected():
 
 
 @pytest.mark.parametrize(
-    ("move", "decision", "drift"),
+    ("move", "decision", "drift", "codes", "note"),
     [
-        # Asked for the CONCEPT hint, the model reworded the counter-example it had given before.
+        # Asked for the CONCEPT hint, the model reworded the counter-example it had given before: the hint's
+        # terms are gone (the idea) and units the sources never used came in (another hint).
         (
             Move.HINT,
             {"level": HintLevel.H3, "target": HintTarget.CONCEPT},
             "Con thử đổi 0,25 mét và 0,3 mét ra xăng-ti-mét nhé. Đổi xong rồi con xem đoạn nào dài hơn?",
+            ("KEY_IDEA_MISSING", "NEW_MATH_TERM"),
+            "KEY_IDEA_MISSING (bỏ mất ý chính",
         ),
-        (Move.PROBE, {}, "Con thử nhìn lại chữ số hàng phần mười của hai số xem sao nhé?"),
+        # Asked "con làm thế nào?", the model gave a hint instead (an anchor with no mathematical term).
+        (
+            Move.PROBE,
+            {},
+            "Con thử nhìn lại chữ số hàng phần mười của hai số xem sao nhé?",
+            ("OFF_ANCHOR", "NEW_MATH_TERM"),
+            "OFF_ANCHOR (không bám câu mẫu",
+        ),
     ],
 )
-def test_a_message_that_drifts_from_the_anchor_is_rejected(move, decision, drift):
+def test_a_message_that_drifts_from_the_anchor_is_rejected(move, decision, drift, codes, note):
     """Real Qwen outputs: they pass the validator, but they do not say what the move asked for."""
     ctx = ctx_for("GP-01", move, "cho con gợi ý", **decision)
     assert validate_message(drift, ctx).ok
     renderer, fake = make([turn(drift), turn(drift)])
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
-    assert renderer.last_trace.rejected == (("OFF_ANCHOR",), ("OFF_ANCHOR",))
-    assert "OFF_ANCHOR (không bám câu mẫu" in user_prompt(fake, 1)
+    assert renderer.last_trace.rejected == (codes, codes)
+    assert note in user_prompt(fake, 1)
 
 
 @pytest.mark.parametrize("move", [Move.VERIFY, Move.TEACH_BACK, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION])

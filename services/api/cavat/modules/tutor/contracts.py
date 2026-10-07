@@ -54,6 +54,7 @@ class ItemState:
     clarify_requests: int = 0  # "là sao ạ?" (ADR-019): never a wrong answer
     off_topic_turns: int = 0  # talk outside the lesson (ADR-019): never a wrong answer
     affect_signals: int = 0  # "chán quá", "con ngu toán" (ADR-019)
+    explanations: int = 0  # EXPLAIN moves on the item (CTX-1): asked again past the limit, the next hint
     choice_offered: bool = False  # "gợi ý thêm hay tự thử lại?" is asked once per item (DI-35)
     explanation_asked_again: bool = False  # "vì sao" asked once more after "là sao?" or off-topic talk
     probes_sent: int = 0  # "con làm thế nào?" asked after the first wrong answer (R-FIRST-WRONG asks once)
@@ -102,6 +103,11 @@ class RenderContext:
     student_text: str | None = None
     persona: Persona = field(default_factory=Persona)
     max_words: int = 60
+    # CTX-1: what the child asks about (EXPLAIN), the tutor's previous message, and approved passages the
+    # Hybrid RAG retrieved for it: the evidence an explanation may rest on.
+    focus: str | None = None
+    last_tutor: str | None = None
+    evidence: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

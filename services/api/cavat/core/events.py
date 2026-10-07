@@ -68,6 +68,8 @@ class EventType(StrEnum):
     # grounded speech (RAG-2)
     RAG_RETRIEVED = "RAG_RETRIEVED"
     QUESTION_PARKED = "QUESTION_PARKED"
+    # contextual reading (CTX-1)
+    MESSAGE_READ = "MESSAGE_READ"
     # assessment / teacher
     EVIDENCE_RECORDED = "EVIDENCE_RECORDED"
     TEACHER_OVERRIDE = "TEACHER_OVERRIDE"
@@ -252,6 +254,18 @@ class RagRetrieved(_Payload):
     )  # chunk_id, title, final, bm25, cosine, coverage
 
 
+class MessageRead(_Payload):
+    """How an unclear message of the child was read in context (CTX-1, ``tutor/reader.py``). Replayed from
+    this record, never read again."""
+
+    item_id: str
+    turn: int  # the item loop's student turn the reading was made on
+    label: Literal["ANSWER", "ASKS_ABOUT", "ASK_TASK", "DONT_KNOW", "OFF_TOPIC", "AFFECT", "OTHER"]
+    focus: str = ""
+    answer: str = ""
+    source: Literal["RULE", "LLM"]
+
+
 class QuestionParked(_Payload):
     """A question of the child the tutor did not answer: kept for the teacher (plan v1 5.5.3)."""
 
@@ -309,5 +323,6 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.NODE_DECISION: NodeDecisionMade,
     EventType.TEACH_MESSAGE_SENT: TeachMessageSent,
     EventType.RAG_RETRIEVED: RagRetrieved,
+    EventType.MESSAGE_READ: MessageRead,
     EventType.QUESTION_PARKED: QuestionParked,
 }

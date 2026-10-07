@@ -61,6 +61,9 @@ class Move(StrEnum):
     FULL_EXPLANATION = "FULL_EXPLANATION"
     TEACH_BACK = "TEACH_BACK"
     CLOSE_ITEM = "CLOSE_ITEM"
+    # CTX-1: the child asks what the hint or a word means; it is said from approved content (never the
+    # answer), then one question to go on. Not a hint: the ladder does not move.
+    EXPLAIN = "EXPLAIN"
 
 
 # Moves whose message must end with exactly one question to the student.
@@ -77,6 +80,7 @@ MOVES_REQUIRING_QUESTION = frozenset(
         Move.WORKED_GUIDANCE,
         Move.FULL_EXPLANATION,
         Move.TEACH_BACK,
+        Move.EXPLAIN,
     }
 )
 
@@ -84,7 +88,10 @@ MOVES_REQUIRING_QUESTION = frozenset(
 MOVES_ALLOWED_TO_REVEAL = frozenset({Move.FULL_EXPLANATION})
 
 # Moves that deliver hint content and therefore raise the support level.
-HINT_MOVES = frozenset({Move.HINT, Move.COGNITIVE_CONFLICT, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION})
+# EXPLAIN (CTX-1) too: what a word of the hint means is help, and the item is then solved with support.
+HINT_MOVES = frozenset(
+    {Move.HINT, Move.COGNITIVE_CONFLICT, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION, Move.EXPLAIN}
+)
 
 
 class Outcome(StrEnum):
@@ -103,6 +110,9 @@ class Outcome(StrEnum):
     CLARIFY_REQUEST = "CLARIFY_REQUEST"  # "là sao ạ?", "nghĩa là gì?", "cô nói lại đi"
     OFF_TOPIC = "OFF_TOPIC"  # talk outside the lesson
     NEGATIVE_AFFECT = "NEGATIVE_AFFECT"  # "chán quá", "con ngu toán", "con sợ sai"
+    # CTX-1: the child asks about what the tutor just said or about a word ("mẫu như nào" after a hint on
+    # "mẫu số đặc biệt"): not an attempt, answered with EXPLAIN.
+    ASKS_ABOUT = "ASKS_ABOUT"
 
 
 # Outcomes that count as a graded attempt at the item.

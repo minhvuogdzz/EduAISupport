@@ -194,6 +194,17 @@ const SOURCE_LABEL: Record<NonNullable<TeachAnnotation["source"]>, string> = {
   EXTRACT: "Trích nguyên văn đoạn nguồn",
 };
 
+/** CTX-1: what an unclear message of the child was read as (tutor/reader.py LABELS). */
+const READ_LABEL: Record<string, string> = {
+  ANSWER: "con trả lời",
+  ASKS_ABOUT: "con hỏi về",
+  ASK_TASK: "con chưa hiểu đề",
+  DONT_KNOW: "con không biết",
+  OFF_TOPIC: "chuyện ngoài bài",
+  AFFECT: "con đang chán hoặc buồn",
+  OTHER: "chưa rõ",
+};
+
 const PARKED_LABEL: Record<NonNullable<TeachAnnotation["parked"]>, string> = {
   NOT_GROUNDED: "Ngoài bài: để lại cho giáo viên",
   SAME_AS_CHECK: "Con hỏi lại câu của cô: mời con tự nghĩ",
@@ -244,6 +255,13 @@ function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
     <p className="flex flex-wrap gap-1">
       <Chip>{STUDENT_KIND_LABEL[kind]}</Chip>
       {annotation.safety && <Chip tone="rose">Đáng lo: cô cần đọc kỹ câu này</Chip>}
+      {annotation.read && (
+        <Chip tone="sky" title={annotation.read.source === "LLM" ? "Qwen đọc câu này" : "Đọc bằng luật"}>
+          Gia sư hiểu: {READ_LABEL[annotation.read.label] ?? annotation.read.label}
+          {annotation.read.focus ? ` «${annotation.read.focus}»` : ""}
+          {annotation.read.source === "LLM" ? " (Qwen đọc)" : ""}
+        </Chip>
+      )}
       {outcome && <Chip tone={outcomeTone}>{OUTCOME_LABEL[outcome]}</Chip>}
       {kind === "ANSWER" && outcome === null && <Chip>Chưa chấm</Chip>}
       {normalized_answer && (

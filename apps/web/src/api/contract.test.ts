@@ -48,7 +48,7 @@ describe("contract enums mirror services/api/cavat/core/pedagogy.py", () => {
   });
 
   it("HINT_MOVES", () => {
-    const block = /HINT_MOVES = frozenset\(\{([^}]*)\}\)/.exec(pedagogyPy);
+    const block = /HINT_MOVES = frozenset\(\s*\{([^}]*)\}\s*\)/.exec(pedagogyPy);
     const pyMoves = [...(block?.[1] ?? "").matchAll(/Move\.([A-Z_]+)/g)].map((m) => m[1]);
     expect([...HINT_MOVES].sort()).toEqual(pyMoves.sort());
   });
