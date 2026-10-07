@@ -16,6 +16,8 @@ dependencies = [
   "pymongo>=4.13",
   "google-genai>=2.0",
   "httpx>=0.27",
+  "python-multipart>=0.0.9",  # file uploads (DOC-1)
+  "pypdf>=5.0",  # text of the teacher's PDF documents (DOC-1); scans go to Gemini OCR
 ]
 
 [project.optional-dependencies]

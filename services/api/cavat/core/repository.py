@@ -229,6 +229,11 @@ class TenantScopedRepository(Repository):
             return exc.details.get("nInserted", len(docs) - len(errors))
         return len(result.inserted_ids)
 
+    async def _delete_one(self, flt: Mapping[str, Any]) -> bool:
+        """Delete one document of this school; True when one was found."""
+        result = await self._col.delete_one(self._scope(flt))
+        return result.deleted_count == 1
+
     async def _update_one(self, flt: Mapping[str, Any], update: Mapping[str, Any], *, upsert: bool = False):
         self._check_update(update)
         return await self._col.update_one(self._scope(flt), dict(update), upsert=upsert)

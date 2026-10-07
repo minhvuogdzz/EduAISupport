@@ -144,6 +144,7 @@ EXPECTED_COLLECTIONS = {
     "events",
     "evidence",
     "student_kc_states",
+    "documents",
 }
 
 

@@ -16,6 +16,8 @@ import {
   type ApiErrorCode,
   type AuthConfig,
   type AuthUser,
+  type ChapterContent,
+  type ChapterSummary,
   type ChatTurn,
   type ClassOverview,
   type CommandAck,
@@ -25,6 +27,8 @@ import {
   type SessionTranscript,
   type StreamEvent,
   type StudentOverview,
+  type TeacherDocument,
+  type TeacherDocumentDetail,
   type TeachingReport,
   type TeacherStudentView,
 } from "../contract";
@@ -155,6 +159,21 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
     return (await response.json()) as T;
   }
 
+  /** A request whose body or answer is not JSON (an upload, a deletion, a file). */
+  async function send(
+    method: "GET" | "POST" | "DELETE",
+    path: string,
+    headers: Record<string, string>,
+    body?: FormData,
+  ): Promise<Response> {
+    const response = await doFetch(`${baseUrl}${path}`, { method, headers, body });
+    if (!response.ok) throw await toError(response);
+    return response;
+  }
+
+  const teacher = () => as(() => TEACHER_HEADERS);
+  const documentPath = (id: string, tail = "") => `/v1/teachers/documents/${encodeURIComponent(id)}${tail}`;
+
   function sessionPath(sessionId: string, tail: string): string {
     return `/v1/sessions/${encodeURIComponent(sessionId)}/${tail}`;
   }
@@ -282,6 +301,40 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       },
       logout() {
         keepToken(null);
+      },
+    },
+
+    library: {
+      list() {
+        return request<TeacherDocument[]>("GET", "/v1/teachers/documents", teacher());
+      },
+      get(documentId) {
+        return request<TeacherDocumentDetail>("GET", documentPath(documentId), teacher());
+      },
+      async upload(file, meta) {
+        const form = new FormData();
+        form.append("file", file, file.name);
+        form.append("title", meta.title);
+        form.append("kind", meta.kind);
+        form.append("chapter_id", meta.chapterId);
+        const response = await send("POST", "/v1/teachers/documents", teacher(), form);
+        return (await response.json()) as TeacherDocument;
+      },
+      async remove(documentId) {
+        await send("DELETE", documentPath(documentId), teacher());
+      },
+      async original(documentId) {
+        return (await send("GET", documentPath(documentId, "/file"), teacher())).blob();
+      },
+      chapters() {
+        return request<ChapterSummary[]>("GET", "/v1/teachers/chapters", teacher());
+      },
+      chapter(chapterId) {
+        return request<ChapterContent>(
+          "GET",
+          `/v1/teachers/chapters/${encodeURIComponent(chapterId)}`,
+          teacher(),
+        );
       },
     },
 

@@ -36,6 +36,7 @@ from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
 from cavat.modules.identity.api import AuthError, demo_mode, identity_from, register_auth, require
 from cavat.modules.identity.repository import UserRepository
+from cavat.modules.library import api as library_api
 from cavat.modules.session import chapter_service, progress, service, teacher_view
 from cavat.modules.session.repository import (
     DuplicateCommand,
@@ -1118,6 +1119,10 @@ def register(app: FastAPI) -> None:
         fields = [".".join(str(p) for p in e["loc"]) for e in exc.errors()]
         return _error(422, "VALIDATION_ERROR", "invalid request", {"fields": fields})
 
+    @app.exception_handler(library_api.LibraryError)
+    async def _library_error(_: Request, exc: library_api.LibraryError) -> JSONResponse:
+        return _error(exc.status, exc.code, exc.message)
+
     @app.exception_handler(AuthError)
     async def _auth_error(_: Request, exc: AuthError) -> JSONResponse:
         return _error(exc.status, exc.code, exc.message)
@@ -1127,6 +1132,11 @@ def register(app: FastAPI) -> None:
         return _error(503, "INVALID_STATE", "database is not configured")
 
     app.include_router(register_auth(get_database, service.DEMO_SCHOOL_ID))
+    app.include_router(
+        library_api.build_router(
+            get_database, teacher_identity, service.DEMO_SCHOOL_ID, chapter_service.chapter_sources
+        )
+    )
     app.include_router(router)
     app.include_router(students)
     app.include_router(parents)

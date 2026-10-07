@@ -120,8 +120,8 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 
 | Task | Nội dung | Trạng thái |
 |---|---|---|
-| ACC-1 | 1 học sinh, 1 phụ huynh, 1 giáo viên cố định (`make accounts`), đăng nhập bằng PIN, token ký HMAC, phụ huynh gắn với con, tên học sinh lấy từ tài khoản | Đang làm |
-| DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Chưa |
+| ACC-1 | 1 học sinh, 1 phụ huynh, 1 giáo viên cố định (`make accounts`), đăng nhập bằng PIN, token ký HMAC, phụ huynh gắn với con, tên học sinh lấy từ tài khoản | Xong (PR #37) |
+| DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Đang làm |
 | RAG-1 | Hybrid RAG tự xây (M1-5): chia đoạn theo cấu trúc, BM25 hai bản, embedding Gemini, chỉ mục vector tự viết, RRF, xếp hạng lại theo sư phạm, ghi vết; trang tra cứu cho giáo viên; bộ câu hỏi Recall@k, MRR | Chưa |
 | RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án | Chưa |
 | DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án | Chờ tài liệu |

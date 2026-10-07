@@ -12,6 +12,16 @@ const TABS = [
     label: "Buổi học",
     match: (path: string) => path.startsWith("/teacher/sessions"),
   },
+  {
+    to: "/teacher/lessons",
+    label: "Bài học",
+    match: (path: string) => path.startsWith("/teacher/lessons"),
+  },
+  {
+    to: "/teacher/documents",
+    label: "Tài liệu",
+    match: (path: string) => path.startsWith("/teacher/documents"),
+  },
 ];
 
 /** The title of a teacher page and the two teacher views: the class, and the sessions one by one. */

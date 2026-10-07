@@ -10,6 +10,7 @@ from cavat.modules.content.lesson_package import load_lesson_package
 from cavat.modules.content.repository import LessonRepository, LessonVersion, package_hash
 from cavat.modules.identity.repository import User, UserRepository
 from cavat.modules.learner.repository import StudentKCStateRepository
+from cavat.modules.library.repository import DocumentRepository, TeacherDocument
 from cavat.modules.org.repository import (
     ClassRepository,
     Enrollment,
@@ -295,6 +296,18 @@ async def test_every_stored_learner_document_has_school_id(db, package):
     await sessions.copy_events_to_ledger(session.id, EventRepository(db, "sch-A"))
     await EvidenceRepository(db, "sch-A").append(_evidence())
     await StudentKCStateRepository(db, "sch-A").put("s", "KC", "v1", {}, 0)
+    await DocumentRepository(db, "sch-A").create(
+        TeacherDocument(
+            school_id="sch-A",
+            title="SGK",
+            filename="sgk.pdf",
+            content_type="application/pdf",
+            size=1,
+            sha256="0",
+            stored_path="documents/x/sgk.pdf",
+            uploaded_by="t",
+        )
+    )
 
     for repo in repository_classes():
         docs = await db[repo.collection_name].find({}).to_list()

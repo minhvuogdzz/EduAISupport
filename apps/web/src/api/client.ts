@@ -2,9 +2,12 @@ import type {
   ApiErrorCode,
   AuthConfig,
   AuthUser,
+  ChapterContent,
+  ChapterSummary,
   ChoiceCommand,
   ClassOverview,
   CommandAck,
+  DocumentKind,
   EngineKind,
   HintRequestCommand,
   ParentChildView,
@@ -14,6 +17,8 @@ import type {
   SessionTranscript,
   StreamEvent,
   StudentOverview,
+  TeacherDocument,
+  TeacherDocumentDetail,
   TeacherStudentView,
   TeachingReport,
 } from "./contract";
@@ -58,6 +63,20 @@ export interface SessionApi {
   };
   /** Parent account: the linked child (real API only). */
   getMyChild?: () => Promise<ParentChildView>;
+  /** Teacher library (DOC-1, real API only): the documents the teacher uploads, the RAG's sources. */
+  library?: {
+    list(): Promise<TeacherDocument[]>;
+    get(documentId: string): Promise<TeacherDocumentDetail>;
+    upload(
+      file: File,
+      meta: { title: string; kind: DocumentKind; chapterId: string },
+    ): Promise<TeacherDocument>;
+    remove(documentId: string): Promise<void>;
+    /** The original file, for the browser to open or save. */
+    original(documentId: string): Promise<Blob>;
+    chapters(): Promise<ChapterSummary[]>;
+    chapter(chapterId: string): Promise<ChapterContent>;
+  };
   /** Teacher: the class on the chapter, Student × KC (real API only). */
   getClassOverview?: () => Promise<ClassOverview>;
   /** Teacher: one student on the chapter, every KC in detail (real API only). */
