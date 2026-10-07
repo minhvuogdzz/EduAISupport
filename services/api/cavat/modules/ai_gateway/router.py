@@ -153,8 +153,13 @@ class AIRouter:
         return self._vision.describe_image(image_bytes, prompt, mime_type=mime_type)
 
 
-def build_router(settings: Settings | None = None) -> AIRouter:
-    """Wire real adapters from settings. Missing keys leave the router in template-only mode."""
+def build_router(
+    settings: Settings | None = None, chains: Mapping[ModelClass, tuple[str, ...]] | None = None
+) -> AIRouter:
+    """Wire real adapters from settings. Missing keys leave the router in template-only mode.
+
+    ``chains`` overrides the model chain of some classes (an eval can judge on a model with its own quota).
+    """
     settings = settings or get_settings()
     groq = None
     if settings.groq_api_key is not None and settings.groq_api_key.get_secret_value():
@@ -170,7 +175,7 @@ def build_router(settings: Settings | None = None) -> AIRouter:
         chat_provider=groq,
         stt_provider=groq,
         vision_provider=vision,
-        chains=default_chat_chains(settings.groq_model),
+        chains={**default_chat_chains(settings.groq_model), **(chains or {})},
         stt_model=settings.groq_stt_model,
         max_calls_per_session=settings.max_llm_calls_per_session,
     )

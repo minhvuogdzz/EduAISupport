@@ -185,15 +185,23 @@ def select_hint(
 def counter_example(
     item: Item, package: LessonPackage, misconception_id: str | None
 ) -> tuple[str, str] | None:
-    """First usable counter-example of the misconception; {left}/{right} only fill for compare items."""
+    """First usable counter-example of the misconception; {left}/{right} only fill for compare items.
+
+    A counter-example asking two questions would fail the validator (one question per turn) and leave
+    the child with the fixed fallback sentence (seen in the live hard-student run, TQ-2): it is skipped.
+    """
     mis = package.misconception(misconception_id) if misconception_id else None
     if mis is None:
         return None
     for i, text in enumerate(mis.counter_examples, start=1):
         if "{" not in text:
-            return text, f"{mis.id}:COUNTER:{i}"
-        if isinstance(item.answer, CompareAnswer):
-            return text.format(left=item.answer.left, right=item.answer.right), f"{mis.id}:COUNTER:{i}"
+            found = text
+        elif isinstance(item.answer, CompareAnswer):
+            found = text.format(left=item.answer.left, right=item.answer.right)
+        else:
+            continue
+        if _one_question(found):
+            return found, f"{mis.id}:COUNTER:{i}"
     return None
 
 

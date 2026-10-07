@@ -335,6 +335,10 @@ def test_build_router_reads_chain_and_cap_from_settings():
     assert router.max_calls_per_session == 7
     with pytest.raises(ValueError):
         router.chain(ModelClass.VISION_OCR)
+    # An eval judges on a model with its own quota; the other classes keep their chain (TQ-2).
+    judge = build_router(settings, chains={ModelClass.EVAL_JUDGE: (GPT_OSS,)})
+    assert judge.chain(ModelClass.EVAL_JUDGE) == (GPT_OSS,)
+    assert judge.chain(ModelClass.TUTOR_REASONING) == (QWEN, GPT_OSS)
 
 
 def test_router_delegates_stt_and_vision():
