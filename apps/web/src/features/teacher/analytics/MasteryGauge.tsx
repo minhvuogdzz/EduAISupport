@@ -96,7 +96,7 @@ export function MasteryGauge({
         )}
       </svg>
       <figcaption className="-mt-1 text-center">
-        <span className="block text-4xl font-bold tabular-nums">
+        <span className="block text-3xl font-bold tabular-nums">
           {mastery === null ? "–" : formatViDecimal(mastery)}
         </span>
         <span className="block text-sm text-slate-600">{caption}</span>

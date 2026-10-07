@@ -216,7 +216,7 @@ function Hero() {
             <SparklesIcon className="size-4" />
             Gia sư AI cho học sinh lớp 5
           </p>
-          <h1 className="mt-4 text-4xl leading-tight font-extrabold text-balance md:text-6xl">
+          <h1 className="mt-4 text-3xl leading-tight font-extrabold text-balance md:text-5xl">
             Học Toán cùng cô, <span className="text-brand-700">hiểu bài thật sự</span>
           </h1>
           <p className="mt-4 max-w-xl text-lg text-slate-700">

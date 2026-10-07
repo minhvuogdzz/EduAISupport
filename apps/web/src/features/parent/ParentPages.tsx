@@ -46,8 +46,8 @@ export function ParentPage() {
       <div className="mx-auto max-w-4xl px-4 py-10">
         <section className="card brand-gradient grid items-center gap-6 p-6 md:grid-cols-[1fr_auto] md:p-8">
           <div>
-            <h1 className="text-3xl font-extrabold md:text-4xl">Theo dõi việc học của con</h1>
-            <p className="mt-2 text-lg text-slate-700">
+            <h1 className="text-2xl font-extrabold md:text-3xl">Theo dõi việc học của con</h1>
+            <p className="mt-2 text-base text-slate-700">
               Xem con học có đều không, hiểu bài tới đâu và bố mẹ có thể giúp con ở nhà thế nào.
             </p>
             <form
@@ -138,8 +138,8 @@ function ChildView({ view }: { view: ParentChildView }) {
     <div className="flex flex-col gap-6">
       <header className="card brand-gradient flex flex-wrap items-center justify-between gap-4 p-6">
         <div>
-          <h1 className="text-3xl font-extrabold">Tình hình học của {name}</h1>
-          <p className="mt-1 text-lg text-slate-700">
+          <h1 className="text-2xl font-extrabold">Tình hình học của {name}</h1>
+          <p className="mt-1 text-base text-slate-700">
             Chương {view.chapter.title}
             {view.last_session_at ? ` · buổi gần nhất ${formatViDateTime(view.last_session_at)}` : ""}
           </p>
@@ -341,7 +341,7 @@ function Kpi({
         {label}
         {icon}
       </div>
-      <div className="mt-2 text-3xl font-bold">{value}</div>
+      <div className="mt-2 text-2xl font-bold">{value}</div>
       <div className="mt-1 text-sm text-slate-600">{children}</div>
     </div>
   );

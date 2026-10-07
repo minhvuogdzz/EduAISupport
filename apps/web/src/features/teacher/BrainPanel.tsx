@@ -107,7 +107,7 @@ function NodeDetail({ node, report }: { node: ReportNode; report: TeachingReport
       <dl className="flex flex-wrap items-end gap-x-10 gap-y-3">
         <div>
           <dt className="text-sm text-slate-600">Điểm hiểu bài M</dt>
-          <dd className="text-5xl font-semibold tabular-nums">
+          <dd className="text-4xl font-semibold tabular-nums">
             {node.mastery === null ? "–" : formatViDecimal(node.mastery)}
           </dd>
           <dd className="text-sm text-slate-600">

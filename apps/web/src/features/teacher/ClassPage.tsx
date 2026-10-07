@@ -13,6 +13,7 @@ import { columns, urgency } from "./analytics/helpers";
 import { MisconceptionChart } from "./analytics/MisconceptionChart";
 import { zoneOf } from "./analytics/zones";
 import { TeacherHeader } from "./TeacherHeader";
+import { Method } from "./analytics/Method";
 
 /**
  * The teacher's class dashboard (blueprint PART 27.1 "Class", khung Toán §45, §46, §28): who is where on
@@ -104,10 +105,13 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
           <h2 id="heatmap-title" className="text-xl font-bold">
             Học sinh × bài học
           </h2>
-          <p className="text-slate-600">
-            Mỗi ô là điểm hiểu bài M (0–100) của một em ở một bài (khung Toán §46), tô theo 5 vùng màu của
-            §25. Hàng cuối là cả lớp (§45). Bấm vào một ô để xem chi tiết bài đó của em.
+          <p className="text-sm text-slate-600">
+            Điểm hiểu bài M (0–100) của từng em ở từng bài. Bấm vào một ô để xem chi tiết.
           </p>
+          <Method>
+            Ma trận học sinh × kiến thức của khung Toán §46, tô theo 5 vùng màu của §25; hàng cuối là cả lớp
+            (§45).
+          </Method>
         </div>
         <Heatmap overview={overview} />
       </section>
@@ -140,10 +144,10 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
               }`,
             }))}
           />
-          <p className="text-xs text-slate-500">
+          <Method>
             Tỉ lệ là phần trăm trên tổng số lần phát hiện lỗi của cả lớp (khung Toán §28). Mức độ: "Cần can
             thiệp" khi lỗi nghiêm trọng hoặc gặp từ 3 lần trong 14 ngày mà vẫn còn em mắc (DI-28).
-          </p>
+          </Method>
         </section>
 
         <section aria-labelledby="attention-title" className="card flex flex-col gap-3 p-5">
@@ -171,10 +175,10 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
               ))}
             </ul>
           )}
-          <p className="text-xs text-slate-500">
+          <Method>
             Lý do được xét: lỗi nghiêm trọng hoặc lặp lại từ 2 lần mà còn mắc; gia sư đã dừng một bài; bài ở
             vùng đỏ khi đã đủ dữ liệu; buổi học dở dang mà 7 ngày chưa quay lại (DI-20).
-          </p>
+          </Method>
         </section>
       </div>
 
@@ -182,9 +186,8 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
         <h2 id="by-node-title" className="text-xl font-bold">
           Cả lớp theo từng bài
         </h2>
-        <p className="text-slate-600">
-          Trung bình điểm M của các em đã có điểm ở bài đó (khung Toán §45): bài nào cả lớp đang gặp khó.
-        </p>
+        <p className="text-sm text-slate-600">Bài nào cả lớp đang gặp khó.</p>
+        <Method>Trung bình điểm M của các em đã có điểm ở bài đó (khung Toán §45).</Method>
         <ul className="flex flex-col gap-2">
           {columns(overview.nodes).map((n) => {
             const b = overview.by_node.find((x) => x.node_id === n.node_id);
@@ -233,7 +236,7 @@ function Kpi({
         {label}
         {icon}
       </div>
-      <div className="mt-2 text-3xl font-bold tabular-nums">
+      <div className="mt-2 text-2xl font-bold tabular-nums">
         {tone ? <span className={`rounded-xl px-2 ${tone}`}>{value}</span> : value}
       </div>
       <div className="mt-1 text-sm text-slate-600">{children}</div>

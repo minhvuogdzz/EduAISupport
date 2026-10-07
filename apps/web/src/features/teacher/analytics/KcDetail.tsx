@@ -11,6 +11,7 @@ import {
 import { formatViDecimal } from "../../../lib/viNumber";
 import { ConfidenceBar } from "./MasteryGauge";
 import { zoneOf } from "./zones";
+import { Method } from "./Method";
 
 const GROUP_TONE: Record<TeacherNodeDetail["group"], string> = {
   PASSED: "bg-emerald-50 text-emerald-900 ring-emerald-200",
@@ -121,9 +122,9 @@ export function KcDetail({ node }: { node: TeacherNodeDetail }) {
             );
           })}
         </ul>
-        <p className="mt-1 text-xs text-slate-500">
+        <Method>
           Chiều có dưới 1 đơn vị bằng chứng chưa tính vào M (DI-1); thanh xám là chiều chưa tính.
-        </p>
+        </Method>
       </div>
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
