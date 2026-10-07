@@ -64,10 +64,10 @@ export function StudentStartPage() {
         <section className="card brand-gradient overflow-hidden">
           <div className="grid items-center gap-4 p-6 md:grid-cols-[1fr_auto] md:p-8">
             <div>
-              <h1 className="text-3xl font-extrabold md:text-4xl">
+              <h1 className="text-2xl font-extrabold md:text-3xl">
                 {name ? `Chào ${name}, hôm nay mình học gì nhé?` : "Chào con!"}
               </h1>
-              <p className="mt-2 text-lg text-slate-700">
+              <p className="mt-2 text-base text-slate-700">
                 {overview.data
                   ? `Chương ${overview.data.chapter.title}: con đã qua ${overview.data.passed}/${overview.data.total} bài.`
                   : "Cô sẵn sàng học cùng con rồi!"}

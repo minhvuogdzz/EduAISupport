@@ -23,6 +23,7 @@ import { MasteryTimeline } from "./analytics/MasteryTimeline";
 import { RadarChart } from "./analytics/RadarChart";
 import { zoneOf } from "./analytics/zones";
 import { TeacherHeader } from "./TeacherHeader";
+import { Method } from "./analytics/Method";
 
 const GROUP_ORDER: KcGroup[] = ["PASSED", "UNSTABLE", "WEAK", "INSUFFICIENT", "NOT_STARTED"];
 
@@ -175,9 +176,9 @@ function StudentReport({
               </dd>
             </div>
           </dl>
-          <p className="text-xs text-slate-500">
+          <Method>
             Điểm tổng là trung bình M của các bài đã có điểm; phủ kiến thức là phần bài đã có điểm (DI-21).
-          </p>
+          </Method>
         </section>
 
         <section aria-labelledby="radar-title" className="card flex flex-col gap-2 p-5">
@@ -191,11 +192,11 @@ function StudentReport({
               {values.D === null ? "chưa đủ dữ liệu" : formatViDecimal(values.D)}
             </span>
           </div>
-          <p className="text-xs text-slate-500">
+          <Method>
             Sáu trục theo khung Toán §24; trục Kiến thức đọc từ chiều C (làm đúng), D nằm ngoài radar. Mỗi
             chiều là trung bình các bài có đủ bằng chứng, theo lượng bằng chứng (DI-22). Vòng đứt nét là các
             mốc 40, 60, 75, 90 của §25.
-          </p>
+          </Method>
         </section>
 
         <section aria-labelledby="summary-title" className="card flex flex-col gap-3 p-5">
@@ -236,10 +237,10 @@ function StudentReport({
               );
             })}
           </ul>
-          <p className="text-xs text-slate-500">
+          <Method>
             ✓ đã qua bài theo điều kiện DI-15 (chưa có kiểm tra duy trì nên chưa gọi là làm chủ, §53); ✕ còn
             yếu khi M dưới 60 và đã đủ dữ liệu; ⚠ còn lại (DI-23, DI-27).
-          </p>
+          </Method>
         </section>
       </div>
 
@@ -248,9 +249,7 @@ function StudentReport({
           <h2 id="graph-title" className="text-lg font-bold">
             Cây tri thức
           </h2>
-          <p className="mb-3 text-sm text-slate-600">
-            Vạch màu bên phải mỗi bài là vùng điểm M (§26). Bấm một bài để xem chi tiết.
-          </p>
+          <p className="mb-3 text-sm text-slate-600">Bấm một bài để xem chi tiết. Vạch màu là vùng điểm M.</p>
           <KnowledgeMap
             nodes={view.nodes.map((n) => ({ ...n, level: n.mastery === null ? null : n.level }))}
             relations={view.relations}
@@ -269,18 +268,18 @@ function StudentReport({
           <h2 id="timeline-title" className="text-lg font-bold">
             Tiến bộ theo ngày
           </h2>
-          <p className="text-sm text-slate-600">
+          <Method>
             Điểm tổng cuối mỗi ngày có bằng chứng mới (khung Toán §27, DI-26), trên nền 5 vùng màu.
-          </p>
+          </Method>
           <MasteryTimeline points={view.timeline} />
         </section>
         <section aria-labelledby="activity-title" className="card flex flex-col gap-2 p-5">
           <h2 id="activity-title" className="text-lg font-bold">
             Hoạt động học
           </h2>
-          <p className="text-sm text-slate-600">
+          <Method>
             Số câu mỗi ngày theo cách con hoàn thành, số gợi ý và ngày qua bài (khung Toán §56).
-          </p>
+          </Method>
           <ActivityChart days={view.activity} />
         </section>
       </div>

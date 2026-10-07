@@ -39,7 +39,7 @@ export function TeacherHeader({ title, children }: { title: string; children?: R
             );
           })}
         </nav>
-        <h1 className="text-3xl font-extrabold">{title}</h1>
+        <h1 className="text-2xl font-extrabold">{title}</h1>
       </div>
       {children}
     </div>

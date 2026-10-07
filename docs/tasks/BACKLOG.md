@@ -111,7 +111,8 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 
 | Task | Nội dung | Trạng thái |
 |---|---|---|
-| TQ-1 | Đọc ý định học sinh trước khi chấm, luật R-OFF-TOPIC, R-CLARIFY, R-AFFECT (`hint-policy/0.5.0`), câu dẫn ấm hơn (`template-renderer.v3`), lời đáp câu hỏi lý thuyết (`teaching-templates/0.2.0`), prompt v2, 10 vai học sinh khó chạy offline; màn học chữ nhỏ lại | Đang làm |
+| TQ-1 | Đọc ý định học sinh trước khi chấm, luật R-OFF-TOPIC, R-CLARIFY, R-AFFECT (`hint-policy/0.5.0`), câu dẫn ấm hơn (`template-renderer.v3`), lời đáp câu hỏi lý thuyết (`teaching-templates/0.2.0`), prompt v2, 10 vai học sinh khó chạy offline; màn học chữ nhỏ lại | Xong (PR #34) |
+| UI-3 | Thu gọn các trang còn lại: tiêu đề và con số nhỏ một bậc, ghi chú cách tính của giáo viên gấp vào "Cách tính" | Xong |
 | TQ-2 | Chạy 10 vai học sinh khó với Qwen thật, giám khảo LLM chấm từng lượt (sư phạm, an toàn, cảm xúc, chính xác, lộ đáp án) như Edubot; báo cáo `docs/poc/` | Chưa |
 | TQ-3 | Chấm lời giải thích "vì sao" (vai "đúng mà lý do sai": "vì con đoán") | Mốc 2 |
 
