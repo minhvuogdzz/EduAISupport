@@ -216,6 +216,11 @@ class UpdateResult:
     upserted_id: Any = None
 
 
+@dataclass(frozen=True)
+class DeleteResult:
+    deleted_count: int
+
+
 @dataclass
 class _Index:
     keys: tuple[tuple[str, int], ...]
@@ -347,6 +352,13 @@ class InMemoryCollection:
         self._check_unique(updated, ignore=target)
         self._docs[self._docs.index(target)] = updated
         return updated, 1, None
+
+    async def delete_one(self, flt: Mapping[str, Any]) -> DeleteResult:
+        found = self._matching(flt)
+        if not found:
+            return DeleteResult(0)
+        self._docs.remove(found[0])
+        return DeleteResult(1)
 
     async def update_one(self, flt: Mapping[str, Any], update: Mapping[str, Any], upsert: bool = False):
         doc, matched, upserted_id = self._update(flt, update, upsert)

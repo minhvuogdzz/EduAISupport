@@ -674,6 +674,95 @@ export interface AuthUser {
   child_id: string | null;
 }
 
+// ---------------------------------------------------------------- teacher library and lesson content (DOC-1)
+
+export type DocumentKind = "SGK" | "GIAO_AN" | "BAI_TAP" | "DE_KIEM_TRA" | "KHAC";
+
+/** A document the teacher uploaded; its text feeds the Hybrid RAG. */
+export interface TeacherDocument {
+  document_id: string;
+  title: string;
+  kind: DocumentKind;
+  chapter_id: string | null;
+  filename: string;
+  content_type: string;
+  size: number;
+  uploaded_at: string;
+  /** READ: text read; NEEDS_OCR: a scan or photo with no OCR configured; FAILED: unreadable. */
+  status: "READ" | "NEEDS_OCR" | "FAILED";
+  method: string;
+  pages: number;
+  chars: number;
+  error: string | null;
+}
+
+export interface TeacherDocumentDetail extends TeacherDocument {
+  text: string;
+}
+
+export interface ChapterSummary {
+  chapter_id: string;
+  title: string;
+  status: string;
+  nodes: number;
+  items: number;
+}
+
+export interface ContentItem {
+  item_id: string;
+  stage: string;
+  purpose: string;
+  cognitive_level: string;
+  difficulty: number;
+  stem: string;
+  answer_type: string;
+  answer: string;
+  hints: { level: number; target: string; text: string }[];
+  worked_solution: string[];
+  explanation: string | null;
+  wrong_answers: Record<string, string>;
+}
+
+export interface ContentNode {
+  node_id: string;
+  name: string;
+  layer: NodeLayer;
+  description: string;
+  home_tip: string;
+  theory: {
+    id: string;
+    representation: string;
+    text: string;
+    ask: string;
+    reply: string;
+    accept: string[];
+  }[];
+  method: { rule: string; steps: string[] };
+  worked_examples: { id: string; problem: string; steps: string[]; answer: string }[];
+  retell: { prompt: string; key_ideas: string[][] };
+  items: ContentItem[];
+  pass_rule: { min_mastery: number };
+}
+
+/** GET /v1/teachers/chapters/{id}: what the tutor teaches, with the answers (teacher only). */
+export interface ChapterContent {
+  chapter_id: string;
+  title: string;
+  version: string;
+  status: string;
+  source: string;
+  nodes: ContentNode[];
+  relations: KnowledgeRelation[];
+  misconceptions: {
+    id: string;
+    kc_id: string;
+    name: string;
+    description: string;
+    severity: string;
+    counter_examples: string[];
+  }[];
+}
+
 // ---------------------------------------------------------------- errors (PART 24.2, 29.1)
 
 export const API_ERROR_CODES = [

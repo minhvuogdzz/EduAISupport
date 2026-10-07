@@ -7,6 +7,8 @@ import { ParentChildPage, ParentPage } from "./features/parent/ParentPages";
 import { SessionPage } from "./features/student/SessionPage";
 import { StudentStartPage } from "./features/student/StudentStartPage";
 import { ClassPage } from "./features/teacher/ClassPage";
+import { DocumentPage, DocumentsPage } from "./features/teacher/DocumentsPage";
+import { ChapterContentPage, LessonsPage } from "./features/teacher/LessonsPage";
 import { StudentReportPage } from "./features/teacher/StudentReportPage";
 import { TeacherPage } from "./features/teacher/TeacherPage";
 import { HomePage } from "./pages/HomePage";
@@ -29,6 +31,10 @@ export function App() {
         <Route path="/teacher/students/:studentId" element={only("TEACHER", <StudentReportPage />)} />
         <Route path="/teacher/sessions" element={only("TEACHER", <TeacherPage />)} />
         <Route path="/teacher/sessions/:sessionId" element={only("TEACHER", <TeacherPage />)} />
+        <Route path="/teacher/lessons" element={only("TEACHER", <LessonsPage />)} />
+        <Route path="/teacher/lessons/:chapterId" element={only("TEACHER", <ChapterContentPage />)} />
+        <Route path="/teacher/documents" element={only("TEACHER", <DocumentsPage />)} />
+        <Route path="/teacher/documents/:documentId" element={only("TEACHER", <DocumentPage />)} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AuthGate>

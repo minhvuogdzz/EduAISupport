@@ -20,6 +20,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from cavat.config import REPO_ROOT
@@ -97,10 +98,15 @@ _ITEM_EVENTS = frozenset(
 
 
 @lru_cache
-def chapters() -> dict[str, Chapter]:
-    """Every chapter.yaml under docs/pedagogy, by chapter_id. Content is a versioned repo artifact."""
+def chapter_sources() -> dict[str, tuple[Chapter, Path]]:
+    """Every chapter.yaml under docs/pedagogy, by chapter_id, with its file. Content is a versioned repo
+    artifact; the teacher reads it on the web (DOC-1)."""
     found = sorted((REPO_ROOT / "docs" / "pedagogy").glob("**/chapter.yaml"))
-    return {chapter.package.chapter_id: chapter for chapter in map(load_chapter, found)}
+    return {chapter.package.chapter_id: (chapter, path) for path in found for chapter in [load_chapter(path)]}
+
+
+def chapters() -> dict[str, Chapter]:
+    return {cid: chapter for cid, (chapter, _) in chapter_sources().items()}
 
 
 def is_chapter(session: LearningSession) -> bool:
