@@ -45,6 +45,21 @@ const TRANSCRIPT: SessionTranscript = {
           grounding: "cosine 0.78 ≥ 0.65",
           parked: null,
         }),
+        {
+          sequence_no: 3,
+          occurred_at: "2026-10-07T08:02:00Z",
+          actor: "student",
+          text: "cô ơi con bị bạn đánh",
+          tutor: null,
+          teach: null,
+          student: {
+            kind: "ANSWER",
+            outcome: null,
+            normalized_answer: null,
+            misconception: null,
+            safety: true,
+          },
+        },
         turn(2, "Câu này nằm ngoài bài mình đang học…", {
           kind: "ANSWER",
           node_id: "KC-DEC-CONCEPT",
@@ -72,5 +87,6 @@ describe("teacher transcript of grounded speech (RAG-2)", () => {
     expect(screen.getByText("Qwen bị chặn 1 lần: UNSUPPORTED_CLAIM")).toBeInTheDocument();
     expect(screen.getByText("Không có căn cứ (cosine 0.58 < 0.65)")).toBeInTheDocument();
     expect(screen.getByText("Ngoài bài: để lại cho giáo viên")).toBeInTheDocument();
+    expect(screen.getByText("Đáng lo: cô cần đọc kỹ câu này")).toBeInTheDocument();
   });
 });

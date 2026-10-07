@@ -314,6 +314,8 @@ export interface StudentAnnotation {
   misconception: { id: string; name: string; confidence: number } | null;
   /** A retell judged against the node's key ideas (chapter sessions). */
   retell?: { score: number; ideas_found: number; ideas_total: number } | null;
+  /** The child's words raised a safety flag (SAFE-1): the teacher should read them. */
+  safety?: boolean;
 }
 
 /** The node decision behind a teaching-loop message (chapter sessions). */
@@ -554,14 +556,17 @@ export interface MasteryCell {
   active_misconceptions: number;
 }
 
-/** Why the teacher should look at a student (PART 27.1, DI-20). */
+/** Why the teacher should look at a student (PART 27.1, DI-20). SAFETY comes first (SAFE-1). */
 export interface AttentionReason {
-  kind: "STOPPED" | "MISCONCEPTION" | "WEAK" | "INACTIVE";
+  kind: "SAFETY" | "STOPPED" | "MISCONCEPTION" | "WEAK" | "INACTIVE";
   node_id?: string | null;
   misconception_id?: string | null;
   count?: number | null;
   mastery?: number | null;
   days?: number | null;
+  /** SAFETY: the session where the child said something worrying, and when. */
+  session_id?: string | null;
+  at?: string | null;
 }
 
 /** §23: overall mastery of the KCs with a score, and the share of KCs that have one (DI-21). */

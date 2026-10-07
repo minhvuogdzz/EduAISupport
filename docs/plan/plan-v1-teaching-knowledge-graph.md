@@ -459,7 +459,12 @@ Chạy song song từ Mốc 1:
 - **DI-41, câu đáng lo (RAG-2, chờ duyệt):**
   - Danh sách cụm từ ở `student_intent.signals_distress`: bị đánh, bị bắt nạt, bị chửi, bị dọa, bị nhốt, muốn chết, tự làm đau, sợ về nhà…, gồm cả dạng "bị bạn đánh".
   - Khi gặp các cụm này, gia sư không trả lời câu hỏi và không kéo về bài. Gia sư nói câu ân cần (câu mẫu `distress`, chờ duyệt) và ghi `SAFETY_FLAGGED` (`source: RULE`) cho giáo viên.
-  - **[OPEN]** Hiện cờ an toàn chỉ nằm trong sự kiện, giáo viên chưa thấy trên màn hình. SAFE-1 sẽ đưa cờ lên màn hình giáo viên và áp cho cả lúc làm bài tập.
+  - Áp cho cả lúc làm bài tập (SAFE-1): câu đáng lo không bị tính là một lần trả lời, câu hỏi bài tập vẫn để nguyên.
+  - Giáo viên thấy cờ ở hai nơi:
+    - trang Lớp học: lý do "Con nói điều đáng lo… cô xem ngay hội thoại" luôn đứng đầu, bấm vào mở buổi học;
+    - tab Hội thoại: chip đỏ trên câu của con.
+  - Cờ của Qwen (luật 8 của constitution) cũng hiện như vậy.
+  - **[OPEN]** Chưa có bước "giáo viên đã xem", nên cờ còn hiện mãi.
 - **DI-17, tham số Hybrid RAG** (chờ duyệt; code ở `services/api/cavat/modules/rag/`, đo bằng `make eval-rag`):
   - **Chia đoạn:** nội dung chương mỗi đơn vị dạy một đoạn. Tài liệu giáo viên 150–300 âm tiết một đoạn, cắt ở cuối dòng, dòng dài thì cắt ở cuối câu, chồng lấn một câu.
   - **Từ khóa:** BM25 k1 = 1,2, b = 0,75. Bỏ các từ đệm như "cô, ơi, ạ, là, gì, sao, thế, nào, nghĩa…", cả khi đứng một mình lẫn khi ghép cặp.

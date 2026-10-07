@@ -237,6 +237,7 @@ class StudentAnnotation(BaseModel):
     normalized_answer: str | None
     misconception: MisconceptionView | None
     retell: RetellView | None = None
+    safety: bool = False  # the child's words raised a safety flag (DI-41 or the model): for the teacher
 
 
 class TeachAnnotation(BaseModel):
@@ -490,12 +491,15 @@ class MasteryCell(BaseModel):
 
 
 class AttentionReason(BaseModel):
-    kind: Literal["STOPPED", "MISCONCEPTION", "WEAK", "INACTIVE"]
+    # SAFETY (SAFE-1): the child said something worrying in a session; first in the list
+    kind: Literal["SAFETY", "STOPPED", "MISCONCEPTION", "WEAK", "INACTIVE"]
     node_id: str | None = None
     misconception_id: str | None = None
     count: int | None = None
     mastery: float | None = None
     days: int | None = None
+    session_id: str | None = None  # SAFETY: the session to open
+    at: datetime | None = None  # SAFETY: when the last flag was raised
 
 
 class OverallView(BaseModel):

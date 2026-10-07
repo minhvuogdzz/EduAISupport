@@ -490,6 +490,7 @@ def build_teacher_transcript(
     graded: dict[str | None, dict[str, Any]] = {}  # the student turn that the next graded event annotates
     node_decision: dict[str, Any] = {}  # the NODE_DECISION that the next teaching message carries out
     retell: dict[str, Any] | None = None  # the student's retell that RETELL_JUDGED annotates
+    last_student: dict[str, Any] | None = None  # the student's words a SAFETY_FLAGGED event is about
     grounding: dict[str, Any] = {}  # RAG-2: the retrieval and the parked question the next reply carries
 
     def add(turn: dict[str, Any], attempt: str | None) -> None:
@@ -563,6 +564,8 @@ def build_teacher_transcript(
                 {**base, "actor": "tutor", "text": p["text"], "tutor": None, "student": None, "teach": teach},
                 None,
             )
+        elif kind == EventType.SAFETY_FLAGGED and last_student is not None:
+            last_student["safety"] = True
         elif kind == EventType.RETELL_JUDGED and retell is not None:
             retell["retell"] = {
                 "score": p["score"],
@@ -579,7 +582,14 @@ def build_teacher_transcript(
                 text, turn_kind = CHOICES[CHOICE_HINT], "HINT_REQUEST"
             else:
                 text, turn_kind = p["label"], "CHOICE"
-            student = {"kind": turn_kind, "outcome": None, "normalized_answer": None, "misconception": None}
+            student = {
+                "kind": turn_kind,
+                "outcome": None,
+                "normalized_answer": None,
+                "misconception": None,
+                "safety": False,
+            }
+            last_student = student
             if kind == EventType.STUDENT_MESSAGE:
                 graded[attempt] = student
                 if str(p.get("item_id", "")).endswith(":RETELL"):

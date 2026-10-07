@@ -66,7 +66,10 @@ const CLASS: ClassOverview = {
         cell(CONCEPT, null),
         cell(COMPARE, null),
       ],
-      attention: [{ kind: "MISCONCEPTION", node_id: FRAC, misconception_id: "FRAC-M01", count: 2 }],
+      attention: [
+        { kind: "SAFETY", session_id: "s-bao-1", at: "2026-10-06T09:05:00Z", count: 1 },
+        { kind: "MISCONCEPTION", node_id: FRAC, misconception_id: "FRAC-M01", count: 2 },
+      ],
     },
   ],
   by_node: [
@@ -282,6 +285,11 @@ describe("class dashboard (PART 27.1, khung Toán §45, §46, §28)", () => {
       "/teacher/students/bao",
     );
     expect(attention).toHaveTextContent("Lặp lại lỗi “Quên chữ số 0 giữ chỗ” (2 lần)");
+    // SAFE-1: a worrying message comes first and opens the session where it was said
+    expect(within(attention).getByRole("link", { name: /Con nói điều đáng lo/ })).toHaveAttribute(
+      "href",
+      "/teacher/sessions/s-bao-1",
+    );
     expect(screen.getByText("Cần chú ý").parentElement?.parentElement).toHaveTextContent("1");
   });
 
