@@ -167,17 +167,29 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
                     {s.display_name}
                   </Link>
                   <ul className="mt-1 list-disc pl-5 text-sm text-slate-800">
-                    {s.attention.map((reason, i) => (
-                      <li key={i}>{attentionText(reason, nodeName, misName)}</li>
-                    ))}
+                    {s.attention.map((reason, i) =>
+                      reason.kind === "SAFETY" && reason.session_id ? (
+                        <li key={i} className="font-semibold text-rose-800">
+                          <Link
+                            to={`/teacher/sessions/${encodeURIComponent(reason.session_id)}`}
+                            className="hover:underline"
+                          >
+                            {attentionText(reason, nodeName, misName)}
+                          </Link>
+                        </li>
+                      ) : (
+                        <li key={i}>{attentionText(reason, nodeName, misName)}</li>
+                      ),
+                    )}
                   </ul>
                 </li>
               ))}
             </ul>
           )}
           <Method>
-            Lý do được xét: lỗi nghiêm trọng hoặc lặp lại từ 2 lần mà còn mắc; gia sư đã dừng một bài; bài ở
-            vùng đỏ khi đã đủ dữ liệu; buổi học dở dang mà 7 ngày chưa quay lại (DI-20).
+            Lý do được xét: con nói điều đáng lo (bị đánh, bị bắt nạt, muốn làm đau mình…), luôn đứng đầu
+            (DI-41); lỗi nghiêm trọng hoặc lặp lại từ 2 lần mà còn mắc; gia sư đã dừng một bài; bài ở vùng đỏ
+            khi đã đủ dữ liệu; buổi học dở dang mà 7 ngày chưa quay lại (DI-20).
           </Method>
         </section>
       </div>

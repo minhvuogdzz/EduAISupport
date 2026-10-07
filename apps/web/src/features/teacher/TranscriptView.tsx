@@ -243,6 +243,7 @@ function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
   return (
     <p className="flex flex-wrap gap-1">
       <Chip>{STUDENT_KIND_LABEL[kind]}</Chip>
+      {annotation.safety && <Chip tone="rose">Đáng lo: cô cần đọc kỹ câu này</Chip>}
       {outcome && <Chip tone={outcomeTone}>{OUTCOME_LABEL[outcome]}</Chip>}
       {kind === "ANSWER" && outcome === null && <Chip>Chưa chấm</Chip>}
       {normalized_answer && (

@@ -20,7 +20,7 @@ import type {
   TeachAction,
   TeachMessageKind,
 } from "../api/contract";
-import { formatViDecimal } from "../lib/viNumber";
+import { formatViDateTime, formatViDecimal } from "../lib/viNumber";
 
 export const ACTIVITY_LABEL: Record<ActivityType, string> = {
   OPENING: "Mở đầu",
@@ -357,6 +357,8 @@ export function attentionText(
 ): string {
   const node = reason.node_id ? nodeName(reason.node_id) : "";
   switch (reason.kind) {
+    case "SAFETY":
+      return `Con nói điều đáng lo${reason.at ? ` lúc ${formatViDateTime(reason.at)}` : ""}: cô xem ngay hội thoại`;
     case "STOPPED":
       return `Gia sư đã dừng bài “${node}”: cần cô giáo hỗ trợ trực tiếp`;
     case "MISCONCEPTION":

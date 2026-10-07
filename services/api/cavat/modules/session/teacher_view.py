@@ -130,8 +130,18 @@ def _last_learning(folded: Folded) -> Any:
 
 
 def attention(chapter: Chapter, folded: Folded, today: date) -> list[dict[str, Any]]:
-    """Why the teacher should look at this student (PART 27.1 "học sinh cần chú ý", DI-20)."""
+    """Why the teacher should look at this student (PART 27.1 "học sinh cần chú ý", DI-20).
+
+    A safety flag (the model's, or the distress words of DI-41) comes first, one per session, until a review
+    step exists: a worry is never hidden by age.
+    """
     reasons: list[dict[str, Any]] = []
+    for session in reversed(folded.sessions):
+        flags = [e for e in session.events if e.event_type == EventType.SAFETY_FLAGGED]
+        if flags:
+            reasons.append(
+                {"kind": "SAFETY", "session_id": session.id, "at": flags[-1].occurred_at, "count": len(flags)}
+            )
     for node_id in chapter.topological_order():
         ns = folded.projection.nodes[node_id]
         if folded.statuses[node_id] == "STOPPED":

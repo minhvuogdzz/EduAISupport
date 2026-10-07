@@ -253,6 +253,16 @@ class TeachingLoop:
         if self.awaiting == Awaiting.ANSWER:
             assert self.tutor is not None
             item_id = self.tutor.item.id
+            if signals_distress(text):  # DI-41: care and the teacher first; not an attempt at the item
+                # ":SAFETY" keeps the message out of the item's replay (``_restore`` replays the item's id).
+                said = StudentMessage(item_id=f"{item_id}:SAFETY", kind="MESSAGE", text=text, seconds=seconds)
+                events = [self._record(now, EventType.STUDENT_MESSAGE, said)]
+                flagged = SafetyFlagged(item_id=item_id, source="RULE")
+                events.append(self._record(now, EventType.SAFETY_FLAGGED, flagged))
+                messages: list[TeachMessage] = []
+                care = TeachMessage(MessageKind.FEEDBACK, self._phrase("distress"), self._item_node(item_id))
+                self._say(now, messages, events, care)
+                return self._waiting_for_item(messages, events)
             kind = "EXPLANATION" if self.tutor.phase in _WORDS else "ANSWER"
             message = StudentMessage(item_id=item_id, kind=kind, text=text, seconds=seconds)
             return self._item_input(now, self._record(now, EventType.STUDENT_MESSAGE, message), text, seconds)
