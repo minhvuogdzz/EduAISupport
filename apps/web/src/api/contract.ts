@@ -124,6 +124,7 @@ export const TEACH_MESSAGE_KINDS = [
   "EXAMPLE",
   "RETELL_PROMPT",
   "FEEDBACK",
+  "ANSWER",
   "PASS",
   "STOP",
   "SUMMARY",
@@ -321,6 +322,17 @@ export interface TeachAnnotation {
   node_id: string | null;
   rule_ids: string[];
   reason_codes: string[];
+  /** RAG-2: TEMPLATE: approved text; LLM: Qwen, checked against its sources; EXTRACT: a passage word for word. */
+  source?: "TEMPLATE" | "LLM" | "EXTRACT";
+  /** Titles of the passages the words rest on. */
+  sources?: string[];
+  /** Check codes of each model output that was refused. */
+  rejected?: string[][];
+  /** A question of the child: did the retrieved passages ground it, and why. */
+  grounded?: boolean | null;
+  grounding?: string | null;
+  /** The question was not answered but kept for the teacher. */
+  parked?: "NOT_GROUNDED" | "SAME_AS_CHECK" | "LIMIT" | "LATER" | null;
 }
 
 export interface TranscriptTurn {

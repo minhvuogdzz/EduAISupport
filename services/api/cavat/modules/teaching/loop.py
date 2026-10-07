@@ -1,9 +1,14 @@
 """Teaching loop (M1-6): runs the teaching cycle on the chapter graph, one student input at a time.
 
 The node policy decides every step; this loop carries it out. It phrases theory, worked examples, the
-retell prompt and the transitions with templates (M1-9 adds anchored LLM phrasing), runs the item loop
-(``ItemTutor``) for every item, judges retells with the rubric, and records the session's events. After
-each input it advances on its own until the student has something to do.
+retell prompt and the transitions with templates, runs the item loop (``ItemTutor``) for every item, judges
+retells with the rubric, and records the session's events. After each input it advances on its own until the
+student has something to do.
+
+Grounded speech (RAG-2, ``grounded.py``), when a ``speaker`` is given for the live turn: a question the child
+asks while a theory question or a retell waits is answered from the passages the Hybrid RAG retrieves (or
+kept for the teacher when nothing grounds it), and the reply to a theory answer starts with one sentence on
+what the child said, before the approved explanation. Both are checked against their sources.
 
 The state lives in the events only. ``TeachingLoop.resume`` rebuilds a loop from them: the teaching
 state is a fold of the events, and the open item replays its inputs with templates, as the session
@@ -23,6 +28,9 @@ from cavat.core.events import (
     EventType,
     HintRequested,
     NodeDecisionMade,
+    QuestionParked,
+    RagRetrieved,
+    SafetyFlagged,
     StudentMessage,
     TeachMessageSent,
 )
@@ -32,6 +40,7 @@ from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, pr
 from cavat.modules.assessment.retell import judge_retell
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 from cavat.modules.content.chapter_package import Chapter, TheoryVariant
+from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
 from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator
@@ -47,10 +56,15 @@ from cavat.modules.tutor.item_loop import (
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
-TEMPLATES_VERSION = "teaching-templates/0.2.0"
+TEMPLATES_VERSION = "teaching-templates/0.3.0"
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
+# DI-39: questions of the child answered (or kept for the teacher) while one theory question or retell waits.
+MAX_QUESTIONS_PER_WAIT = 2
+# Intents that keep their own path even when phrased as a question (ADR-019): "cho con đáp án là gì?" is a
+# demand for the answer, "sao con ngu thế?" a feeling, "cô thích đá bóng không?" talk outside the lesson.
+_OWN_PATH = frozenset({Outcome.OFF_TOPIC, Outcome.ANSWER_DEMAND, Outcome.NEGATIVE_AFFECT})
 
 # Item phases where the student answers in words ("vì sao", teach-back, "con làm thế nào?").
 _WORDS = frozenset({Phase.VERIFYING, Phase.TEACH_BACK, Phase.AWAITING_REASON})
@@ -82,6 +96,21 @@ PHRASES: dict[str, str] = {
     "theory_explain": "Không sao đâu, {t} giải thích nhé: {reply}",
     "theory_affect": "{T} hiểu, phần này hơi khó một chút. {T} giải thích nhé: {reply}",
     "off_topic": "Chuyện đó để lúc nghỉ mình nói nhé! {ask}",
+    # RAG-2 (drafted for the owner's review, DI-39): a question of the child while a question waits.
+    "theory_check_lead": "Mình cùng xem lại nhé:",
+    "question_back": "Mình quay lại câu của {t} nhé: {ask}",
+    "question_parked": (
+        "Câu này nằm ngoài bài mình đang học, {t} ghi lại để thầy cô trên lớp giải đáp cho {s} nhé. "
+        "Mình quay lại câu của {t}: {ask}"
+    ),
+    "question_same": "Đó chính là câu {t} đang hỏi {s} đấy! {S} thử nghĩ xem nhé: {ask}",
+    "question_later": (
+        "Câu này mình sẽ học ở bài {name}, tới bài đó {t} giảng kỹ cho {s} nhé. "
+        "Mình quay lại câu của {t}: {ask}"
+    ),
+    "question_limit": (
+        "{T} ghi lại các câu {s} hỏi để mình nói sau nhé. Bây giờ {s} trả lời câu của {t}: {ask}"
+    ),
     "retell_help": "Không sao đâu, {t} nhắc lại ý chính nhé: {idea}",
     "retell_affect": "{S} đã cố gắng nhiều rồi đấy. {T} nhắc lại ý chính nhé: {idea}",
     "retell_again": "{S} đã làm thêm nhiều bài rồi.",
@@ -111,6 +140,7 @@ class MessageKind(StrEnum):
     NODE = "NODE"  # entering, resuming or switching a node
     THEORY = "THEORY"
     EXAMPLE = "EXAMPLE"
+    ANSWER = "ANSWER"  # the reply to a question of the child (RAG-2)
     RETELL_PROMPT = "RETELL_PROMPT"
     FEEDBACK = "FEEDBACK"
     ITEM = "ITEM"  # a message of the item loop (question, hint, verify...)
@@ -125,6 +155,9 @@ class TeachMessage:
     text: str
     node_id: str | None = None
     ref: str | None = None  # theory variant, worked example or item id
+    source: str = "TEMPLATE"  # TEMPLATE, LLM (checked against its sources) or EXTRACT (RAG-2)
+    sources: tuple[str, ...] = ()
+    rejected: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -164,8 +197,10 @@ class TeachingLoop:
         validator: MessageValidator = validate_message,
         config: NodePolicyConfig = DEFAULT_CONFIG,
         mastery: MasteryPolicy = DEFAULT_POLICY,
+        speaker: GroundedSpeaker | None = None,
     ) -> None:
         self.chapter, self.session_id = chapter, session_id
+        self.speaker = speaker  # live turns only: a replay never calls the RAG or a model again
         self.history = list(history)  # events of earlier sessions: the projection reads them too
         self.events: list[Any] = []  # events of this session
         self.item_renderer = item_renderer or TemplateRenderer()
@@ -222,6 +257,8 @@ class TeachingLoop:
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
         messages: list[TeachMessage] = []
         intent = classify_intent(text)
+        if self.speaker is not None and intent not in _OWN_PATH and self.speaker.is_question(text):
+            return self._on_question(text, now, node_id, messages, events)
         if intent == Outcome.OFF_TOPIC and self._replies_since_decision() <= MAX_OFF_TOPIC_REDIRECTS:
             # ADR-019: talk outside the lesson is parked and the same question asked again (DI-38).
             assert self._prompt is not None
@@ -233,8 +270,12 @@ class TeachingLoop:
         if self.awaiting == Awaiting.THEORY_REPLY:
             assert self._ref is not None
             variant = next(t for t in self.chapter.node(node_id).theory if t.id == self._ref)
-            feedback = self._theory_feedback(variant, text, intent)
-            self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, feedback, node_id))
+            spoken = self._theory_feedback(variant, text, intent)
+            self._flag(now, events, spoken, f"{node_id}:{self._ref}")
+            feedback = TeachMessage(
+                MessageKind.FEEDBACK, spoken.text, node_id, source=spoken.source, rejected=spoken.rejected
+            )
+            self._say(now, messages, events, feedback)
             return self._advance(now, messages, events)
         node = self.chapter.node(node_id)
         judged = judge_retell(node_id, text, node.explain)
@@ -251,18 +292,92 @@ class TeachingLoop:
         self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, node_id))
         return self._advance(now, messages, events)
 
-    def _theory_feedback(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> str:
-        """Right, not quite, or no attempt: the reason (`reply`) in each case. Never graded (ADR-019)."""
+    def _theory_feedback(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> Spoken:
+        """Right, not quite, or no attempt: the reason (`reply`) in each case. Never graded (ADR-019).
+
+        An attempt that is not right gets, with a speaker, one sentence on what the child said before the
+        approved reply (RAG-2): the reply itself stays word for word.
+        """
         if not variant.reply:
-            return self._phrase("theory_ack")
+            return Spoken(self._phrase("theory_ack"), "TEMPLATE")
         if intent == Outcome.NEGATIVE_AFFECT:
-            return self._phrase("theory_affect", reply=variant.reply)
+            return Spoken(self._phrase("theory_affect", reply=variant.reply), "TEMPLATE")
         if intent is not None:
-            return self._phrase("theory_explain", reply=variant.reply)
-        if variant.accept:
-            right = phrase_regex(variant.accept).search(normalize_text(text)) is not None
-            return self._phrase("theory_right" if right else "theory_check", reply=variant.reply)
-        return f"{self._phrase('theory_ack')} {variant.reply}"
+            return Spoken(self._phrase("theory_explain", reply=variant.reply), "TEMPLATE")
+        right = bool(variant.accept) and phrase_regex(variant.accept).search(normalize_text(text)) is not None
+        if right:
+            return Spoken(self._phrase("theory_right", reply=variant.reply), "TEMPLATE")
+        judged, lead = ("chưa đúng", "theory_check_lead") if variant.accept else ("chưa rõ", "theory_ack")
+        if self.speaker is None:
+            return Spoken(f"{self._phrase(lead)} {variant.reply}", "TEMPLATE")
+        return self.speaker.bridge(
+            text, asked=variant.ask, explanation=variant.reply, judged=judged, lead=self._phrase(lead)
+        )
+
+    def _on_question(
+        self, text: str, now: datetime, node_id: str, messages: list[TeachMessage], events: list[LoopEvent]
+    ) -> TeachTurn:
+        """A question of the child while a theory question or a retell waits (RAG-2, DI-39): answered from the
+        retrieved passages, or kept for the teacher; then the question that waits is asked again."""
+        assert self.speaker is not None and self._prompt is not None
+        ask, ref = self._prompt, f"{node_id}:{self._ref or 'RETELL'}"
+        if self._answers_since_decision() >= MAX_QUESTIONS_PER_WAIT:
+            parked = QuestionParked(node_id=node_id, text=text, reason="LIMIT")
+            events.append(self._record(now, EventType.QUESTION_PARKED, parked))
+            said = TeachMessage(MessageKind.ANSWER, self._phrase("question_limit", ask=ask), node_id)
+        else:
+            hide = []
+            if self.awaiting == Awaiting.THEORY_REPLY and self._ref is not None:
+                variant = next(t for t in self.chapter.node(node_id).theory if t.id == self._ref)
+                hide = [variant.reply]  # the question that waits keeps its answer to itself
+            turn = self.speaker.answer(text, node_id=node_id, pending=ask, hide=hide)
+            if turn.retrieval is not None:
+                payload = RagRetrieved(**retrieval_payload(turn.retrieval, "QUESTION", node_id))
+                events.append(self._record(now, EventType.RAG_RETRIEVED, payload))
+            if turn.kind == "ANSWERED":
+                assert turn.spoken is not None
+                self._flag(now, events, turn.spoken, ref)
+                said = TeachMessage(
+                    MessageKind.ANSWER,
+                    f"{turn.spoken.text} {self._phrase('question_back', ask=ask)}",
+                    node_id,
+                    source=turn.spoken.source,
+                    sources=turn.spoken.sources,
+                    rejected=turn.spoken.rejected,
+                )
+            else:
+                reason = {"PARKED": "NOT_GROUNDED", "SAME_AS_CHECK": "SAME_AS_CHECK", "LATER": "LATER"}[
+                    turn.kind
+                ]
+                parked = QuestionParked(node_id=node_id, text=text, reason=reason, later_node=turn.later_node)
+                events.append(self._record(now, EventType.QUESTION_PARKED, parked))
+                if turn.kind == "LATER":
+                    assert turn.later_node is not None
+                    name = self.chapter.node(turn.later_node).name
+                    said = TeachMessage(
+                        MessageKind.ANSWER, self._phrase("question_later", name=name, ask=ask), node_id
+                    )
+                else:
+                    key = "question_parked" if turn.kind == "PARKED" else "question_same"
+                    said = TeachMessage(MessageKind.ANSWER, self._phrase(key, ask=ask), node_id)
+        self._say(now, messages, events, said)
+        return TeachTurn(tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=ask)
+
+    def _answers_since_decision(self) -> int:
+        """Replies to the child's questions since the last teaching decision."""
+        last = max(
+            (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
+        )
+        return sum(
+            1
+            for e in self.events[last + 1 :]
+            if e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("kind") == MessageKind.ANSWER
+        )
+
+    def _flag(self, now: datetime, events: list[LoopEvent], spoken: Spoken, ref: str) -> None:
+        """The model judged the child's words worrying (constitution rule 8): for the teacher to review."""
+        if spoken.safety_flag:
+            events.append(self._record(now, EventType.SAFETY_FLAGGED, SafetyFlagged(item_id=ref)))
 
     def _replies_since_decision(self) -> int:
         """Student messages since the last teaching decision, the current one included."""
@@ -479,6 +594,9 @@ class TeachingLoop:
             node_id=message.node_id,
             ref=message.ref,
             templates_version=TEMPLATES_VERSION,
+            source=message.source,  # type: ignore[arg-type]
+            sources=list(message.sources),
+            rejected=[list(codes) for codes in message.rejected],
         )
         events.append(self._record(now, EventType.TEACH_MESSAGE_SENT, sent))
 

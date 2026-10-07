@@ -90,6 +90,27 @@ INTELLIGENCE_PRAISE_PATTERNS = [
 ]
 
 
+# Scripts that are never Vietnamese: CJK, kana, Hangul, Cyrillic, Thai, Arabic, Hebrew, Devanagari.
+_FOREIGN_SCRIPT = re.compile(
+    "[\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u0900-\u097f\u0e00-\u0e7f\u3040-\u30ff"
+    "\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]"
+)
+# Letters the Vietnamese alphabet does not have (units such as "kg" and "km" use none of them).
+_FOREIGN_LETTER = re.compile(r"(?<![\w-])[a-zà-ỹ]*[fjwz][a-zà-ỹ]*(?![\w-])")
+# English words with no Vietnamese twin ("so" is in "so sánh", "to" means big: both stay out of the list).
+_ENGLISH_WORDS = frozenset("the and is are of you your but this that it not yes like okay ok very".split())
+
+
+def foreign_text(text: str) -> str | None:
+    """A character or word that is not Vietnamese (Qwen sometimes switches language mid-sentence)."""
+    if m := _FOREIGN_SCRIPT.search(text):
+        return m.group(0)
+    lowered = normalize_text(text)
+    if m := _FOREIGN_LETTER.search(lowered):
+        return m.group(0)
+    return next((w for w in re.findall(r"[a-z]+", lowered) if w in _ENGLISH_WORDS), None)
+
+
 def _value(token: str) -> Fraction | None:
     n = parse_number(token)
     return n.value if n is not None else None
@@ -203,6 +224,10 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
     if move in MOVES_REQUIRING_QUESTION and (questions == 0 or not _is_question(text.strip())):
         detail = "no question" if questions == 0 else "the question must come last"
         issues.append(ValidationIssue(ValidationCode.MISSING_QUESTION, detail))
+
+    foreign = foreign_text(text)
+    if foreign:
+        issues.append(ValidationIssue(ValidationCode.FOREIGN_TEXT, foreign))
 
     words = len(text.split())
     if words > ctx.max_words:

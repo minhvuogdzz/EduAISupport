@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 
 from cavat.core.pedagogy import Outcome
+from cavat.core.vi_text import fold
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 
 INTENT_VERSION = "student-intent/0.1.0"
@@ -273,6 +274,34 @@ def looks_off_topic(text: str) -> bool:
     if any(ch.isdigit() for ch in t):
         return False  # numbers are about the lesson, even when they cannot be read as an answer
     return len(t.split()) >= _OFF_TOPIC_MIN_WORDS and not _LESSON_WORDS_RE.search(t)
+
+
+# DI-39: the form of a question (RAG-2). A question word inside a statement is not one: a retell says
+# "bao nhiêu chữ số 0 thì..." and an answer says "tức là". A message asks when it has a question mark, opens
+# with a question word, or ends with a question particle. Whether it is about the lesson, and new, is decided
+# by the grounded speech (content words, the question the tutor waits on), not here. Matched on the folded
+# text (children type without diacritics), except the particles that fold onto other words ("à" is "ạ").
+_LEAD = r"^\W*(?:(?:co|thay)\s+oi\W+)?(?:(?:cho\s+con\s+hoi|con\s+hoi|the|vay)\W+)?"
+_OPENING_RE = re.compile(
+    _LEAD + r"(?:tai sao|vi sao|sao|lam sao|lam the nao|nhu the nao|the nao|co phai|bao nhieu|cai gi)\b"
+)
+_TAIL = r"(?:\s+(?:a|vay|the|ha|nhi|co|oi))*\W*$"
+_ENDING_RE = re.compile(
+    r"\b(?:la sao|the nao|ra sao|bao nhieu|duoc khong|dung khong|phai khong|khong|chua|gi)" + _TAIL
+)
+_PARTICLE_RE = re.compile(r"\s(?:à|hả|nhỉ)(?:\s+(?:cô|ạ))*\W*$")
+
+
+def asks_question(text: str) -> bool:
+    """The child asks something (DI-39): "?", an opening question word, or a closing question particle."""
+    t = expand_short_forms(text)
+    if "?" in t or _PARTICLE_RE.search(t):
+        return True
+    folded = fold(t)
+    if _OPENING_RE.match(folded):
+        return True
+    # "không", "chưa" alone answer a question; a closing particle asks only after a few words
+    return len(folded.split()) >= 3 and bool(_ENDING_RE.search(folded))
 
 
 _ASK_HINT_RE = phrase_regex(["gợi ý", "giúp con", "giúp em", "giúp với"])

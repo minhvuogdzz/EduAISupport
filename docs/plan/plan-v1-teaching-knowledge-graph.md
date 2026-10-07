@@ -240,6 +240,67 @@ RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã du
 - Đoạn lấy từ Hybrid RAG là **neo**. Qwen diễn đạt lại cho hợp với câu học sinh vừa nói, phải giữ đủ ý của neo (bộ chặn `llm-renderer.v2`: bám câu mẫu, không thêm số, không lặp lại).
 - Mọi câu qua bộ kiểm tra hiện có. Hết hạn mức, lỗi mạng hay câu bị loại thì dùng nguyên văn nội dung đã duyệt.
 
+#### 5.6.1. Cài đặt (RAG-2, ADR-021) và kết quả đo
+
+- **Trước RAG-2 [FACT]:** trong buổi học theo chương, lời giảng, lời đáp câu hỏi của cách giảng và mọi câu con tự hỏi đều là câu mẫu. Qwen chỉ diễn đạt nước đi trong bài tập.
+- **Câu con tự hỏi** (khi gia sư đang chờ con trả lời câu hỏi của cách giảng hoặc nói lại bài):
+  - Câu được tính là câu hỏi khi có dấu hỏi, mở đầu bằng từ hỏi, hoặc kết thúc bằng tiểu từ hỏi, và có ít nhất 2 từ có nghĩa (DI-39).
+  - Gia sư truy xuất trong phạm vi bài đang học. Có căn cứ thì Qwen trả lời từ tối đa 3 đoạn, và câu trả lời qua bộ kiểm chứng (mục 5.6.2 và DI-40).
+  - Gia sư không trả lời trong các trường hợp sau, mỗi trường hợp ghi `QUESTION_PARKED` cho giáo viên:
+    - không có căn cứ;
+    - Qwen thấy đoạn không trả lời được;
+    - câu thuộc bài học sau: gia sư nói tên bài đó;
+    - con hỏi lại đúng câu gia sư đang hỏi: gia sư mời con tự nghĩ;
+    - quá 2 câu hỏi mỗi lượt chờ.
+- **Câu nối:** con trả lời câu hỏi của cách giảng chưa đúng thì Qwen viết một câu nhắc lại ý của con, có gắn ý cho con ("con nghĩ…"). Sau đó gia sư nói nguyên văn lời giải thích đã duyệt.
+- **Bộ kiểm chứng** (`teaching/grounded.py`, DI-40):
+  - số và thuật ngữ Toán phải có trong nguồn;
+  - ít nhất 60% từ có nghĩa có trong nguồn;
+  - không có chữ ngoài tiếng Việt;
+  - không câu hỏi, không quá dài;
+  - không hỏi thông tin cá nhân, không khen trí thông minh;
+  - câu nối phải gắn ý cho con, không chép lời giải thích, không khen "đúng rồi" khi con chưa đúng.
+
+  Bị chặn thì thử lại một lần, rồi dùng câu dự phòng:
+  - câu trả lời: nguyên văn câu của đoạn nguồn, nếu câu đó phủ được ít nhất một nửa câu hỏi;
+  - câu nối: câu mẫu.
+- **Kết quả với Qwen và Gemini thật:** `make eval-grounded`, báo cáo `evals/reports/2026-10-07-grounded-live.md`. Số liệu tóm tắt ở mục 5.6.2.
+
+#### 5.6.2. Kết quả đo và những gì đã sửa nhờ đo (2026-10-07)
+
+**Lượt chạy đủ 21 ca** (`grounded-speech/0.1.0`, `evals/reports/2026-10-07-grounded-live.md`, giám khảo `openai/gpt-oss-120b`):
+- Quyết định đúng 15/15 câu con tự hỏi: trả lời, mời con tự nghĩ, bài sau, để lại cho giáo viên.
+- Câu trả lời: 7 câu do Qwen viết, 1 câu trích nguyên văn đoạn nguồn. Giám khảo chấm bám nguồn 4,12, đúng trọng tâm 3,62, đúng kiến thức 4,12. Không câu nào lộ đáp án câu đang chờ.
+- Giám khảo có hai lần chấm sai, nên làm điểm trung bình thấp đi:
+  - G05: chấm 1/5 kèm nhận xét "không có câu trả lời để đánh giá", trong khi câu trả lời có và đúng.
+  - G07: chấm 2/5 một câu trả lời đúng và bám nguồn.
+- Câu nối: 5/6 do Qwen viết. Bám nguồn 5,00, đúng trọng tâm 5,00, đúng kiến thức 4,40. Hai cờ "bịa" (B05, B06) là giám khảo chấm vào lời giải thích đã duyệt nằm sau câu nối, không phải chấm câu nối.
+
+**Những gì đã sửa nhờ đo:**
+- **Câu nối nhắc lại ý sai của con mà không nói đó là ý của con.** Cả giám khảo lẫn trẻ có thể hiểu là cô xác nhận ý sai. Câu nối giờ phải gắn ý cho con ("con nghĩ…", "An nói…") và không được khen "đúng rồi" khi con chưa đúng.
+- **Lượt đầu, phần trích dự phòng nói câu lạc đề** ("1 m bằng 10 dm…" cho câu hỏi về 0,5 và 0,50). Giờ:
+  - câu trích phải phủ ít nhất một nửa câu hỏi;
+  - câu thuộc bài học sau thì gia sư nói tên bài đó;
+  - Qwen để trống câu trả lời thì gia sư không trả lời.
+- **Bộ kiểm chứng đòi 80% mọi từ có trong nguồn (trọng số idf) nên chặn oan các câu đúng:**
+  - "giá trị không thay đổi" (nguồn viết "không đổi");
+  - "đọc như số tự nhiên bình thường";
+  - "đếm xem mẫu số 1000 có ba chữ số 0".
+
+  Từ của chương xuất hiện ở mọi đoạn nên gần như không có trọng lượng, và vài từ thường quyết định kết quả. Bản `0.2.0` đổi cách kiểm:
+  - thuật ngữ Toán (`MATH_TERMS`) phải có trong nguồn;
+  - con số phải có trong nguồn;
+  - mọi từ có nghĩa đếm đều nhau, cần đạt 60%.
+
+  Kiểm lại 4 ca (`…-grounded-live-partial.md`): G04, G05, B06 đều qua với câu trả lời đúng.
+- **Ở lượt kiểm lại đó Qwen sinh câu hỏng lẫn chữ Trung và chữ Anh** ("số chữ số thập分 like nha"), và bộ kiểm chứng đã nới để lọt. Bản `0.2.1` thêm kiểm tra ngôn ngữ (`FOREIGN_TEXT`): chặn chữ Trung, Nhật, Hàn, Thái, Kirin, chữ cái f, j, w, z và từ tiếng Anh thông dụng. Kiểm tra này áp cho cả câu gợi ý trong bài tập. Câu hỏng đó nay là một test.
+- **Nội dung chương:** câu hỏi "chữ số 6 chỉ mấy xăng-ti-mét?" chấp nhận số "6" trần, nên "6 dm" (sai đơn vị) bị chấm là đúng. Đã bỏ "6" trần (`chapter.yaml` 0.1.1, chờ duyệt).
+
+**Còn phải làm:**
+- Chạy lại đủ 21 ca với `grounded-speech/0.2.1` khi có hạn mức Qwen ngày mới. Hôm nay đã dùng phần lớn hạn mức cho 4 lượt chạy.
+- Thêm một giám khảo thứ hai hoặc chấm hai lần, vì giám khảo đơn có sai sót.
+- Ca G09: câu trả lời trúng ý nằm ở bài nền (cách 1 bước), nên đoạn về so sánh của bài đang học đứng đầu. Ghi vào RAG-3.
+
 ### 5.7. Báo cáo cho giáo viên
 
 - Cây tri thức của từng học sinh tô màu theo điểm (dải màu §25), bằng chứng theo từng chiều, lỗi sai, node "cần học lại".
@@ -381,6 +442,20 @@ Chạy song song từ Mốc 1:
     - Trả lời "vì sao" bằng "là sao", lạc đề hay than chán thì được hỏi lại một lần.
     - Ở lời giảng và phần nói lại, lạc đề được kéo về tối đa 2 lần rồi gia sư giải thích và đi tiếp.
     - Lời đáp câu hỏi lý thuyết (`reply`, `accept` trong `chapter.yaml`) là bản nháp chờ duyệt.
+- **DI-39, câu con tự hỏi (RAG-2, chờ duyệt):**
+  - Là câu hỏi khi có dấu hỏi, mở đầu bằng từ hỏi ("tại sao", "sao", "làm sao", "thế nào", "bao nhiêu"…), hoặc kết thúc bằng tiểu từ hỏi ("là gì", "không", "đúng không", "chưa"…), và có ít nhất 2 từ có nghĩa.
+  - Từ hỏi nằm giữa câu kể ("bao nhiêu chữ số 0 thì…") không tính.
+  - Mỗi lượt chờ trả lời tối đa 2 câu hỏi.
+  - Coi là hỏi lại đúng câu gia sư đang hỏi khi ít nhất 80% từ có nghĩa của câu con hỏi nằm trong câu đó.
+  - Đòi đáp án, than chán, lạc đề giữ đường riêng của ADR-019.
+  - Các câu mẫu mới (`teaching-templates/0.3.0`: `question_back`, `question_parked`, `question_same`, `question_later`, `question_limit`) là bản nháp chờ duyệt.
+- **DI-40, kiểm chứng lời Qwen (RAG-2, chờ duyệt; `grounded-speech/0.2.1`):**
+  - thuật ngữ Toán (`MATH_TERMS`) và con số phải có trong nguồn;
+  - ít nhất 60% từ có nghĩa khác nhau có trong nguồn (bản 0.1.0 dùng 80% có trọng số idf và đã chặn oan câu đúng, mục 5.6.2);
+  - không có chữ hay từ ngoài tiếng Việt;
+  - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
+  - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
+  - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
 - **DI-17, tham số Hybrid RAG** (chờ duyệt; code ở `services/api/cavat/modules/rag/`, đo bằng `make eval-rag`):
   - **Chia đoạn:** nội dung chương mỗi đơn vị dạy một đoạn. Tài liệu giáo viên 150–300 âm tiết một đoạn, cắt ở cuối dòng, dòng dài thì cắt ở cuối câu, chồng lấn một câu.
   - **Từ khóa:** BM25 k1 = 1,2, b = 0,75. Bỏ các từ đệm như "cô, ơi, ạ, là, gì, sao, thế, nào, nghĩa…", cả khi đứng một mình lẫn khi ghép cặp.

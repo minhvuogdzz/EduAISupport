@@ -48,6 +48,7 @@ from cavat.modules.session.service import (
 from cavat.modules.session.service import (
     _actor as actor_for,
 )
+from cavat.modules.teaching.grounded import GroundedSpeaker
 from cavat.modules.teaching.loop import (
     ACTIVITY_FOR,
     TEMPLATES_VERSION,
@@ -172,9 +173,14 @@ def apply_command(
     modality: str = "TEXT",  # noqa: ARG001 - text only in the demo (D-T9)
     choice_id: str | None = None,
     live_renderer: MessageRenderer | None = None,
+    speaker: GroundedSpeaker | None = None,
     history: Sequence[Any] = (),
 ) -> Step:
-    """One student command. Raises ``CommandNotAllowed`` when it does not fit what the loop waits for."""
+    """One student command. Raises ``CommandNotAllowed`` when it does not fit what the loop waits for.
+
+    ``live_renderer`` and ``speaker`` serve this turn only (the replay above them uses templates): the item
+    renderer phrases item moves, the speaker answers the child's questions from the RAG (RAG-2).
+    """
     if command not in allowed_commands(session):
         raise CommandNotAllowed(command)
     if command == "CHOICE" and choice_id not in CHOICES:
@@ -185,6 +191,7 @@ def apply_command(
         loop.item_renderer = live_renderer
         if loop.tutor is not None:
             loop.tutor.renderer = live_renderer
+    loop.speaker = speaker
     seconds = max((now - session.updated_at).total_seconds(), 0.0)
     if command == "CHOICE":
         assert choice_id is not None
@@ -204,6 +211,7 @@ def apply_command(
             NewEvent(event_type=EventType.SAFETY_FLAGGED.value, payload=flagged, item_attempt_id=attempt)
         )
     llm_calls = getattr(live_renderer, "calls_used", act.get("llm_calls", 0))
+    llm_calls += speaker.calls_made if speaker is not None else 0
     state = _state_after(chapter, loop, turn, attempt, node_id, llm_calls)
     if turn.awaiting == Awaiting.NOTHING:
         events.append(NewEvent(event_type=EventType.SESSION_COMPLETED.value, payload={}))

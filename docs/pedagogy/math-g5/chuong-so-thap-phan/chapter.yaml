@@ -12,7 +12,7 @@
 # đến khi Mốc 2 có nhãn của LLM).
 
 chapter_id: math-g5-decimals
-version: 0.1.0
+version: 0.1.1
 status: DRAFT
 subject: math
 grade: 5
@@ -150,7 +150,8 @@ nodes:
         text: "1 m bằng 10 dm, bằng 100 cm, bằng 1000 mm. Số đo 1,234 m nghĩa là 1 m 2 dm 3 cm 4 mm: chữ số 2 ở hàng phần mười chỉ 2 dm, chữ số 3 ở hàng phần trăm chỉ 3 cm, chữ số 4 ở hàng phần nghìn chỉ 4 mm."
         ask: "Vậy trong số đo 4,56 m, chữ số 6 chỉ mấy xăng-ti-mét?"
         reply: "Chữ số 6 ở hàng phần trăm nên chỉ 6 cm; chữ số 5 ở hàng phần mười chỉ 5 dm."
-        accept: ["6 cm", "6 xăng-ti-mét", "sáu xăng-ti-mét", "6"]
+        # 0.1.1: bỏ "6" trần. "6 dm" (sai đơn vị) chứa "6" và bị chấm là đúng (thấy khi chạy eval-grounded).
+        accept: ["6 cm", "6 xăng-ti-mét", "sáu xăng-ti-mét"]
     method:
       rule: "Từ dấu phẩy đếm sang phải: chữ số thứ nhất ở hàng phần mười, thứ hai ở hàng phần trăm, thứ ba ở hàng phần nghìn. Hàng nào không có thì viết chữ số 0 giữ chỗ."
       steps:
