@@ -37,6 +37,8 @@ from cavat.modules.content.lesson_package import LessonPackage
 from cavat.modules.identity.api import AuthError, demo_mode, identity_from, register_auth, require
 from cavat.modules.identity.repository import UserRepository
 from cavat.modules.library import api as library_api
+from cavat.modules.rag import api as rag_api
+from cavat.modules.rag.service import RagService
 from cavat.modules.session import chapter_service, progress, service, teacher_view
 from cavat.modules.session.repository import (
     DuplicateCommand,
@@ -1107,6 +1109,10 @@ async def teacher_student(student_id: str, database: Database, teacher: Teacher,
     return teacher_view.student_detail(chapter, student_id, sessions, today)
 
 
+# The school's Hybrid RAG index (RAG-1), rebuilt when the chapter content or the documents change.
+_rag_service = RagService(service.DEMO_SCHOOL_ID, chapter_service.chapters)
+
+
 def register(app: FastAPI) -> None:
     """Mount the router and the error format ``{"error": {"code", "message", "details"}}``."""
 
@@ -1137,6 +1143,7 @@ def register(app: FastAPI) -> None:
             get_database, teacher_identity, service.DEMO_SCHOOL_ID, chapter_service.chapter_sources
         )
     )
+    app.include_router(rag_api.build_router(get_database, teacher_identity, lambda: _rag_service))
     app.include_router(router)
     app.include_router(students)
     app.include_router(parents)

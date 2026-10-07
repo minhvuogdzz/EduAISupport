@@ -1,0 +1,44 @@
+# Bộ câu kiểm tra riêng (held-out) cho Hybrid RAG, chương Số thập phân.
+#
+# Viết ngày 2026-10-07, SAU khi hiệu chỉnh ngưỡng cosine của Gemini trên rag-decimals-v1.yaml, và KHÔNG
+# dùng để chỉnh bất kỳ tham số nào: chỉ để xem kết quả và ngưỡng có đứng vững trên câu chưa gặp không.
+# Một nửa câu lạc đề là Toán ngoài chương (khó nhất: gần nội dung mà gia sư vẫn không được trả lời).
+#
+# Cùng định dạng với rag-decimals-v1.yaml. [ASSUME] Nhãn do AI soạn, chờ giáo viên duyệt.
+version: 1
+chapter: math-g5-decimals
+status: DRAFT
+cases:
+  - {id: HO01, group: trong-chuong, q: "0,7 và 0,70 cái nào lớn hơn", relevant: [KC-DEC-EQ:method, KC-DEC-EQ:theory:T1, KC-DEC-EQ:theory:T2, KC-DEC-EQ:misconception:DEC-M05]}
+  - {id: HO02, group: trong-chuong, q: "viết 3/10 thành số thập phân", relevant: [KC-DEC-FRAC:method, KC-DEC-FRAC:theory:T1, KC-DEC-FRAC:example:W1]}
+  - {id: HO03, group: trong-chuong, q: "số 12,5 phần nguyên là bao nhiêu", relevant: [KC-DEC-CONCEPT:theory:T1, KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:example:W1, KC-DEC-CONCEPT:misconception:CONCEPT-M01]}
+  - {id: HO04, group: trong-chuong, q: "chữ số thứ ba sau dấu phẩy là hàng gì", relevant: [KC-DEC-PLACE:method, KC-DEC-PLACE:theory:T1]}
+  - {id: HO05, group: trong-chuong, q: "so sánh 3,45 và 3,5", relevant: [KC-DEC-CMP:method, KC-DEC-CMP:theory:T1, KC-DEC-CMP:example:W2, KC-DEC-CMP:misconception:DEC-M01]}
+  - {id: HO06, group: trong-chuong, q: "sap xep 2,5 ; 2,15 ; 2,05 tu be den lon", relevant: [KC-DEC-ORDER:method, KC-DEC-ORDER:example:W1, KC-DEC-ORDER:theory:T2]}
+  - {id: HO07, group: trong-chuong, q: "bạn A chạy 9,5 giây bạn B chạy 9,25 giây ai nhanh hơn", relevant: [KC-DEC-APPLY:theory:T2, KC-DEC-APPLY:example:W2, KC-DEC-APPLY:method, KC-DEC-APPLY:misconception:APPLY-TIME-SPEED]}
+  - {id: HO08, group: trong-chuong, q: "1 cm bằng bao nhiêu phần của mét", relevant: [KC-DEC-FRAC:theory:T2]}
+  - {id: HO09, group: trong-chuong, q: "đọc số 8,05", relevant: [KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:theory:T2, KC-DEC-CONCEPT:misconception:CONCEPT-M02, KC-DEC-CONCEPT:example:W2]}
+  - {id: HO10, group: trong-chuong, q: "tai sao 0,1 lon hon 0,09", relevant: [KC-DEC-CMP:theory:T1, KC-DEC-CMP:method, KC-DEC-CMP:misconception:DEC-M01]}
+  - {id: HO11, group: trong-chuong, q: "gạch bỏ số 0 ở cuối có làm số bé đi không", relevant: [KC-DEC-EQ:method, KC-DEC-EQ:theory:T1, KC-DEC-EQ:example:W2]}
+  - {id: HO12, group: trong-chuong, q: "4 phần nghìn viết thế nào", relevant: [KC-DEC-PLACE:method, KC-DEC-PLACE:example:W2, KC-DEC-FRAC:method]}
+  - {id: HO13, group: trong-chuong, q: "con không biết tia số dùng để làm gì", relevant: [KC-DEC-CMP:theory:T3, KC-DEC-ORDER:theory:T1]}
+  - {id: HO14, group: trong-chuong, q: "muốn biết túi nào nặng hơn thì làm sao", relevant: [KC-DEC-APPLY:method, KC-DEC-APPLY:theory:T1]}
+  - {id: HO15, group: trong-chuong, q: "số thập phân gồm mấy phần", relevant: [KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:theory:T1]}
+
+  # Toán ngoài chương
+  - {id: HX01, group: lac-de-toan, q: "phép nhân 23 x 45 bằng bao nhiêu", relevant: []}
+  - {id: HX02, group: lac-de-toan, q: "chu vi hình chữ nhật tính thế nào", relevant: []}
+  - {id: HX03, group: lac-de-toan, q: "đổi 2 giờ ra phút", relevant: []}
+  - {id: HX04, group: lac-de-toan, q: "phân số 2/3 và 4/6 có bằng nhau không", relevant: []}
+  - {id: HX05, group: lac-de-toan, q: "số chẵn là số như thế nào", relevant: []}
+  - {id: HX06, group: lac-de-toan, q: "tìm x biết x + 5 = 12", relevant: []}
+  - {id: HX07, group: lac-de-toan, q: "diện tích hình tam giác bằng gì", relevant: []}
+  # Ngoài môn Toán
+  - {id: HX08, group: lac-de, q: "con đói bụng quá", relevant: []}
+  - {id: HX09, group: lac-de, q: "mai con có phải đi học không cô", relevant: []}
+  - {id: HX10, group: lac-de, q: "minecraft chơi thế nào", relevant: []}
+  - {id: HX11, group: lac-de, q: "bài hát cô thích nhất là gì", relevant: []}
+  - {id: HX12, group: lac-de, q: "con bị bạn trêu buồn lắm", relevant: []}
+  - {id: HX13, group: lac-de, q: "cô bao nhiêu tuổi", relevant: []}
+  - {id: HX14, group: lac-de, q: "nước sôi ở bao nhiêu độ", relevant: []}
+  - {id: HX15, group: lac-de, q: "viết đoạn văn tả con mèo", relevant: []}

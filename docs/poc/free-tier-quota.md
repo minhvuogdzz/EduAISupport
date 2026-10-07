@@ -19,6 +19,14 @@ Hạn mức tính theo **tổ chức**, không theo khóa.
 - `response_format: json_schema` với `strict: true` hoạt động với Qwen trên Groq.
 - 200.000 token/ngày với khoảng 2.000 token mỗi lần gọi cho khoảng 100 lần gọi mỗi ngày, và với trần 15 lần gọi mỗi buổi cho khoảng **6–7 buổi học dùng LLM mỗi ngày**. Các buổi khác chạy bằng câu mẫu.
 
+## Gemini embedding (Hybrid RAG, đo 2026-10-07)
+
+- `gemini-embedding-001`, 768 chiều.
+- Gửi liền 67 request, mỗi request một câu, trong khoảng 37 giây: 8 request bị **429**.
+- Gom lô (tối đa 64 văn bản mỗi request): 3 request cho 113 văn bản, không lỗi.
+- Hạn mức theo ngày chưa thấy trên AI Studio **[OPEN]**.
+- **Hệ quả:** RAG gom lô khi dựng chỉ mục và lưu đệm mọi vector, nên mỗi đoạn và mỗi câu chỉ gọi một lần. Lúc học, mỗi câu học sinh hỏi tốn một request. Gặp 429 thì lượt đó chạy bằng từ khóa và cấu trúc.
+
 ## Gemini (chỉ dùng cho ảnh/OCR hình học và giọng nói)
 
 Hạn mức tính theo **project**, nên tạo thêm khóa trong cùng project **không** tăng hạn mức.

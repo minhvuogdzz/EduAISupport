@@ -763,6 +763,68 @@ export interface ChapterContent {
   }[];
 }
 
+// ---------------------------------------------------------------- Hybrid RAG, teacher view (RAG-1)
+
+/** GET /v1/teachers/rag/status: where the RAG takes its passages from. */
+export interface RagStatus {
+  chunks: number;
+  /** "chapter" (approved or draft teaching content) and "document" (the teacher's uploads). */
+  by_source: Record<string, number>;
+  /** theory, method, worked_example, misconception_note, source_passage */
+  by_kind: Record<string, number>;
+  nodes: { node_id: string; name: string; chunks: number }[];
+  documents: { document_id: string; title: string; status: string; passages: number; tied_to_node: number }[];
+  /** The embedding model, or "off": keywords and structure only. */
+  semantic: string;
+  /** False for the offline trigram vectors (tests): spelling, not meaning. */
+  semantic_is_model: boolean;
+  semantic_error: string | null;
+  built_at: string | null;
+}
+
+/** question: a child's free question; teach: the next way of teaching a node; hint: material for a hint. */
+export type RagMode = "question" | "teach" | "hint";
+
+export interface RagResult {
+  chunk_id: string;
+  title: string;
+  kind: string;
+  source: string;
+  node_id: string | null;
+  node_name: string | null;
+  document_id: string | null;
+  page: number | null;
+  approved: boolean;
+  text: string;
+  bm25: number;
+  bm25_rank: number | null;
+  cosine: number;
+  cosine_rank: number | null;
+  /** Steps from the node asked for on the knowledge graph (0 without a node). */
+  distance: number;
+  /** Reciprocal Rank Fusion, weighted by 1 / (1 + distance). */
+  fused: number;
+  /** After the pedagogical re-ranking. */
+  final: number;
+  /** Share of the question's content words found in the passage. */
+  coverage: number;
+  reasons: string[];
+}
+
+/** GET /v1/teachers/rag/search: the six steps of one retrieval, every signal shown. */
+export interface RagSearch {
+  query: string;
+  node_id: string | null;
+  /** "definition" when a free question asks what something is ("… là gì"). */
+  mode: RagMode | "definition";
+  grounded: boolean;
+  grounding: string;
+  semantic: string;
+  candidates: number;
+  elapsed_ms: number;
+  results: RagResult[];
+}
+
 // ---------------------------------------------------------------- errors (PART 24.2, 29.1)
 
 export const API_ERROR_CODES = [

@@ -22,6 +22,11 @@ const TABS = [
     label: "Tài liệu",
     match: (path: string) => path.startsWith("/teacher/documents"),
   },
+  {
+    to: "/teacher/rag",
+    label: "RAG",
+    match: (path: string) => path.startsWith("/teacher/rag"),
+  },
 ];
 
 /** The title of a teacher page and the two teacher views: the class, and the sessions one by one. */

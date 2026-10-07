@@ -203,6 +203,38 @@ RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã du
 - Bộ câu hỏi có nhãn: câu học sinh hỏi (gồm cả không dấu, viết sai) và đoạn đúng cần lấy.
 - So sánh **chỉ từ khóa**, **chỉ ngữ nghĩa**, **hybrid** và **hybrid + xếp hạng lại** bằng Recall@k và MRR. Đây là thí nghiệm bỏ từng phần, cùng kiểu Bảng 5 của 2T-KT, để chứng minh vì sao chọn hybrid.
 
+#### 5.5.6. Cài đặt (RAG-1) và kết quả đo
+
+- **RAG lấy dữ liệu từ đâu:**
+  - Nội dung chương trong `docs/pedagogy/` (47 đoạn: 15 cách giảng, 7 phương pháp, 16 ví dụ mẫu, 9 ghi chú lỗi sai). Đây là bản nháp do AI soạn, chờ giáo viên duyệt; được dùng nhưng xếp sau nội dung đã duyệt.
+  - Các tài liệu giáo viên tải lên ở tab Tài liệu (DOC-1), sau khi đọc ra chữ.
+  - Câu hỏi bài tập và đáp án **không** vào kho (quy tắc 2). "Câu kiểm tra" của 5.5.1 chính là câu hỏi của từng cách giảng, đã nằm trong đoạn lý thuyết.
+- **Chỉ mục:**
+  - Dựng lại trong tiến trình API khi một tài liệu hay version chương đổi.
+  - Vector Gemini lưu đệm theo mã băm ở `var/storage/rag/`, nên mỗi đoạn chỉ tốn hạn mức một lần.
+  - Không có khóa Gemini hoặc gọi lỗi: chạy bằng từ khóa và cấu trúc, sau 10 phút thử gọi lại.
+  - Vector trigram tất định chỉ dùng cho test: nó so chữ, không hiểu nghĩa.
+- **Đổi so với 5.5.3:**
+  - Ngưỡng "có căn cứ" không đặt trên điểm hợp nhất. RRF chỉ xếp hạng: đoạn đứng đầu luôn được 1/61 mỗi danh sách, nên không biết được là không đoạn nào trả lời câu hỏi.
+  - Thay vào đó dùng cosine của model ngữ nghĩa, hoặc độ phủ từ khóa khi không có model (DI-17). Có model thì từ khóa không được quyết thay: câu Toán của chương khác ("cộng hai phân số khác mẫu số") có tới năm từ chung với chương.
+- **Giáo viên xem:** tab RAG hiện nguồn của kho, số đoạn của từng tài liệu, model đang dùng. Ô tra cứu chạy đủ 6 bước và hiện điểm từng tín hiệu của từng đoạn.
+- **Kết quả với Gemini** (`make eval-rag LIVE=1`, báo cáo `evals/reports/2026-10-07-rag-gemini.md`; MRR):
+
+  | Cấu hình | Bộ câu chính: 57 câu, dùng để chỉnh tham số | Bộ câu riêng: 15 câu, không dùng để chỉnh |
+  |---|---|---|
+  | Chỉ từ khóa | 0,826 | 0,608 |
+  | Chỉ ngữ nghĩa | 0,868 | 0,765 |
+  | Hybrid | 0,864 | 0,722 |
+  | Từ khóa + xếp hạng lại (khi không có vector) | 0,882 | 0,608 |
+  | Hybrid + xếp hạng lại | **0,947** (Hit@3 = 1,00) | 0,722 (Hit@3 = 0,87) |
+
+  - "Có căn cứ" ở ngưỡng 0,65: đúng 100% trên cả hai bộ (72 câu trong chương nhận, 25 câu lạc đề từ chối, trong đó 10 câu Toán ngoài chương).
+- **Giới hạn đã thấy:**
+  - Khoảng cách giữa câu Toán ngoài chương gần nhất (0,648) và câu trong chương xa nhất (0,668) chỉ khoảng 0,02. Khi thử trên web, "chu vi hình vuông tính sao cô" ra 0,64. Cần đo lại khi có tài liệu thật và câu hỏi thật của học sinh.
+  - Trên bộ câu riêng (15 câu), chỉ ngữ nghĩa nhỉnh hơn hybrid một câu. Mẫu còn nhỏ nên giữ RRF theo plan và đo lại.
+  - Xếp hạng lại chỉ có tác dụng với câu của chính sách dạy và câu "là gì". Bộ câu riêng không có loại câu đó.
+  - Nhãn của hai bộ câu do AI soạn, chờ giáo viên duyệt.
+
 ### 5.6. Lời nói của gia sư
 
 - Đoạn lấy từ Hybrid RAG là **neo**. Qwen diễn đạt lại cho hợp với câu học sinh vừa nói, phải giữ đủ ý của neo (bộ chặn `llm-renderer.v2`: bám câu mẫu, không thêm số, không lặp lại).
@@ -349,7 +381,20 @@ Chạy song song từ Mốc 1:
     - Trả lời "vì sao" bằng "là sao", lạc đề hay than chán thì được hỏi lại một lần.
     - Ở lời giảng và phần nói lại, lạc đề được kéo về tối đa 2 lần rồi gia sư giải thích và đi tiếp.
     - Lời đáp câu hỏi lý thuyết (`reply`, `accept` trong `chapter.yaml`) là bản nháp chờ duyệt.
-- **DI-17:** tham số Hybrid RAG: BM25 k1 = 1,2, b = 0,75; RRF k = 60; hệ số phạt theo khoảng cách đồ thị; ngưỡng "không đủ căn cứ để trả lời".
+- **DI-17, tham số Hybrid RAG** (chờ duyệt; code ở `services/api/cavat/modules/rag/`, đo bằng `make eval-rag`):
+  - **Chia đoạn:** nội dung chương mỗi đơn vị dạy một đoạn. Tài liệu giáo viên 150–300 âm tiết một đoạn, cắt ở cuối dòng, dòng dài thì cắt ở cuối câu, chồng lấn một câu.
+  - **Từ khóa:** BM25 k1 = 1,2, b = 0,75. Bỏ các từ đệm như "cô, ơi, ạ, là, gì, sao, thế, nào, nghĩa…", cả khi đứng một mình lẫn khi ghép cặp.
+  - **Hợp nhất:** RRF k = 60, nhân 1/(1 + khoảng cách trên đồ thị). Có chọn bài thì phạm vi gồm bài đó, các bài nó dựa vào (tiên quyết, bài cơ bản mà nó vận dụng) và bài tương tự, tối đa 2 bước. Không gồm bài học sau nó, để gia sư không dạy trước. Đoạn tài liệu chưa gắn bài tính là 1 bước.
+  - **Gắn đoạn tài liệu vào bài:** bài của đoạn nội dung chương giống nhất (BM25), khi điểm gấp 1,5 lần bài thứ hai.
+  - **Xếp hạng lại:**
+    - giảng bài: lý thuyết ×1,5, tài liệu ×1,2, làm mẫu ×1,1, lỗi sai ×0,7;
+    - gợi ý: phương pháp ×1,4, làm mẫu ×1,3, lỗi sai ×1,2;
+    - học sinh hỏi: không ưu tiên loại nào;
+    - câu hỏi "… là gì": lý thuyết và phương pháp ×1,3, lỗi sai ×0,8;
+    - đã dùng trong buổi ×0,5; đúng lỗi sai vừa gặp ×1,5; bản nháp ×0,9.
+  - **Có căn cứ:**
+    - Có model ngữ nghĩa: cosine ≥ 0,65 với `gemini-embedding-001`, hiệu chỉnh trên bộ câu chính và kiểm lại trên bộ câu riêng.
+    - Không có model ngữ nghĩa: ít nhất 50% từ có nghĩa của câu hỏi (trọng số idf) nằm trong một đoạn được chọn.
 - Số câu tối đa mỗi node (N-BUDGET), số cách giảng tối thiểu, các ý bắt buộc khi chấm lời giải thích: đặt giá trị mặc định ở Mốc 1, duyệt sau.
 - Nội dung gói chương do AI soạn nháp: chủ dự án duyệt từng node trước khi học sinh thật dùng.
 - Tài liệu thật của hai chương: cần trước Mốc 2.

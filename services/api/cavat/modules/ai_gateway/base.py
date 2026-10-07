@@ -29,6 +29,7 @@ class ModelClass(StrEnum):
     EVAL_JUDGE = "eval_judge"
     STT_VI = "stt_vi"
     VISION_OCR = "vision_ocr"
+    EMBEDDING = "embedding"  # Hybrid RAG vectors (plan v1 5.5.2, ADR-017: Gemini)
 
 
 CHAT_MODEL_CLASSES = frozenset({ModelClass.TUTOR_REASONING, ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE})
@@ -126,6 +127,10 @@ class VisionProvider(Protocol):
     def describe_image(
         self, image_bytes: bytes, prompt: str, *, mime_type: str = "image/png"
     ) -> VisionResult: ...
+
+
+class EmbeddingProvider(Protocol):
+    def embed(self, texts: list[str], *, task: str) -> list[list[float]]: ...
 
 
 def estimate_tokens(text: str) -> int:

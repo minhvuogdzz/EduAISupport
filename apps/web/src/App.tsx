@@ -9,6 +9,7 @@ import { StudentStartPage } from "./features/student/StudentStartPage";
 import { ClassPage } from "./features/teacher/ClassPage";
 import { DocumentPage, DocumentsPage } from "./features/teacher/DocumentsPage";
 import { ChapterContentPage, LessonsPage } from "./features/teacher/LessonsPage";
+import { RagPage } from "./features/teacher/RagPage";
 import { StudentReportPage } from "./features/teacher/StudentReportPage";
 import { TeacherPage } from "./features/teacher/TeacherPage";
 import { HomePage } from "./pages/HomePage";
@@ -35,6 +36,7 @@ export function App() {
         <Route path="/teacher/lessons/:chapterId" element={only("TEACHER", <ChapterContentPage />)} />
         <Route path="/teacher/documents" element={only("TEACHER", <DocumentsPage />)} />
         <Route path="/teacher/documents/:documentId" element={only("TEACHER", <DocumentPage />)} />
+        <Route path="/teacher/rag" element={only("TEACHER", <RagPage />)} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AuthGate>

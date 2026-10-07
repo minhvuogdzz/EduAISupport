@@ -121,11 +121,22 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | Task | Nội dung | Trạng thái |
 |---|---|---|
 | ACC-1 | 1 học sinh, 1 phụ huynh, 1 giáo viên cố định (`make accounts`), đăng nhập bằng PIN, token ký HMAC, phụ huynh gắn với con, tên học sinh lấy từ tài khoản | Xong (PR #37) |
-| DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Đang làm |
-| RAG-1 | Hybrid RAG tự xây (M1-5): chia đoạn theo cấu trúc, BM25 hai bản, embedding Gemini, chỉ mục vector tự viết, RRF, xếp hạng lại theo sư phạm, ghi vết; trang tra cứu cho giáo viên; bộ câu hỏi Recall@k, MRR | Chưa |
-| RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án | Chưa |
+| DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Xong (PR #38) |
+| RAG-1 | Hybrid RAG tự xây (M1-5): chia đoạn theo cấu trúc, BM25 hai bản, embedding Gemini, chỉ mục vector tự viết, RRF, xếp hạng lại theo sư phạm, ghi vết; trang tra cứu cho giáo viên; bộ câu hỏi Recall@k, MRR | Xong: tab RAG của giáo viên, `make eval-rag` (plan v1 mục 5.5.6; báo cáo `evals/reports/2026-10-07-rag-gemini.md`) |
+| RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án. Yêu cầu rút từ RAG-1, xem danh sách dưới bảng | Tiếp theo |
 | DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án | Chờ tài liệu |
 | DATA-2 | Chương Diện tích hình tam giác, hình thang (có hình vẽ: OCR và mô tả hình bằng Gemini) | Chờ tài liệu |
+
+**RAG-2, những điều RAG-1 đã chốt cho bước nối với gia sư:**
+- Câu truy vấn ghép câu học sinh vừa nói với tên, mô tả bài và mã lỗi sai vừa gặp (plan 5.5.3). Nhưng **"có căn cứ" phải tính trên chính câu của học sinh**: ghép tên bài vào thì câu lạc đề nào cũng gần nội dung chương hơn.
+- Đang chờ học sinh trả lời câu kiểm tra của cách giảng T thì đoạn T vào prompt **không kèm lời đáp** (`Chunk.extra["reply"]`).
+- **Kiểm chứng câu Qwen nói với đoạn neo**, như lớp kiểm chứng "khẳng định và bằng chứng" của 2T-KT:
+  - mọi số, số thập phân, phân số và thuật ngữ của bài trong câu trả lời phải có trong đoạn neo hoặc trong câu học sinh;
+  - lệch thì dùng câu đã duyệt;
+  - ghi tỉ lệ bị loại vào eval.
+- Không có căn cứ: gia sư quay về nội dung chính của bài và ghi câu hỏi cho giáo viên; không gọi Qwen để trả lời câu đó.
+- Sự kiện `RAG_RETRIEVED` (mã đoạn, điểm từng tín hiệu, có căn cứ hay không) nằm trong document buổi học. Tab Hội thoại của giáo viên hiện nguồn của từng câu gia sư nói.
+- Eval: chạy lại `make eval-rag LIVE=1` khi đổi tham số; thêm vào bộ câu hỏi các câu học sinh thật hỏi (lấy từ log), có nhãn do giáo viên duyệt.
 
 ### Mốc 2 và Mốc 3
 

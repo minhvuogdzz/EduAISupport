@@ -1,0 +1,97 @@
+# Bộ câu hỏi đánh giá Hybrid RAG, chương Số thập phân (plan v1 §5.5.5).
+#
+# Mỗi câu: q là câu học sinh gõ (hoặc truy vấn của chính sách dạy), relevant là các đoạn đúng cần lấy
+# (mã đoạn như trang Tra cứu RAG của giáo viên hiển thị). Tùy chọn: node (học sinh đang ở bài nào),
+# mode (question: hỏi tự do, mặc định; teach: chính sách cần cách giảng tiếp theo; hint: cần gợi ý),
+# used (đoạn đã dùng trong buổi), misconception (lỗi sai vừa phát hiện).
+#
+# Nhóm: co-dau, khong-dau, sai-chinh-ta, dien-dat-khac (ít từ chung với tài liệu), chinh-sach, lac-de
+# (relevant rỗng: gia sư không được tìm thấy căn cứ, grounded phải là false).
+#
+# [ASSUME] Nhãn do AI soạn từ nội dung chương ngày 2026-10-07, viết trước khi chạy đánh giá. Chờ giáo viên
+# duyệt (status DRAFT). Khi nội dung chương đổi mã đoạn, sửa nhãn ở đây.
+version: 1
+chapter: math-g5-decimals
+status: DRAFT
+cases:
+  # --- co-dau: câu có dấu, tự nhiên ----------------------------------------------------------------------
+  - {id: Q01, group: co-dau, q: "phân số thập phân là gì", relevant: [KC-DEC-FRAC:method, KC-DEC-FRAC:theory:T1]}
+  - {id: Q02, group: co-dau, q: "1 mm bằng mấy phần của mét", relevant: [KC-DEC-FRAC:theory:T2]}
+  - {id: Q03, group: co-dau, q: "0,5 đổi ra phân số thập phân thế nào", relevant: [KC-DEC-FRAC:example:W2, KC-DEC-FRAC:method]}
+  - {id: Q04, group: co-dau, q: "mẫu số 100 thì sau dấu phẩy có mấy chữ số", relevant: [KC-DEC-FRAC:theory:T2, KC-DEC-FRAC:method, KC-DEC-FRAC:example:W1]}
+  - {id: Q05, group: co-dau, q: "phần nguyên là gì", relevant: [KC-DEC-CONCEPT:theory:T1, KC-DEC-CONCEPT:method]}
+  - {id: Q06, group: co-dau, q: "đọc số 6,25 thế nào", relevant: [KC-DEC-CONCEPT:theory:T2, KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:example:W1]}
+  - {id: Q07, group: co-dau, q: "chữ số 0 ngay sau dấu phẩy có phải đọc không", relevant: [KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:misconception:CONCEPT-M02]}
+  - {id: Q08, group: co-dau, q: "9 đơn vị và 4 phần trăm viết thế nào", relevant: [KC-DEC-CONCEPT:example:W2]}
+  - {id: Q09, group: co-dau, q: "chữ số 6 trong 4,56 m chỉ mấy xăng-ti-mét", relevant: [KC-DEC-PLACE:theory:T2]}
+  - {id: Q10, group: co-dau, q: "hàng phần mười là chữ số nào", relevant: [KC-DEC-PLACE:method, KC-DEC-PLACE:theory:T1]}
+  - {id: Q11, group: co-dau, q: "trong 7,692 chữ số 9 ở hàng nào", relevant: [KC-DEC-PLACE:example:W1, KC-DEC-PLACE:method]}
+  - {id: Q12, group: co-dau, q: "sao thêm chữ số 0 vào cuối mà số không đổi", relevant: [KC-DEC-EQ:theory:T1, KC-DEC-EQ:method, KC-DEC-EQ:theory:T2]}
+  - {id: Q13, group: co-dau, q: "5,600 bỏ hai chữ số 0 ở cuối được không", relevant: [KC-DEC-EQ:example:W2, KC-DEC-EQ:method]}
+  - {id: Q14, group: co-dau, q: "3,05 bỏ chữ số 0 thành 3,5 có được không", relevant: [KC-DEC-EQ:example:W3, KC-DEC-EQ:method]}
+  - {id: Q15, group: co-dau, q: "0,50 có lớn hơn 0,5 không", relevant: [KC-DEC-EQ:misconception:DEC-M05, KC-DEC-EQ:theory:T1, KC-DEC-EQ:method]}
+  - {id: Q16, group: co-dau, q: "so sánh 0,9 và 0,87 thế nào", relevant: [KC-DEC-CMP:theory:T1, KC-DEC-CMP:method]}
+  - {id: Q17, group: co-dau, q: "số nào có nhiều chữ số hơn thì lớn hơn đúng không", relevant: [KC-DEC-CMP:misconception:DEC-M01, KC-DEC-CMP:theory:T1, KC-DEC-CMP:misconception:DEC-M02]}
+  - {id: Q18, group: co-dau, q: "so sánh phần nguyên trước hay phần thập phân trước", relevant: [KC-DEC-CMP:method, KC-DEC-CMP:example:W1, KC-DEC-CMP:misconception:DEC-M04]}
+  - {id: Q19, group: co-dau, q: "dùng tia số để so sánh thế nào", relevant: [KC-DEC-CMP:theory:T3, KC-DEC-ORDER:theory:T1]}
+  - {id: Q20, group: co-dau, q: "xếp các số từ bé đến lớn làm thế nào", relevant: [KC-DEC-ORDER:method, KC-DEC-ORDER:theory:T1, KC-DEC-ORDER:example:W1]}
+  - {id: Q21, group: co-dau, q: "khi sắp xếp thì số nào viết đầu tiên", relevant: [KC-DEC-ORDER:theory:T2, KC-DEC-ORDER:method]}
+  - {id: Q22, group: co-dau, q: "quả dưa nào nặng hơn", relevant: [KC-DEC-APPLY:theory:T1]}
+  - {id: Q23, group: co-dau, q: "chạy hết ít giây hơn là nhanh hơn hay chậm hơn", relevant: [KC-DEC-APPLY:theory:T2, KC-DEC-APPLY:misconception:APPLY-TIME-SPEED, KC-DEC-APPLY:method]}
+  - {id: Q24, group: co-dau, q: "can nào chứa nhiều nước hơn", relevant: [KC-DEC-APPLY:example:W1]}
+  - {id: Q25, group: co-dau, q: "hai số đo khác đơn vị thì so sánh thế nào", relevant: [KC-DEC-APPLY:method, KC-DEC-CMP:theory:T2]}
+
+  # --- khong-dau: học sinh gõ không dấu ----------------------------------------------------------------
+  - {id: Q26, group: khong-dau, q: "phan nguyen la gi", relevant: [KC-DEC-CONCEPT:theory:T1, KC-DEC-CONCEPT:method]}
+  - {id: Q27, group: khong-dau, q: "tai sao phai them so 0 vao cuoi", relevant: [KC-DEC-EQ:theory:T1, KC-DEC-EQ:method]}
+  - {id: Q28, group: khong-dau, q: "so sanh hai so thap phan the nao", relevant: [KC-DEC-CMP:method, KC-DEC-CMP:theory:T1]}
+  - {id: Q29, group: khong-dau, q: "hang phan tram la chu so thu may sau dau phay", relevant: [KC-DEC-PLACE:method, KC-DEC-PLACE:theory:T1, KC-DEC-PLACE:example:W1]}
+  - {id: Q30, group: khong-dau, q: "xep tu lon den be lam sao", relevant: [KC-DEC-ORDER:method, KC-DEC-ORDER:example:W2, KC-DEC-ORDER:theory:T1]}
+  - {id: Q31, group: khong-dau, q: "doc so thap phan nhu the nao", relevant: [KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:theory:T2, KC-DEC-CONCEPT:example:W1]}
+  - {id: Q32, group: khong-dau, q: "viet 7/100 thanh so thap phan", relevant: [KC-DEC-FRAC:method, KC-DEC-FRAC:example:W1, KC-DEC-FRAC:misconception:FRAC-M01]}
+
+  # --- sai-chinh-ta: gõ sai, thiếu dấu, viết tắt --------------------------------------------------------
+  - {id: Q33, group: sai-chinh-ta, q: "so sáh 0,4 vs 0,45", relevant: [KC-DEC-CMP:misconception:DEC-M02, KC-DEC-CMP:method, KC-DEC-CMP:example:W2]}
+  - {id: Q34, group: sai-chinh-ta, q: "hàng phàn nghìn ở đâu", relevant: [KC-DEC-PLACE:method, KC-DEC-PLACE:theory:T1]}
+  - {id: Q35, group: sai-chinh-ta, q: "phân sô thâp phân la gi", relevant: [KC-DEC-FRAC:method, KC-DEC-FRAC:theory:T1]}
+  - {id: Q36, group: sai-chinh-ta, q: "sắp sếp số thập phân", relevant: [KC-DEC-ORDER:method, KC-DEC-ORDER:theory:T1, KC-DEC-ORDER:theory:T2]}
+  - {id: Q37, group: sai-chinh-ta, q: "ko hiểu sao 0,2 bằng 0,20", relevant: [KC-DEC-EQ:theory:T1, KC-DEC-EQ:method, KC-DEC-EQ:theory:T2]}
+
+  # --- dien-dat-khac: nói khác tài liệu, ít từ khóa chung -----------------------------------------------
+  - {id: Q38, group: dien-dat-khac, q: "viết thêm số không đằng sau thì số có to lên không", relevant: [KC-DEC-EQ:theory:T1, KC-DEC-EQ:method, KC-DEC-EQ:misconception:DEC-M05]}
+  - {id: Q39, group: dien-dat-khac, q: "số đứng trước dấu phẩy gọi là gì", relevant: [KC-DEC-CONCEPT:theory:T1, KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:misconception:CONCEPT-M01]}
+  - {id: Q40, group: dien-dat-khac, q: "ai về đích trước thì người đó nhanh hơn à", relevant: [KC-DEC-APPLY:theory:T2, KC-DEC-APPLY:misconception:APPLY-TIME-SPEED]}
+  - {id: Q41, group: dien-dat-khac, q: "con nghĩ 0,05 với 0,5 là một", relevant: [KC-DEC-PLACE:misconception:DEC-M03, KC-DEC-EQ:theory:T2, KC-DEC-CMP:example:W3]}
+  - {id: Q42, group: dien-dat-khac, q: "chia cái bánh làm mười phần thì mỗi phần viết sao", relevant: [KC-DEC-FRAC:theory:T1, KC-DEC-FRAC:method]}
+  - {id: Q43, group: dien-dat-khac, q: "con số sau dấu phẩy dài hơn có to hơn không", relevant: [KC-DEC-CMP:misconception:DEC-M01, KC-DEC-CMP:theory:T1]}
+
+  # --- chinh-sach: truy vấn của chính sách dạy (giảng tiếp, gợi ý), có node và đoạn đã dùng --------------
+  - {id: P01, group: chinh-sach, mode: teach, node: KC-DEC-CMP, q: "So sánh hai số thập phân", relevant: [KC-DEC-CMP:theory:T1, KC-DEC-CMP:theory:T2, KC-DEC-CMP:theory:T3]}
+  - {id: P02, group: chinh-sach, mode: teach, node: KC-DEC-CMP, used: [KC-DEC-CMP:theory:T1], q: "So sánh hai số thập phân", relevant: [KC-DEC-CMP:theory:T2, KC-DEC-CMP:theory:T3]}
+  - {id: P03, group: chinh-sach, mode: teach, node: KC-DEC-EQ, used: [KC-DEC-EQ:theory:T1], q: "Số thập phân bằng nhau", relevant: [KC-DEC-EQ:theory:T2]}
+  - {id: P04, group: chinh-sach, mode: teach, node: KC-DEC-FRAC, q: "Phân số thập phân", relevant: [KC-DEC-FRAC:theory:T1, KC-DEC-FRAC:theory:T2]}
+  - {id: P05, group: chinh-sach, mode: teach, node: KC-DEC-ORDER, used: [KC-DEC-ORDER:theory:T1], q: "Sắp xếp thứ tự các số thập phân", relevant: [KC-DEC-ORDER:theory:T2]}
+  - {id: P06, group: chinh-sach, mode: hint, node: KC-DEC-CMP, misconception: DEC-M02, q: "0,4 > 0,45", relevant: [KC-DEC-CMP:misconception:DEC-M02, KC-DEC-CMP:method]}
+  - {id: P07, group: chinh-sach, mode: hint, node: KC-DEC-FRAC, misconception: FRAC-M01, q: "7/100 = 0,7", relevant: [KC-DEC-FRAC:misconception:FRAC-M01, KC-DEC-FRAC:method, KC-DEC-FRAC:example:W1]}
+  - {id: P08, group: chinh-sach, mode: hint, node: KC-DEC-PLACE, q: "Trong số 7,692, chữ số 9 thuộc hàng nào?", relevant: [KC-DEC-PLACE:example:W1, KC-DEC-PLACE:method]}
+  - {id: P09, group: chinh-sach, node: KC-DEC-EQ, q: "sao lại thêm số 0", relevant: [KC-DEC-EQ:theory:T1, KC-DEC-EQ:method]}
+  - {id: P10, group: chinh-sach, mode: teach, node: KC-DEC-CONCEPT, used: [KC-DEC-CONCEPT:theory:T1, KC-DEC-CONCEPT:theory:T2], q: "Khái niệm số thập phân", relevant: [KC-DEC-CONCEPT:example:W1, KC-DEC-CONCEPT:example:W2, KC-DEC-CONCEPT:method]}
+
+  # --- dinh-nghia: thêm sau lần chạy đầu, để kiểm tra luật "câu hỏi 'là gì' ưu tiên định nghĩa" trên các
+  # khái niệm khác với Q01, Q05, Q26, Q35, Q39 (các câu đã cho thấy lỗi) ------------------------------------
+  - {id: H01, group: dinh-nghia, q: "hàng phần trăm là gì", relevant: [KC-DEC-PLACE:method, KC-DEC-PLACE:theory:T1]}
+  - {id: H02, group: dinh-nghia, q: "số thập phân bằng nhau là sao", relevant: [KC-DEC-EQ:method, KC-DEC-EQ:theory:T1, KC-DEC-EQ:theory:T2]}
+  - {id: H03, group: dinh-nghia, q: "phần thập phân nghĩa là gì", relevant: [KC-DEC-CONCEPT:method, KC-DEC-CONCEPT:theory:T1]}
+  - {id: H04, group: dinh-nghia, q: "so sánh số thập phân là như thế nào", relevant: [KC-DEC-CMP:method, KC-DEC-CMP:theory:T1]}
+
+  # --- lac-de: ngoài chương, gia sư không được coi là có căn cứ -----------------------------------------
+  - {id: O01, group: lac-de, q: "con mèo nhà con tên là Mướp", relevant: []}
+  - {id: O02, group: lac-de, q: "hôm nay trời mưa to quá cô ạ", relevant: []}
+  - {id: O03, group: lac-de, q: "cô ơi con thích đá bóng lắm", relevant: []}
+  - {id: O04, group: lac-de, q: "thủ đô của Việt Nam là gì", relevant: []}
+  - {id: O05, group: lac-de, q: "diện tích hình tròn tính thế nào", relevant: []}
+  - {id: O06, group: lac-de, q: "cộng hai phân số khác mẫu số", relevant: []}
+  - {id: O07, group: lac-de, q: "bảng cửu chương 7", relevant: []}
+  - {id: O08, group: lac-de, q: "con muốn chơi game", relevant: []}
+  - {id: O09, group: lac-de, q: "kể chuyện cổ tích cho con nghe đi", relevant: []}
+  - {id: O10, group: lac-de, q: "tại sao bầu trời màu xanh", relevant: []}
