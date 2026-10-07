@@ -58,6 +58,7 @@ const TRANSCRIPT: SessionTranscript = {
             normalized_answer: null,
             misconception: null,
             safety: true,
+            read: { label: "ASKS_ABOUT", focus: "mẫu", source: "LLM" },
           },
         },
         turn(2, "Câu này nằm ngoài bài mình đang học…", {
@@ -88,5 +89,6 @@ describe("teacher transcript of grounded speech (RAG-2)", () => {
     expect(screen.getByText("Không có căn cứ (cosine 0.58 < 0.65)")).toBeInTheDocument();
     expect(screen.getByText("Ngoài bài: để lại cho giáo viên")).toBeInTheDocument();
     expect(screen.getByText("Đáng lo: cô cần đọc kỹ câu này")).toBeInTheDocument();
+    expect(screen.getByText("Gia sư hiểu: con hỏi về «mẫu» (Qwen đọc)")).toBeInTheDocument();
   });
 });

@@ -49,6 +49,7 @@ from cavat.modules.session.repository import (
     StateVersionConflict,
 )
 from cavat.modules.teaching.grounded import GroundedSpeaker
+from cavat.modules.tutor.reader import LiveReader, ModelReader
 
 MAX_TEXT_CHARS = 500
 
@@ -238,6 +239,7 @@ class StudentAnnotation(BaseModel):
     misconception: MisconceptionView | None
     retell: RetellView | None = None
     safety: bool = False  # the child's words raised a safety flag (DI-41 or the model): for the teacher
+    read: dict[str, str] | None = None  # CTX-1: how an unclear message was read (label, focus, source)
 
 
 class TeachAnnotation(BaseModel):
@@ -883,8 +885,14 @@ async def _command(
             calls_used=(session.state.activity or {}).get("llm_calls", 0),
             order=content.topological_order(),
         )
+        # CTX-1: an unclear item message is read in context: by Qwen when it may be called, else by rule.
+        calls = (session.state.activity or {}).get("llm_calls", 0)
+        reader = LiveReader(ModelReader(router, calls_used=calls) if router is not None else None)
         command_fn: Any = partial(
-            chapter_service.apply_command, history=await _history(database, session), speaker=speaker
+            chapter_service.apply_command,
+            history=await _history(database, session),
+            speaker=speaker,
+            reader=reader,
         )
     else:
         content, command_fn = _package(session.lesson_id), service.apply_command

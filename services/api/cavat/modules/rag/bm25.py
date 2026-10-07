@@ -24,10 +24,11 @@ K1, B = 1.2, 0.75  # DI-17
 _DECIMAL_DOT = re.compile(r"(?<![\d.])0\.(?=\d)|(?<=\d)\.(?=\d{1,2}(?![\d.]))")
 
 
-# Words of a child's question that carry no content (folded): addressing, particles, question words.
+# Words of a child's question that carry no content (folded): addressing, particles, question words. Not
+# "biet" or "hieu": folded, "biết"/"hiểu" are "biệt" (đặc biệt) and "hiệu" (the difference of a subtraction).
 FILLER = frozenset(
     "co oi a ah u ui con em minh ban hoi cho voi the nao sao gi la nhi vay day ma thi va cua nhe khong "
-    "duoc chua roi ha ho giup biet hieu tai vi lam cai nay kia nhu bao may nghia".split()
+    "duoc chua roi ha ho giup tai vi lam cai nay kia nhu bao may nghia".split()
 )
 _NUMBER = re.compile(r"^[\d.,/]+$")
 

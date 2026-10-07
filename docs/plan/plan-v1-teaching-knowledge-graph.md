@@ -456,6 +456,10 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-42, gia sư theo ngữ cảnh (CTX-1, ADR-022, chờ duyệt):**
+  - Con hỏi về gợi ý hay nghĩa một từ: nước đi EXPLAIN, tính là bậc gợi ý tiếp theo; tối đa 2 lần mỗi câu, quá thì gợi ý tiếp; bài kiểm tra cuối bài chỉ nhắc lại đề.
+  - Lời Qwen trong bài tập phải giữ ít nhất 60% thuật ngữ Toán của câu mẫu (đủ cả khi câu mẫu có 1–2 thuật ngữ); câu mẫu không có thuật ngữ thì giữ ít nhất 30% số từ.
+  - "ko" trả lời câu lý thuyết không phải dạng có/không là "con không biết".
 - **DI-41, câu đáng lo (RAG-2, chờ duyệt):**
   - Danh sách cụm từ ở `student_intent.signals_distress`: bị đánh, bị bắt nạt, bị chửi, bị dọa, bị nhốt, muốn chết, tự làm đau, sợ về nhà…, gồm cả dạng "bị bạn đánh".
   - Khi gặp các cụm này, gia sư không trả lời câu hỏi và không kéo về bài. Gia sư nói câu ân cần (câu mẫu `distress`, chờ duyệt) và ghi `SAFETY_FLAGGED` (`source: RULE`) cho giáo viên.

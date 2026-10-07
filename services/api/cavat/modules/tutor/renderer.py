@@ -22,7 +22,7 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-TEMPLATE_VERSION = "template-renderer.v3"
+TEMPLATE_VERSION = "template-renderer.v4"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -40,6 +40,7 @@ PHRASES: dict[str, str] = {
     "teach_back": "{S} thử giảng lại cho {t} cách làm câu này bằng lời của {s} được không?",
     "close_item": "Mình dừng câu này ở đây nhé. {S} đã cố gắng suy nghĩ rất chăm chỉ.",
     "move_on": "Mình sang câu tiếp theo nhé.",  # ADR-019: solved, the "vì sao" skipped (draft wording)
+    "explain_lead": "{T} nói rõ hơn nhé:",  # CTX-1 (draft wording): before a sentence of approved content
 }
 
 
@@ -253,6 +254,44 @@ def _redirect(ctx: RenderContext) -> RenderedMessage:
     return _msg(f"{_say(ctx, 'redirect')} {text}", "TEMPLATE", ref)
 
 
+_SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
+
+
+def covering_sentence(focus: str | None, evidence: tuple[str, ...]) -> str | None:
+    """The sentence of the approved passages that shares the most words with what the child asks about."""
+    wanted = {fold(w) for w in (focus or "").split() if len(w) > 1}
+    if not wanted:
+        return None
+    best, best_score = None, 0
+    for passage in evidence:
+        for sentence in _SENTENCE_END.split(passage):
+            sentence = sentence.strip()
+            if len(sentence.split()) < 4 or sentence.endswith("?"):
+                continue
+            score = len(wanted & {fold(w) for w in sentence.split()})
+            if score > best_score:
+                best, best_score = sentence, score
+    return best
+
+
+def _explain(ctx: RenderContext) -> RenderedMessage:
+    """CTX-1 without a model: what the child asked about, then a question to go on.
+
+    The item's own hint of the decided rung when it speaks of what was asked (TP-CC-01: "mẫu như nào" is
+    answered by its H2 "Phân số thập phân có mẫu số là 10, 100 hay 1000..."); else the sentence of the
+    approved passages that does, with the item asked again; else that hint anyway.
+    """
+    hint = _hint(ctx)
+    wanted = {fold(w) for w in (ctx.focus or "").split()}
+    if wanted & {fold(w) for w in hint.text.split()} or not ctx.evidence:
+        return _msg(f"{_say(ctx, 'explain_lead')} {hint.text}", hint.source, hint.hint_ref)
+    sentence = covering_sentence(ctx.focus, ctx.evidence)
+    if sentence is None:
+        return _msg(f"{_say(ctx, 'explain_lead')} {hint.text}", hint.source, hint.hint_ref)
+    text, ref = _ask_item(ctx)
+    return _msg(f"{_say(ctx, 'explain_lead')} {sentence} {text}", "TEMPLATE", ref)
+
+
 _PRAISE_RE = re.compile(r"^\s*Đúng rồi[!.]\s*")
 
 
@@ -306,6 +345,7 @@ _RENDERERS: dict[Move, Callable[[RenderContext], RenderedMessage]] = {
     Move.WORKED_GUIDANCE: _worked_guidance,
     Move.FULL_EXPLANATION: _full_explanation,
     Move.TEACH_BACK: _fixed("teach_back"),
+    Move.EXPLAIN: _explain,
     Move.CLOSE_ITEM: lambda ctx: _msg(
         _say(
             ctx, "close_item" if ctx.decision.resolution in (None, ItemResolution.UNRESOLVED) else "move_on"

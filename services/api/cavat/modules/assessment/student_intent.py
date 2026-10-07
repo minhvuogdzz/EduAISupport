@@ -283,11 +283,12 @@ def looks_off_topic(text: str) -> bool:
 # text (children type without diacritics), except the particles that fold onto other words ("à" is "ạ").
 _LEAD = r"^\W*(?:(?:co|thay)\s+oi\W+)?(?:(?:cho\s+con\s+hoi|con\s+hoi|the|vay)\W+)?"
 _OPENING_RE = re.compile(
-    _LEAD + r"(?:tai sao|vi sao|sao|lam sao|lam the nao|nhu the nao|the nao|co phai|bao nhieu|cai gi)\b"
+    _LEAD
+    + r"(?:tai sao|vi sao|sao|lam sao|lam the nao|nhu the nao|nhu nao|the nao|co phai|bao nhieu|cai gi)\b"
 )
 _TAIL = r"(?:\s+(?:a|vay|the|ha|nhi|co|oi))*\W*$"
 _ENDING_RE = re.compile(
-    r"\b(?:la sao|the nao|ra sao|bao nhieu|duoc khong|dung khong|phai khong|khong|chua|gi)" + _TAIL
+    r"\b(?:la sao|the nao|nhu nao|ra sao|bao nhieu|duoc khong|dung khong|phai khong|khong|chua|gi)" + _TAIL
 )
 _PARTICLE_RE = re.compile(r"\s(?:à|hả|nhỉ)(?:\s+(?:cô|ạ))*\W*$")
 

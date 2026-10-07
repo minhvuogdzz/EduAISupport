@@ -7,14 +7,19 @@ explanation are lesson content.
 
 For an LLM move the renderer calls the gateway (``ModelClass.TUTOR_REASONING``, strict JSON), runs the
 output validator, retries once with the rejection codes, then falls back to the template. The template for
-the move is the *anchor*: the model may reword it for what the student just said, nothing more. Three
-checks beyond the validator enforce that; each one comes from a real Qwen output that passed the validator:
+the move is the *anchor*: the idea the teacher approved for this turn (CTX-1, llm-renderer.v3: the model
+answers what the child just said in its own words; v2 made it keep 60% of the anchor's words, and the owner
+saw a tutor that "answers by a template, not by the context"). Checks beyond the validator, each one from a
+real Qwen output:
 
-- ``BEYOND_ANCHOR``: a number that is neither in the stem, in the anchor nor in what the student said
-  (an H2 question came back as the H4 step "0,3 viết thành 0,30");
+- ``BEYOND_ANCHOR``: a number that is not in the stem, the anchor, the tutor's last message, the passages
+  or what the student said (an H2 question came back as the H4 step "0,3 viết thành 0,30");
 - ``REPEATS_PREVIOUS``: an earlier tutor turn of the item copied word for word;
-- ``OFF_ANCHOR``: fewer than ``ANCHOR_COVERAGE`` of the anchor's words kept (asked for the H3 concept hint,
-  the model reworded the counter-example it had given before; asked to VERIFY a correct answer, it did too).
+- ``KEY_IDEA_MISSING``: fewer than ``KEY_TERMS`` of the anchor's mathematical terms kept (all of them when it
+  has one or two): the idea and the level of the hint live in its terms (asked for the H3 concept hint,
+  the model reworded the earlier counter-example instead);
+- ``NEW_MATH_TERM``: a mathematical term none of those sources uses (a step or a rule of another level);
+- ``OFF_ANCHOR``: for an anchor with no mathematical term, fewer than ``MIN_ANCHOR_COVERAGE`` of its words.
 
 The policy picks the move, the target and the level; the model may not change them. When the router answers
 ``use_template`` (429, session cap, no API key, prompt too long) the template is used at once: a lesson
@@ -32,26 +37,36 @@ from typing import Any
 from cavat.core.pedagogy import Move
 from cavat.modules.ai_gateway.base import ModelClass
 from cavat.modules.ai_gateway.router import AIRouter
+from cavat.modules.assessment.math_terms import terms_in, terms_missing
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
 from cavat.modules.tutor.contracts import (
     MessageSource,
     MessageValidator,
     RenderContext,
     RenderedMessage,
+    ValidationCode,
 )
 from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, build_request, prompt_view
 from cavat.modules.tutor.renderer import TemplateRenderer
+from cavat.modules.tutor.validator import singles_out_choice
 
-LLM_RENDERER_VERSION = "llm-renderer.v2"
-LLM_MOVES = frozenset({Move.PROBE, Move.HINT, Move.COGNITIVE_CONFLICT, Move.NUDGE, Move.REDIRECT})
+LLM_RENDERER_VERSION = "llm-renderer.v3"
+LLM_MOVES = frozenset(
+    {Move.PROBE, Move.HINT, Move.COGNITIVE_CONFLICT, Move.NUDGE, Move.REDIRECT, Move.EXPLAIN}
+)
 TEMPLATE_ONLY_MOVES = frozenset(Move) - LLM_MOVES
 MAX_ATTEMPTS = 2  # the first call and one retry carrying the rejection codes
 BEYOND_ANCHOR = "BEYOND_ANCHOR"
 REPEATS_PREVIOUS = "REPEATS_PREVIOUS"
 OFF_ANCHOR = "OFF_ANCHOR"
-# DI: share of the anchor's distinct words that the model's message must keep. A faithful rewording keeps
-# most of them (0,65-0,9 in the cases seen); a message about something else keeps under 0,3.
-ANCHOR_COVERAGE = 0.6
+KEY_IDEA_MISSING = "KEY_IDEA_MISSING"
+NEW_MATH_TERM = "NEW_MATH_TERM"
+# DI-42: for an anchor without a mathematical term ("Con đang nghĩ đến đâu rồi?"), the share of its words a
+# message must keep. A message about something else keeps under 0,3 (v2 asked 0,6 of every anchor).
+MIN_ANCHOR_COVERAGE = 0.3
+# DI-42: share of the anchor's mathematical terms a message must keep ("mẫu số đặc biệt là 10, 100 hay 1000"
+# answers "mẫu như nào" without saying "phân số thập phân" again).
+KEY_TERMS = 0.6
 
 _WORD = re.compile(r"[^\W_]+(?:[,.\-][^\W_]+)*")  # words, decimals ("0,25") and "xăng-ti-mét"
 
@@ -70,8 +85,7 @@ def beyond_anchor(text: str, ctx: RenderContext, anchor: str) -> list[str]:
     Decimals are compared as written ("0,30" is new next to "0,3": rewriting it is a hint step);
     other numbers by value.
     """
-    sources = [ctx.item.stem, ctx.item.rephrase or "", anchor, ctx.student_text or ""]
-    allowed = [n for s in sources for n in extract_numbers(s)]
+    allowed = [n for s in _sources(ctx, anchor) for n in extract_numbers(s)]
     written = {n.text for n in allowed}
     values = {n.value for n in allowed}
     return [
@@ -79,6 +93,33 @@ def beyond_anchor(text: str, ctx: RenderContext, anchor: str) -> list[str]:
         for n in extract_numbers(text)
         if (n.text not in written if n.form == "decimal" else n.value not in values)
     ]
+
+
+def _sources(ctx: RenderContext, anchor: str) -> list[str]:
+    """What a model message may rest on: the item, the anchor, the tutor's last words, passages, the child."""
+    return [
+        ctx.item.stem,
+        ctx.item.rephrase or "",
+        anchor,
+        ctx.last_tutor or "",
+        *ctx.evidence,
+        ctx.student_text or "",
+    ]
+
+
+def idea_codes(text: str, ctx: RenderContext, anchor: str) -> tuple[str, ...]:
+    """CTX-1: the anchor's idea kept (its mathematical terms), nothing mathematical added."""
+    codes: list[str] = []
+    key = terms_in(anchor)
+    if key:
+        kept = len(key) - len(terms_missing(key, [text]))
+        if kept < len(key) and (len(key) <= 2 or kept / len(key) < KEY_TERMS):
+            codes.append(KEY_IDEA_MISSING)
+    elif anchor_coverage(text, anchor) < MIN_ANCHOR_COVERAGE:
+        codes.append(OFF_ANCHOR)
+    if terms_missing(terms_in(text), _sources(ctx, anchor)):
+        codes.append(NEW_MATH_TERM)
+    return tuple(codes)
 
 
 @dataclass(frozen=True)
@@ -177,8 +218,9 @@ class LLMRenderer:
                     codes = (*codes, BEYOND_ANCHOR)
                 if self._repeats(text):
                     codes = (*codes, REPEATS_PREVIOUS)
-                if anchor_coverage(text, anchor) < ANCHOR_COVERAGE:
-                    codes = (*codes, OFF_ANCHOR)
+                codes = (*codes, *idea_codes(text, ctx, anchor))
+                if singles_out_choice(text, ctx.item) and not singles_out_choice(anchor, ctx.item):
+                    codes = (*codes, ValidationCode.ANSWER_LEAK)
             if not codes:
                 self.last_trace = RenderTrace(move, "LLM", calls, None, tuple(rejected), flagged, feedback)
                 return RenderedMessage(text=text, source="LLM", hint_ref=fallback.hint_ref)

@@ -27,6 +27,7 @@ export const MOVES = [
   "FULL_EXPLANATION",
   "TEACH_BACK",
   "CLOSE_ITEM",
+  "EXPLAIN",
 ] as const;
 export type Move = (typeof MOVES)[number];
 
@@ -36,6 +37,7 @@ export const HINT_MOVES: readonly Move[] = [
   "COGNITIVE_CONFLICT",
   "WORKED_GUIDANCE",
   "FULL_EXPLANATION",
+  "EXPLAIN",
 ];
 
 export const HINT_TARGETS = ["TASK", "CONCEPT", "STRATEGY", "STEP", "SELF_CHECK", "FORMAT"] as const;
@@ -57,6 +59,7 @@ export const OUTCOMES = [
   "CLARIFY_REQUEST",
   "OFF_TOPIC",
   "NEGATIVE_AFFECT",
+  "ASKS_ABOUT",
 ] as const;
 export type Outcome = (typeof OUTCOMES)[number];
 
@@ -316,6 +319,8 @@ export interface StudentAnnotation {
   retell?: { score: number; ideas_found: number; ideas_total: number } | null;
   /** The child's words raised a safety flag (SAFE-1): the teacher should read them. */
   safety?: boolean;
+  /** CTX-1: how an unclear message was read in context, by Qwen (LLM) or by rule. */
+  read?: { label: string; focus: string; source: "LLM" | "RULE" } | null;
 }
 
 /** The node decision behind a teaching-loop message (chapter sessions). */

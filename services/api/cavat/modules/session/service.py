@@ -566,6 +566,8 @@ def build_teacher_transcript(
             )
         elif kind == EventType.SAFETY_FLAGGED and last_student is not None:
             last_student["safety"] = True
+        elif kind == EventType.MESSAGE_READ and last_student is not None:
+            last_student["read"] = {"label": p["label"], "focus": p.get("focus", ""), "source": p["source"]}
         elif kind == EventType.RETELL_JUDGED and retell is not None:
             retell["retell"] = {
                 "score": p["score"],

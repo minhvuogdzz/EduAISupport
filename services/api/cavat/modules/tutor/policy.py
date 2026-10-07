@@ -32,7 +32,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.5.0"
+POLICY_VERSION = "hint-policy/0.6.0"
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -89,6 +89,9 @@ class PolicyConfig:
     # DI, approved by the owner on 2026-10-01. Items are picked by a hash of the item id, so the same
     # items always ask (lesson 1: 9 of the 21 items that do not already require an explanation).
     verify_rate: float = 0.3  # share of items whose correct answer is followed by "vì sao" (R-VERIFY)
+    # DI-42 (CTX-1, drafted for the owner's review): questions about the hint or a word explained per item;
+    # asked again past it, the child gets the next hint instead.
+    max_explanations: int = 2
 
 
 DEFAULT_CONFIG = PolicyConfig()
@@ -241,6 +244,27 @@ def _not_an_attempt(
             target=HintTarget.TASK,
             reason_codes=("OFF_TOPIC", "NOT_COUNTED_AS_WRONG"),
             rule_ids=("R-OFF-TOPIC",),
+        )
+    if outcome == Outcome.ASKS_ABOUT:
+        # R-EXPLAIN (CTX-1, DI-42): the child asks what the hint or a word means. Said from approved
+        # content, never the answer. It is help: the next rung of the ladder (what "mẫu số đặc biệt" means
+        # is the H2 concept hint), so a later hint does not say it again and the item counts as supported.
+        # In an end-of-lesson test the question is only said again; asked again past the limit, a hint.
+        if st.activity == ActivityType.EXIT_ASSESSMENT:
+            return PolicyDecision(
+                move=Move.REDIRECT,
+                target=HintTarget.TASK,
+                reason_codes=("ASKS_ABOUT", "ASSESSMENT"),
+                rule_ids=("R-EXPLAIN",),
+            )
+        if st.explanations >= cfg.max_explanations:
+            return _next_hint(st, facts, cfg, "ASKS_ABOUT", "R-EXPLAIN")
+        return PolicyDecision(
+            move=Move.EXPLAIN,
+            level=_clamp(st.max_hint_level + 1, _top(facts, cfg)),
+            target=HintTarget.CONCEPT,
+            reason_codes=("ASKS_ABOUT", "NOT_COUNTED_AS_WRONG"),
+            rule_ids=("R-EXPLAIN",),
         )
     if outcome not in (Outcome.CLARIFY_REQUEST, Outcome.NEGATIVE_AFFECT):
         return None
