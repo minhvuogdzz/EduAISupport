@@ -59,7 +59,7 @@ Một task liên quan DB chỉ được coi là hoàn thành khi:
 | `cavat/modules/assessment/` | Bộ đọc số vi-VN và bộ chấm Toán, bug rule M01–M05 (T01, 256 test) |
 | `cavat/core/repository.py`, `memory_db.py`, `db_guard.py`, `modules/*/repository.py` | Tầng MongoDB, repository theo module, guard cho test Atlas (T07) |
 | `apps/web` | Web app học sinh và giáo viên (T09): chạy mock (`make web`) hoặc API thật (`make web-live`, T13) |
-| `cavat/modules/tutor/policy.py` | Policy gợi ý tất định, mọi quyết định có `rule_ids` (T02, bổ sung ở T04). Bản `hint-policy/0.4.0` |
+| `cavat/modules/tutor/policy.py` | Policy gợi ý tất định, mọi quyết định có `rule_ids` (T02, bổ sung ở T04). Bản `hint-policy/0.5.0` (ADR-019: đọc ý định học sinh trước khi chấm) |
 | `cavat/modules/tutor/renderer.py`, `validator.py` | Câu mẫu cho mọi move và bộ chặn output (T03). Câu chữ trong `PHRASES` đã được chủ dự án duyệt ngày 2026-10-01 |
 | `cavat/modules/tutor/item_loop.py` | `ItemTutor`: vòng lặp một câu hỏi, probe tách nguyên nhân, sinh event (T04) |
 | `cavat/modules/ai_gateway/` | Groq (Qwen, Whisper), Gemini (ảnh), router có chuỗi dự phòng và trần lượt gọi, model giả, `make ai-ping` (T06a) |
@@ -104,6 +104,16 @@ Chủ dự án yêu cầu giao diện hoàn chỉnh, đẹp, có thêm vai trò 
 |---|---|---|
 | UI-1 | Hệ thiết kế (màu, font Be Vietnam Pro, thẻ, linh vật tự vẽ), trang giới thiệu, trang chủ học sinh có tiến bộ của chương, vai trò phụ huynh (`/parent`, mức hiểu bằng chữ DI-14, xu hướng 4 tuần, gợi ý ở nhà), màn học và trang giáo viên theo giao diện mới; endpoint `GET /v1/students/me/overview`, `GET /v1/parents/children/{code}` | Xong (PR #32) |
 | UI-2 | Bảng theo dõi lớp cho giáo viên: chỉ số tổng, bản đồ nhiệt học sinh × bài theo vùng màu PART 25, biểu đồ lỗi hay gặp, học sinh cần chú ý; báo cáo từng học sinh có đồng hồ điểm M kèm độ tin cậy, radar 6 trục, tiến bộ theo ngày, hoạt động học, chi tiết từng bài (khung Toán §23–§28, §39, §43–§46, §56, §57) | Xong: `GET /v1/teachers/class`, `GET /v1/teachers/students/{id}`, trang Lớp học và Báo cáo học sinh |
+
+### Gia sư hiểu học sinh và bộ test khó (góp ý 2026-10-06)
+
+Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư chưa xử lý "không biết", "là sao", lạc đề; gia sư nói quá ít lời; test quá dễ. Tham khảo kiến trúc gia sư của repo Edubot (ADR-019).
+
+| Task | Nội dung | Trạng thái |
+|---|---|---|
+| TQ-1 | Đọc ý định học sinh trước khi chấm, luật R-OFF-TOPIC, R-CLARIFY, R-AFFECT (`hint-policy/0.5.0`), câu dẫn ấm hơn (`template-renderer.v3`), lời đáp câu hỏi lý thuyết (`teaching-templates/0.2.0`), prompt v2, 10 vai học sinh khó chạy offline; màn học chữ nhỏ lại | Đang làm |
+| TQ-2 | Chạy 10 vai học sinh khó với Qwen thật, giám khảo LLM chấm từng lượt (sư phạm, an toàn, cảm xúc, chính xác, lộ đáp án) như Edubot; báo cáo `docs/poc/` | Chưa |
+| TQ-3 | Chấm lời giải thích "vì sao" (vai "đúng mà lý do sai": "vì con đoán") | Mốc 2 |
 
 ### Mốc 2 và Mốc 3
 

@@ -115,7 +115,9 @@ def test_a_retell_without_the_key_ideas_gets_feedback_and_another_explanation():
     _, turns = converse(Learner(weak_retells={"KC-DEC-FRAC": 1}))
     first_retell = next(i for i, t in enumerate(turns) if t.awaiting == Awaiting.RETELL)
     after = turns[first_retell + 1].messages
-    assert after[0].kind == MessageKind.FEEDBACK and "chưa nghe thấy ý chính" in after[0].text
+    # "Con không nhớ ạ." asks for help (ADR-019): the tutor reminds the main idea of the node.
+    assert after[0].kind == MessageKind.FEEDBACK and "nhắc lại ý chính" in after[0].text
+    assert CHAPTER.node("KC-DEC-FRAC").description in after[0].text
     assert (after[1].kind, after[1].ref) == (MessageKind.THEORY, "T2")
 
 
@@ -124,9 +126,8 @@ def test_a_hint_request_goes_to_the_open_item():
     loop.start(T0)
     check = loop.on_student("Con nghĩ là 4/100 ạ.", T0 + timedelta(seconds=5), 5)
     assert (check.awaiting, check.item_id) == (Awaiting.ANSWER, "TP-CC-01")
-    offered = loop.on_hint_request(T0 + timedelta(seconds=20), 15)  # the item loop first offers a choice
-    assert offered.choice_open and [e.event_type for e in offered.events][0] == "HINT_REQUESTED"
-    hinted = loop.on_hint_request(T0 + timedelta(seconds=30), 10)  # "Cho con gợi ý"
+    hinted = loop.on_hint_request(T0 + timedelta(seconds=20), 15)  # "Xin gợi ý": the hint at once (DI-35)
+    assert [e.event_type for e in hinted.events][0] == "HINT_REQUESTED" and not hinted.choice_open
     assert "HINT_DELIVERED" in [e.event_type for e in hinted.events]
     assert hinted.messages[0].kind == MessageKind.ITEM and hinted.awaiting == Awaiting.ANSWER
 

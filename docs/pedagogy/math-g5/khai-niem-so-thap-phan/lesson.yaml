@@ -58,12 +58,13 @@ misconceptions:
     counter_examples:
       - "4,06 m là 4 mét 6 xăng-ti-mét, còn 4,6 m là 4 mét 60 xăng-ti-mét. Hai độ dài đó có bằng nhau không?"
 
+# answer_types: the kinds of item a generic hint fits (ADR-019, DI-37); none listed means every kind.
 generic_hints:
   - {target: TASK, level: 1, text: "Con đọc lại đề bài giúp cô và cho cô biết đề hỏi gì nhé?"}
   - {target: CONCEPT, level: 2, text: "Con nhớ lại xem: mẫu số 10, 100, 1000 cho biết phần thập phân có mấy chữ số?"}
-  - {target: STRATEGY, level: 3, text: "Con thử viết số đó vào bảng hàng: phần nguyên, phần mười, phần trăm xem sao?"}
-  - {target: STEP, level: 4, text: "Con tìm dấu phẩy trước: bên trái là phần nguyên, bên phải là phần thập phân. Vậy con làm bước tiếp theo thế nào?"}
-  - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Bước 1: con chỉ cho cô dấu phẩy nằm ở đâu?"}
+  - {target: STRATEGY, level: 3, text: "Con thử viết số đó vào bảng hàng: phần nguyên, phần mười, phần trăm xem sao?", answer_types: [numeric, compare, order]}
+  - {target: STEP, level: 4, text: "Con tìm dấu phẩy trước: bên trái là phần nguyên, bên phải là phần thập phân. Vậy con làm bước tiếp theo thế nào?", answer_types: [numeric, compare, order]}
+  - {target: STEP, level: 5, text: "Mình làm từng bước nhỏ nhé. Bước 1: con chỉ cho cô dấu phẩy nằm ở đâu?", answer_types: [numeric, compare, order]}
   - {target: SELF_CHECK, level: 1, text: "Con đọc lại số con vừa viết xem có đúng với đề không nhé?"}
   - {target: FORMAT, level: 1, text: "Con trả lời đúng theo yêu cầu của đề giúp cô nhé?"}
 

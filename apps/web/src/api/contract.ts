@@ -54,6 +54,9 @@ export const OUTCOMES = [
   "NO_RESPONSE",
   "HELP_REQUEST",
   "ANSWER_DEMAND",
+  "CLARIFY_REQUEST",
+  "OFF_TOPIC",
+  "NEGATIVE_AFFECT",
 ] as const;
 export type Outcome = (typeof OUTCOMES)[number];
 

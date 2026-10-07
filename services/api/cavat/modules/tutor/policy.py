@@ -32,7 +32,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.4.0"
+POLICY_VERSION = "hint-policy/0.5.0"
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -53,7 +53,19 @@ _TARGET_FOR_ERROR: dict[ErrorClass, HintTarget] = {
 _STALLED = frozenset({Outcome.WRONG, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND, Outcome.NO_RESPONSE})
 
 # Replies to a "vì sao" or teach-back question that carry no explanation.
-_NO_EXPLANATION = frozenset({Outcome.NO_RESPONSE, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
+_NO_EXPLANATION = frozenset(
+    {
+        Outcome.NO_RESPONSE,
+        Outcome.HELP_REQUEST,
+        Outcome.ANSWER_DEMAND,
+        Outcome.CLARIFY_REQUEST,
+        Outcome.OFF_TOPIC,
+        Outcome.NEGATIVE_AFFECT,
+    }
+)
+
+# ADR-019: reasons of the moves that answer what the student said rather than how they answered.
+INTENT_REASONS = frozenset({"OFF_TOPIC", "CLARIFY", "NEGATIVE_AFFECT", "ANSWER_DEMAND", "HELP_REQUEST"})
 
 
 @dataclass(frozen=True)
@@ -94,6 +106,7 @@ class ItemFacts:
     mandatory_objective: bool = False  # the item belongs to a mandatory objective (R-FULL)
     expected_item_s: float = 90.0  # DI: expected time to finish the item (R-TIME)
     requires_explanation: bool = False  # R-VERIFY always asks "vì sao" after a correct answer
+    top_hint_level: int = HintLevel.H5  # DI-37: the strongest hint this item has (its own or a fitting one)
 
 
 def decide(
@@ -145,6 +158,9 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         return full
     if time_up:
         return _close("R-TIME", "TIME_UP", "MOVE_TO_ASSESSMENT")
+    not_an_attempt = _not_an_attempt(st, outcome, facts, cfg)
+    if not_an_attempt is not None:
+        return not_an_attempt
     if not st.worked_shown and (
         st.unproductive_turns >= cfg.frustration_turns or st.seconds_since_shown > cfg.stuck_s
     ):
@@ -167,21 +183,24 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
             rule_ids=("R-NO-RESPONSE",),
         )
     if inp.trigger == "HINT_REQUEST" or outcome in (Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND):
-        if not st.worked_shown and st.max_hint_level >= cfg.max_hint_level:
-            # DI: asking for help is no longer an unproductive turn, so a student who has had every hint
-            # of the ladder and asks again would get the top hint for ever. Show the worked steps instead.
-            return PolicyDecision(
-                move=Move.WORKED_GUIDANCE,
-                level=HintLevel.H6,
-                target=HintTarget.STEP,
-                reason_codes=("LADDER_EXHAUSTED", "NEXT_TWIN_ITEM_H0"),
-                rule_ids=("R-FRUSTRATION",),
-            )
+        reason = "ANSWER_DEMAND" if outcome == Outcome.ANSWER_DEMAND else "HELP_REQUEST"
+        asked_hint = chk is not None and bool(chk.detail.get("asked_hint"))
+        if (
+            st.choice_offered
+            or asked_hint
+            or reason == "ANSWER_DEMAND"
+            or st.max_hint_level >= _top(facts, cfg)
+        ):
+            # DI-35: "gợi ý thêm hay tự thử lại?" once per item, and never after "Xin gợi ý" or a demand
+            # for the answer (DI-36: refuse kindly and give the next hint). A student who has had every
+            # hint of this item gets the worked steps (the ladder of the item, DI-37).
+            d = _next_hint(st, facts, cfg, reason, "R-HELP-REQUEST")
+            return _tag(d, "R-HELP-REQUEST", "ASKED_HINT") if asked_hint else d
         return PolicyDecision(
             move=Move.OFFER_CHOICE,
-            level=_clamp(st.max_hint_level + 1, cfg.max_hint_level),
+            level=_clamp(st.max_hint_level + 1, _top(facts, cfg)),
             target=st.hint_targets[-1] if st.hint_targets else HintTarget.TASK,
-            reason_codes=("HELP_REQUEST",),
+            reason_codes=(reason,),
             rule_ids=("R-HELP-REQUEST",),
         )
     if chk is None:  # TICK with nothing to do
@@ -202,6 +221,78 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         return _wrong(inp, facts, cfg)
     return PolicyDecision(
         move=Move.REDIRECT, target=HintTarget.TASK, reason_codes=("UNREADABLE",), rule_ids=("R-REDIRECT",)
+    )
+
+
+def _not_an_attempt(
+    st: ItemState, outcome: Outcome | None, facts: ItemFacts, cfg: PolicyConfig
+) -> PolicyDecision | None:
+    """ADR-019: talk outside the lesson, "là sao ạ?" and "chán quá" are not answers and not stalled turns.
+
+    R-OFF-TOPIC (DI-33): a short friendly word, then back to the question; no hint, nothing counted.
+    R-CLARIFY (DI-34): the task said again (the item's TASK hint at H1), the next hint when asked again.
+    R-AFFECT (DI-34): the feeling acknowledged, then an easier step: the next hint, +2 levels from the
+    second sign (R-ESCALATE "tối đa +2 nếu affect tiêu cực").
+    In EXIT_ASSESSMENT beyond the H1 cap the question is only said again, never closed for it.
+    """
+    if outcome == Outcome.OFF_TOPIC:
+        return PolicyDecision(
+            move=Move.REDIRECT,
+            target=HintTarget.TASK,
+            reason_codes=("OFF_TOPIC", "NOT_COUNTED_AS_WRONG"),
+            rule_ids=("R-OFF-TOPIC",),
+        )
+    if outcome not in (Outcome.CLARIFY_REQUEST, Outcome.NEGATIVE_AFFECT):
+        return None
+    clarify = outcome == Outcome.CLARIFY_REQUEST
+    reason, rule = ("CLARIFY", "R-CLARIFY") if clarify else ("NEGATIVE_AFFECT", "R-AFFECT")
+    if st.activity == ActivityType.EXIT_ASSESSMENT and st.max_hint_level >= cfg.assessment_cap:
+        return PolicyDecision(
+            move=Move.REDIRECT, target=HintTarget.TASK, reason_codes=(reason, "ASSESS_CAP"), rule_ids=(rule,)
+        )
+    if clarify and not st.hint_levels and not st.worked_shown:
+        return PolicyDecision(
+            move=Move.HINT,
+            level=HintLevel.H1,
+            target=HintTarget.TASK,
+            reason_codes=(reason, "NOT_COUNTED_AS_WRONG"),
+            rule_ids=(rule,),
+        )
+    second_sign = not clarify and st.affect_signals >= 2
+    step = cfg.affect_escalation_step if second_sign else cfg.escalation_step
+    return _next_hint(st, facts, cfg, reason, rule, step)
+
+
+def _top(facts: ItemFacts, cfg: PolicyConfig) -> HintLevel:
+    """The strongest hint the ladder may give on this item (DI-37)."""
+    return HintLevel(max(HintLevel.H1, min(cfg.max_hint_level, facts.top_hint_level)))
+
+
+def _next_hint(
+    st: ItemState, facts: ItemFacts, cfg: PolicyConfig, reason: str, rule: str, step: int | None = None
+) -> PolicyDecision:
+    """The next rung of the item's ladder; the worked steps when the item has no stronger hint (DI-37);
+    the full explanation (or the end of the item) once the worked steps were shown."""
+    if st.worked_shown:
+        full = _full(st, facts, stalled=True, time_up=False)
+        assert full is not None
+        return _tag(full, rule, reason)
+    top = _top(facts, cfg)
+    if st.max_hint_level >= top:
+        return PolicyDecision(
+            move=Move.WORKED_GUIDANCE,
+            level=HintLevel.H6,
+            target=HintTarget.STEP,
+            reason_codes=(reason, "LADDER_EXHAUSTED", "NEXT_TWIN_ITEM_H0"),
+            rule_ids=(rule, "R-FRUSTRATION"),
+        )
+    step = cfg.escalation_step if step is None else step
+    return PolicyDecision(
+        move=Move.HINT,
+        level=_clamp(st.max_hint_level + step, top),
+        target=st.hint_targets[-1] if st.hint_targets else HintTarget.TASK,
+        reason_codes=(reason,),
+        rule_ids=(rule,),
     )
 
 
@@ -233,12 +324,28 @@ def _correct(st: ItemState, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
     )
 
 
+# ADR-019: replies to "vì sao" that ask something back; the question is asked once more (DI-38).
+_ASK_AGAIN_REASON = {
+    Outcome.CLARIFY_REQUEST: "CLARIFY",
+    Outcome.OFF_TOPIC: "OFF_TOPIC",
+    Outcome.NEGATIVE_AFFECT: "NEGATIVE_AFFECT",
+}
+
+
 def _after_explanation(st: ItemState, outcome: Outcome | None) -> PolicyDecision:
-    """End the item once the student answered (or skipped) the VERIFY / TEACH_BACK question."""
+    """End the item once the student answered (or skipped) the VERIFY / TEACH_BACK question.
+
+    "Là sao ạ?", talk outside the lesson or "chán quá" in reply to "vì sao" gets the question once more,
+    with a word for what the child said (DI-38); the second time the item ends as before.
+    """
     rule = "R-TEACH-BACK" if st.worked_shown else "R-VERIFY"
+    again = _ASK_AGAIN_REASON.get(outcome) if outcome is not None else None
+    if again is not None and not st.explanation_asked_again:
+        move = Move.TEACH_BACK if st.worked_shown else Move.VERIFY
+        return PolicyDecision(move=move, reason_codes=(again, "ASK_AGAIN"), rule_ids=(rule,))
     resolution = resolution_for(st.max_hint_level)
     if outcome in _NO_EXPLANATION:
-        reasons: tuple[str, ...] = ("NO_EXPLANATION",)
+        reasons: tuple[str, ...] = ("NO_EXPLANATION", *((again,) if again else ()))
         if st.max_hint_level >= HintLevel.H7:
             # DI, approved by the owner on 2026-10-01: H7 goes only to a student who has not answered
             # correctly, and nothing is graded after it. Without the teach-back the item was "closed
@@ -366,6 +473,8 @@ def _strong_prior_verify(
     """R-STRONG-PRIOR: ask "vì sao" (VERIFY) instead of a light hint, once per item."""
     if d.move != Move.HINT or d.level is None or d.level > HintLevel.H1 or inp.state.verified:
         return d
+    if INTENT_REASONS.intersection(d.reason_codes):
+        return d  # the student asked something: answer it, do not turn it into "vì sao"
     if not _strong_prior(inp, facts, cfg):
         return d
     return _tag(replace(d, move=Move.VERIFY, level=None), "R-STRONG-PRIOR", "VERIFY_BEFORE_HINT")

@@ -58,9 +58,14 @@ def _check(
     error: ErrorClass | None = None,
     mis: str | None = None,
     conf: float = 0.0,
+    detail: dict[str, Any] | None = None,
 ) -> CheckResult:
     return CheckResult(
-        outcome=outcome, error_class=error, misconception_id=mis, misconception_confidence=conf
+        outcome=outcome,
+        error_class=error,
+        misconception_id=mis,
+        misconception_confidence=conf,
+        detail=detail or {},
     )
 
 
@@ -134,8 +139,15 @@ def test_r_help_request() -> None:
     assert (d.move, d.level, d.target) == (Move.OFFER_CHOICE, H2, HintTarget.STEP)
     assert d.rule_ids == ("R-HELP-REQUEST",)
 
+    # DI-35: the choice is offered once per item; then, and after "Xin gợi ý", the next hint comes at once.
+    again = _decide(_inp(_check(Outcome.HELP_REQUEST), choice_offered=True, hint_levels=[H1]))
+    assert (again.move, again.level, again.reason_codes) == (Move.HINT, H2, ("HELP_REQUEST",))
+    named = _decide(_inp(_check(Outcome.HELP_REQUEST, detail={"asked_hint": True})))
+    assert (named.move, named.level) == (Move.HINT, H1)
+
+    # DI-36: a demand for the answer is refused kindly with the next hint, never the answer.
     demand = _decide(_inp(_check(Outcome.ANSWER_DEMAND)))
-    assert (demand.move, demand.level) == (Move.OFFER_CHOICE, H1)
+    assert (demand.move, demand.level, demand.reason_codes) == (Move.HINT, H1, ("ANSWER_DEMAND",))
 
     # Asking for help is not an unproductive turn any more, so the last rung needs its own way up:
     # every hint of the ladder given and the student asks again -> worked steps, not the top hint again.
@@ -146,7 +158,12 @@ def test_r_help_request() -> None:
     rung5 = {"hint_levels": [H1, H2, H3, H4, H5], "hint_targets": [HintTarget.STEP] * 5}
     exhausted = _decide(_inp(trigger="HINT_REQUEST", **rung5))
     assert (exhausted.move, exhausted.level) == (Move.WORKED_GUIDANCE, H6)
-    assert exhausted.rule_ids == ("R-FRUSTRATION",) and "LADDER_EXHAUSTED" in exhausted.reason_codes
+    assert exhausted.rule_ids == ("R-HELP-REQUEST", "R-FRUSTRATION")
+    assert "LADDER_EXHAUSTED" in exhausted.reason_codes
+    # DI-37: the ladder of an item ends with its strongest hint, not with a generic one that does not fit.
+    short = ItemFacts(top_hint_level=2)
+    two = _decide(_inp(_check(Outcome.HELP_REQUEST), choice_offered=True, hint_levels=[H1, H2]), short)
+    assert (two.move, two.level) == (Move.WORKED_GUIDANCE, H6)
     typed = _decide(_inp(_check(Outcome.HELP_REQUEST), **rung5))
     assert typed.move == Move.WORKED_GUIDANCE
 
@@ -370,3 +387,40 @@ def test_every_decision_has_rule_ids() -> None:
         for cfg in (NO_VERIFY, ALWAYS_VERIFY):
             d = decide(inp, None, cfg)
             assert d is not None and d.rule_ids, (inp.trigger, inp.check, d)
+
+
+# --------------------------------------------------------------------------- ADR-019: not an attempt
+
+
+def test_r_off_topic() -> None:
+    # Nothing counted and no hint: three off-topic messages never lead to the worked steps.
+    d = _decide(_inp(_check(Outcome.OFF_TOPIC), unproductive_turns=2))
+    assert (d.move, d.level, d.target) == (Move.REDIRECT, None, HintTarget.TASK)
+    assert d.rule_ids == ("R-OFF-TOPIC",) and "NOT_COUNTED_AS_WRONG" in d.reason_codes
+
+
+def test_r_clarify() -> None:
+    first = _decide(_inp(_check(Outcome.CLARIFY_REQUEST), clarify_requests=1))
+    assert (first.move, first.level, first.target) == (Move.HINT, H1, HintTarget.TASK)
+    assert first.rule_ids == ("R-CLARIFY",)
+    # A strong student asking "là sao?" is not asked "vì sao" instead (R-STRONG-PRIOR stays out).
+    strong = _decide(_inp(_check(Outcome.CLARIFY_REQUEST), snapshot=STRONG, clarify_requests=1), KC1)
+    assert strong.move == Move.HINT
+    again = _decide(_inp(_check(Outcome.CLARIFY_REQUEST), clarify_requests=2, hint_levels=[H1]))
+    assert (again.move, again.level) == (Move.HINT, H2)
+    # In the exit check, beyond the H1 cap, the question is only said again: never closed for asking.
+    exit_ = _decide(
+        _inp(_check(Outcome.CLARIFY_REQUEST), activity=ActivityType.EXIT_ASSESSMENT, hint_levels=[H1])
+    )
+    assert (exit_.move, exit_.resolution) == (Move.REDIRECT, None)
+
+
+def test_r_affect() -> None:
+    first = _decide(_inp(_check(Outcome.NEGATIVE_AFFECT), affect_signals=1, hint_levels=[H1]))
+    assert (first.move, first.level, first.rule_ids) == (Move.HINT, H2, ("R-AFFECT",))
+    second = _decide(_inp(_check(Outcome.NEGATIVE_AFFECT), affect_signals=2, hint_levels=[H1]))
+    assert second.level == H3  # R-ESCALATE: up to +2 with a negative affect
+    worked = _decide(
+        _inp(_check(Outcome.NEGATIVE_AFFECT), affect_signals=1, hint_levels=[H1, H6], worked_shown=True)
+    )
+    assert (worked.move, worked.level) == (Move.FULL_EXPLANATION, H7)

@@ -8,6 +8,8 @@ export interface HintTemplate {
   target: HintTarget;
   level: HintLevel;
   text: string;
+  /** Kinds of item a generic hint fits (ADR-019); none: every kind. */
+  answer_types?: string[];
 }
 
 export interface CompareAnswer {

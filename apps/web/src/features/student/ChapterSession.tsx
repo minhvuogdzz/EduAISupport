@@ -94,7 +94,7 @@ export function ChapterSession({
             <div className="flex flex-col gap-4 lg:hidden">
               {steps && <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">{steps}</div>}
               <details className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                <summary className="cursor-pointer text-lg font-semibold">
+                <summary className="cursor-pointer font-semibold">
                   Bản đồ bài học · {teaching.passed}/{teaching.total} bài đã qua
                 </summary>
                 <div className="mt-3">{map}</div>
@@ -127,11 +127,11 @@ export function ChapterSession({
         </div>
         <aside
           aria-label="Bản đồ bài học"
-          className="hidden w-[30rem] shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4 lg:block"
+          className="hidden w-[24rem] shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4 lg:block"
         >
           {steps && <div className="mb-5 rounded-2xl bg-brand-50 p-3">{steps}</div>}
-          <h2 className="text-lg font-semibold">Bản đồ bài học</h2>
-          <p className="mb-3 text-base text-slate-600">
+          <h2 className="font-semibold">Bản đồ bài học</h2>
+          <p className="mb-3 text-sm text-slate-600">
             {teaching.passed}/{teaching.total} bài đã qua
           </p>
           {map}
@@ -165,7 +165,7 @@ export function ChapterSession({
             }
           />
         ) : (
-          <p className="px-4 py-5 text-center text-xl text-slate-700">Con chờ cô một chút nhé…</p>
+          <p className="px-4 py-4 text-center text-base text-slate-700">Con chờ cô một chút nhé…</p>
         )}
       </footer>
     </div>
@@ -188,17 +188,17 @@ function ChapterHeader({
       <div className="mx-auto flex items-center gap-3 px-4 py-3 lg:max-w-none">
         <Link to="/" aria-label="CAVAT, trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-2xl">
           <Mascot size={40} />
-          <span className="hidden text-lg font-extrabold text-brand-900 sm:inline">CAVAT</span>
+          <span className="hidden font-extrabold text-brand-900 sm:inline">CAVAT</span>
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-medium text-brand-800">
+          <p className="truncate text-sm font-medium text-brand-800">
             {state.lifecycle_state === "COMPLETED"
               ? "Tổng kết"
               : [nodeName, step].filter(Boolean).join(" · ")}
           </p>
-          <h1 className="truncate text-xl font-semibold">{teaching.chapter.title}</h1>
+          <h1 className="truncate text-lg font-semibold">{teaching.chapter.title}</h1>
         </div>
-        <p className="shrink-0 text-lg font-medium">
+        <p className="shrink-0 text-base font-medium">
           <span className="sr-only">Học sinh: </span>
           {state.student_display_name}
         </p>
@@ -226,12 +226,12 @@ function PromptCard({ prompt, retell }: { prompt: string; retell: boolean }) {
   return (
     <section
       aria-labelledby="prompt-title"
-      className="rounded-3xl bg-white p-5 shadow-sm ring-2 ring-sky-200 md:p-6"
+      className="rounded-2xl bg-white p-4 shadow-sm ring-2 ring-sky-200"
     >
-      <h2 id="prompt-title" className="text-lg font-semibold text-sky-800">
+      <h2 id="prompt-title" className="text-sm font-semibold text-sky-800">
         {retell ? "Con nói lại giúp cô" : "Cô hỏi con"}
       </h2>
-      <p className="mt-3 text-2xl leading-snug font-medium text-pretty md:text-3xl">
+      <p className="mt-1.5 text-lg leading-snug font-medium text-pretty md:text-xl">
         <MathText text={prompt} />
       </p>
     </section>
@@ -241,14 +241,14 @@ function PromptCard({ prompt, retell }: { prompt: string; retell: boolean }) {
 function ChapterComplete({ teaching }: { teaching: TeachingView }) {
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 px-4 py-5 text-center">
-      <StarIcon className="size-12 text-amber-500" />
-      <p className="text-2xl font-semibold">Con đã hoàn thành buổi học!</p>
-      <p className="text-xl text-slate-700">
+      <StarIcon className="size-10 text-amber-500" />
+      <p className="text-xl font-semibold">Con đã hoàn thành buổi học!</p>
+      <p className="text-base text-slate-700">
         Con đã qua {teaching.passed}/{teaching.total} bài của chương {teaching.chapter.title}.
       </p>
       <Link
         to="/student"
-        className="mt-2 rounded-2xl bg-brand-700 px-6 py-3 text-xl font-semibold text-white"
+        className="mt-2 rounded-xl bg-brand-700 px-5 py-2.5 text-base font-semibold text-white"
       >
         Về trang học sinh
       </Link>

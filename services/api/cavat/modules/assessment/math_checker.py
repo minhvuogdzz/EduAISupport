@@ -19,6 +19,7 @@ from fractions import Fraction
 from functools import cmp_to_key
 
 from cavat.core.pedagogy import ErrorClass, Outcome
+from cavat.modules.assessment.student_intent import looks_off_topic, read_intent
 from cavat.modules.assessment.vi_numbers import (
     ParsedNumber,
     extract_numbers,
@@ -63,29 +64,17 @@ _NOT = ("không", "ko", "k", "hông", "hok", "khg")
 
 # --------------------------------------------------------------------------- intents
 
-_ANSWER_DEMAND_RE = phrase_regex(
-    ["đáp án là gì", "cho con đáp án", "cho em đáp án", "nói đáp án", "đáp án đi", "cho đáp án"]
-)
-_HELP_RE = phrase_regex(
-    [f"{neg} {verb}" for neg in (*_NOT, "chưa") for verb in ("biết", "hiểu")]
-    + ["gợi ý", "khó quá", "giúp con", "giúp em", "chịu", "bỏ qua"]
-)
 _OR_RE = phrase_regex(["hay", "hoặc"])
-_SILENT_RE = re.compile(r"[\s.…?!]*")
 
 
 def classify_intent(text: str) -> Outcome | None:
-    """Detect messages that are not an attempt at the answer (silence, asking for help...)."""
+    """Detect messages that are not an attempt at the answer (ADR-019, `student_intent`).
+
+    "Con không biết là < hay >" names both answers: it asks for help, it does not answer.
+    """
     t = normalize_text(text)
-    if _SILENT_RE.fullmatch(t):
-        return Outcome.NO_RESPONSE
-    if _ANSWER_DEMAND_RE.search(t):
-        return Outcome.ANSWER_DEMAND
-    if _HELP_RE.search(t):
-        has_answer = bool(extract_numbers(t)) or bool(_relations(t))
-        if not has_answer or _OR_RE.search(t):
-            return Outcome.HELP_REQUEST
-    return None
+    has_answer = (bool(extract_numbers(t)) or bool(_relations(t))) and not _OR_RE.search(t)
+    return read_intent(text, has_answer=has_answer)
 
 
 # --------------------------------------------------------------------------- relations
@@ -517,6 +506,13 @@ def check_answer(item: Item, text: str, pkg: LessonPackage) -> CheckResult:
     intent = classify_intent(text)
     if intent is not None:
         return CheckResult(intent)
+    result = _check_spec(item, text, pkg)
+    if result.outcome == Outcome.UNPARSEABLE and looks_off_topic(text):
+        return CheckResult(Outcome.OFF_TOPIC, correct_answer=result.correct_answer)
+    return result
+
+
+def _check_spec(item: Item, text: str, pkg: LessonPackage) -> CheckResult:
     spec = item.answer
     if isinstance(spec, CompareAnswer):
         return _check_compare(spec, text, pkg)

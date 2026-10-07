@@ -44,6 +44,10 @@ class TheoryVariant(_Model):
     representation: str  # the concrete picture it relies on: bảng hàng, trục số, tiền, đo độ dài...
     text: str  # short: three or four sentences
     ask: str  # the question that ends the explanation and makes the student think
+    # ADR-019: what the tutor says after the student's reply to `ask` (the reason, in one or two
+    # sentences), and the ways of writing the right answer. Not graded: the theory is teaching, not a test.
+    reply: str = ""
+    accept: list[str] = []
 
 
 class Method(_Model):

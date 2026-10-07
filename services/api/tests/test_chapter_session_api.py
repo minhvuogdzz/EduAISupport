@@ -141,7 +141,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.1.0",
         "policy": "node-policy/0.1.0",
-        "templates": "teaching-templates/0.1.0",
+        "templates": "teaching-templates/0.2.0",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None

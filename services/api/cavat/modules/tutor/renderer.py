@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-from cavat.core.pedagogy import HintLevel, HintTarget, Move
+from cavat.core.pedagogy import HintLevel, HintTarget, ItemResolution, Move
 from cavat.modules.assessment.vi_numbers import fold
 from cavat.modules.content.lesson_package import (
     ChoiceAnswer,
@@ -22,7 +22,7 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-TEMPLATE_VERSION = "template-renderer.v2"
+TEMPLATE_VERSION = "template-renderer.v3"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -39,7 +39,54 @@ PHRASES: dict[str, str] = {
     "explain_back": "{S} nói lại cách làm bằng lời của {s} cho {t} nghe được không?",
     "teach_back": "{S} thử giảng lại cho {t} cách làm câu này bằng lời của {s} được không?",
     "close_item": "Mình dừng câu này ở đây nhé. {S} đã cố gắng suy nghĩ rất chăm chỉ.",
+    "move_on": "Mình sang câu tiếp theo nhé.",  # ADR-019: solved, the "vì sao" skipped (draft wording)
 }
+
+
+# ADR-019 (template-renderer.v3, wording drafted for the owner's review): one short sentence before the
+# move's own text, for what the student said: a demand for the answer is refused with its reason, a
+# feeling is acknowledged, "là sao?" is answered, "không biết" is met with calm, off-topic talk is
+# parked. Socratic still: the move's hint and its single question follow.
+LEADS: dict[str, tuple[str, ...]] = {
+    "ANSWER_DEMAND": (
+        "{T} chưa nói đáp án ngay đâu, vì {s} tự tìm ra sẽ nhớ lâu hơn.",
+        "Mình cùng làm để {s} tự tìm ra nhé, như vậy {s} sẽ nhớ lâu hơn.",
+    ),
+    "NEGATIVE_AFFECT": (
+        "{T} hiểu, bài này hơi khó một chút. Không sao đâu, mình làm từng bước nhỏ nhé.",
+        "{S} đã cố gắng nhiều rồi đấy. Mình đi chậm lại một chút nhé.",
+    ),
+    "CLARIFY": ("{T} nói rõ hơn nhé.", "{T} nói theo cách khác nhé."),
+    "ASKED_HINT": ("{T} gợi ý nhé.", "{T} gợi ý thêm nhé."),
+    "HELP_REQUEST": ("Không sao đâu, mình cùng nghĩ từng bước nhé.", "Mình thử thêm một bước nữa nhé."),
+    "OFF_TOPIC": (
+        "Chuyện đó để lúc nghỉ mình nói nhé!",
+        "{T} rất muốn nghe, nhưng mình làm xong câu này đã nhé!",
+    ),
+}
+# The counter that picks the variant: the same words are not said twice in a row (anti-loop, replayable).
+_LEAD_COUNTER = {
+    "ANSWER_DEMAND": "help_requests",
+    "NEGATIVE_AFFECT": "affect_signals",
+    "CLARIFY": "clarify_requests",
+    "ASKED_HINT": "help_requests",
+    "HELP_REQUEST": "help_requests",
+    "OFF_TOPIC": "off_topic_turns",
+}
+_LEAD_ORDER = ("ANSWER_DEMAND", "NEGATIVE_AFFECT", "CLARIFY", "ASKED_HINT", "HELP_REQUEST", "OFF_TOPIC")
+_LEAD_MOVES = frozenset(
+    {
+        Move.HINT,
+        Move.OFFER_CHOICE,
+        Move.WORKED_GUIDANCE,
+        Move.FULL_EXPLANATION,
+        Move.COGNITIVE_CONFLICT,
+        Move.REDIRECT,
+        Move.VERIFY,
+        Move.TEACH_BACK,
+        Move.CLOSE_ITEM,
+    }
+)
 
 
 def _cap(word: str) -> str:
@@ -78,6 +125,22 @@ def _pick(
     return max(candidates, key=lambda h: (h.level, h.target == target), default=None)
 
 
+def fitting_generic_hints(item: Item, package: LessonPackage) -> list[HintTemplate]:
+    """The lesson's generic hints that fit this kind of item (DI-37)."""
+    kind = item.answer.type
+    return [h for h in package.generic_hints if not h.answer_types or kind in h.answer_types]
+
+
+def ladder_top(item: Item, package: LessonPackage) -> HintLevel:
+    """The strongest ladder hint this item can get, its own or a fitting generic one (DI-37)."""
+    levels = [
+        h.level
+        for h in (*item.hints, *fitting_generic_hints(item, package))
+        if h.target not in _KIND_TARGETS and _one_question(h.text)
+    ]
+    return max(levels, default=HintLevel.H1)
+
+
 def select_hint(
     item: Item, package: LessonPackage, target: HintTarget | None, level: HintLevel | None
 ) -> tuple[HintTemplate, MessageSource, str] | None:
@@ -97,7 +160,7 @@ def select_hint(
     level = HintLevel.H1 if level is None else level
     sources: list[tuple[list[HintTemplate], MessageSource, str]] = [
         (item.hints, "TEMPLATE", item.id),
-        (package.generic_hints, "GENERIC", "GENERIC"),
+        (fitting_generic_hints(item, package), "GENERIC", "GENERIC"),
     ]
 
     def found(hint: HintTemplate, source: MessageSource, owner: str):
@@ -177,15 +240,25 @@ def _cognitive_conflict(ctx: RenderContext) -> RenderedMessage:
 
 def _redirect(ctx: RenderContext) -> RenderedMessage:
     text, ref = _ask_item(ctx)
+    if lead(ctx) is not None:
+        return _msg(text, "TEMPLATE", ref)  # the lead already brings the child back (ADR-019)
     return _msg(f"{_say(ctx, 'redirect')} {text}", "TEMPLATE", ref)
+
+
+_PRAISE_RE = re.compile(r"^\s*Đúng rồi[!.]\s*")
 
 
 def _verify(ctx: RenderContext) -> RenderedMessage:
     if ctx.item.verify_prompt:
-        return _msg(ctx.item.verify_prompt, "TEMPLATE", f"{ctx.item.id}:VERIFY")
-    if ctx.package.default_verify_prompt:
-        return _msg(ctx.package.default_verify_prompt, "TEMPLATE", f"{ctx.package.lesson_id}:VERIFY")
-    return _msg(_say(ctx, "verify"), "FALLBACK")
+        msg = _msg(ctx.item.verify_prompt, "TEMPLATE", f"{ctx.item.id}:VERIFY")
+    elif ctx.package.default_verify_prompt:
+        msg = _msg(ctx.package.default_verify_prompt, "TEMPLATE", f"{ctx.package.lesson_id}:VERIFY")
+    else:
+        msg = _msg(_say(ctx, "verify"), "FALLBACK")
+    if "ASK_AGAIN" in ctx.decision.reason_codes:
+        # Asked once more after "là sao?" or off-topic talk: the answer was already praised (DI-38).
+        msg = _msg(_PRAISE_RE.sub("", msg.text), msg.source, msg.hint_ref)
+    return msg
 
 
 def _worked_guidance(ctx: RenderContext) -> RenderedMessage:
@@ -225,8 +298,36 @@ _RENDERERS: dict[Move, Callable[[RenderContext], RenderedMessage]] = {
     Move.WORKED_GUIDANCE: _worked_guidance,
     Move.FULL_EXPLANATION: _full_explanation,
     Move.TEACH_BACK: _fixed("teach_back"),
-    Move.CLOSE_ITEM: _fixed("close_item"),
+    Move.CLOSE_ITEM: lambda ctx: _msg(
+        _say(
+            ctx, "close_item" if ctx.decision.resolution in (None, ItemResolution.UNRESOLVED) else "move_on"
+        ),
+        "TEMPLATE",
+    ),
 }
+
+
+def lead(ctx: RenderContext) -> str | None:
+    """The sentence that answers what the student said (ADR-019), or None."""
+    if ctx.decision.move not in _LEAD_MOVES:
+        return None
+    code = next((c for c in _LEAD_ORDER if c in ctx.decision.reason_codes), None)
+    if code is None:
+        return None
+    variants = LEADS[code]
+    said = max(getattr(ctx.state, _LEAD_COUNTER[code]) - 1, 0)
+    t, s = ctx.persona.tutor_self, ctx.persona.student_address
+    return variants[said % len(variants)].format(T=_cap(t), t=t, S=_cap(s), s=s)
+
+
+def _with_lead(ctx: RenderContext, msg: RenderedMessage) -> RenderedMessage:
+    first = lead(ctx)
+    if first is None:
+        return msg
+    text = f"{first} {msg.text}"
+    if len(text.split()) > ctx.max_words:
+        return msg  # the move's own content matters more than the warm-up sentence
+    return _msg(text, msg.source, msg.hint_ref)
 
 
 class TemplateRenderer:
@@ -235,4 +336,4 @@ class TemplateRenderer:
     version = TEMPLATE_VERSION
 
     def render(self, ctx: RenderContext) -> RenderedMessage:
-        return _RENDERERS[ctx.decision.move](ctx)
+        return _with_lead(ctx, _RENDERERS[ctx.decision.move](ctx))

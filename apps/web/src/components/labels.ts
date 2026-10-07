@@ -81,6 +81,9 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
   NO_RESPONSE: "Không trả lời",
   HELP_REQUEST: "Xin trợ giúp",
   ANSWER_DEMAND: "Đòi đáp án",
+  CLARIFY_REQUEST: "Hỏi lại đề",
+  OFF_TOPIC: "Nói chuyện ngoài bài",
+  NEGATIVE_AFFECT: "Nản, mệt",
 };
 
 export const RESOLUTION_LABEL: Record<ItemResolution, string> = {

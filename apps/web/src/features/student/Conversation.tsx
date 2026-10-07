@@ -46,16 +46,16 @@ function Avatar({ label, tutor }: { label: string; tutor: boolean }) {
     return (
       <span
         aria-hidden="true"
-        className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-gold/40"
+        className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-gold/40"
       >
-        <Mascot size={46} />
+        <Mascot size={38} />
       </span>
     );
   }
   return (
     <span
       aria-hidden="true"
-      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold-soft text-base font-semibold text-gold-deep ring-1 ring-gold/40"
+      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold-soft text-sm font-semibold text-gold-deep ring-1 ring-gold/40"
     >
       {label.charAt(0).toLocaleUpperCase("vi-VN")}
     </span>
@@ -69,7 +69,7 @@ const Bubble = memo(function Bubble({ turn, speaker }: { turn: DisplayTurn; spea
     <div className={`flex items-end gap-2 ${tutor ? "" : "flex-row-reverse"}`}>
       <Avatar label={speaker} tutor={tutor} />
       <div
-        className={`max-w-[85%] rounded-3xl px-4 py-3 text-xl leading-relaxed ${
+        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-base leading-relaxed md:text-lg ${
           tutor
             ? "rounded-bl-md bg-white shadow-sm ring-1 ring-gold/30"
             : "rounded-br-md bg-brand-700 text-white"
@@ -101,7 +101,7 @@ function TypingBubble({ text, tutorName }: { text: string; tutorName: string }) 
   return (
     <div className="flex items-end gap-2" aria-hidden="true" data-testid="typing">
       <Avatar label={tutorName} tutor />
-      <div className="max-w-[85%] rounded-3xl rounded-bl-md bg-white px-4 py-3 text-xl leading-relaxed shadow-sm ring-1 ring-gold/30">
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-4 py-2.5 text-base leading-relaxed shadow-sm ring-1 ring-gold/30 md:text-lg">
         {text ? (
           <p className="whitespace-pre-wrap">
             <MathText text={text} />
@@ -131,7 +131,7 @@ const TeachCard = memo(function TeachCard({ turn, tutorName }: { turn: DisplayTu
   switch (turn.kind) {
     case "NODE":
       return (
-        <p className="my-2 flex items-center gap-3 text-lg font-medium text-brand-900">
+        <p className="my-1 flex items-center gap-3 text-sm font-medium text-brand-900">
           <span aria-hidden="true" className="h-px flex-1 bg-brand-200" />
           <span className="max-w-[80%] text-center text-pretty">
             {speaker}
@@ -142,12 +142,12 @@ const TeachCard = memo(function TeachCard({ turn, tutorName }: { turn: DisplayTu
       );
     case "THEORY":
       return (
-        <article className="rounded-3xl bg-white p-5 shadow-sm ring-2 ring-brand-200">
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-base font-semibold text-brand-900">
-            <BookIcon className="size-5" />
+        <article className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-brand-200">
+          <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-0.5 text-sm font-semibold text-brand-900">
+            <BookIcon className="size-4" />
             {tutorName} giảng bài
           </p>
-          <p className="text-xl leading-relaxed whitespace-pre-wrap">
+          <p className="text-base leading-relaxed whitespace-pre-wrap md:text-lg">
             {speaker}
             <MathText text={turn.text} />
           </p>
@@ -157,9 +157,9 @@ const TeachCard = memo(function TeachCard({ turn, tutorName }: { turn: DisplayTu
       return <ExampleCard turn={turn} tutorName={tutorName} />;
     case "PASS":
       return (
-        <article className="flex items-center gap-4 rounded-3xl bg-emerald-50 p-5 ring-2 ring-emerald-300">
-          <StarIcon className="size-10 shrink-0 text-amber-500" />
-          <p className="text-2xl font-semibold text-emerald-950">
+        <article className="flex items-center gap-3 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-300">
+          <StarIcon className="size-8 shrink-0 text-amber-500" />
+          <p className="text-lg font-semibold text-emerald-950">
             {speaker}
             <MathText text={turn.text} />
           </p>
@@ -167,16 +167,16 @@ const TeachCard = memo(function TeachCard({ turn, tutorName }: { turn: DisplayTu
       );
     case "STOP":
       return (
-        <article className="rounded-3xl bg-amber-50 p-5 text-xl text-amber-950 ring-2 ring-amber-300">
+        <article className="rounded-2xl bg-amber-50 p-4 text-base text-amber-950 ring-1 ring-amber-300 md:text-lg">
           {speaker}
           <MathText text={turn.text} />
         </article>
       );
     default: // SUMMARY
       return (
-        <article className="flex items-center gap-4 rounded-3xl bg-brand-700 p-5 text-white">
-          <StarIcon className="size-10 shrink-0 text-amber-300" />
-          <p className="text-xl leading-relaxed font-medium">
+        <article className="flex items-center gap-3 rounded-2xl bg-brand-700 p-4 text-white">
+          <StarIcon className="size-8 shrink-0 text-amber-300" />
+          <p className="text-base leading-relaxed font-medium md:text-lg">
             {speaker}
             <MathText text={turn.text} />
           </p>
@@ -192,23 +192,23 @@ function ExampleCard({ turn, tutorName }: { turn: DisplayTurn; tutorName: string
   const steps = lines.filter((line) => /^Bước \d+:/.test(line));
   const answer = lines.find((line) => line.startsWith("Đáp số:"));
   return (
-    <article className="rounded-3xl bg-white p-5 shadow-sm ring-2 ring-sky-200">
-      <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-base font-semibold text-sky-900">
-        <PencilIcon className="size-5" />
+    <article className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-sky-200">
+      <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-0.5 text-sm font-semibold text-sky-900">
+        <PencilIcon className="size-4" />
         {TEACH_KIND_LABEL.EXAMPLE}
       </p>
       <span className="sr-only">{tutorName}: </span>
       {problem && (
-        <p className="text-xl font-semibold">
+        <p className="text-base font-semibold md:text-lg">
           <MathText text={problem} />
         </p>
       )}
-      <ol className="mt-3 flex flex-col gap-2">
+      <ol className="mt-2 flex flex-col gap-1.5">
         {steps.map((step, index) => (
-          <li key={step} className="flex gap-3 text-xl leading-relaxed">
+          <li key={step} className="flex gap-2.5 text-base leading-relaxed md:text-lg">
             <span
               aria-hidden="true"
-              className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-base font-semibold text-sky-900"
+              className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-900"
             >
               {index + 1}
             </span>
@@ -220,7 +220,7 @@ function ExampleCard({ turn, tutorName }: { turn: DisplayTurn; tutorName: string
         ))}
       </ol>
       {answer && (
-        <p className="mt-3 rounded-2xl bg-emerald-50 px-4 py-2 text-xl font-semibold text-emerald-950">
+        <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-base font-semibold text-emerald-950 md:text-lg">
           <MathText text={answer} />
         </p>
       )}
