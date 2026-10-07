@@ -126,6 +126,8 @@ class ValidationCode(StrEnum):
     INTELLIGENCE_PRAISE = "INTELLIGENCE_PRAISE"
     UNGROUNDED_NUMBER = "UNGROUNDED_NUMBER"  # a number that is not in the item, its hints or its solution
     EMPTY = "EMPTY"
+    # Qwen sometimes slips into Chinese or English mid-sentence ("số chữ số thập分 like nha", seen live)
+    FOREIGN_TEXT = "FOREIGN_TEXT"
 
 
 @dataclass(frozen=True)

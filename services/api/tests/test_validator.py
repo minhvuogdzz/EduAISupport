@@ -12,7 +12,7 @@ from cavat.modules.tutor.contracts import (
     RenderContext,
     ValidationCode,
 )
-from cavat.modules.tutor.validator import validate_message
+from cavat.modules.tutor.validator import foreign_text, validate_message
 
 LESSON = Path(__file__).resolve().parents[3] / "docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml"
 PKG = load_lesson_package(LESSON)
@@ -148,3 +148,24 @@ def test_grounded_numbers():
     assert codes("0,9 mét là 90 xăng-ti-mét, đúng không?") == set()
     assert codes("Con vừa viết 0,52 đúng không?", student_text="0,52") == set()
     assert ValidationCode.UNGROUNDED_NUMBER.value in codes("Con vừa viết 0,52 đúng không?")
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Nó chỉ để hai số có số chữ số thập分 like nha.",  # seen live from Qwen
+        "Con thử so sánh hàng phần mười nhé, okay?",
+        "Đây là fraction, con nhé.",
+        "Это число.",
+    ],
+)
+def test_a_message_that_is_not_vietnamese_is_refused(text):
+    assert foreign_text(text) is not None
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["Con đổi 2 kg ra gam nhé: 2 kg = 2000 g.", "Dài 4,56 m, tức là 4 m 56 cm.", "Con nghĩ là 0,9 nhé."],
+)
+def test_vietnamese_with_units_is_not_foreign(text):
+    assert foreign_text(text) is None

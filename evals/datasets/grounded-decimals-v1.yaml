@@ -1,0 +1,41 @@
+# Bộ ca đánh giá lời nói có căn cứ (RAG-2), chương Số thập phân.
+#
+# Mỗi ca: gia sư vừa giảng cách giảng `ref` của bài `node` và đang chờ con trả lời câu hỏi của cách giảng đó.
+# `said` là điều con nói. `expect`:
+#   answer: con hỏi một câu về bài, gia sư trả lời từ đoạn truy xuất;
+#   same:   con hỏi lại đúng câu gia sư đang hỏi, gia sư không trả lời thay mà mời con tự nghĩ;
+#   park:   câu ngoài bài, không đoạn nào làm căn cứ, gia sư không trả lời và ghi lại cho giáo viên;
+#   later:  câu về một bài học sau bài đang học: gia sư nói tên bài đó, không dạy trước (plan v1 5.5.3);
+#   bridge: con trả lời chưa đúng, gia sư nói một câu nối điều con nói với lời giải thích đã duyệt.
+#
+# [ASSUME] Ca do AI soạn ngày 2026-10-07, viết trước khi chạy, chờ giáo viên duyệt.
+version: 1
+chapter: math-g5-decimals
+cases:
+  # câu hỏi trong chương
+  - {id: G01, node: KC-DEC-EQ, ref: T2, said: "sao thêm số 0 vào cuối mà số không đổi ạ", expect: answer}
+  # G02: nhãn sửa từ answer thành later sau lần chạy đầu (2026-10-07). Bài Số thập phân bằng nhau học sau
+  # bài Giá trị theo hàng, nên theo luật phạm vi (plan 5.5.3) gia sư không được dạy trước; nhãn cũ sai luật.
+  - {id: G02, node: KC-DEC-PLACE, ref: T1, said: "cô ơi 0,5 với 0,50 có bằng nhau không", expect: later}
+  - {id: G03, node: KC-DEC-CMP, ref: T1, said: "so sánh phần nguyên trước hay phần thập phân trước ạ", expect: answer}
+  - {id: G04, node: KC-DEC-FRAC, ref: T1, said: "mẫu số 1000 thì sau dấu phẩy có mấy chữ số?", expect: answer}
+  - {id: G05, node: KC-DEC-CONCEPT, ref: T2, said: "phan nguyen la gi a", expect: answer}
+  - {id: G06, node: KC-DEC-PLACE, ref: T1, said: "hàng phần nghìn là chữ số thứ mấy sau dấu phẩy?", expect: answer}
+  - {id: G07, node: KC-DEC-APPLY, ref: T1, said: "sao chạy ít giây hơn lại là nhanh hơn ạ", expect: answer}
+  - {id: G08, node: KC-DEC-ORDER, ref: T2, said: "xếp từ lớn đến bé thì làm thế nào ạ", expect: answer}
+  - {id: G09, node: KC-DEC-CMP, ref: T2, said: "viết thêm số không đằng sau thì số có to ra không cô", expect: answer}
+  # con hỏi lại đúng câu gia sư đang hỏi
+  - {id: G10, node: KC-DEC-EQ, ref: T1, said: "viết thêm chữ số 0 nữa thì đoạn dây có dài hơn không cô", expect: same}
+  - {id: G11, node: KC-DEC-APPLY, ref: T1, said: "quả dưa nào nặng hơn hả cô", expect: same}
+  # ngoài bài: Toán chương khác, chuyện riêng
+  - {id: G12, node: KC-DEC-CMP, ref: T1, said: "chu vi hình chữ nhật tính thế nào ạ", expect: park}
+  - {id: G13, node: KC-DEC-FRAC, ref: T1, said: "phân số 2/3 và 4/6 có bằng nhau không", expect: park}
+  - {id: G14, node: KC-DEC-EQ, ref: T1, said: "diện tích hình tròn tính sao cô", expect: park}
+  - {id: G15, node: KC-DEC-CONCEPT, ref: T1, said: "cô bao nhiêu tuổi ạ", expect: park}
+  # trả lời câu hỏi của cách giảng chưa đúng
+  - {id: B01, node: KC-DEC-EQ, ref: T1, said: "dài hơn ạ vì có thêm số 0", expect: bridge}
+  - {id: B02, node: KC-DEC-FRAC, ref: T1, said: "4/10 ạ", expect: bridge}
+  - {id: B03, node: KC-DEC-CMP, ref: T1, said: "số có nhiều chữ số hơn thì lớn hơn ạ", expect: bridge}
+  - {id: B04, node: KC-DEC-CONCEPT, ref: T2, said: "sáu hai lăm", expect: bridge}
+  - {id: B05, node: KC-DEC-APPLY, ref: T2, said: "Hùng chạy nhanh hơn vì 8,6 lớn hơn", expect: bridge}
+  - {id: B06, node: KC-DEC-PLACE, ref: T2, said: "chữ số 6 chỉ 6 dm", expect: bridge}

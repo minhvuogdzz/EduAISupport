@@ -48,6 +48,7 @@ from cavat.modules.session.repository import (
     LifecycleState,
     StateVersionConflict,
 )
+from cavat.modules.teaching.grounded import GroundedSpeaker
 
 MAX_TEXT_CHARS = 500
 
@@ -243,6 +244,13 @@ class TeachAnnotation(BaseModel):
     node_id: str | None
     rule_ids: list[str]
     reason_codes: list[str]
+    # RAG-2: TEMPLATE (approved text), LLM (Qwen, checked against its sources), EXTRACT (a passage verbatim)
+    source: Literal["TEMPLATE", "LLM", "EXTRACT"] = "TEMPLATE"
+    sources: list[str] = []  # titles of the passages the words rest on
+    rejected: list[list[str]] = []  # check codes of each refused model output
+    grounded: bool | None = None  # a question of the child: did the passages ground it
+    grounding: str | None = None
+    parked: Literal["NOT_GROUNDED", "SAME_AS_CHECK", "LIMIT", "LATER"] | None = None  # kept for the teacher
 
 
 class TranscriptTurn(BaseModel):
@@ -856,13 +864,27 @@ async def _command(
     if item_attempt_id is not None and item_attempt_id != current:
         raise ApiError(409, "STALE_ITEM", "this item is no longer the current one")
 
+    router = tutor_router()
     if chapter_service.is_chapter(session):
         content: Any = _chapter(session.lesson_id)
-        command_fn: Any = partial(chapter_service.apply_command, history=await _history(database, session))
+        persona = content.package.persona
+        # RAG-2: the child's questions are answered from the index of this moment (rebuilt when the
+        # teacher's documents changed); without TUTOR_RENDERER=llm the answers are passages word for word.
+        speaker = GroundedSpeaker(
+            await _rag_service.current(database),
+            router,
+            tutor_self=persona.tutor_self,
+            student_address=persona.student_address,
+            student_name=session.student_display_name,
+            calls_used=(session.state.activity or {}).get("llm_calls", 0),
+            order=content.topological_order(),
+        )
+        command_fn: Any = partial(
+            chapter_service.apply_command, history=await _history(database, session), speaker=speaker
+        )
     else:
         content, command_fn = _package(session.lesson_id), service.apply_command
     try:
-        router = tutor_router()
         live = service.llm_renderer(session, router) if router is not None else None
         apply = partial(command_fn, content, session, command, utc_now(), live_renderer=live)
         step = await run_in_threadpool(apply, **kwargs)  # the model call blocks; keep the event loop free

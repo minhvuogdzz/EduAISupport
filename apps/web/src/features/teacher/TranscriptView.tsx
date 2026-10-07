@@ -188,22 +188,52 @@ function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
   );
 }
 
+const SOURCE_LABEL: Record<NonNullable<TeachAnnotation["source"]>, string> = {
+  TEMPLATE: "Câu mẫu đã duyệt",
+  LLM: "Qwen viết, đã kiểm chứng với nguồn",
+  EXTRACT: "Trích nguyên văn đoạn nguồn",
+};
+
+const PARKED_LABEL: Record<NonNullable<TeachAnnotation["parked"]>, string> = {
+  NOT_GROUNDED: "Ngoài bài: để lại cho giáo viên",
+  SAME_AS_CHECK: "Con hỏi lại câu của cô: mời con tự nghĩ",
+  LIMIT: "Quá số câu hỏi một lượt: để lại cho giáo viên",
+  LATER: "Thuộc bài học sau: không dạy trước",
+};
+
 /** A message of the teaching loop and the node decision behind it (chapter sessions). */
 function TeachChips({ annotation }: { annotation: TeachAnnotation }) {
+  const { source = "TEMPLATE", sources = [], rejected = [], grounded, grounding, parked } = annotation;
   return (
-    <p className="flex flex-wrap gap-1">
-      <Chip tone="teal">{TEACH_KIND_LABEL[annotation.kind]}</Chip>
-      {annotation.rule_ids.map((rule) => (
-        <Chip key={rule} mono title={RULE_LABEL[rule]}>
-          {rule}
-        </Chip>
-      ))}
-      {annotation.reason_codes.map((code) => (
-        <Chip key={code} mono>
-          {code}
-        </Chip>
-      ))}
-    </p>
+    <div className="flex flex-col gap-1">
+      <p className="flex flex-wrap gap-1">
+        <Chip tone="teal">{TEACH_KIND_LABEL[annotation.kind]}</Chip>
+        {annotation.rule_ids.map((rule) => (
+          <Chip key={rule} mono title={RULE_LABEL[rule]}>
+            {rule}
+          </Chip>
+        ))}
+        {annotation.reason_codes.map((code) => (
+          <Chip key={code} mono>
+            {code}
+          </Chip>
+        ))}
+        {source !== "TEMPLATE" && <Chip tone="sky">{SOURCE_LABEL[source]}</Chip>}
+        {grounded != null && (
+          <Chip tone={grounded ? "emerald" : "amber"} title={grounding ?? undefined}>
+            {grounded ? "Có căn cứ" : "Không có căn cứ"}
+            {grounding ? ` (${grounding})` : ""}
+          </Chip>
+        )}
+        {parked && <Chip tone="amber">{PARKED_LABEL[parked]}</Chip>}
+        {rejected.length > 0 && (
+          <Chip tone="rose" title={rejected.map((codes) => codes.join(", ")).join(" · ")}>
+            Qwen bị chặn {rejected.length} lần: {rejected.flat().join(", ")}
+          </Chip>
+        )}
+      </p>
+      {sources.length > 0 && <p className="text-xs text-slate-600">Nguồn: {sources.join(" · ")}</p>}
+    </div>
   );
 }
 

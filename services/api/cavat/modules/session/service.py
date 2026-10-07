@@ -490,6 +490,7 @@ def build_teacher_transcript(
     graded: dict[str | None, dict[str, Any]] = {}  # the student turn that the next graded event annotates
     node_decision: dict[str, Any] = {}  # the NODE_DECISION that the next teaching message carries out
     retell: dict[str, Any] | None = None  # the student's retell that RETELL_JUDGED annotates
+    grounding: dict[str, Any] = {}  # RAG-2: the retrieval and the parked question the next reply carries
 
     def add(turn: dict[str, Any], attempt: str | None) -> None:
         block = blocks.get(attempt) if attempt else None
@@ -539,13 +540,25 @@ def build_teacher_transcript(
             add({**base, "actor": "tutor", "text": p["text"], "tutor": tutor, "student": None}, attempt)
         elif kind == EventType.NODE_DECISION:
             node_decision = p
+        elif kind == EventType.RAG_RETRIEVED:
+            grounding.update(grounded=p["grounded"], grounding=p["grounding"])
+        elif kind == EventType.QUESTION_PARKED:
+            grounding["parked"] = p["reason"]
         elif kind == EventType.TEACH_MESSAGE_SENT:
             teach = {
                 "kind": p["kind"],
                 "node_id": p.get("node_id"),
                 "rule_ids": node_decision.get("rule_ids", []),
                 "reason_codes": node_decision.get("reason_codes", []),
+                # RAG-2: who wrote the words, what they rest on, why a question was not answered
+                "source": p.get("source", "TEMPLATE"),
+                "sources": p.get("sources", []),
+                "rejected": p.get("rejected", []),
+                "grounded": grounding.get("grounded"),
+                "grounding": grounding.get("grounding"),
+                "parked": grounding.get("parked"),
             }
+            grounding = {}
             add(
                 {**base, "actor": "tutor", "text": p["text"], "tutor": None, "student": None, "teach": teach},
                 None,

@@ -155,6 +155,7 @@ export const TEACH_KIND_LABEL: Record<TeachMessageKind, string> = {
   EXAMPLE: "Cô làm mẫu",
   RETELL_PROMPT: "Mời nói lại",
   FEEDBACK: "Nhận xét",
+  ANSWER: "Trả lời câu con hỏi",
   PASS: "Qua bài",
   STOP: "Dừng bài",
   SUMMARY: "Tổng kết",
