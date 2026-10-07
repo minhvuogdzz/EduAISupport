@@ -34,6 +34,8 @@ from cavat.core.repository import utc_now
 from cavat.modules.ai_gateway.router import AIRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
+from cavat.modules.identity.api import AuthError, demo_mode, identity_from, register_auth, require
+from cavat.modules.identity.repository import UserRepository
 from cavat.modules.session import chapter_service, progress, service, teacher_view
 from cavat.modules.session.repository import (
     DuplicateCommand,
@@ -686,10 +688,55 @@ def demo_teacher(x_demo_teacher: Annotated[str | None, Header()] = None) -> str:
     return x_demo_teacher
 
 
+def student_identity(
+    authorization: Annotated[str | None, Header()] = None,
+    x_demo_student: Annotated[str | None, Header()] = None,
+) -> str:
+    """The student account (ACC-1), or the demo header in ``AUTH_MODE=demo``."""
+    if demo_mode():
+        return demo_student(x_demo_student)
+    return require(identity_from(authorization), "STUDENT").user_id
+
+
+def teacher_identity(
+    authorization: Annotated[str | None, Header()] = None,
+    x_demo_teacher: Annotated[str | None, Header()] = None,
+) -> str:
+    if demo_mode():
+        return demo_teacher(x_demo_teacher)
+    return require(identity_from(authorization), "TEACHER").user_id
+
+
+def parent_identity(
+    authorization: Annotated[str | None, Header()] = None,
+    x_demo_parent: Annotated[str | None, Header()] = None,
+) -> str:
+    if demo_mode():
+        return demo_parent(x_demo_parent)
+    return require(identity_from(authorization), "PARENT").user_id
+
+
+def linked_child(authorization: Annotated[str | None, Header()] = None) -> str:
+    """The child linked to the parent account (guardian link, ACC-1)."""
+    if demo_mode():
+        raise ApiError(404, "NOT_FOUND", "the demo mode has no guardian link: use the child's code")
+    child = require(identity_from(authorization), "PARENT").child_id
+    if not child:
+        raise ApiError(404, "NOT_FOUND", "no child is linked to this parent account")
+    return child
+
+
+def account_name(authorization: Annotated[str | None, Header()] = None) -> str | None:
+    """The display name of the logged-in account: a session takes it, never a name typed in the web."""
+    return None if demo_mode() else identity_from(authorization).display_name
+
+
 Database = Annotated[Any, Depends(get_database)]
-Student = Annotated[str, Depends(demo_student)]
-Teacher = Annotated[str, Depends(demo_teacher)]
-Parent = Annotated[str, Depends(demo_parent)]
+Student = Annotated[str, Depends(student_identity)]
+Teacher = Annotated[str, Depends(teacher_identity)]
+Parent = Annotated[str, Depends(parent_identity)]
+LinkedChild = Annotated[str, Depends(linked_child)]
+AccountName = Annotated[str | None, Depends(account_name)]
 Today = Annotated[date, Depends(local_today)]
 IdempotencyKey = Annotated[str | None, Header(max_length=100)]
 
@@ -839,20 +886,20 @@ async def _command(
 
 
 @router.post("", status_code=201, response_model=SessionStateView)
-async def create_session(body: CreateSession, database: Database, student: Student):
-    """Create a demo session (lifecycle READY). No data is created unless this endpoint is called.
+async def create_session(body: CreateSession, database: Database, student: Student, name: AccountName):
+    """Create a session (lifecycle READY). No data is created unless this endpoint is called.
 
     ``lesson_id`` names a chapter (teaching loop, the default) or a lesson (the fixed plan of lesson 1).
+    With accounts (ACC-1) the student's name is the account's; a name sent by the web is ignored.
     """
     target = body.lesson_id or chapter_service.DEFAULT_CHAPTER_ID
+    display_name = name or body.student_display_name
     chapter = chapter_service.chapters().get(target)
     if chapter is not None:
-        session = chapter_service.new_session(
-            chapter, service.DEMO_SCHOOL_ID, student, body.student_display_name
-        )
+        session = chapter_service.new_session(chapter, service.DEMO_SCHOOL_ID, student, display_name)
     else:
         pkg = _package(target)
-        session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, body.student_display_name)
+        session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, display_name)
     session = await _repo(database).create(session)
     return await _view(database, session)
 
@@ -992,6 +1039,12 @@ async def my_overview(database: Database, student: Student, today: Today):
     return _chapter_overview(sessions, student, today)
 
 
+@parents.get("/me/child", response_model=ParentChildView)
+async def my_child(database: Database, child: LinkedChild, today: Today):
+    """Parent account: the linked child's progress (ACC-1), with no code to type."""
+    return await _child_view(database, child, today)
+
+
 @parents.get("/children/{code}", response_model=ParentChildView)
 async def child_overview(code: str, database: Database, parent: Parent, today: Today):
     """Parent: the child's progress in plain words, the trend over four weeks and how to help at home."""
@@ -1000,6 +1053,11 @@ async def child_overview(code: str, database: Database, parent: Parent, today: T
     student_id = next((s for s in await repo.student_ids() if progress.parent_code(s) == wanted), None)
     if student_id is None:
         raise ApiError(404, "NOT_FOUND", "no student has this code")
+    return await _child_view(database, student_id, today)
+
+
+async def _child_view(database: Any, student_id: str, today: date) -> dict[str, Any]:
+    repo = _repo(database)
     chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
     own = await repo.list_for_student(student_id)
     view = _chapter_overview(own, student_id, today)
@@ -1016,16 +1074,32 @@ async def child_overview(code: str, database: Database, parent: Parent, today: T
 async def class_view(database: Database, teacher: Teacher, today: Today):
     """Teacher: the class on the chapter, replayed from every student's sessions (rule 3)."""
     chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+    enrolled = await _enrolled(database)
     by_student: dict[str, list[LearningSession]] = {}
     for session in await _repo(database).list_lesson(chapter.package.chapter_id):
-        by_student.setdefault(session.student_id, []).append(session)
+        if enrolled is None or session.student_id in enrolled:
+            by_student.setdefault(session.student_id, []).append(session)
     return teacher_view.class_overview(chapter, by_student, today)
+
+
+async def _enrolled(database: Any) -> set[str] | None:
+    """The students with an account (ACC-1); None in the demo mode, where every session counts.
+
+    Sessions of the trials before the accounts carry random ids: they stay in the database, out of the
+    teacher's views."""
+    if demo_mode():
+        return None
+    users = await UserRepository(database, service.DEMO_SCHOOL_ID).list_by_kind("STUDENT")
+    return {u.id for u in users}
 
 
 @teachers.get("/students/{student_id}", response_model=TeacherStudentView)
 async def teacher_student(student_id: str, database: Database, teacher: Teacher, today: Today):
     """Teacher: one student on the chapter, with every KC in detail."""
     chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+    enrolled = await _enrolled(database)
+    if enrolled is not None and student_id not in enrolled:
+        raise ApiError(404, "NOT_FOUND", "no student account has this id")
     sessions = await _repo(database).list_for_student(student_id)
     if not progress.chapter_sessions(chapter, sessions):
         raise ApiError(404, "NOT_FOUND", "this student has no session on the chapter")
@@ -1044,10 +1118,15 @@ def register(app: FastAPI) -> None:
         fields = [".".join(str(p) for p in e["loc"]) for e in exc.errors()]
         return _error(422, "VALIDATION_ERROR", "invalid request", {"fields": fields})
 
+    @app.exception_handler(AuthError)
+    async def _auth_error(_: Request, exc: AuthError) -> JSONResponse:
+        return _error(exc.status, exc.code, exc.message)
+
     @app.exception_handler(db.DatabaseNotConfiguredError)
     async def _no_database(_: Request, exc: db.DatabaseNotConfiguredError) -> JSONResponse:
         return _error(503, "INVALID_STATE", "database is not configured")
 
+    app.include_router(register_auth(get_database, service.DEMO_SCHOOL_ID))
     app.include_router(router)
     app.include_router(students)
     app.include_router(parents)

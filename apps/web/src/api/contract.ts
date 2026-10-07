@@ -656,6 +656,24 @@ export interface TeacherStudentView {
   attention: AttentionReason[];
 }
 
+// ---------------------------------------------------------------- accounts (ACC-1)
+
+export type AccountKind = "STUDENT" | "PARENT" | "TEACHER";
+
+/** GET /v1/auth/config: the three trial accounts, or the demo mode (no login). */
+export interface AuthConfig {
+  mode: "accounts" | "demo";
+  accounts: { kind: AccountKind; login_name: string; display_name: string }[];
+}
+
+/** The logged-in account (POST /v1/auth/login, GET /v1/auth/me). */
+export interface AuthUser {
+  user_id: string;
+  kind: AccountKind;
+  display_name: string;
+  child_id: string | null;
+}
+
 // ---------------------------------------------------------------- errors (PART 24.2, 29.1)
 
 export const API_ERROR_CODES = [

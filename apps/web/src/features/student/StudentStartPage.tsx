@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router";
 import { useApi } from "../../api/apiContext";
 import type { SessionSummary, StudentOverview } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
+import { useAuth } from "../auth/authContext";
 import {
   ArrowRightIcon,
   BookIcon,
@@ -47,7 +48,9 @@ export function StudentStartPage() {
     enabled: api.getMyOverview !== undefined,
     retry: false,
   });
-  const name = overview.data?.student_display_name || null;
+  const { user } = useAuth();
+  // With accounts (ACC-1) the name is the account's: the child never types a name.
+  const name = user?.display_name || overview.data?.student_display_name || null;
 
   const start = useMutation({
     mutationFn: (studentName: string) => api.createDemoSession({ student_display_name: studentName }),

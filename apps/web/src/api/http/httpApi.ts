@@ -14,6 +14,8 @@ import { ApiError, type SessionApi } from "../client";
 import {
   API_ERROR_CODES,
   type ApiErrorCode,
+  type AuthConfig,
+  type AuthUser,
   type ChatTurn,
   type ClassOverview,
   type CommandAck,
@@ -39,6 +41,7 @@ export interface HttpApiOptions {
 }
 
 const STUDENT_KEY = "cavat.demo.student-id";
+const TOKEN_KEY = "cavat.auth.token";
 const TEACHER_HEADERS = { "X-Demo-Teacher": "web" };
 const PARENT_HEADERS = { "X-Demo-Parent": "web" };
 
@@ -88,7 +91,37 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
   const seen = new Map<string, number>();
   let memoryStudentId: string | null = null;
 
+  let memoryToken: string | null = null;
+
+  function token(): string | null {
+    try {
+      return memoryToken ?? storage?.getItem(TOKEN_KEY) ?? null;
+    } catch {
+      return memoryToken;
+    }
+  }
+
+  function keepToken(value: string | null): void {
+    memoryToken = value;
+    try {
+      if (value === null) storage?.removeItem(TOKEN_KEY);
+      else storage?.setItem(TOKEN_KEY, value);
+    } catch {
+      // storage blocked: the login lasts until the page is reloaded
+    }
+  }
+
+  /** The logged-in account (ACC-1); the X-Demo-* headers only without a login (AUTH_MODE=demo). */
+  function as(demo: () => Record<string, string>): Record<string, string> {
+    const current = token();
+    return current ? { Authorization: `Bearer ${current}` } : demo();
+  }
+
   function studentHeaders(): Record<string, string> {
+    return as(demoStudentHeaders);
+  }
+
+  function demoStudentHeaders(): Record<string, string> {
     let id = memoryStudentId;
     try {
       id ??= storage?.getItem(STUDENT_KEY) ?? null;
@@ -213,32 +246,83 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       return request<ParentChildView>(
         "GET",
         `/v1/parents/children/${encodeURIComponent(code.trim())}`,
-        PARENT_HEADERS,
+        as(() => PARENT_HEADERS),
       );
     },
 
     listSessions() {
-      return request<SessionSummary[]>("GET", "/v1/sessions", TEACHER_HEADERS);
+      return request<SessionSummary[]>(
+        "GET",
+        "/v1/sessions",
+        as(() => TEACHER_HEADERS),
+      );
+    },
+
+    auth: {
+      config() {
+        return request<AuthConfig>("GET", "/v1/auth/config", {});
+      },
+      async login(loginName, pin) {
+        const result = await request<{ token: string; user: AuthUser }>(
+          "POST",
+          "/v1/auth/login",
+          {},
+          {
+            login_name: loginName,
+            pin,
+          },
+        );
+        keepToken(result.token);
+        return result.user;
+      },
+      me() {
+        const current = token();
+        if (!current) return Promise.reject(new ApiError(401, "NOT_SESSION_OWNER", "please log in"));
+        return request<AuthUser>("GET", "/v1/auth/me", { Authorization: `Bearer ${current}` });
+      },
+      logout() {
+        keepToken(null);
+      },
+    },
+
+    getMyChild() {
+      return request<ParentChildView>(
+        "GET",
+        "/v1/parents/me/child",
+        as(() => PARENT_HEADERS),
+      );
     },
 
     getClassOverview() {
-      return request<ClassOverview>("GET", "/v1/teachers/class", TEACHER_HEADERS);
+      return request<ClassOverview>(
+        "GET",
+        "/v1/teachers/class",
+        as(() => TEACHER_HEADERS),
+      );
     },
 
     getStudentReport(studentId) {
       return request<TeacherStudentView>(
         "GET",
         `/v1/teachers/students/${encodeURIComponent(studentId)}`,
-        TEACHER_HEADERS,
+        as(() => TEACHER_HEADERS),
       );
     },
 
     getTranscript(sessionId) {
-      return request<SessionTranscript>("GET", sessionPath(sessionId, "transcript"), TEACHER_HEADERS);
+      return request<SessionTranscript>(
+        "GET",
+        sessionPath(sessionId, "transcript"),
+        as(() => TEACHER_HEADERS),
+      );
     },
 
     getReport(sessionId) {
-      return request<TeachingReport>("GET", sessionPath(sessionId, "report"), TEACHER_HEADERS);
+      return request<TeachingReport>(
+        "GET",
+        sessionPath(sessionId, "report"),
+        as(() => TEACHER_HEADERS),
+      );
     },
   };
 }

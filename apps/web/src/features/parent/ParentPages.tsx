@@ -24,6 +24,7 @@ import {
   topicState,
 } from "../../components/labels";
 import { Mascot } from "../../components/Mascot";
+import { useAuth } from "../auth/authContext";
 import { formatViDateTime } from "../../lib/viNumber";
 import { ProgressTrend } from "./ProgressTrend";
 
@@ -38,6 +39,41 @@ const QUALITY_ORDER: Quality[] = [
 
 /** The parent's entry: the child's code (shown on the child's page) opens the child's progress. */
 export function ParentPage() {
+  const { user } = useAuth();
+  const api = useApi();
+  if (user?.kind === "PARENT" && api.getMyChild) return <MyChildPage />;
+  return <CodePage />;
+}
+
+/** The parent account (ACC-1): the linked child at once, no code to type. */
+function MyChildPage() {
+  const api = useApi();
+  const child = useQuery({ queryKey: ["my-child"], queryFn: () => api.getMyChild!(), retry: false });
+  let body: ReactNode;
+  if (child.isPending) {
+    body = <Notice>Đang tải tình hình học của con…</Notice>;
+  } else if (child.isError) {
+    const missing = child.error instanceof ApiError && child.error.code === "NOT_FOUND";
+    body = (
+      <Notice>
+        {missing
+          ? "Tài khoản phụ huynh chưa được gắn với học sinh nào."
+          : "Chưa tải được, bố mẹ thử lại sau nhé."}
+      </Notice>
+    );
+  } else {
+    body = <ChildView view={child.data} />;
+  }
+  return (
+    <AppShell>
+      <title>Tình hình học của con · CAVAT</title>
+      <div className="mx-auto max-w-7xl px-4 py-8">{body}</div>
+    </AppShell>
+  );
+}
+
+/** Without accounts (demo mode): the child's code, shown on the child's page, opens the progress. */
+function CodePage() {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   return (

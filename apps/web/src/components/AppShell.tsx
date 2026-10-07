@@ -1,18 +1,24 @@
 import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router";
 
+import { useAuth } from "../features/auth/authContext";
 import { Mascot } from "./Mascot";
 import { MockBanner } from "./MockBanner";
 
 const NAV = [
-  { to: "/", label: "Trang chủ", end: true },
-  { to: "/student", label: "Học sinh", end: false },
-  { to: "/parent", label: "Phụ huynh", end: false },
-  { to: "/teacher", label: "Giáo viên", end: false },
+  { to: "/", label: "Trang chủ", end: true, kind: null },
+  { to: "/student", label: "Học sinh", end: false, kind: "STUDENT" },
+  { to: "/parent", label: "Phụ huynh", end: false, kind: "PARENT" },
+  { to: "/teacher", label: "Giáo viên", end: false, kind: "TEACHER" },
 ] as const;
 
-/** The frame of every page but the lesson itself: brand, the three roles, a footer. */
+/**
+ * The frame of every page but the lesson itself: brand, the roles, a footer. A logged-in account (ACC-1)
+ * sees only its own area and a "Đăng xuất" button; the mock API and the demo mode show every role.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
+  const { user, logout } = useAuth();
+  const items = NAV.filter((item) => !user || item.kind === null || item.kind === user.kind);
   return (
     <div className="flex min-h-dvh flex-col">
       <MockBanner />
@@ -26,7 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <nav aria-label="Vai trò" className="-mr-2 flex items-center gap-1 overflow-x-auto">
-            {NAV.map((item) => (
+            {items.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -42,6 +48,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {item.label}
               </NavLink>
             ))}
+            {user && (
+              <button
+                type="button"
+                onClick={logout}
+                className="shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                title={`Đang đăng nhập: ${user.display_name}`}
+              >
+                Đăng xuất
+              </button>
+            )}
           </nav>
         </div>
       </header>

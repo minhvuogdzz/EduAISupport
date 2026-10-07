@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     # "template": approved sentences only (default). "llm": Qwen phrases hints, templates as fallback.
     tutor_renderer: Literal["template", "llm"] = "template"
     storage_dir: Path = REPO_ROOT / "var" / "storage"
+    # ACC-1: "accounts": one student, one parent, one teacher log in with a PIN (`make accounts`).
+    # "demo": the old X-Demo-* headers, for the offline tests and the in-memory demo only.
+    auth_mode: Literal["accounts", "demo"] = "accounts"
+    # Key that signs login tokens. Unset: a random key per process (every restart logs everyone out).
+    auth_secret: SecretStr | None = None
 
 
 @lru_cache

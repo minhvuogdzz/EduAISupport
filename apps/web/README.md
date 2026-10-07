@@ -27,6 +27,15 @@ Trong `apps/web` có thể gọi trực tiếp: `pnpm dev`, `pnpm lint`, `pnpm t
 
 Thử trên tablet cùng mạng LAN: `pnpm dev --host`, rồi mở `http://<IP máy>:5173`.
 
+## Đăng nhập (ACC-1)
+
+Hệ thống thử nghiệm dùng đúng 3 tài khoản: 1 học sinh, 1 phụ huynh (gắn với học sinh), 1 giáo viên.
+
+- **Tạo tài khoản:** chủ dự án chạy `make accounts`, nhập tên gọi và mã PIN.
+- **Đăng nhập:** web hiện 3 tài khoản để chọn, rồi nhập PIN. Token được giữ trong `localStorage` (`cavat.auth.token`).
+- **Sau khi đăng nhập:** mỗi tài khoản chỉ thấy phần của mình và có nút "Đăng xuất". Học sinh không phải nhập tên. Phụ huynh xem thẳng tình hình học của con, không cần mã.
+- **Chế độ demo:** mock API và `make demo-memory` (`AUTH_MODE=demo`) không có đăng nhập, mọi vai mở như trước.
+
 ## Màn hình
 
 | Đường dẫn                                    | Người dùng | Nội dung                                                                                                                                                                                                                                   |
