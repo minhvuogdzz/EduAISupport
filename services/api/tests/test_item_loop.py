@@ -102,7 +102,7 @@ def test_the_reply_to_the_probe_is_not_a_second_wrong_answer() -> None:
         Move.PRESENT,
         Move.PROBE,
         Move.HINT,  # the item's level 1 hint, not the fixed fallback sentence
-        Move.OFFER_CHOICE,  # asking for help is not "stuck": the next hint is offered
+        Move.HINT,  # "Xin gợi ý" is not "stuck": the next hint comes at once (DI-35, no offer)
         Move.HINT,
         Move.HINT,  # second wrong answer: one more rung, still no worked solution
     ]
@@ -114,6 +114,7 @@ def test_the_reply_to_the_probe_is_not_a_second_wrong_answer() -> None:
         (1, "TEMPLATE", "GP-01:TASK:H1"),
         (2, "TEMPLATE", "GP-01:CONCEPT:H2"),
         (3, "TEMPLATE", "GP-01:STRATEGY:H3"),
+        (5, "TEMPLATE", "GP-01:STEP:H5"),  # two help requests: negative affect, +2 (R-ESCALATE)
     ]
     answers = of_type(t.events, EventType.ANSWER_SUBMITTED)
     assert [(a["attempt_no"], a["raw_text"]) for a in answers] == [(1, "="), (2, "=")]
@@ -122,7 +123,7 @@ def test_the_reply_to_the_probe_is_not_a_second_wrong_answer() -> None:
 
     turns.append(t.on_student("0,25 < 0,3", 10))
     end = resolved(t)
-    assert (end["resolution"], end["attempts"], end["max_hint_level"]) == ("SUPPORTED", 3, 3)
+    assert (end["resolution"], end["attempts"], end["max_hint_level"]) == ("SUPPORTED", 3, 5)
 
 
 def test_words_after_the_probe_get_the_first_hint_not_a_redirect() -> None:
@@ -153,11 +154,13 @@ def test_asking_for_hints_climbs_the_ladder_then_shows_the_worked_steps() -> Non
     t = tutor("GP-01")
     t.start()
     seen = []
-    for _ in range(11):
+    while t.phase != Phase.RESOLVED:
         seen.append(t.on_student("con cần gợi ý", 5).move)
-    assert seen == [Move.OFFER_CHOICE, Move.HINT] * 5 + [Move.WORKED_GUIDANCE]
-    assert [int(level) for level in t.state.hint_levels] == [1, 2, 3, 4, 5, 6]
-    assert t.state.unproductive_turns == 0 and t.state.help_requests == 6
+    # "Xin gợi ý" gets the next hint at once (DI-35); past the last hint, the worked steps, then the full
+    # explanation, and the item closes when the retell is one more request.
+    assert seen == [Move.HINT] * 5 + [Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION, Move.CLOSE_ITEM]
+    assert [int(level) for level in t.state.hint_levels] == [1, 2, 3, 4, 5, 6, 7]
+    assert t.state.unproductive_turns == 0 and t.state.help_requests == 7
 
 
 def test_silent_student() -> None:

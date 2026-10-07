@@ -34,8 +34,8 @@ from cavat.modules.ai_gateway.base import (
 from cavat.modules.content.lesson_package import LessonPackage, OpenAnswer
 from cavat.modules.tutor.contracts import RenderContext, ValidationCode
 
-PROMPT_VERSION = "tutor-prompt.v1"
-CONSTITUTION = "constitution.v1.md"
+PROMPT_VERSION = "tutor-prompt.v2"
+CONSTITUTION = "constitution.v2.md"
 SUBJECT_MODULES = {("math", 5): "math_g5.v1.md"}
 
 RECENT_TURNS = 6  # blueprint: the 4-6 latest turns of the current item
@@ -136,6 +136,14 @@ def prompt_view(ctx: RenderContext) -> RenderContext:
     return replace(ctx, item=item.model_copy(update=update))
 
 
+# ADR-019: what the student's message was, when it was not an attempt (most specific first).
+_SAID_ORDER = ("ANSWER_DEMAND", "NEGATIVE_AFFECT", "CLARIFY", "OFF_TOPIC", "ASKED_HINT", "HELP_REQUEST")
+
+
+def student_said(reason_codes: Sequence[str]) -> str | None:
+    return next((c for c in _SAID_ORDER if c in reason_codes), None)
+
+
 def directive(ctx: RenderContext) -> dict[str, Any]:
     """L5 Turn Directive (PART 14.4): what to do this turn, decided by the policy, never by the model."""
     decision, item = ctx.decision, ctx.item
@@ -148,6 +156,9 @@ def directive(ctx: RenderContext) -> dict[str, Any]:
         },
         "move": decision.move.value,
     }
+    said = student_said(decision.reason_codes)
+    if said:
+        out["student_said"] = said
     hint: dict[str, str] = {}
     if decision.level is not None:
         hint["level"] = f"H{int(decision.level)}"

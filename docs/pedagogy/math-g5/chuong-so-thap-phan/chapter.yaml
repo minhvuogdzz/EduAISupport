@@ -39,10 +39,14 @@ nodes:
         representation: hình vuông chia ô
         text: "Cô chia một hình vuông thành 10 phần bằng nhau và tô màu 1 phần: phần tô màu là 1/10 hình vuông, viết là 0,1. Nếu chia hình vuông thành 100 ô bằng nhau và tô 1 ô thì phần tô màu là 1/100, viết là 0,01. Những phân số có mẫu số là 10, 100, 1000... gọi là phân số thập phân."
         ask: "Nếu tô màu 4 ô trong 100 ô thì phần tô màu là phân số nào?"
+        reply: "Tô 4 ô trong 100 ô bằng nhau thì phần tô màu là 4/100 hình vuông, viết là 0,04."
+        accept: ["4/100", "bốn phần trăm", "0,04"]
       - id: T2
         representation: đo độ dài
         text: "Cái thước dài 1 m chia thành 10 đoạn bằng nhau, mỗi đoạn là 1 dm. Vậy 1 dm = 1/10 m, viết là 0,1 m. Mỗi đề-xi-mét lại chia thành 10 xăng-ti-mét, nên 1 cm = 1/100 m, viết là 0,01 m. Mẫu số 10 thì sau dấu phẩy có một chữ số, mẫu số 100 thì có hai chữ số."
         ask: "1 m có 1000 mm. Vậy 1 mm bằng phân số nào của mét?"
+        reply: "1 m chia thành 1000 phần bằng nhau, mỗi phần là 1 mm, nên 1 mm = 1/1000 m, viết là 0,001 m."
+        accept: ["1/1000", "một phần nghìn", "0,001"]
     method:
       rule: "Phân số thập phân là phân số có mẫu số 10, 100, 1000... Mẫu số có bao nhiêu chữ số 0 thì số thập phân có bấy nhiêu chữ số ở phần thập phân."
       steps:
@@ -86,10 +90,14 @@ nodes:
         representation: đo độ dài
         text: "Sợi dây dài 2 m 7 dm. Vì 7 dm = 7/10 m = 0,7 m, nên sợi dây dài 2 m và 0,7 m, viết gọn là 2,7 m. Số 2,7 là một số thập phân: chữ số 2 bên trái dấu phẩy là phần nguyên, chữ số 7 bên phải dấu phẩy là phần thập phân."
         ask: "Trong số đo 2,7 m, phần nào cho biết số mét tròn?"
+        reply: "Phần nguyên 2, đứng bên trái dấu phẩy, cho biết có 2 mét tròn; phần thập phân 7 là 7 dm."
+        accept: ["phần nguyên", "chữ số 2", "số 2", "2 m"]
       - id: T2
         representation: hình vuông tô màu
         text: "Cô tô màu kín 3 hình vuông, rồi tô thêm 45 ô trong một hình vuông có 100 ô. Phần tô màu là 3 hình vuông và 45/100 hình vuông, viết là 3,45 và đọc là ba phẩy bốn mươi lăm. Khi đọc, con đọc phần nguyên, đọc chữ phẩy, rồi đọc phần thập phân."
         ask: "Theo con, số 6,25 đọc thế nào?"
+        reply: "Số 6,25 đọc là sáu phẩy hai mươi lăm: đọc phần nguyên, đọc chữ phẩy, rồi đọc phần thập phân."
+        accept: ["sáu phẩy hai mươi lăm", "sáu phẩy hai lăm"]
     method:
       rule: "Số thập phân có hai phần ngăn cách bởi dấu phẩy: phần nguyên bên trái, phần thập phân bên phải. Đọc phần nguyên, đọc chữ phẩy, rồi đọc phần thập phân; viết cũng theo đúng thứ tự đó."
       steps:
@@ -135,10 +143,14 @@ nodes:
         representation: bảng hàng
         text: "Cô kẻ bảng hàng cho số 6,384. Bên trái dấu phẩy là hàng đơn vị, có chữ số 6. Từ dấu phẩy sang phải lần lượt là hàng phần mười (chữ số 3), hàng phần trăm (chữ số 8) và hàng phần nghìn (chữ số 4). Mỗi đơn vị của một hàng bằng 10 đơn vị của hàng thấp hơn liền sau nó."
         ask: "Chữ số 4 lớn hơn chữ số 3, nhưng trong số 6,384 thì giá trị của chữ số 4 có lớn hơn giá trị của chữ số 3 không?"
+        reply: "Không đâu. Chữ số 3 ở hàng phần mười chỉ 3/10, còn chữ số 4 ở hàng phần nghìn chỉ 4/1000, bé hơn nhiều."
+        accept: ["không", "bé hơn", "nhỏ hơn"]
       - id: T2
         representation: đo độ dài
         text: "1 m bằng 10 dm, bằng 100 cm, bằng 1000 mm. Số đo 1,234 m nghĩa là 1 m 2 dm 3 cm 4 mm: chữ số 2 ở hàng phần mười chỉ 2 dm, chữ số 3 ở hàng phần trăm chỉ 3 cm, chữ số 4 ở hàng phần nghìn chỉ 4 mm."
         ask: "Vậy trong số đo 4,56 m, chữ số 6 chỉ mấy xăng-ti-mét?"
+        reply: "Chữ số 6 ở hàng phần trăm nên chỉ 6 cm; chữ số 5 ở hàng phần mười chỉ 5 dm."
+        accept: ["6 cm", "6 xăng-ti-mét", "sáu xăng-ti-mét", "6"]
     method:
       rule: "Từ dấu phẩy đếm sang phải: chữ số thứ nhất ở hàng phần mười, thứ hai ở hàng phần trăm, thứ ba ở hàng phần nghìn. Hàng nào không có thì viết chữ số 0 giữ chỗ."
       steps:
@@ -182,10 +194,14 @@ nodes:
         representation: đo độ dài
         text: "Đoạn dây dài 0,2 m, tức là 2 dm. Mà 2 dm = 20 cm, và 20 cm viết theo mét là 0,20 m. Cùng một đoạn dây nên 0,2 m = 0,20 m: viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị của số không đổi."
         ask: "Nếu viết thêm một chữ số 0 nữa thành 0,200 m thì đoạn dây có dài hơn không?"
+        reply: "Không đâu. 0,2 m = 0,20 m = 0,200 m: viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị không đổi."
+        accept: ["không"]
       - id: T2
         representation: hình vuông chia ô
         text: "Hình vuông chia thành 10 cột, cô tô 9 cột: phần tô màu là 0,9. Chia mỗi cột thành 10 ô thì hình vuông có 100 ô, 9 cột là 90 ô: phần tô màu là 0,90. Phần tô màu vẫn thế, nên 0,9 = 0,90. Nhưng chữ số 0 đứng ngay sau dấu phẩy thì khác: 0,02 là 2 ô, còn 0,2 là 2 cột."
         ask: "Vậy 0,02 có bằng 0,2 không?"
+        reply: "Không bằng nhau. 0,02 là 2 ô trong 100 ô, còn 0,2 là 2 cột, tức là 20 ô: chữ số 0 ngay sau dấu phẩy làm số thay đổi."
+        accept: ["không"]
     method:
       rule: "Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân, hoặc bỏ chữ số 0 ở tận cùng bên phải phần thập phân, thì được một số thập phân bằng số đã cho. Chữ số 0 đứng giữa dấu phẩy và một chữ số khác thì không được bỏ."
       steps:
@@ -233,14 +249,20 @@ nodes:
         representation: bảng hàng
         text: "Cô viết 0,9 và 0,87 vào bảng hàng, thẳng cột theo dấu phẩy. Phần nguyên đều là 0. Ở hàng phần mười, 0,9 có chữ số 9, còn 0,87 có chữ số 8; 9 lớn hơn 8, nên 0,9 > 0,87, dù 87 lớn hơn 9."
         ask: "Vậy số có nhiều chữ số hơn ở phần thập phân có chắc là lớn hơn không?"
+        reply: "Không chắc đâu. 0,9 có ít chữ số hơn 0,87 nhưng lại lớn hơn, vì mình so sánh lần lượt từng hàng, bắt đầu từ hàng phần mười."
+        accept: ["không"]
       - id: T2
         representation: đo độ dài
         text: "Muốn so sánh 0,2 m và 0,19 m, cô đổi cả hai ra xăng-ti-mét: 0,2 m = 20 cm, còn 0,19 m = 19 cm. Đổi về cùng một đơn vị nhỏ hơn rồi so sánh thì không bị lừa bởi số chữ số."
         ask: "Vậy 0,2 m và 0,19 m, độ dài nào lớn hơn?"
+        reply: "0,2 m dài hơn, vì 0,2 m = 20 cm còn 0,19 m = 19 cm."
+        accept: ["0,2 m", "0,2", "20 cm"]
       - id: T3
         representation: tia số
         text: "Cô vẽ tia số từ 0 đến 1, chia thành 10 đoạn bằng nhau: 0,1; 0,2; ...; 0,9. Số 0,55 nằm giữa 0,5 và 0,6, còn 0,8 nằm xa hơn về bên phải. Trên tia số, số nằm bên phải thì lớn hơn."
         ask: "Vậy 0,55 và 0,8, số nào lớn hơn?"
+        reply: "0,8 lớn hơn: trên tia số 0,8 nằm bên phải 0,55, và ở hàng phần mười 8 lớn hơn 5."
+        accept: ["0,8"]
     method:
       rule: "Muốn so sánh hai số thập phân, so sánh phần nguyên trước: phần nguyên lớn hơn thì số đó lớn hơn. Nếu phần nguyên bằng nhau thì so sánh lần lượt hàng phần mười, hàng phần trăm, hàng phần nghìn...; đến hàng nào có chữ số lớn hơn thì số đó lớn hơn. Nếu mọi hàng đều bằng nhau thì hai số bằng nhau."
       steps:
@@ -291,10 +313,14 @@ nodes:
         representation: tia số
         text: "Trên tia số, số nằm bên trái thì bé hơn. Cô đặt ba số 1,6; 1,45 và 1,9 lên tia số: 1,45 nằm bên trái 1,6, còn 1,9 nằm xa nhất về bên phải. Đọc các số từ trái sang phải, ta được thứ tự từ bé đến lớn: 1,45; 1,6; 1,9."
         ask: "Nếu đọc từ phải sang trái thì con được thứ tự nào?"
+        reply: "Đọc từ phải sang trái được 1,9; 1,6; 1,45: đó là thứ tự từ lớn đến bé."
+        accept: ["1,9; 1,6; 1,45", "1,9 1,6 1,45", "1,9, 1,6, 1,45", "lớn đến bé"]
       - id: T2
         representation: bảng hàng
         text: "Cô viết ba số 5,3; 5,07 và 5,25 thẳng cột theo dấu phẩy, thêm chữ số 0 cho đủ hai chữ số ở phần thập phân: 5,30; 5,07; 5,25. Phần nguyên đều là 5, nên cô nhìn cột phần mười: 3, 0 và 2. Số có chữ số hàng phần mười bé nhất thì viết trước."
         ask: "Vậy trong ba số đó, số nào con viết đầu tiên?"
+        reply: "Số 5,07 viết đầu tiên, vì chữ số hàng phần mười của nó là 0, bé nhất trong 3, 0 và 2."
+        accept: ["5,07"]
     method:
       rule: "Muốn sắp xếp các số thập phân từ bé đến lớn, so sánh các số như khi so sánh hai số, tìm số bé nhất viết trước, rồi tìm số bé nhất trong các số còn lại. Xếp từ lớn đến bé thì tìm số lớn nhất trước."
       steps:
@@ -338,10 +364,14 @@ nodes:
         representation: cân nặng
         text: "Hai quả dưa nặng 2,3 kg và 2,25 kg. Cùng đơn vị ki-lô-gam, nên cô chỉ cần so sánh hai số: phần nguyên đều là 2, ở hàng phần mười 3 lớn hơn 2, nên 2,3 > 2,25. Với khối lượng, độ dài hay dung tích, số đo lớn hơn thì đại lượng lớn hơn."
         ask: "Vậy quả dưa nào nặng hơn?"
+        reply: "Quả dưa 2,3 kg nặng hơn, vì 2,3 > 2,25."
+        accept: ["2,3"]
       - id: T2
         representation: thời gian chạy
         text: "Hai bạn cùng chạy 50 m: Hùng chạy hết 8,6 giây, Dũng chạy hết 8,45 giây. So sánh thì 8,6 > 8,45, tức là Hùng tốn nhiều thời gian hơn và về đích sau. Chạy cùng một quãng đường, ai tốn ít thời gian hơn thì chạy nhanh hơn."
         ask: "Vậy trong hai bạn, bạn nào chạy nhanh hơn?"
+        reply: "Dũng chạy nhanh hơn, vì Dũng chạy hết 8,45 giây, ít thời gian hơn Hùng."
+        accept: ["dũng"]
     method:
       rule: "Gặp bài toán so sánh hai số đo: tìm hai số đo và đơn vị, so sánh hai số thập phân, rồi trả lời theo ý nghĩa của đại lượng. Khối lượng, độ dài, dung tích: số lớn hơn là nhiều hơn. Thời gian chạy cùng quãng đường: số lớn hơn là chậm hơn."
       steps:

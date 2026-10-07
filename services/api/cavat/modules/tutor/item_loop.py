@@ -40,6 +40,7 @@ from cavat.core.pedagogy import (
     resolution_for,
 )
 from cavat.modules.assessment.math_checker import CheckResult, check_answer, classify_intent, parse_relation
+from cavat.modules.assessment.student_intent import asks_for_hint
 from cavat.modules.assessment.vi_numbers import parse_literal
 from cavat.modules.content.lesson_package import (
     BooleanAnswer,
@@ -63,7 +64,7 @@ from cavat.modules.tutor.contracts import (
     TurnTrigger,
 )
 from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, decide
-from cavat.modules.tutor.renderer import PHRASES, counter_example
+from cavat.modules.tutor.renderer import PHRASES, counter_example, ladder_top
 
 # DI, approved by the owner on 2026-10-01: hard stop for one item. Every policy path ends well before
 # this (frustration -> worked -> full -> teach-back); the guard only makes sure that no sequence of
@@ -165,6 +166,7 @@ class ItemTutor:
             ),
             expected_item_s=float(item.expected_time_s),
             requires_explanation=item.requires_explanation,
+            top_hint_level=ladder_top(item, package),
         )
         self.phase: Phase | None = None
         self.events: list[TutorEvent] = []
@@ -236,6 +238,8 @@ class ItemTutor:
 
     def _check(self, text: str) -> CheckResult:
         check = check_answer(self.item, text, self.package)
+        if check.outcome == Outcome.HELP_REQUEST and (text == HINT_REQUEST_TEXT or asks_for_hint(text)):
+            check = replace(check, detail={**check.detail, "asked_hint": True})
         if self._probe_asked and check.detail.get("probe_option"):
             # The cause is already known (or the probe was skipped): do not ask the probe twice.
             check = replace(check, detail={k: v for k, v in check.detail.items() if k != "probe_option"})
@@ -251,6 +255,12 @@ class ItemTutor:
             st.unproductive_turns += 1
         if check.outcome in _HELP:
             st.help_requests += 1
+        if check.outcome == Outcome.CLARIFY_REQUEST:
+            st.clarify_requests += 1
+        elif check.outcome == Outcome.OFF_TOPIC:
+            st.off_topic_turns += 1
+        elif check.outcome == Outcome.NEGATIVE_AFFECT:
+            st.affect_signals += 1
         if check.outcome not in GRADED_OUTCOMES:
             return
         st.attempt_no += 1
@@ -313,7 +323,10 @@ class ItemTutor:
             )
         self.state.verified = True
         check = CheckResult(intent) if intent is not None else None
-        return self._act(self._decide("EXPLANATION", check), text)
+        decision = self._decide("EXPLANATION", check)
+        if decision is not None and "ASK_AGAIN" in decision.reason_codes:
+            self.state.explanation_asked_again = True  # once (DI-38)
+        return self._act(decision, text)
 
     def _on_reason(self, text: str, seconds: float) -> TutorTurn:
         """The reply to "con đã làm thế nào?" (R-FIRST-WRONG).
@@ -467,6 +480,7 @@ class ItemTutor:
             return Phase.RESOLVED
         self._offer = d if d.move == Move.OFFER_CHOICE else None
         if d.move == Move.OFFER_CHOICE:
+            self.state.choice_offered = True
             return Phase.AWAITING_CHOICE
         if d.move == Move.ASK_CONFIRM:
             return Phase.AWAITING_CONFIRM

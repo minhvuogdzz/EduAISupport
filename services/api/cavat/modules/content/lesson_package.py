@@ -18,10 +18,16 @@ class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+AnswerType = Literal["compare", "order", "numeric", "choice", "boolean", "open"]
+
+
 class HintTemplate(_Model):
     target: HintTarget
     level: HintLevel
     text: str
+    # A generic hint of the lesson can name the kinds of item it fits (ADR-019, DI-37): "viết số vào bảng
+    # hàng" helps with a number to write, not with choosing a fraction. Empty: every kind.
+    answer_types: list[AnswerType] = []
 
 
 class CompareAnswer(_Model):

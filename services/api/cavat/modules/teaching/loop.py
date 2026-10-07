@@ -26,10 +26,12 @@ from cavat.core.events import (
     StudentMessage,
     TeachMessageSent,
 )
-from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, TeachAction
+from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, Outcome, TeachAction
+from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
 from cavat.modules.assessment.retell import judge_retell
-from cavat.modules.content.chapter_package import Chapter
+from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
+from cavat.modules.content.chapter_package import Chapter, TheoryVariant
 from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator
@@ -45,7 +47,10 @@ from cavat.modules.tutor.item_loop import (
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
-TEMPLATES_VERSION = "teaching-templates/0.1.0"
+TEMPLATES_VERSION = "teaching-templates/0.2.0"
+
+# DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
+MAX_OFF_TOPIC_REDIRECTS = 2
 
 # Item phases where the student answers in words ("vì sao", teach-back, "con làm thế nào?").
 _WORDS = frozenset({Phase.VERIFYING, Phase.TEACH_BACK, Phase.AWAITING_REASON})
@@ -71,6 +76,14 @@ PHRASES: dict[str, str] = {
     "review": "Mình ôn lại bài cũ một chút nhé.",
     "transfer": "Bây giờ {s} thử một bài vận dụng nhé.",
     "theory_ack": "{T} cảm ơn {s}.",
+    # ADR-019 (drafted for the owner's review): the reply to the question that ends a theory explanation.
+    "theory_right": "Đúng rồi! {reply}",
+    "theory_check": "Mình cùng xem lại nhé: {reply}",
+    "theory_explain": "Không sao đâu, {t} giải thích nhé: {reply}",
+    "theory_affect": "{T} hiểu, phần này hơi khó một chút. {T} giải thích nhé: {reply}",
+    "off_topic": "Chuyện đó để lúc nghỉ mình nói nhé! {ask}",
+    "retell_help": "Không sao đâu, {t} nhắc lại ý chính nhé: {idea}",
+    "retell_affect": "{S} đã cố gắng nhiều rồi đấy. {T} nhắc lại ý chính nhé: {idea}",
     "retell_again": "{S} đã làm thêm nhiều bài rồi.",
     "retell_good": "{S} nói đúng ý rồi.",
     "retell_partial": "{S} đã nói được một phần ý.",
@@ -208,19 +221,55 @@ class TeachingLoop:
         message = StudentMessage(item_id=f"{node_id}:{ref}", kind=kind, text=text, seconds=seconds)
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
         messages: list[TeachMessage] = []
-        if self.awaiting == Awaiting.THEORY_REPLY:
-            self._say(
-                now, messages, events, TeachMessage(MessageKind.FEEDBACK, self._phrase("theory_ack"), node_id)
+        intent = classify_intent(text)
+        if intent == Outcome.OFF_TOPIC and self._replies_since_decision() <= MAX_OFF_TOPIC_REDIRECTS:
+            # ADR-019: talk outside the lesson is parked and the same question asked again (DI-38).
+            assert self._prompt is not None
+            back = self._phrase("off_topic", ask=self._prompt)
+            self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, back, node_id))
+            return TeachTurn(
+                tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=self._prompt
             )
+        if self.awaiting == Awaiting.THEORY_REPLY:
+            assert self._ref is not None
+            variant = next(t for t in self.chapter.node(node_id).theory if t.id == self._ref)
+            feedback = self._theory_feedback(variant, text, intent)
+            self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, feedback, node_id))
             return self._advance(now, messages, events)
-        judged = judge_retell(node_id, text, self.chapter.node(node_id).explain)
+        node = self.chapter.node(node_id)
+        judged = judge_retell(node_id, text, node.explain)
         events.append(self._record(now, EventType.RETELL_JUDGED, judged))
-        if judged.score >= self.config.retell_pass:
-            key = "retell_good"
+        if intent is not None and not judged.ideas_found:
+            # "Con không biết", "là sao ạ?", "chán quá": remind the main idea instead of only saying that
+            # it was not heard; the node policy then asks again or moves on, as for any retell.
+            key = "retell_affect" if intent == Outcome.NEGATIVE_AFFECT else "retell_help"
+            said = self._phrase(key, idea=node.description)
+        elif judged.score >= self.config.retell_pass:
+            said = self._phrase("retell_good")
         else:
-            key = "retell_partial" if judged.ideas_found else "retell_none"
-        self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, self._phrase(key), node_id))
+            said = self._phrase("retell_partial" if judged.ideas_found else "retell_none")
+        self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, node_id))
         return self._advance(now, messages, events)
+
+    def _theory_feedback(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> str:
+        """Right, not quite, or no attempt: the reason (`reply`) in each case. Never graded (ADR-019)."""
+        if not variant.reply:
+            return self._phrase("theory_ack")
+        if intent == Outcome.NEGATIVE_AFFECT:
+            return self._phrase("theory_affect", reply=variant.reply)
+        if intent is not None:
+            return self._phrase("theory_explain", reply=variant.reply)
+        if variant.accept:
+            right = phrase_regex(variant.accept).search(normalize_text(text)) is not None
+            return self._phrase("theory_right" if right else "theory_check", reply=variant.reply)
+        return f"{self._phrase('theory_ack')} {variant.reply}"
+
+    def _replies_since_decision(self) -> int:
+        """Student messages since the last teaching decision, the current one included."""
+        last = max(
+            (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
+        )
+        return sum(1 for e in self.events[last + 1 :] if e.event_type == EventType.STUDENT_MESSAGE)
 
     def on_hint_request(self, now: datetime, seconds: float = 0.0) -> TeachTurn:
         if self.awaiting != Awaiting.ANSWER or self.tutor is None:

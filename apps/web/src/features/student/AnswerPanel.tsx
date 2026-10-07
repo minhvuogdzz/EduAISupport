@@ -93,10 +93,10 @@ export function AnswerPanel({
   }
 
   const bigButton =
-    "min-h-14 rounded-2xl px-5 text-xl font-semibold disabled:cursor-not-allowed disabled:opacity-50";
+    "min-h-11 rounded-xl px-4 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-3">
+    <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-2.5">
       {pendingChoice && (
         <div role="group" aria-label="Con chọn một cách" className="flex flex-wrap gap-3">
           {pendingChoice.map((choice) => (
@@ -121,7 +121,7 @@ export function AnswerPanel({
               type="button"
               disabled={!canAnswer}
               onClick={() => setDraft(answer)}
-              className={`${bigButton} bg-white text-slate-900 ring-2 ring-slate-300 hover:ring-brand-600`}
+              className={`${bigButton} bg-white text-slate-900 ring-1 ring-slate-300 hover:ring-2 hover:ring-brand-600`}
             >
               {answer}
             </button>
@@ -134,7 +134,7 @@ export function AnswerPanel({
               disabled={!canAnswer}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => insert(symbol)}
-              className="size-14 rounded-2xl bg-white text-3xl font-bold text-slate-900 ring-2 ring-slate-300 hover:ring-brand-600 disabled:opacity-50"
+              className="size-11 rounded-xl bg-white text-2xl font-bold text-slate-900 ring-1 ring-slate-300 hover:ring-2 hover:ring-brand-600 disabled:opacity-50"
             >
               {symbol}
             </button>
@@ -155,7 +155,7 @@ export function AnswerPanel({
         <textarea
           id="answer"
           ref={inputRef}
-          rows={2}
+          rows={explaining ? 3 : 1}
           value={draft}
           maxLength={500}
           disabled={!canAnswer}
@@ -166,7 +166,7 @@ export function AnswerPanel({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="min-h-14 flex-1 resize-none rounded-2xl bg-transparent px-3 py-2.5 text-2xl placeholder:text-slate-400 focus-visible:outline-none disabled:opacity-60"
+          className="min-h-11 flex-1 resize-none rounded-xl bg-transparent px-3 py-2 text-lg placeholder:text-slate-400 focus-visible:outline-none disabled:opacity-60"
         />
         <button
           type="submit"
@@ -186,11 +186,11 @@ export function AnswerPanel({
             disabled={busy || !allowed.includes("HINT_REQUEST")}
             className={`${bigButton} inline-flex items-center gap-2 bg-amber-100 text-amber-950 ring-2 ring-amber-300 hover:bg-amber-200`}
           >
-            <LightbulbIcon className="size-6" />
+            <LightbulbIcon className="size-5" />
             Xin gợi ý
           </button>
         )}
-        <p className="text-base text-slate-600" aria-live="polite">
+        <p className="text-sm text-slate-600" aria-live="polite">
           {busy
             ? "Cô đang trả lời…"
             : symbols.includes(",") && !explaining

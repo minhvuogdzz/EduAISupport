@@ -330,6 +330,25 @@ Chạy song song từ Mốc 1:
   - **DI-29, thời gian học.** Cộng khoảng cách giữa hai sự kiện liên tiếp trong buổi; mỗi khoảng tính tối đa 5 phút.
   - **DI-30, ngày học.** Ngày theo giờ Việt Nam có ít nhất một lượt học sinh.
   - **DI-31, hai nhãn thêm cho học sinh và phụ huynh (ngoài DI-14).** "Chưa học" cho bài chưa có bằng chứng; "Đang học" cho bài đang học mà chưa có bằng chứng.
+- **DI-32 đến DI-38 (hiểu học sinh trước khi chấm, ADR-019):**
+  - **DI-32, đọc ý định.**
+    - Bảng chữ viết tắt kiểu teencode ("ko", "k", "bít", "j", "z", "dc"...) và các danh sách cụm từ trong `assessment/student_intent.py`.
+    - Thứ tự ưu tiên: im lặng, đòi đáp án, có câu trả lời, cảm xúc tiêu cực, hỏi lại đề, không biết hoặc xin gợi ý, lạc đề.
+    - Câu không đọc được, từ 4 từ trở lên, không có số và không có từ nào của bài, thì là lạc đề.
+  - **DI-33, R-OFF-TOPIC.** Đáp ngắn rồi hỏi lại câu đang làm. Không tính lượt, không gợi ý.
+  - **DI-34, R-CLARIFY và R-AFFECT.**
+    - R-CLARIFY: lần đầu nói lại đề bằng gợi ý TASK H1, lần sau lên gợi ý tiếp theo.
+    - R-AFFECT: lên 1 mức gợi ý, từ lần thứ hai lên 2 mức.
+    - Ở câu kiểm tra cuối buổi, quá mức H1 thì chỉ nhắc lại câu hỏi, không đóng câu.
+  - **DI-35, một lần hỏi "gợi ý hay tự thử".** Câu "gợi ý thêm hay tự thử lại?" hỏi một lần mỗi câu, chỉ sau "không biết". "Xin gợi ý" thì có gợi ý ngay.
+  - **DI-36, đòi đáp án.** Từ chối có lý do rồi gợi ý mức tiếp theo.
+  - **DI-37, thang gợi ý theo loại câu.**
+    - Gợi ý chung của bài khai báo `answer_types`.
+    - Thang gợi ý của một câu dừng ở gợi ý mạnh nhất dùng được cho câu đó; quá đó thì làm mẫu từng bước.
+  - **DI-38, hỏi lại và lạc đề.**
+    - Trả lời "vì sao" bằng "là sao", lạc đề hay than chán thì được hỏi lại một lần.
+    - Ở lời giảng và phần nói lại, lạc đề được kéo về tối đa 2 lần rồi gia sư giải thích và đi tiếp.
+    - Lời đáp câu hỏi lý thuyết (`reply`, `accept` trong `chapter.yaml`) là bản nháp chờ duyệt.
 - **DI-17:** tham số Hybrid RAG: BM25 k1 = 1,2, b = 0,75; RRF k = 60; hệ số phạt theo khoảng cách đồ thị; ngưỡng "không đủ căn cứ để trả lời".
 - Số câu tối đa mỗi node (N-BUDGET), số cách giảng tối thiểu, các ý bắt buộc khi chấm lời giải thích: đặt giá trị mặc định ở Mốc 1, duyệt sau.
 - Nội dung gói chương do AI soạn nháp: chủ dự án duyệt từng node trước khi học sinh thật dùng.

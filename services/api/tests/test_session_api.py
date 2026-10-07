@@ -229,18 +229,27 @@ def test_hint_request_delivers_a_hint(client):
     assert (student["actor"], tutor["actor"]) == ("student", "tutor")
     assert tutor["turn_id"] == ack.json()["tutor_turn_id"]
     assert after["item"]["item_attempt_id"] == state["item"]["item_attempt_id"]
-    # The tutor first offers a choice; that offer is not a hint, so it carries no hint level.
-    assert (tutor["move"], tutor["hint_level"]) == ("OFFER_CHOICE", None)
-    assert [c["choice_id"] for c in after["pending_choice"]] == ["HINT", "RETRY"]
+    # "Xin gợi ý" gets the hint at once (DI-35).
+    assert (tutor["move"], tutor["hint_level"]) == ("HINT", 1)
+    assert after["pending_choice"] is None
+
+    # A typed "con không biết" gets the choice, once per item; the offer itself carries no hint level.
+    assert send(client, after, "con không biết", "dont-know-1").status_code == 200
+    offered = get_state(client, state)
+    assert (offered["transcript"][-1]["move"], offered["transcript"][-1]["hint_level"]) == (
+        "OFFER_CHOICE",
+        None,
+    )
+    assert [c["choice_id"] for c in offered["pending_choice"]] == ["HINT", "RETRY"]
 
     chosen = client.post(
         f"/v1/sessions/{state['session_id']}/choices",
-        json={"choice_id": "HINT", "expected_state_version": after["state_version"]},
+        json={"choice_id": "HINT", "expected_state_version": offered["state_version"]},
         headers={**MINH, "Idempotency-Key": "choice-1"},
     )
     assert chosen.status_code == 200, chosen.text
     hinted = get_state(client, state)
-    assert (hinted["transcript"][-1]["move"], hinted["transcript"][-1]["hint_level"]) == ("HINT", 1)
+    assert (hinted["transcript"][-1]["move"], hinted["transcript"][-1]["hint_level"]) == ("HINT", 2)
     assert hinted["pending_choice"] is None
 
 

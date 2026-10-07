@@ -45,7 +45,7 @@ Quy ước hiển thị:
 
 - Số thập phân viết kiểu Việt Nam (`0,25`). Mỗi số là một khối không ngắt dòng; "0,25 … 0,3" luôn nằm trên một dòng và chỗ trống "…" hiện thành ô gạch đứt.
 - Không bao giờ sửa chữ học sinh gõ: transcript phải đúng nguyên văn. Chỉ định dạng những số do app tự in ra (`formatViDecimal`), và giờ theo `Asia/Ho_Chi_Minh`.
-- Chữ to cho trẻ 10–11 tuổi: câu hỏi 24–30 px, hội thoại 20 px, nút cao ≥ 56 px. Font Be Vietnam Pro (vẽ riêng cho dấu tiếng Việt, giấy phép OFL, tự host qua `@fontsource` nên không cần CDN).
+- Chữ vừa phải, dễ đọc trên máy tính bảng (chủ dự án góp ý 2026-10-06: chữ cũ quá to): câu hỏi 18–20 px, hội thoại 16–18 px, nút cao ≥ 44 px (cỡ chạm tối thiểu). Font Be Vietnam Pro (vẽ riêng cho dấu tiếng Việt, giấy phép OFL, tự host qua `@fontsource` nên không cần CDN).
 - Giao diện (UI-1): màu thương hiệu xanh ngọc (`brand-*`) và vàng ấm (`gold`, `gold-soft`) khai báo trong `@theme` của `src/index.css`; thẻ `.card` bo tròn, viền vàng nhạt; nền `.brand-gradient` cho phần đầu trang. Linh vật là con cò quàng khăn xanh tự vẽ (`components/Mascot.tsx`), có 5 tâm trạng. Mọi trang trừ màn học dùng chung `components/AppShell.tsx` (thanh vai trò, chân trang).
 - Biểu đồ tự vẽ bằng SVG, không dùng thư viện: chiều rộng đo bằng `lib/useElementWidth.ts` nên chữ không bị kéo giãn; mỗi biểu đồ có tên cho trình đọc màn hình và một danh sách ẩn nói cùng nội dung.
 - Trên tablet: bấm nút dấu không làm bật bàn phím ảo; Enter để gửi, Shift+Enter xuống dòng, không gửi khi bộ gõ (Telex, VNI) đang ghép chữ.

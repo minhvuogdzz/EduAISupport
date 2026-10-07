@@ -39,7 +39,7 @@ export function SessionPage() {
   const notice = view.notice && (
     <p
       role="status"
-      className="flex items-center justify-between gap-3 rounded-2xl bg-sky-100 px-4 py-3 text-lg text-sky-950"
+      className="flex items-center justify-between gap-3 rounded-2xl bg-sky-100 px-4 py-3 text-base text-sky-950"
     >
       {view.notice}
       <button type="button" onClick={dismissNotice} className="rounded-xl px-3 py-1 font-semibold underline">
@@ -103,7 +103,7 @@ export function SessionPage() {
             onChoose={(choice) => void choose(choice)}
           />
         ) : (
-          <p className="px-4 py-5 text-center text-xl text-slate-700">Con chờ cô một chút nhé…</p>
+          <p className="px-4 py-4 text-center text-base text-slate-700">Con chờ cô một chút nhé…</p>
         )}
       </footer>
     </div>
@@ -118,15 +118,15 @@ function SessionHeader({ state }: { state: SessionState }) {
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
         <Link to="/" aria-label="CAVAT, trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-2xl">
           <Mascot size={40} />
-          <span className="hidden text-lg font-extrabold text-brand-900 sm:inline">CAVAT</span>
+          <span className="hidden font-extrabold text-brand-900 sm:inline">CAVAT</span>
         </Link>
         <div className="min-w-0 flex-1">
           {state.activity && (
             <p className="text-base font-medium text-brand-800">{ACTIVITY_LABEL[state.activity.type]}</p>
           )}
-          <h1 className="truncate text-xl font-semibold">{state.lesson.title}</h1>
+          <h1 className="truncate text-lg font-semibold">{state.lesson.title}</h1>
         </div>
-        <p className="shrink-0 text-lg font-medium">
+        <p className="shrink-0 text-base font-medium">
           <span className="sr-only">Học sinh: </span>
           {state.student_display_name}
         </p>
@@ -152,14 +152,14 @@ function SessionHeader({ state }: { state: SessionState }) {
 function SessionComplete({ state }: { state: SessionState }) {
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 px-4 py-5 text-center">
-      <StarIcon className="size-12 text-amber-500" />
-      <p className="text-2xl font-semibold">Con đã hoàn thành buổi học!</p>
-      <p className="text-xl text-slate-700">
+      <StarIcon className="size-10 text-amber-500" />
+      <p className="text-xl font-semibold">Con đã hoàn thành buổi học!</p>
+      <p className="text-base text-slate-700">
         Con đã làm {state.progress.items_done}/{state.progress.items_total} câu.
       </p>
       <Link
         to="/student"
-        className="mt-2 rounded-2xl bg-brand-700 px-6 py-3 text-xl font-semibold text-white"
+        className="mt-2 rounded-xl bg-brand-700 px-5 py-2.5 text-base font-semibold text-white"
       >
         Về trang học sinh
       </Link>
@@ -172,11 +172,14 @@ function Message({ children, link = false }: { children: ReactNode; link?: boole
     <div className="min-h-dvh bg-amber-50">
       <MockBanner />
       <main className="mx-auto flex max-w-xl flex-col items-center gap-6 px-4 py-16 text-center">
-        <p role="status" className="text-2xl">
+        <p role="status" className="text-xl">
           {children}
         </p>
         {link && (
-          <Link to="/student" className="rounded-2xl bg-brand-700 px-6 py-3 text-xl font-semibold text-white">
+          <Link
+            to="/student"
+            className="rounded-xl bg-brand-700 px-5 py-2.5 text-base font-semibold text-white"
+          >
             Trang học sinh
           </Link>
         )}

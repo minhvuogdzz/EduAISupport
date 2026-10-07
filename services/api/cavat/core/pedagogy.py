@@ -99,6 +99,10 @@ class Outcome(StrEnum):
     NO_RESPONSE = "NO_RESPONSE"
     HELP_REQUEST = "HELP_REQUEST"
     ANSWER_DEMAND = "ANSWER_DEMAND"
+    # ADR-019: not attempts and not stalled turns; each gets its own move.
+    CLARIFY_REQUEST = "CLARIFY_REQUEST"  # "là sao ạ?", "nghĩa là gì?", "cô nói lại đi"
+    OFF_TOPIC = "OFF_TOPIC"  # talk outside the lesson
+    NEGATIVE_AFFECT = "NEGATIVE_AFFECT"  # "chán quá", "con ngu toán", "con sợ sai"
 
 
 # Outcomes that count as a graded attempt at the item.

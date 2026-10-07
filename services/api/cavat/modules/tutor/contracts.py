@@ -51,6 +51,11 @@ class ItemState:
     nudges_sent: int = 0  # silence nudges (never counted as wrong answers)
     unproductive_turns: int = 0  # turns without progress (blueprint R-FRUSTRATION)
     help_requests: int = 0
+    clarify_requests: int = 0  # "là sao ạ?" (ADR-019): never a wrong answer
+    off_topic_turns: int = 0  # talk outside the lesson (ADR-019): never a wrong answer
+    affect_signals: int = 0  # "chán quá", "con ngu toán" (ADR-019)
+    choice_offered: bool = False  # "gợi ý thêm hay tự thử lại?" is asked once per item (DI-35)
+    explanation_asked_again: bool = False  # "vì sao" asked once more after "là sao?" or off-topic talk
     probes_sent: int = 0  # "con làm thế nào?" asked after the first wrong answer (R-FIRST-WRONG asks once)
     misconception_counts: dict[str, int] = field(default_factory=dict)
     verified: bool = False  # a "why" question was asked and answered
