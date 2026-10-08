@@ -59,9 +59,14 @@ from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
 from cavat.modules.rag.bm25 import FILLER, content_words
 from cavat.modules.rag.retrieve import RagIndex, Retrieval
 from cavat.modules.tutor.prompt_builder import TUTOR_OUTPUT_SCHEMA, clean_text, given_name
-from cavat.modules.tutor.validator import INTELLIGENCE_PRAISE_PATTERNS, PII_PATTERNS, foreign_text
+from cavat.modules.tutor.validator import (
+    INTELLIGENCE_PRAISE_PATTERNS,
+    PII_PATTERNS,
+    foreign_text,
+    wrong_address,
+)
 
-GROUNDED_VERSION = "grounded-speech/0.2.1"
+GROUNDED_VERSION = "grounded-speech/0.2.2"
 PROMPT_FILE = "grounded.v1.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -98,6 +103,7 @@ CHECK_NOTES: dict[str, str] = {
     "UNGROUNDED_NUMBER": "dùng số không có trong đoạn nguồn",
     "NEW_MATH_TERM": "dùng thuật ngữ Toán không có trong đoạn nguồn",
     "FOREIGN_TEXT": "có chữ hoặc từ không phải tiếng Việt",
+    "WRONG_ADDRESS": "gọi học sinh sai xưng hô (gọi là con)",
     # Seen live: told only "an idea not in the passages", Qwen dropped a right answer that said "thay đổi"
     # where the passage says "đổi", and copied an unrelated passage instead.
     "UNSUPPORTED_CLAIM": (
@@ -152,7 +158,14 @@ class Evidence:
         ]
 
 
-def check(message: str, evidence: Evidence, *, max_words: int, forbid: Sequence[str] = ()) -> tuple[str, ...]:
+def check(
+    message: str,
+    evidence: Evidence,
+    *,
+    max_words: int,
+    forbid: Sequence[str] = (),
+    student_address: str = "con",
+) -> tuple[str, ...]:
     """Why a message the model wrote may not be said (empty: it may)."""
     if not message.strip():
         return ("EMPTY",)
@@ -160,6 +173,8 @@ def check(message: str, evidence: Evidence, *, max_words: int, forbid: Sequence[
     lowered = normalize_text(message)
     if foreign_text(message):
         codes.append("FOREIGN_TEXT")
+    if wrong_address(message, student_address):
+        codes.append("WRONG_ADDRESS")
     if "?" in message:
         codes.append("HAS_QUESTION")
     if len(message.split()) > max_words:

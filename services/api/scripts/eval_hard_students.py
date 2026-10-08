@@ -13,7 +13,6 @@ evals/reports/<date>-hard-students-live.md.
 
 from __future__ import annotations
 
-import json
 import sys
 import time
 from dataclasses import dataclass
@@ -105,23 +104,30 @@ def correct_answer(item) -> str:
     return "(xem đề)"
 
 
+def judge_case(item, said: str, intent: str, before: str, reply: str) -> str:
+    """The turn as labelled lines. Sent as JSON, an empty "previous tutor turn" field made the judge write
+    "không có phản hồi của gia sư" and score 1/1/1/1 although the reply was there (TQ-3, reproduced twice)."""
+    return "\n".join(
+        [
+            f"ĐỀ BÀI: {item.stem}",
+            f"ĐÁP ÁN ĐÚNG (để giám khảo biết, học sinh không thấy): {correct_answer(item)}",
+            f"GIA SƯ NÓI TRƯỚC ĐÓ: {before or '(chưa có, đây là lượt đầu của câu này)'}",
+            f"HỌC SINH VỪA NÓI: {said}",
+            f"HỆ THỐNG ĐỌC Ý ĐỊNH: {intent}",
+            f"LỜI GIA SƯ CẦN CHẤM: «{reply}»",
+        ]
+    )
+
+
 def judge(router, item, said: str, intent: str, before: str, reply: str) -> dict:
-    case = {
-        "de_bai": item.stem,
-        "dap_an_dung": correct_answer(item),
-        "loi_gia_su_truoc_do": before,
-        "hoc_sinh_vua_noi": said,
-        "y_dinh_he_thong_doc_duoc": intent,
-        "loi_gia_su_can_cham": reply,
-    }
     request = ChatRequest(
         messages=(
             ChatMessage("system", JUDGE_SYSTEM),
-            ChatMessage("user", json.dumps(case, ensure_ascii=False)),
+            ChatMessage("user", judge_case(item, said, intent, before, reply)),
         ),
         json_schema=JUDGE_SCHEMA,
         schema_name="judgement",
-        max_output_tokens=300,
+        max_output_tokens=600,  # 300 cut one judgement short (invalid_output, TQ-3)
         temperature=0.0,
     )
     outcome = router.chat(ModelClass.EVAL_JUDGE, request, calls_used=0)
