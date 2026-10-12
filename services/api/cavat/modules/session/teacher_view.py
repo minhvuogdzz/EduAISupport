@@ -360,6 +360,98 @@ def _activity(folded: Folded) -> list[dict[str, Any]]:
     return [{"date": d.isoformat(), **counts} for d, counts in sorted(days.items())]
 
 
+def _journey(chapter: Chapter, folded: Folded) -> list[dict[str, Any]]:
+    """Every item the student met, in order, with how it ended: the rows of the learning heatmap."""
+    known = set(chapter.topological_order())
+    out = []
+    for event, item in _resolved(folded.events):
+        node_id = next((k for k in item.kc_ids if k in known), None)
+        if node_id is None:  # an item of another version of the chapter
+            continue
+        out.append(
+            {
+                "node_id": node_id,
+                "item_id": item.item_id,
+                "resolution": item.resolution.value,
+                "attempts": item.attempts,
+                "hints": item.hints_count,
+                "at": event.occurred_at,
+            }
+        )
+    return out
+
+
+CURVE_POINTS = 160
+
+
+def _curve(chapter: Chapter, folded: Folded) -> list[dict[str, Any]]:
+    """The overall M after every change of a node's score, in the session (thinned to ``CURVE_POINTS``),
+    each period's pass marked: how the student went from not understanding to understanding."""
+    known = set(chapter.topological_order())
+    passed_at = {ns.passed_at: n for n, ns in folded.projection.nodes.items() if ns.passed_at is not None}
+    latest: dict[str, float] = {}
+    points: list[dict[str, Any]] = []
+    for point in folded.projection.trace:
+        if point.mastery is None or point.node_id not in known:
+            continue
+        latest[point.node_id] = point.mastery
+        overall_m = sum(latest.values()) / len(known)  # nodes not met count as 0: the chapter as a whole
+        points.append(
+            {
+                "at": folded.events[point.seq].occurred_at,
+                "mastery": round(overall_m, 1),
+                "node_id": point.node_id,
+                "node_mastery": round(point.mastery, 1),
+                "passed": passed_at.get(point.seq) or None,
+            }
+        )
+    if len(points) <= CURVE_POINTS:
+        return points
+    step = len(points) / CURVE_POINTS
+    keep = {round(i * step) for i in range(CURVE_POINTS)} | {len(points) - 1}
+    return [p for i, p in enumerate(points) if i in keep or p["passed"]]
+
+
+_REASONS = {
+    "OFF_TOPIC": "off_topic",
+    "NEGATIVE_AFFECT": "affect",
+    "CLARIFY": "clarify",
+    "HELP_REQUEST": "help",
+    "ANSWER_DEMAND": "answer_demand",
+    "ASKS_ABOUT": "asks_about",
+}
+
+
+def _conversation(folded: Folded) -> dict[str, Any]:
+    """What the child's messages were and how the tutor met them: the conductor's findings (teen code,
+    emoji, keyword heaps, a stuck tutor unstuck), the intents of ADR-019, the questions sent to the RAG."""
+    signals: Counter[str] = Counter()
+    intents: Counter[str] = Counter()
+    counts = Counter()
+    for e in folded.events:
+        kind, p = e.event_type, e.payload
+        if kind == EventType.STUDENT_MESSAGE:
+            counts["messages"] += 1
+        elif kind == EventType.HINT_REQUESTED:
+            counts["hint_button"] += 1
+        elif kind == EventType.CONTEXT_ROUTED:
+            signals.update(p.get("signals", []))
+            if p.get("route") == "UNSTICK":
+                signals["UNSTICK"] += 1
+        elif kind == EventType.POLICY_DECISION:
+            for code in p.get("reason_codes", []):
+                if code in _REASONS:
+                    intents[_REASONS[code]] += 1
+        elif kind == EventType.RAG_RETRIEVED and p.get("purpose") == "QUESTION":
+            counts["questions"] += 1
+        elif kind == EventType.QUESTION_PARKED:
+            counts["parked"] += 1
+        elif kind == EventType.SAFETY_FLAGGED:
+            counts["safety"] += 1
+    counts["hint_button"] -= signals["UNSTICK"]  # the conductor's own hint requests are not the child's
+    return {**dict(counts), "signals": dict(signals), "intents": dict(intents)}
+
+
 def student_detail(
     chapter: Chapter, student_id: str, sessions: Sequence[LearningSession], today: date
 ) -> dict[str, Any]:
@@ -439,4 +531,7 @@ def student_detail(
         "velocity": _velocity(timeline, today),
         "activity": _activity(f),
         "attention": attention(chapter, f, today),
+        "journey": _journey(chapter, f),
+        "curve": _curve(chapter, f),
+        "conversation": _conversation(f),
     }

@@ -232,3 +232,46 @@ def test_the_conductor_cleans_a_message_and_unsticks_a_tutor_saying_the_same_thi
     assert routed[-1]["route"] == "UNSTICK"
     again = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
     assert again["transcript"] == state["transcript"]  # rebuilt from the events alone
+
+
+def test_the_teacher_views_name_their_chapter(client):
+    advance(client, start(client), "t0")
+    default = client.get("/v1/teachers/class", headers=TEACHER)
+    named = client.get(f"/v1/teachers/class?chapter={chapter_service.DEFAULT_CHAPTER_ID}", headers=TEACHER)
+    assert default.status_code == named.status_code == 200 and default.json() == named.json()
+    assert client.get("/v1/teachers/class?chapter=nope", headers=TEACHER).status_code == 404
+    student = client.get("/v1/teachers/students/minh?chapter=nope", headers=TEACHER)
+    assert student.status_code == 404
+
+
+def test_praise_said_again_on_the_next_item_is_not_a_stuck_tutor(client, memory):
+    """Two right answers in a row: the same "Đúng rồi! … sang câu tiếp theo" is no reason for a hint."""
+    import asyncio
+
+    from cavat.modules.session.repository import LearningSessionRepository
+
+    state = advance(client, start(client), "p0")
+    for n in range(1, 8):
+        state = advance(client, state, f"p{n}")
+    session = asyncio.run(LearningSessionRepository(memory, service.DEMO_SCHOOL_ID).get(state["session_id"]))
+    assert not [e for e in session.events if e.event_type in ("CONTEXT_ROUTED", "HINT_REQUESTED")]
+
+
+def test_the_teacher_sees_the_learning_journey_and_the_conversation(client):
+    state = start(client)
+    for n in range(200):
+        if state["lifecycle_state"] == "COMPLETED":
+            break
+        state = advance(client, state, f"j{n}", "ko bít 😭" if n == 2 else None)
+    view = client.get("/v1/teachers/students/minh", headers=TEACHER).json()
+    assert len(view["journey"]) >= 5 and {s["resolution"] for s in view["journey"]} <= {
+        "INDEPENDENT",
+        "SUPPORTED",
+        "WORKED",
+        "UNRESOLVED",
+    }
+    passes = [p["passed"] for p in view["curve"] if p["passed"]]
+    assert sorted(passes) == sorted(n["node_id"] for n in view["nodes"] if n["passed"])
+    assert view["curve"][-1]["mastery"] >= view["curve"][0]["mastery"]
+    talk = view["conversation"]
+    assert talk["messages"] > 0 and talk["signals"].get("EMOJI") == 1 and talk["hint_button"] >= 0

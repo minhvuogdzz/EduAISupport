@@ -295,6 +295,9 @@ def _conducted(
         # Twice already the tutor answered or parked what it took for a question, and asked its own again:
         # this message is read as the reply (the loop does not ask the RAG about it).
         loop.speaker, route = None, "UNSTICK"
+    # Only a repeat on the same question counts: "Đúng rồi! … sang câu tiếp theo" said again on a new item is
+    # praise, not a stuck tutor (a simulated session got a hint on every next item before this check).
+    item_before = loop.tutor.item.id if loop.awaiting == Awaiting.ANSWER and loop.tutor is not None else None
     recent = [
         e.payload.get("text", "")
         for e in loop.events[-6:]
@@ -305,6 +308,8 @@ def _conducted(
     said = [m.text for m in turn.messages if m.kind == MessageKind.ITEM]
     if (
         turn.awaiting == Awaiting.ANSWER
+        and item_before is not None
+        and turn.item_id == item_before
         and turn.item_phase == Phase.AWAITING
         and not turn.choice_open
         and repeats(said, recent)

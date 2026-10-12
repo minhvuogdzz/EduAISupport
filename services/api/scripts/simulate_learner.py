@@ -154,6 +154,8 @@ class Vuong:
                 return ("ANSWER", self.rng.choice(DONT_KNOW))
             if self.once(node, "offtopic", 0.2):
                 return ("ANSWER", self.rng.choice(OFF_TOPIC))
+            if self.once(node, "question", 0.4):  # a question on the lesson: the RAG of this period answers
+                return ("ANSWER", self.rng.choice(ASK_WORD[self.chapter_id]))
             variant = next(
                 (v for n in self.chapter.nodes for v in n.theory if v.ask and v.ask in (t["prompt"] or "")),
                 None,
