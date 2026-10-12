@@ -263,7 +263,9 @@ def _node_content_problems(chapter: Chapter, node: Node) -> list[str]:
     for name, refs, minimum in (
         ("checks", node.checks, 1),
         ("practice", node.practice, 2),
-        ("transfer", node.transfer, 1),
+        # A node whose pass rule asks no application evidence needs no transfer item (DI-6, 2026-10-12: the
+        # basic nodes of the teacher's documents; their application is in the practice nodes and the test).
+        ("transfer", node.transfer, 1 if node.pass_rule.require_application else 0),
     ):
         if len(refs) < minimum:
             problems.append(f"{node.id}: needs at least {minimum} {name} item(s)")

@@ -112,6 +112,10 @@ Một file cho mỗi chương (ví dụ `docs/pedagogy/math-g5/so-thap-phan/chap
 - **Điểm tổng (§20 + DI-1):** `M = 0,20·C + 0,20·R + 0,15·A + 0,15·T + 0,10·I + 0,10·S + 0,10·D`; chiều chưa có bằng chứng bị bỏ và chuẩn hóa lại trọng số.
 - **6 mức hiểu (§4–§8):** 0 chưa học · 1 nhận biết · 2 làm theo thủ tục · 3 hiểu khái niệm · 4 vận dụng · 5 thành thạo.
 - **Qua node** (DI-15, chờ duyệt): đạt mức 4 (M ≥ 75) **và** cổng UNDERSTOOD (§52: ≥ 3 bằng chứng đúng trên ≥ 2 mức nhận thức và ≥ 2 dạng câu) **và** DI-6 (có bằng chứng giải thích với μ_R ≥ 0,6, có bằng chứng vận dụng A). Không còn lỗi sai nghiêm trọng đang hoạt động.
+  - **Chủ dự án quyết ngày 2026-10-12** cho phương án dựng từ tài liệu (INGEST-3a):
+    - tiết khái niệm (BASIC) đạt bằng hiểu và luyện tập, không đòi bằng chứng vận dụng;
+    - bằng chứng vận dụng được đòi ở tiết vận dụng (IMPLEMENT) và bài kiểm tra cuối chương;
+    - node có `require_application: false` thì không cần câu vận dụng.
 - **Thành thạo** (§53) cần thêm ghi nhớ S từ lần ôn sau một thời gian: Mốc 2.
 - **Điểm khởi đầu của node mới** (DI-16, chờ duyệt; ý tưởng cold start của 2T-KT): prior của node lấy từ trung bình điểm các node tiên quyết, với khối lượng nhỏ để bằng chứng thật nhanh chóng lấn át.
 - **Tất định:** điểm là hàm thuần của chuỗi sự kiện và version của quy tắc (quy tắc 3). AI không ghi điểm. Lời giải thích do AI chấm (Mốc 2) chỉ là một bằng chứng có độ tin cậy; quy tắc quyết định cộng bao nhiêu.
@@ -456,6 +460,21 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-45, dựng phương án dạy nháp từ tài liệu (INGEST-3a, ADR-025, chờ duyệt):**
+  - Mỗi tiết có bài trong giáo án là một node. Tiết ôn tập là bài kiểm tra cuối chương.
+  - Node vận dụng (IMPLEMENT) là tiết có tên chứa "luyện tập, ứng dụng, thực tế, vận dụng, hình ghép, công thức ngược".
+  - Ghép mục lý thuyết vào tiết cùng bài SGK theo từ chung có trọng số. Trọng số là log(số tiết / số tiết có từ đó), tên tính gấp ba. Từng khung VÍ DỤ được ghép riêng.
+  - Tiết không có câu "Kiểm tra hiểu" thì câu đầu của phiếu tiết đó là câu kiểm tra (mức A).
+  - Mức nhận thức và độ khó theo mục của tài liệu:
+
+    | Mục | Mức | Độ khó |
+    |---|---|---|
+    | Kiểm tra hiểu | A | 0,2 |
+    | Cùng làm | B | 0,35 |
+    | Luyện tập | B | 0,5 |
+    | Phiếu | B | 0,45 |
+    | Vận dụng | D | 0,7, có chuyển giao gần |
+
 - **DI-44, kiểm đáp án của ngân hàng câu nháp (INGEST-2, ADR-024, chờ duyệt):**
   - Làm tròn "nửa lên" (chữ số bên phải từ 5 trở lên thì tăng 1), làm một lần, theo hàng đề nêu. Số đo được làm tròn theo đơn vị nó được viết.
   - Một số trong đáp án "có căn cứ" khi:

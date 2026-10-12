@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank eval-items teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan eval-items teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -35,6 +35,9 @@ library-import: ## Import a folder of teacher documents (DIR=tailieu) into the l
 
 item-bank: ## Build the draft item bank of each chapter from the imported teacher documents (database of .env)
 	cd services/api && .venv/bin/python -m cavat.item_bank
+
+teaching-plan: ## Build the draft teaching plan (graph, periods, items) of each chapter from the teacher documents
+	cd services/api && .venv/bin/python -m cavat.teaching_plan
 
 eval-items: ## Mutate every checked answer of the item banks and count how many the checks catch (read-only)
 	cd services/api && .venv/bin/python scripts/eval_item_bank.py

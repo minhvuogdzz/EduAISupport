@@ -9,7 +9,7 @@ from cavat.modules.assessment.repository import Evidence, EvidenceRepository
 from cavat.modules.content.lesson_package import load_lesson_package
 from cavat.modules.content.repository import LessonRepository, LessonVersion, package_hash
 from cavat.modules.identity.repository import User, UserRepository
-from cavat.modules.ingest.repository import ItemBank, ItemBankRepository
+from cavat.modules.ingest.repository import ItemBank, ItemBankRepository, TeachingPlan, TeachingPlanRepository
 from cavat.modules.learner.repository import StudentKCStateRepository
 from cavat.modules.library.repository import DocumentRepository, TeacherDocument
 from cavat.modules.org.repository import (
@@ -311,6 +311,9 @@ async def test_every_stored_learner_document_has_school_id(db, package):
     )
 
     await ItemBankRepository(db, "sch-A").save(ItemBank(school_id="sch-A", chapter_id="c", version="v"))
+    await TeachingPlanRepository(db, "sch-A").save(
+        TeachingPlan(school_id="sch-A", chapter_id="c", version="v")
+    )
 
     for repo in repository_classes():
         docs = await db[repo.collection_name].find({}).to_list()
