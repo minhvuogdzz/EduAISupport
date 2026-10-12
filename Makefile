@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -44,6 +44,12 @@ draft-teaching: ## Draft with Qwen the hints, answers and key ideas the document
 
 eval-items: ## Mutate every checked answer of the item banks and count how many the checks catch (read-only)
 	cd services/api && .venv/bin/python scripts/eval_item_bank.py
+
+trial: ## Scripted learners study the published plans, offline and in memory (reads the database, writes none)
+	cd services/api && .venv/bin/python scripts/trial_sessions.py
+
+review-export: ## Export every review decision (who, when, why) to var/storage/reports (read-only)
+	cd services/api && .venv/bin/python scripts/review_export.py
 
 teach: ## Talk with the AI tutor in the terminal: the teaching loop on the decimals chapter, offline
 	cd services/api && .venv/bin/python scripts/teach_cli.py

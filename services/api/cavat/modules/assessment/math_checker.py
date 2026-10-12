@@ -23,12 +23,14 @@ from cavat.modules.assessment.student_intent import looks_off_topic, read_intent
 from cavat.modules.assessment.vi_numbers import (
     ParsedNumber,
     extract_numbers,
+    fold,
     format_vi,
     normalize_text,
     parse_literal,
     phrase_regex,
     tolerant_pattern,
 )
+from cavat.modules.assessment.vi_words import decimal_from_words
 from cavat.modules.content.lesson_package import (
     BooleanAnswer,
     ChoiceAnswer,
@@ -350,6 +352,16 @@ def _check_order(spec: OrderAnswer, text: str, pkg: LessonPackage) -> CheckResul
 _ASSIGNED_RE = re.compile(rf"(?<!\w)[a-z]\s*(?:=|:|{_words('là', 'bằng')})\s*$")
 
 
+def _written_as_asked(form: str | None, n: ParsedNumber, target: ParsedNumber) -> bool:
+    """A fraction with the key's denominator (475/1000 for "0,475 = ……", not 19/40), or a decimal."""
+    if form == "decimal":
+        return n.form in ("integer", "decimal")
+    if form == "fraction":
+        denominator = re.sub(r"\s", "", target.text).split("/")[-1]
+        return n.form == "fraction" and re.sub(r"\s", "", n.text).split("/")[-1] == denominator
+    return True
+
+
 def _check_numeric(spec: NumericAnswer, text: str) -> CheckResult:
     target = parse_literal(spec.value)
     t = normalize_text(text)
@@ -370,13 +382,91 @@ def _check_numeric(spec: NumericAnswer, text: str) -> CheckResult:
             correct_answer=spec.value,
             detail={"interpretation": format_vi(n.value)},
         )
+    if n.value == target.value and not _written_as_asked(spec.form, n, target):
+        detail = {"form": spec.form, "written": n.text}
+        return CheckResult(Outcome.WRONG, normalized=n.text, correct_answer=spec.value, detail=detail)
     if n.value == target.value:
-        return CheckResult(Outcome.CORRECT, normalized=format_vi(n.value), correct_answer=spec.value)
+        normalized = n.text if spec.form == "fraction" else format_vi(n.value)
+        return CheckResult(Outcome.CORRECT, normalized=normalized, correct_answer=spec.value)
     result = CheckResult(Outcome.WRONG, normalized=format_vi(n.value), correct_answer=spec.value)
     for wrong, mid in spec.wrong_answers.items():
         if parse_literal(wrong).value == n.value:
             return _with_diagnosis(result, [(mid, 0.8)])
     return _with_diagnosis(result, [])
+
+
+# --------------------------------------------------------------------------- open answers (DI-48)
+
+_SIGN_WORDS = ((r"bé hơn|nhỏ hơn|<", "<"), (r"lớn hơn|>", ">"), (r"bằng nhau|bằng|=", "="))
+
+
+def _has(folded: str, phrase: str) -> bool:
+    return re.search(rf"(?<!\w){re.escape(fold(phrase))}(?!\w)", folded) is not None
+
+
+def _signs(t: str) -> list[str]:
+    pattern = "|".join(f"(?P<s{i}>{p})" for i, (p, _) in enumerate(_SIGN_WORDS))
+    return [_SIGN_WORDS[int(m.lastgroup[1:])][1] for m in re.finditer(pattern, t)]  # type: ignore[index]
+
+
+def _check_facts(spec: OpenAnswer, text: str) -> CheckResult:
+    """An open answer read against the facts its key must contain: every fact must hold."""
+    facts = spec.facts
+    assert facts is not None
+    t = normalize_text(_strip_courtesy(text))
+    folded = fold(t)
+    missing: list[str] = []
+    said = False  # the reply says something the facts can read (else the tutor asks again)
+    if facts.reading is not None:
+        value = decimal_from_words(re.sub(r"[^\w\s]", " ", t))
+        if re.search(r"\d", t) and value is None:
+            return CheckResult(
+                Outcome.WRONG, normalized=t, correct_answer=spec.sample_answer, detail={"form": "words"}
+            )
+        if value is None:
+            return CheckResult(Outcome.UNPARSEABLE, correct_answer=spec.sample_answer)
+        said = True
+        if value != parse_literal(facts.reading).value:
+            missing.append("reading")
+    numbers = {n.value for n in extract_numbers(t)}
+    if (words := decimal_from_words(t)) is not None:
+        numbers.add(words)
+    said = said or bool(numbers)
+    for group in facts.numbers:
+        if not any(parse_literal(v).value in numbers for v in group):
+            missing.append("numbers")
+    if facts.only_numbers:
+        allowed = {parse_literal(v).value for group in facts.numbers for v in group}
+        if numbers - allowed:
+            missing.append("extra numbers")
+    for group in facts.phrases:
+        hit = any(_has(folded, p) for p in group)
+        said = said or hit
+        if not hit:
+            missing.append("phrases")
+    if facts.relations:
+        signs = _signs(t)
+        said = said or bool(signs)
+        if signs[: len(facts.relations)] != list(facts.relations):
+            missing.append("relations")
+    if facts.order:
+        spots = [
+            m.start() if (m := re.search(rf"(?<!\w){re.escape(fold(w))}(?!\w)", folded)) else -1
+            for w in facts.order
+        ]
+        said = said or any(p >= 0 for p in spots)
+        if -1 in spots or spots != sorted(spots):
+            missing.append("order")
+    if facts.pairs:
+        clauses = [c for c in re.split(r"[,;.\n]|\bcon\b", folded) if c.strip()]  # folded: "còn" is "con"
+        for word, name in facts.pairs:
+            said = said or _has(folded, name)
+            if not any(_has(c, word) and _has(c, name) for c in clauses):
+                missing.append("pairs")
+    if not said:
+        return CheckResult(Outcome.UNPARSEABLE, correct_answer=spec.sample_answer)
+    outcome = Outcome.WRONG if missing else Outcome.CORRECT
+    return CheckResult(outcome, normalized=t, correct_answer=spec.sample_answer, detail={"missing": missing})
 
 
 # --------------------------------------------------------------------------- choice
@@ -525,6 +615,8 @@ def _check_spec(item: Item, text: str, pkg: LessonPackage) -> CheckResult:
     if isinstance(spec, BooleanAnswer):
         return _check_boolean(spec, text)
     if isinstance(spec, OpenAnswer):
+        if spec.facts is not None:
+            return _check_facts(spec, text)
         return CheckResult(Outcome.NEEDS_LLM, normalized=text.strip())
     raise TypeError(f"unsupported answer type: {type(spec).__name__}")
 

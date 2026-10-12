@@ -169,3 +169,79 @@ def test_the_review_view_shows_the_chapter_its_sources_and_what_waits(client):
     assert view["items"]["STP-PH01-1"]["status"] == "VERIFIED"
     assert "STP-T01: chưa duyệt" in view["review"]["blockers"]
     assert client.get(f"{URL}/view", headers={"X-Demo-Student": "s"}).status_code in (401, 403)
+
+
+async def test_a_batch_of_decisions_is_checked_whole_then_written_once_with_its_reasons(
+    tmp_path, monkeypatch
+):
+    from cavat.modules.ingest.review import ReviewError
+    from cavat.modules.ingest.service import decide_many, rebuild
+
+    monkeypatch.setenv("STORAGE_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    database = InMemoryDatabase()
+    await ensure_indexes(database)
+    repo = DocumentRepository(database, DEMO_SCHOOL_ID)
+    exercises, sheets = doc("BAI_TAP", EXERCISES), doc("PHIEU", SHEETS)
+    for d in (
+        doc("BAI_GIANG", THEORY),
+        doc("GIAO_AN", PLAN2),
+        exercises,
+        doc("DAP_AN", KEY, answers_for=exercises.id),
+        sheets,
+        doc("DAP_AN", SHEET_KEY, answers_for=sheets.id),
+    ):
+        await repo.create(d.model_copy(update={"school_id": DEMO_SCHOOL_ID}))
+    await rebuild(database, DEMO_SCHOOL_ID, "math-g5-decimals")
+    good = {"target": "item:STP-PH02-3/answer", "action": "edit", "value": "7,008", "reason": "đáp án in sai"}
+    with pytest.raises(ReviewError):
+        await decide_many(
+            database, DEMO_SCHOOL_ID, "math-g5-decimals", [good, {"target": "x", "action": "approve"}], "gv"
+        )
+    plan = await decide_many(
+        database,
+        DEMO_SCHOOL_ID,
+        "math-g5-decimals",
+        [good, {"target": "node:STP-T01", "action": "approve"}],
+        "gv",
+    )
+    assert plan.decisions["item:STP-PH02-3/answer"]["reason"] == "đáp án in sai"
+    assert plan.decisions["node:STP-T01"]["by"] == "gv" and "reason" not in plan.decisions["node:STP-T01"]
+    assert set(plan.decisions) == {"item:STP-PH02-3/answer", "node:STP-T01"}
+    get_settings.cache_clear()
+
+
+def test_the_teacher_may_lower_the_question_forms_a_period_asks():
+    from cavat.modules.content.chapter_package import PassRule
+    from cavat.modules.ingest.review import ReviewError, _edit_node, check_decision
+
+    check_decision("node:STP-T08/pass_rule/min_forms", "edit", 1)
+    with pytest.raises(ReviewError):
+        check_decision("node:STP-T08/pass_rule/min_mastery", "edit", 0.1)
+
+    class Node:  # the part of a period the edit touches
+        pass_rule = PassRule()
+
+        def model_copy(self, update):
+            self.pass_rule = update["pass_rule"]
+            return self
+
+    assert _edit_node(Node(), ["pass_rule", "min_forms"], "1").pass_rule.min_forms == 1
+
+
+def test_an_item_moved_to_another_stage_stays_there_once_it_is_approved(client):
+    client.post(f"{URL}/build", headers=TEACHER)
+    decide(client, "item:STP-PH02-3/answer", "edit", "7,008")
+    decide(client, "item:STP-PH02-3/stage", "edit", "transfer")
+    plan = decide(client, "item:STP-PH02-3", "approve")  # once crashed: the approval read as a stage
+    node = items_of(plan, "STP-T02")
+    assert "STP-PH02-3" in node["transfer"] and "STP-PH02-3" not in node["practice"]
+
+
+def test_the_teacher_writes_what_a_right_open_answer_must_say(client):
+    client.post(f"{URL}/build", headers=TEACHER)
+    bad = {"target": "item:STP-PH02-1/facts", "action": "edit", "value": {"relations": ["≠"]}}
+    assert client.post(f"{URL}/decisions", headers=TEACHER, json=bad).status_code == 409
+    plan = decide(client, "item:STP-PH01-1/facts", "edit", {"numbers": [["0,7"]]})  # not an open item
+    item = next(i for i in plan["lessons"]["STP-Bài11"]["items"] if i["id"] == "STP-PH01-1")
+    assert item["answer"]["type"] != "open" or item["answer"]["facts"] == {"numbers": [["0,7"]]}

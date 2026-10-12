@@ -42,6 +42,7 @@ from cavat.modules.content.lesson_package import (
     ChoiceOption,
     CompareAnswer,
     Item,
+    KeyFacts,
     KnowledgeComponent,
     LessonPackage,
     Misconception,
@@ -262,11 +263,14 @@ def answer_spec(draft: ItemDraft) -> Any:
                 for k, v in draft.options.items()
             ],
         )
-    if m := re.match(r"\s*(Đ|S)\b", first):
+    # "Đ" or "S" alone (or with its reason in brackets); "S = 12 × 7 : 2 = 42 cm²" is an area, not "Sai".
+    if m := re.match(r"\s*(Đ|S)\s*(?:\(|$)", first):
         return BooleanAnswer(type="boolean", value=m.group(1) == "Đ", requires_explanation=False)
     pair = re.search(rf"({MEASURE.pattern})\s*(?:…+|\.{{2,}})\s*({MEASURE.pattern})", stem)
-    # The checker compares and orders plain numbers: measures ("2,5 m …… 250 cm") stay open answers.
-    if pair and re.search(r"[<>=]", first) and all(_plain_number(g) for g in pair.groups()):
+    # The checker compares and orders plain numbers: measures ("2,5 m …… 250 cm") stay open answers, and so
+    # does a line of several comparisons ("7,35 …… 7,4   0,60 …… 0,6": one pair only would be graded).
+    pairs = len(re.findall(r"…+|\.{2,}", stem))
+    if pair and pairs == 1 and re.search(r"[<>=]", first) and all(_plain_number(g) for g in pair.groups()):
         return CompareAnswer(type="compare", left=pair.group(1).strip(), right=pair.group(2).strip())
     lowered = stem.lower()
     if ("sắp xếp" in lowered or "xếp" in lowered) and re.search(r"[<>]", first):
@@ -274,17 +278,202 @@ def answer_spec(draft: ItemDraft) -> Any:
         direction = "desc" if ">" in first else "asc"
         if numbers and all(_plain_number(n) for n in numbers):
             return OrderAnswer(type="order", numbers=[n.strip() for n in numbers], direction=direction)
+    # The key restates what is given: "0,29 = 29/100" for "0,29 = ……", "8,49 ≈ 8" for "8,49 đến hàng đơn vị".
+    given_side = re.match(r"\s*(\d+(?:,\d+)?(?:/\d+)?)\s*(=|≈)\s*(\d+(?:,\d+)?(?:/\d+)?)\s*$", first)
+    if given_side and re.match(rf"\s*(?:[a-e]\)\s*)?{re.escape(given_side.group(1))}(?!\d)", stem):
+        value = given_side.group(3)
+        if "/" in value:
+            return NumericAnswer(type="numeric", value=value, form="fraction")
+        form = "decimal" if "/" in given_side.group(1) else None
+        return NumericAnswer(type="numeric", value=value, form=form)  # type: ignore[arg-type]
+    # "Viết số thập phân: Hai mươi lăm phẩy bốn" (the instruction in the shared stem): the number written.
+    if re.search(r"Viết (các )?số thập phân", draft.stem) and re.fullmatch(r"\d+,\d+", first):
+        return NumericAnswer(type="numeric", value=first)
+    gap = re.search(r"…|\.{3,}", stem)
+    # "0,475 = ……" in a sheet about decimal fractions: the key 475/1000 is the form asked, not only its value.
+    if gap and (fraction := re.fullmatch(r"(\d+)\s*/\s*(\d+)", first)):
+        return NumericAnswer(
+            type="numeric", value=f"{fraction.group(1)}/{fraction.group(2)}", form="fraction"
+        )
+    # "Ba phẩy bốn: ……", "Gồm 17 đơn vị, 1 phần mười, 8 phần trăm: ……": a number written in the gap.
+    if gap and re.fullmatch(r"\d+(?:,\d+)?", first) and "=" not in stem:
+        return NumericAnswer(type="numeric", value=first)
+    # "49/100 = ……", "16 99/100 = ……": the decimal is asked, not the fraction written back.
+    asks_decimal = bool(re.match(r"\s*(?:\d+\s+)?\d+/\d+\s*=", stem))
+    if gap and asks_decimal and re.fullmatch(r"\d+,\d+", first):
+        return NumericAnswer(type="numeric", value=first, form="decimal")
     blank = re.search(r"(?:=|≈)\s*(?:…+|\.{2,})\s*([^\s.…]*)", stem)
     given = answer_quantity(first)
-    if blank and given is not None and not re.search(r"[a-zà-ỹ]{3,}", first.split("=")[-1].lower()):
+    # Words after the value other than its unit ("17,002 tấn" is a value; "x = 2 ; 3 ; 4" is several).
+    words = re.sub(rf"\b({'|'.join(map(re.escape, UNITS))})(?!\w)", "", first.split("=")[-1].lower())
+    several = len(re.findall(r"\d+(?:,\d+)?", first.split("=")[-1])) > 1 and ";" in first
+    if blank and given is not None and not several and not re.search(r"[a-zà-ỹ]{3,}", words):
         unit = blank.group(1).strip()
         value = given.value / UNITS[unit][1] if unit in UNITS and given.dimension else given.value
         from cavat.modules.assessment.vi_numbers import format_vi
 
         return NumericAnswer(type="numeric", value=format_vi(value))
-    return OpenAnswer(
-        type="open", rubric=f"Đáp án của giáo viên: {draft.answer}", sample_answer=first or draft.answer
+    # A question that asks for a computed quantity ("Tính diện tích…", "Hỏi … bao nhiêu"): the value its
+    # worked answer ends on, in the unit it is written in.
+    # "Tính diện tích: a) tam giác đáy 15 cm …": the question may be in the shared stem.
+    asks = re.search(r"\b(Tính|Hỏi|bao nhiêu)\b", stem, re.IGNORECASE) or re.match(
+        r"\s*(?:\(.*?\)\s*)?Tính\b", draft.stem
     )
+    question = [q for q in re.split(r"(?<=[.?])\s+", re.sub(r"\[[^\]]*\]", "", stem)) if q.strip()]
+    several = sum(1 for q in question if re.search(r"\b(Tính|Hỏi|bao nhiêu|mấy)\b|\?", q, re.I)) > 1
+    last_q = (question or [""])[-1]
+    joined = re.search(r"\svà\s", last_q) and re.search(r"\b(Tính|Hỏi|bao nhiêu|mấy)\b", last_q, re.I)
+    if asks and (several or joined or re.search(r"\b(các|nào|hai kết quả)\b", last_q, re.I)):
+        asks = None  # "Hình nào lớn hơn và lớn hơn bao nhiêu?", "Tính … các tam giác": not one number
+    # Measures in several units and no unit asked ("đáy 3 dm, chiều cao 25 cm"): 375 cm² and 3,75 dm² are both
+    # right, and the checker compares values only, so the rubric grades it.
+    units: dict[str, set[str]] = {}
+    for m in MEASURE.finditer(draft.stem):
+        if (q := evaluate(m.group(0))) and q.unit:
+            units.setdefault(str(q.dimension), set()).add(q.unit)
+    named = re.search(
+        r"theo (xăng-ti-mét|đề-xi-mét|mét|ki-lô-mét|mi-li-mét)|(?:…+|\.{2,})\s*/?\s*\S+", draft.stem
+    )
+    if asks and any(len(u) > 1 for u in units.values()) and not named:
+        asks = None
+    # The answer's conclusion: its last sentence with a number ("Tổng: 30 m²", "Tăng thêm 30 cm²"), brackets
+    # and an advice line ("Gợi ý: …") left out; the result is its last measure.
+    plain = re.sub(r"\([^)]*\)", "", draft.answer)
+    sentences = [p.strip(" .") for line in plain.splitlines() for p in re.split(r"\.\s+", line) if p.strip()]
+    numbered = [p for p in sentences if re.search(r"\d", p) and not p.startswith("Gợi ý")]
+    last = numbered[-1] if numbered else ""
+    measures = [m.group(0) for m in MEASURE.finditer(last)]
+    result = evaluate(measures[-1]) if asks and measures else None
+    if result is not None:
+        from cavat.modules.assessment.vi_numbers import format_vi
+
+        value = result.value / UNITS[result.unit][1] if result.dimension else result.value
+        return NumericAnswer(type="numeric", value=format_vi(value))
+    listed = re.findall(r"\d+(?:,\d+)?", stem)
+    if re.search(r"(lớn|bé|nhỏ) nhất", stem) and re.fullmatch(r"\d+(?:,\d+)?", first) and first in listed:
+        return NumericAnswer(type="numeric", value=first)
+    if (choice := _choice_between(stem, " ".join(plain.split()))) is not None:
+        return choice
+    if (x := _single_x(first)) is not None:
+        return NumericAnswer(type="numeric", value=x)
+    return OpenAnswer(
+        type="open",
+        rubric=f"Đáp án của giáo viên: {draft.answer}",
+        sample_answer=_first_sentence(draft.answer) or draft.answer,
+        facts=key_facts(draft, stem),
+    )
+
+
+def _first_sentence(answer: str) -> str:
+    """The key's first line, joined with the next ones while it breaks mid-sentence ("… Hình 3 có đường cao
+    / nằm ngoài tam giác.")."""
+    lines = [line.strip() for line in answer.splitlines() if line.strip()]
+    out = lines[0] if lines else ""
+    for line in lines[1:]:
+        if re.search(r"[.?!:]$", out):
+            break
+        out = f"{out} {line}"
+    return out
+
+
+PLACES = ("nghìn", "trăm", "chục", "đơn vị", "phần mười", "phần trăm", "phần nghìn")
+_NAME = r"[A-ZĐ][a-zà-ỹ]*"
+_NUMBER = r"\d+(?:,\d+)?"
+
+
+def _single_x(first: str) -> str | None:
+    """ "x = 6" (one digit or number found): a numeric answer."""
+    m = re.fullmatch(rf"x\s*=\s*({_NUMBER})\.?", first.strip())
+    return m.group(1) if m else None
+
+
+def _choice_between(stem: str, key: str) -> Any:
+    """A choice of the two things a question names ("Tam giác (…) hay hình thang (…) … lớn hơn?")."""
+    m = re.search(r"([A-ZĐa-zà-ỹ ]+?)\s*\([^)]*\)\s*hay\s+([a-zà-ỹ ]+?)\s*\(", stem)
+    said = re.search(
+        r"([a-zà-ỹ ]+?)\s+(?:lớn|bé|nhỏ|dài|ngắn|nặng|nhẹ|cao|thấp)\s+hơn", key.lower().split(":")[-1]
+    )
+    if not m or not said:
+        return None
+    options = [m.group(1).strip(), m.group(2).strip()]
+    winner = said.group(1).strip()
+    if sum(o.lower() == winner for o in options) != 1:
+        return None
+    return ChoiceAnswer(
+        type="choice",
+        options=[
+            ChoiceOption(id=k, text=o, correct=o.lower() == winner)
+            for k, o in zip("AB", options, strict=True)
+        ],
+    )
+
+
+def key_facts(draft: ItemDraft, stem: str) -> KeyFacts | None:
+    """What a right answer must say, read from the teacher's key (DI-48); None when nothing reliable is."""
+    from cavat.modules.assessment.vi_numbers import format_vi, parse_literal
+    from cavat.modules.assessment.vi_words import decimal_from_words, is_number_words
+
+    first = draft.answer.splitlines()[0].strip() if draft.answer else ""
+    plain = " ".join(re.sub(r"\([^)]*\)", "", draft.answer).split())
+    whole = " ".join(draft.stem.split())
+    asked = re.findall(_NUMBER, stem)
+    if first.startswith("Đáp án mở"):
+        return None
+    # "Đọc số 30,15" → "ba mươi phẩy mười lăm": the number in words.
+    if "Đọc" in whole and is_number_words(first) and asked:
+        if decimal_from_words(first) == parse_literal(asked[-1]).value:
+            return KeyFacts(reading=asked[-1])
+    # "hàng phần trăm; giá trị 0,07", "chục": the place, and its value.
+    if m := re.fullmatch(rf"hàng (.+?)\s*[;,]\s*giá trị\s*({_NUMBER})\.?", first):
+        return KeyFacts(phrases=[[m.group(1).strip()]], numbers=[[m.group(2)]])
+    if first.lower().strip(" .") in PLACES:
+        return KeyFacts(phrases=[[first.lower().strip(" .")]])
+    # "x = 2 ; 3 ; 4 ; 5", "… nên x = 6 hoặc x = 7 (…)": exactly these values.
+    if "x =" in first:
+        values = re.findall(_NUMBER, re.split(r"[(.]|Loại", first.split("x =", 1)[1])[0])
+        if values:
+            return KeyFacts(numbers=[[v] for v in dict.fromkeys(values)], only_numbers=True)
+    # "2,5 m = 250 cm", "7,35 < 7,4; 0,60 = 0,6; …": the signs, for a stem that asks for them.
+    signs = re.findall(r"[<>=]", first)
+    if re.search(r"So sánh|Điền dấu", whole) and signs and not re.search(r"[×:+−]", first):
+        return KeyFacts(relations=signs)  # type: ignore[arg-type]
+    # "Chi (1,35 m) < An (1,38 m) < Bình (1,40 m)" for "Xếp tên … từ thấp đến cao".
+    chain = re.findall(rf"({_NAME})\s*\([^)]*\)\s*(?:<|\.|$)", first) if "<" in first else []
+    if "Xếp" in whole and len(chain) >= 2:
+        return KeyFacts(order=chain)
+    # "Nhẹ nhất: bao C. Nặng nhất: bao A.", "Lan về nhất, Hà về cuối": who is the lightest, first, last…
+    pairs = [(w.lower(), n) for w, n in re.findall(r"([A-ZĐa-zà-ỹ]+) nhất:\s*(?:bao\s+)?(\w+)", plain)]
+    if not pairs:
+        found = re.findall(rf"({_NAME})\s+(?:về\s+)?(\w+\s+nhất|cuối|nhất)\b", plain.split(":")[-1])
+        pairs = [(w.split()[0], n) for n, w in found]
+    if re.search(r"\b(ai|nào)\b", stem, re.I) and pairs:
+        return KeyFacts(pairs=pairs)
+    # "Hình nào … lớn hơn và lớn hơn bao nhiêu?" → "Hình thang lớn hơn 6 cm²": the winner and the amount.
+    said = re.search(rf"([a-zà-ỹ ]+?)\s+(?:lớn|bé|nhỏ|nặng|nhẹ|cao|dài)\s+hơn\s+({_NUMBER})", plain.lower())
+    if re.search(r"\bnào\b", stem) and re.search(r"bao nhiêu", stem) and said:
+        return KeyFacts(phrases=[[said.group(1).split(".")[-1].strip()]], numbers=[[said.group(2)]])
+    # Several results asked ("các tam giác", "Hai kết quả", "rồi làm tròn", "chiều cao và diện tích"):
+    # each result the key gives, conversions ("Đổi: …") and expressions left out.
+    if not re.search(r"\b(các|hai|ba|tất cả|rồi)\b|\svà\s", whole.lower()):
+        return None
+    results: list[str] = []
+    for sentence in re.split(r"\.\s+|\n", re.sub(r"\([^)]*\)", "", draft.answer)):
+        sentence = " ".join(sentence.split())
+        if sentence.startswith("Đổi"):
+            continue
+        for clause in re.split(r";", sentence):
+            parts = re.split(r"\s[=≈]\s|(?<=[^\s\d]):\s", clause)
+            for part in parts[1:] if len(parts) > 1 else parts:
+                part = part.strip(" .")
+                if MEASURE.fullmatch(part) is None:
+                    if not (m := re.search(rf"\s({MEASURE.pattern})$", part)) or re.search(r"[×:+−]", part):
+                        continue
+                    part = m.group(1)
+                if (q := evaluate(part)) is not None:
+                    value = q.value / UNITS[q.unit][1] if q.dimension else q.value
+                    results.append(format_vi(value))
+    results = list(dict.fromkeys(results))
+    return KeyFacts(numbers=[[r] for r in results]) if len(results) >= 2 else None
 
 
 def _item(draft: ItemDraft, node_id: str, stage: str) -> Item:

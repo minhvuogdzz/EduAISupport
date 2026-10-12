@@ -97,16 +97,31 @@ async def decide(
     database: Any, school_id: str, chapter_id: str, target: str, action: str, value: Any, by: str
 ) -> TeachingPlan:
     """Record one decision of the teacher and rebuild the plan with it."""
+    return await decide_many(
+        database, school_id, chapter_id, [{"target": target, "action": action, "value": value}], by
+    )
+
+
+async def decide_many(
+    database: Any, school_id: str, chapter_id: str, batch: list[dict[str, Any]], by: str
+) -> TeachingPlan:
+    """Record several decisions at once (``target``, ``action``, ``value``, and why: ``reason``) and rebuild
+    the plan once; every decision is checked before any is written."""
     from cavat.core.repository import utc_now
     from cavat.modules.ingest.review import check_decision
 
-    check_decision(target, action, value)
+    for d in batch:
+        check_decision(d["target"], d["action"], d.get("value"))
     repo = TeachingPlanRepository(database, school_id)
     plan = await repo.get(chapter_id)
     if plan is None:
         plan = await rebuild_plan(database, school_id, chapter_id, cached_drafter())
     decisions = dict(plan.decisions)
-    decisions[target] = {"action": action, "value": value, "by": by, "at": utc_now().isoformat()}
+    at = utc_now().isoformat()
+    for d in batch:
+        decisions[d["target"]] = {"action": d["action"], "value": d.get("value"), "by": by, "at": at}
+        if d.get("reason"):
+            decisions[d["target"]]["reason"] = d["reason"]
     await repo.save(plan.model_copy(update={"decisions": decisions}))
     return await rebuild_plan(database, school_id, chapter_id, cached_drafter())
 

@@ -5,9 +5,10 @@ The documents are written for the tests in the layouts of the owner's documents 
 
 from __future__ import annotations
 
+import pytest
 from cavat.core.repository import new_id
-from cavat.modules.ingest.build import build_bank
-from cavat.modules.ingest.teaching import assign_sections, build_plan
+from cavat.modules.ingest.build import ItemDraft, build_bank
+from cavat.modules.ingest.teaching import answer_spec, assign_sections, build_plan
 from cavat.modules.ingest.theory import parse_lesson_plan, parse_mistakes, parse_theory
 from cavat.modules.library.repository import TeacherDocument
 
@@ -247,3 +248,136 @@ def test_a_basic_period_asks_no_application_evidence():
     first = plan.package.nodes[0]
     assert first.layer == "BASIC" and not first.pass_rule.require_application and first.transfer == []
     assert not any(p.startswith("STP-T01: needs at least 1 transfer") for p in plan.problems)
+
+
+def _draft(stem: str, answer: str) -> ItemDraft:
+    """A bank item as the builder leaves it: the checks read the sub-question (the last line)."""
+    return ItemDraft(
+        item_id="DTTGHT-BT-01",
+        chapter_id="c",
+        source="BAI_TAP",
+        document_id="d",
+        answer_document_id="a",
+        page=1,
+        section="Phần 2",
+        label="1",
+        part="",
+        stage="LUYEN_TAP",
+        stem=stem,
+        answer=answer,
+        check_stem=stem.split("\n")[-1],
+    )
+
+
+def test_an_area_answer_is_a_number_not_true_or_false():
+    spec = answer_spec(_draft("Tam giác có đáy 6 m, chiều cao 2 m. Tính diện tích.", "S = 6 × 2 : 2 = 6 m²."))
+    assert spec.type == "numeric" and spec.value == "6"
+    assert answer_spec(_draft("7,5 > 7,49 …", "Đ")).type == "boolean"
+
+
+def test_a_word_problem_is_checked_on_the_number_its_answer_ends_on():
+    spec = answer_spec(
+        _draft(
+            "Hình thang có diện tích 150 cm², đáy lớn 18 cm, đáy bé 12 cm.\nb) Tăng chiều cao thêm 2 cm thì"
+            " diện tích tăng thêm bao nhiêu?",
+            "Chiều cao mới 12 cm: S = 30 × 12 : 2 = 180 cm².\nTăng thêm 30 cm².",
+        )
+    )
+    assert spec.type == "numeric" and spec.value == "30"
+
+
+def test_a_question_asking_several_things_is_left_to_the_rubric():
+    for stem, answer in (
+        (
+            "Tam giác đáy 10 cm, cao 6 cm và hình thang hai đáy 7 cm, 5 cm, cao 6 cm."
+            " Hình nào lớn hơn và lớn hơn bao nhiêu?",
+            "Tam giác 30 cm². Hình thang 36 cm². Hình thang lớn hơn 6 cm².",
+        ),
+        (
+            "BM = 4 cm, MC = 6 cm, cao 5 cm. Tính diện tích các tam giác ABM, ACM và ABC.",
+            "SABM = 10 cm²; SACM = 15 cm²; SABC = 25 cm².",
+        ),
+        (
+            "Đáy 6 cm, cao 4 cm. Tính diện tích. Nếu gấp đôi đáy thì diện tích gấp mấy lần?",
+            "S = 12 cm². Đáy 12 cm: S = 24 cm² (gấp 2).",
+        ),
+    ):
+        assert answer_spec(_draft(stem, answer)).type == "open"
+
+
+def test_a_measure_in_tonnes_is_a_number_and_a_list_of_values_is_not():
+    spec = answer_spec(_draft("17 tấn 2 kg = …… tấn", "17,002 tấn"))
+    assert spec.type == "numeric" and spec.value == "17,002"
+    assert answer_spec(_draft("Số tự nhiên x: 1,8 < x < 5,4: x = ……", "x = 2 ; 3 ; 4 ; 5")).type == "open"
+
+
+def test_a_key_that_restates_the_question_is_read_on_its_right_side():
+    spec = answer_spec(
+        _draft("Viết thành số thập phân hoặc phân số thập phân:\nc) 0,29 = ……", "0,29 = 29/100")
+    )
+    assert (spec.type, spec.value, spec.form) == ("numeric", "29/100", "fraction")
+    spec = answer_spec(_draft("Làm tròn:\na) 8,49 đến hàng đơn vị", "8,49 ≈ 8"))
+    assert (spec.type, spec.value) == ("numeric", "8")
+
+
+def test_several_comparisons_or_free_units_are_left_to_the_rubric():
+    line = "a) Điền dấu >, <, = : 7,35 …… 7,4    0,60 …… 0,6"
+    assert answer_spec(_draft(line, "7,35 < 7,4; 0,60 = 0,6")).type == "open"
+    stem = "Tính diện tích hình tam giác (đổi về cùng đơn vị trước):\na) đáy 3 dm, chiều cao 25 cm"
+    assert answer_spec(_draft(stem, "3 dm = 30 cm; S = 30 × 25 : 2 = 375 cm².")).type == "open"
+
+
+@pytest.mark.parametrize(
+    ("stem", "answer", "facts"),
+    [
+        ("Đọc các số thập phân sau:\nc) 14,205", "mười bốn phẩy hai trăm linh năm", {"reading": "14,205"}),
+        (
+            "Số 13,975: chữ số 7 ở hàng ......, giá trị ......",
+            "hàng phần trăm; giá trị 0,07",
+            {"phrases": [["phần trăm"]], "numbers": [["0,07"]]},
+        ),
+        (
+            "Số tự nhiên x: 1,8 < x < 5,4: x = ……",
+            "x = 2 ; 3 ; 4 ; 5",
+            {"numbers": [["2"], ["3"], ["4"], ["5"]], "only_numbers": True},
+        ),
+        ("So sánh (điền >, <, =):\nb) 0,8 kg …… 750 g", "0,8 kg > 750 g", {"relations": [">"]}),
+        (
+            "An cao 1 m 38 cm, Bình cao 1,4 m, Chi cao 135 cm. Ai cao nhất? Xếp tên ba bạn từ thấp đến cao.",
+            "Chi (1,35 m) < An (1,38 m) < Bình (1,40 m). Bình cao nhất.",
+            {"order": ["Chi", "An", "Bình"]},
+        ),
+        (
+            "Bao nào nhẹ nhất, bao nào nặng nhất?",
+            "A = 4,50 kg; C = 4,05 kg. Nhẹ nhất: bao C. Nặng nhất: bao A.",
+            {"pairs": [("nhẹ", "C"), ("nặng", "A")]},
+        ),
+        (
+            "Cho tam giác ABC, BM = 4 cm, MC = 6 cm, cao 5 cm. Tính diện tích các tam giác ABM, ACM và ABC.",
+            "SABM = 10 cm²; SACM = 15 cm²; SABC = 25 cm² (= 10 + 15).",
+            {"numbers": [["10"], ["15"], ["25"]]},
+        ),
+        (
+            "Một tam giác đáy 12 cm. Tính chiều cao và diện tích tam giác ban đầu.",
+            "Chiều cao: 13,5 × 2 : 3 = 9 cm\nS ban đầu = 12 × 9 : 2 = 54 cm²",
+            {"numbers": [["9"], ["54"]]},
+        ),
+    ],
+)
+def test_the_facts_of_an_open_key_are_read_from_the_teachers_answer(stem, answer, facts):
+    spec = answer_spec(_draft(stem, answer))
+    assert spec.type == "open" and spec.facts.model_dump(exclude_defaults=True) == facts
+
+
+def test_a_choice_between_two_named_shapes_and_a_largest_number_are_typed():
+    stem = "Tam giác (đáy 16, cao 7) hay hình thang (đáy 7 và 4, cao 8) có diện tích lớn hơn? (cm)"
+    spec = answer_spec(_draft(stem, "Tam giác 56 cm²; hình thang 44 cm²: tam\ngiác lớn hơn 12 cm²"))
+    assert spec.type == "choice" and [o.correct for o in spec.options] == [True, False]
+    spec = answer_spec(_draft("Số lớn nhất: 11,3 ; 11,90 ; 11,17 ; 11,8", "11,90"))
+    assert (spec.type, spec.value) == ("numeric", "11,90")
+    assert (
+        answer_spec(
+            _draft("Viết ba số thập phân lớn hơn 1,2 nhưng bé hơn 1,3.", "Đáp án mở, ví dụ 1,21")
+        ).facts
+        is None
+    )
