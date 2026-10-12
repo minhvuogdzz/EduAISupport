@@ -121,6 +121,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | Task | Nội dung | Trạng thái |
 |---|---|---|
 | ACC-1 | 1 học sinh, 1 phụ huynh, 1 giáo viên cố định (`make accounts`), đăng nhập bằng PIN, token ký HMAC, phụ huynh gắn với con, tên học sinh lấy từ tài khoản | Xong (PR #37) |
+| ACC-2 | Không đăng xuất, chỉ chuyển vai: nút Học sinh / Phụ huynh / Giáo viên ở đầu trang, mỗi vai một màu; lần đầu mở một vai trên máy thì nhập PIN của vai đó, sau đó chuyển một chạm (giữ đăng nhập riêng từng vai). Bỏ ô "Con tên là gì?": chế độ chạy thử cũng chỉ có 1 học sinh mẫu (An). Đã xóa 5 buổi cũ trước khi có tài khoản trong `cavat_dev` (chủ dự án đồng ý 2026-10-12) | Xong |
 | DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Xong (PR #38) |
 | RAG-1 | Hybrid RAG tự xây (M1-5): chia đoạn theo cấu trúc, BM25 hai bản, embedding Gemini, chỉ mục vector tự viết, RRF, xếp hạng lại theo sư phạm, ghi vết; trang tra cứu cho giáo viên; bộ câu hỏi Recall@k, MRR | Xong: tab RAG của giáo viên, `make eval-rag` (plan v1 mục 5.5.6; báo cáo `evals/reports/2026-10-07-rag-gemini.md`) |
 | RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án. Yêu cầu rút từ RAG-1, xem danh sách dưới bảng | Xong: ADR-021, `make eval-grounded`, báo cáo `evals/reports/2026-10-07-grounded-live.md`. Còn chạy lại đủ 21 ca với `grounded-speech/0.2.1` (plan 5.6.2) |

@@ -12,15 +12,14 @@ describe("App", () => {
       screen.getByText("Chế độ giả lập (mock): chưa nối máy chủ. Lời của cô là câu mẫu, chưa phải AI tutor."),
     ).toBeVisible();
     const roles = screen.getByRole("navigation", { name: "Vai trò" });
-    await user.click(within(roles).getByRole("link", { name: "Học sinh" }));
+    await user.click(within(roles).getByRole("button", { name: "Học sinh" }));
 
-    const start = screen.getByRole("button", { name: "Bắt đầu học" });
-    expect(start).toBeDisabled();
-    await user.type(screen.getByLabelText("Con tên là gì?"), "Bình");
-    await user.click(start);
+    // One student in the trial (ACC-2): no name to type, the demo student is An.
+    expect(screen.queryByLabelText("Con tên là gì?")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Bắt đầu buổi mới/ }));
 
     expect(await screen.findByRole("heading", { name: "Câu 1/8" })).toBeInTheDocument();
-    expect(screen.getByRole("log")).toHaveTextContent("Chào Bình!");
+    expect(screen.getByRole("log")).toHaveTextContent("Chào An!");
   });
 
   it("offers to resume the unfinished session of this device", async () => {
