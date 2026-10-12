@@ -114,16 +114,21 @@ _current: dict[str, str] = {}
 _loaded: set[int] = set()
 
 
-def register_published(
-    chapter_id: str, version: str, package: dict, lessons: dict, *, current: bool
-) -> Chapter:
-    """Make a published plan known to the tutor (validated like a chapter file)."""
+def build_chapter(package: dict, lessons: dict) -> Chapter:
+    """A chapter from a stored teaching plan (validated like a chapter file)."""
     from cavat.modules.content.chapter_package import ChapterPackage
     from cavat.modules.content.lesson_package import LessonPackage
 
     built = {k: LessonPackage.model_validate(v) for k, v in lessons.items()}
     items = {it.id: (it, lesson) for lesson in built.values() for it in lesson.items}
-    chapter = Chapter(package=ChapterPackage.model_validate(package), lessons=built, _items=items)
+    return Chapter(package=ChapterPackage.model_validate(package), lessons=built, _items=items)
+
+
+def register_published(
+    chapter_id: str, version: str, package: dict, lessons: dict, *, current: bool
+) -> Chapter:
+    """Make a published plan known to the tutor."""
+    chapter = build_chapter(package, lessons)
     _published.setdefault(chapter_id, {})[version] = chapter
     if current:
         _current[chapter_id] = version

@@ -818,6 +818,47 @@ export interface ChapterContent {
   }[];
 }
 
+// ---------------------------------------------------------------- teaching plan review (INGEST-4)
+
+/** How the answer of one item was checked against its question (INGEST-2), and where it comes from. */
+export interface PlanItemNote {
+  /** VERIFIED, REVIEW (check the worked explanation), UNCHECKED, TEACHER (the teacher wrote it), CONFLICT, DISPUTED */
+  status: string;
+  findings: { check: string; ok: boolean; detail: string }[];
+  page: number | null;
+  document_id: string | null;
+  answer_document_id: string | null;
+  /** Levels of the hints Qwen drafted (they wait for the teacher). */
+  ai_hints: number[];
+}
+
+export interface PlanDecision {
+  action: "approve" | "reject" | "edit";
+  value?: unknown;
+  by: string;
+  at: string;
+}
+
+/** GET /v1/teachers/teaching-plans/{chapter}/view: the draft plan as the teacher reviews it. */
+export interface TeachingPlanReview {
+  chapter_id: string;
+  /** DRAFT, or PUBLISHED once a version is taught. */
+  status: string;
+  /** The published version new sessions use. */
+  current: string | null;
+  built_at: string;
+  content: ChapterContent;
+  /** Node → its pages ("Giáo án, tiết 1, trang 1", …). */
+  sources: Record<string, string[]>;
+  items: Record<string, PlanItemNote>;
+  /** Items not taught: a misread or conflicting answer key, no period of the plan; the teacher can fix them. */
+  left_out: (PlanItemNote & { item_id: string; reason: string; stem: string; answer: string })[];
+  decisions: Record<string, PlanDecision>;
+  assessment: string[];
+  review: { approved_nodes: string[]; waiting_nodes: string[]; blockers: string[] };
+  drafted: { hints: number; parts: number };
+}
+
 // ---------------------------------------------------------------- Hybrid RAG, teacher view (RAG-1)
 
 /** GET /v1/teachers/rag/status: where the RAG takes its passages from. */

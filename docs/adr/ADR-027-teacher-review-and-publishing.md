@@ -43,6 +43,11 @@ Vẫn còn những việc chỉ giáo viên làm được:
 
 ## Hệ quả
 
-- **INGEST-4b (giao diện):** trang duyệt đặt phương án cạnh trang tài liệu gốc, có nút duyệt, sửa, loại và phát hành.
+- **INGEST-4b:** trang `/teacher/plans/:chương`, mở từ tab Bài học, dùng API `GET …/view`.
+  - Mỗi bài hiện kèm trang nguồn của nó.
+  - Mỗi câu hiện trạng thái kiểm và trang gốc.
+  - Gợi ý do Qwen soạn có nhãn "AI soạn".
+  - Có mục "Câu chưa được dạy" để sửa đáp án đọc lệch.
+  - Nút phát hành bị khóa khi còn việc chờ.
 - RAG đọc nội dung chương qua `chapter_service.chapters()`, nên sau khi phát hành sẽ tìm trong nội dung đã được giáo viên duyệt.
 - **[OPEN]** Chưa có bước gỡ một version đã phát hành. Nếu cần quay lại thì phát hành một version mới.

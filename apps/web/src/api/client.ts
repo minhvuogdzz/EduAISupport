@@ -2,6 +2,7 @@ import type {
   ApiErrorCode,
   AccountKind,
   AuthConfig,
+  TeachingPlanReview,
   AuthUser,
   ChapterContent,
   ChapterSummary,
@@ -87,6 +88,19 @@ export interface SessionApi {
     original(documentId: string): Promise<Blob>;
     chapters(): Promise<ChapterSummary[]>;
     chapter(chapterId: string): Promise<ChapterContent>;
+  };
+  /** Teacher: the draft teaching plan built from their documents, reviewed and published (INGEST-4). */
+  plans?: {
+    view(chapterId: string): Promise<TeachingPlanReview>;
+    build(chapterId: string): Promise<unknown>;
+    decide(
+      chapterId: string,
+      target: string,
+      action: "approve" | "reject" | "edit",
+      value?: unknown,
+    ): Promise<unknown>;
+    undo(chapterId: string, target: string): Promise<unknown>;
+    publish(chapterId: string): Promise<unknown>;
   };
   /** Teacher: the Hybrid RAG, its sources and a search with every signal (RAG-1, real API only). */
   rag?: {
