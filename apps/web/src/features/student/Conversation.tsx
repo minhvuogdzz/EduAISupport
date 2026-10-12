@@ -15,6 +15,9 @@ interface ConversationProps {
 
 export function Conversation({ turns, typing, tutorName, studentName }: ConversationProps) {
   const firstQuestion = turns.findIndex((turn) => turn.move === "PRESENT");
+  // The child's message shows at once, as sent; while the tutor prepares the answer, three dots (the owner,
+  // 2026-10-12: "Đang gửi…" under the child's message read as the tutor thinking).
+  const thinking = typing ?? (turns.some((turn) => turn.pending) ? { text: "" } : null);
 
   return (
     <section aria-label={`Trò chuyện với ${tutorName}`} className="flex flex-col gap-3">
@@ -36,7 +39,7 @@ export function Conversation({ turns, typing, tutorName, studentName }: Conversa
           </li>
         ))}
       </ol>
-      {typing && <TypingBubble text={typing.text} tutorName={tutorName} />}
+      {thinking && <TypingBubble text={thinking.text} tutorName={tutorName} />}
     </section>
   );
 }
@@ -73,7 +76,7 @@ const Bubble = memo(function Bubble({ turn, speaker }: { turn: DisplayTurn; spea
           tutor
             ? "rounded-bl-md bg-white shadow-sm ring-1 ring-gold/30"
             : "rounded-br-md bg-brand-700 text-white"
-        } ${turn.pending ? "opacity-60" : ""}`}
+        }`}
       >
         {turn.kind === "RETELL_PROMPT" && (
           <p className="mb-1 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-0.5 text-sm font-medium text-sky-900">
@@ -90,7 +93,6 @@ const Bubble = memo(function Bubble({ turn, speaker }: { turn: DisplayTurn; spea
           <span className="sr-only">{speaker}: </span>
           <MathText text={turn.text} />
         </p>
-        {turn.pending && <p className="mt-1 text-sm text-brand-100">Đang gửi…</p>}
       </div>
     </div>
   );

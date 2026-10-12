@@ -23,6 +23,18 @@ function Notice({ children }: { children: ReactNode }) {
   );
 }
 
+/** The plan built from the teacher's documents (INGEST-4): where the teacher reviews and publishes it. */
+function PlanLink({ chapterId }: { chapterId: string }) {
+  return (
+    <Link
+      to={`/teacher/plans/${encodeURIComponent(chapterId)}`}
+      className="mt-3 inline-block rounded-xl bg-indigo-700 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+    >
+      Phương án dạy từ tài liệu: xem và duyệt
+    </Link>
+  );
+}
+
 /** The chapters the tutor teaches (DOC-1): the teacher reads every node, question and answer. */
 export function LessonsPage() {
   const api = useApi();
@@ -40,22 +52,25 @@ export function LessonsPage() {
     body = (
       <ul className="grid gap-4 md:grid-cols-2">
         {chapters.data.map((c) => (
-          <li key={c.chapter_id}>
+          <li key={c.chapter_id} className="card p-5">
             <Link
               to={`/teacher/lessons/${encodeURIComponent(c.chapter_id)}`}
-              className="card block p-5 hover:ring-2 hover:ring-brand-300"
+              className="block hover:underline"
             >
               <span className="block text-lg font-bold">{c.title}</span>
               <span className="mt-1 block text-sm text-slate-600">
                 {c.nodes} bài · {c.items} câu hỏi · {STATUS_LABEL[c.status] ?? c.status}
               </span>
             </Link>
+            <PlanLink chapterId={c.chapter_id} />
           </li>
         ))}
-        <li className="card p-5 text-sm text-slate-600">
-          <span className="block font-bold text-slate-800">Diện tích hình tam giác, hình thang</span>
-          Chưa có nội dung: sẽ dựng từ tài liệu giáo viên tải lên (DATA-2).
-        </li>
+        {!chapters.data.some((c) => c.chapter_id === "math-g5-area-triangle-trapezoid") && (
+          <li className="card p-5 text-sm text-slate-600">
+            <span className="block font-bold text-slate-800">Diện tích hình tam giác, hình thang</span>
+            <PlanLink chapterId="math-g5-area-triangle-trapezoid" />
+          </li>
+        )}
       </ul>
     );
   return (

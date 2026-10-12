@@ -16,6 +16,7 @@ import {
   type AccountKind,
   type AuthConfig,
   type AuthUser,
+  type TeachingPlanReview,
   type ChapterContent,
   type ChapterSummary,
   type ChatTurn,
@@ -174,6 +175,7 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
   }
 
   const teacher = () => as(() => TEACHER_HEADERS);
+  const planPath = (chapterId: string) => `/v1/teachers/teaching-plans/${encodeURIComponent(chapterId)}`;
   const documentPath = (id: string, tail = "") => `/v1/teachers/documents/${encodeURIComponent(id)}${tail}`;
 
   function sessionPath(sessionId: string, tail: string): string {
@@ -347,6 +349,34 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
           `/v1/teachers/chapters/${encodeURIComponent(chapterId)}`,
           teacher(),
         );
+      },
+    },
+
+    plans: {
+      view(chapterId) {
+        return request<TeachingPlanReview>("GET", `${planPath(chapterId)}/view`, teacher());
+      },
+      build(chapterId) {
+        return request<unknown>("POST", `${planPath(chapterId)}/build`, teacher());
+      },
+      decide(chapterId, target, action, value) {
+        return request<unknown>("POST", `${planPath(chapterId)}/decisions`, teacher(), {
+          target,
+          action,
+          value,
+        });
+      },
+      async undo(chapterId, target) {
+        const params = new URLSearchParams({ target });
+        const response = await send(
+          "DELETE",
+          `${planPath(chapterId)}/decisions?${params.toString()}`,
+          teacher(),
+        );
+        return (await response.json()) as unknown;
+      },
+      publish(chapterId) {
+        return request<unknown>("POST", `${planPath(chapterId)}/publish`, teacher());
       },
     },
 

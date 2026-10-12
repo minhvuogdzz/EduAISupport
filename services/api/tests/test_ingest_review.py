@@ -157,3 +157,15 @@ def test_publishing_waits_for_every_period_then_the_tutor_teaches_the_plan(clien
     state = client.get(f"/v1/sessions/{session['session_id']}/state", headers=student)
     assert state.status_code == 200
     assert chapter_service.chapters()["math-g5-decimals"].package.version == version
+
+
+def test_the_review_view_shows_the_chapter_its_sources_and_what_waits(client):
+    client.post(f"{URL}/build", headers=TEACHER)
+    view = client.get(f"{URL}/view", headers=TEACHER).json()
+    assert [n["node_id"] for n in view["content"]["nodes"]] == ["STP-T01", "STP-T02"]
+    assert view["sources"]["STP-T01"][0] == "Giáo án, tiết 1, trang 1"
+    wrong = next(i for i in view["left_out"] if i["item_id"] == "STP-PH02-3")
+    assert wrong["status"] == "CONFLICT" and wrong["answer"] == "7,05" and wrong["findings"]
+    assert view["items"]["STP-PH01-1"]["status"] == "VERIFIED"
+    assert "STP-T01: chưa duyệt" in view["review"]["blockers"]
+    assert client.get(f"{URL}/view", headers={"X-Demo-Student": "s"}).status_code in (401, 403)

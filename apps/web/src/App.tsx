@@ -10,6 +10,7 @@ import { StudentStartPage } from "./features/student/StudentStartPage";
 import { ClassPage } from "./features/teacher/ClassPage";
 import { DocumentPage, DocumentsPage } from "./features/teacher/DocumentsPage";
 import { ChapterContentPage, LessonsPage } from "./features/teacher/LessonsPage";
+import { PlanReviewPage } from "./features/teacher/PlanReviewPage";
 import { RagPage } from "./features/teacher/RagPage";
 import { StudentReportPage } from "./features/teacher/StudentReportPage";
 import { TeacherPage } from "./features/teacher/TeacherPage";
@@ -41,6 +42,7 @@ export function App() {
         <Route path="/teacher/sessions/:sessionId" element={only("TEACHER", <TeacherPage />)} />
         <Route path="/teacher/lessons" element={only("TEACHER", <LessonsPage />)} />
         <Route path="/teacher/lessons/:chapterId" element={only("TEACHER", <ChapterContentPage />)} />
+        <Route path="/teacher/plans/:chapterId" element={only("TEACHER", <PlanReviewPage />)} />
         <Route path="/teacher/documents" element={only("TEACHER", <DocumentsPage />)} />
         <Route path="/teacher/documents/:documentId" element={only("TEACHER", <DocumentPage />)} />
         <Route path="/teacher/rag" element={only("TEACHER", <RagPage />)} />

@@ -137,7 +137,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | INGEST-3a | Phương án dạy nháp (ADR-025, DI-45): mỗi tiết một node; cách giảng, phương pháp, bài mẫu, "con nói lại", lỗi sai lấy nguyên văn từ tài liệu kèm trang; câu theo 4 mức từ ngân hàng câu; đáp án chuyển sang dạng bộ chấm dùng; `make teaching-plan`, API giáo viên | Xong |
 | INGEST-3b | Qwen soạn phần tài liệu không có (ADR-026, DI-46): thang gợi ý H1–H3 qua bộ kiểm của gia sư, câu trả lời mẫu và cách nói được chấp nhận, ý chính để con nói lại; câu kiểm tra không bao giờ gửi model; lưu vết từng phần; `make draft-teaching` | Xong |
 | INGEST-4a | Quyết định của giáo viên (ADR-027): duyệt, loại, sửa câu, gợi ý và phần của bài; thêm cách giảng hoặc bài mẫu; chuyển mức câu; giữ qua mọi lần dựng lại; phát hành khi mọi bài đã duyệt và không còn chỗ thiếu; gia sư dạy bản phát hành, buổi cũ phát lại đúng version | Xong |
-| INGEST-4b | Giao diện duyệt: phương án cạnh trang tài liệu gốc, nút duyệt, sửa, loại, phát hành (lúc Claude chạy thử thì tự duyệt) | Chưa |
+| INGEST-4b | Trang duyệt `/teacher/plans/:chương` (từ tab Bài học): từng bài với trang nguồn, sửa cách giảng, câu trả lời mẫu, quy tắc, ý chính; từng câu với trạng thái kiểm, sửa đáp án, bỏ câu, chuyển mức; gợi ý có nhãn "AI soạn" với nút duyệt, sửa, loại; mục câu chưa được dạy (đáp án đọc lệch) để sửa; nút phát hành | Xong |
 | RAG-3 | Đánh giá lại Hybrid RAG trên tài liệu thật: bộ câu hỏi mới có phần giữ riêng, chạy `make eval-rag LIVE=1`, báo số liệu | Chưa |
 
 **RAG-2, những điều RAG-1 đã chốt cho bước nối với gia sư:**
