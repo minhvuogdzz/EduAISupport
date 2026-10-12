@@ -30,6 +30,7 @@ from cavat.modules.content.chapter_package import (
     ExplainSpec,
     Method,
     Node,
+    PassRule,
     Relation,
     TheoryVariant,
     WorkedExample,
@@ -348,6 +349,9 @@ def build_plan(
                 checks=[],
                 practice=[],
                 transfer=[],
+                # DI-6 (owner, 2026-10-12): a basic period passes on understanding and practice; application
+                # evidence is asked of the practice periods and of the chapter test.
+                pass_rule=PassRule(require_application=layer == "IMPLEMENT"),
             )
         )
         sources[node_id] = [f"Giáo án, tiết {p.number}, trang {p.page}"] + [

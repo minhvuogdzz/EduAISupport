@@ -235,3 +235,14 @@ async def test_the_teacher_builds_and_reads_the_plan():
         assert client.get("/v1/teachers/item-banks/math-g5-decimals", headers=teacher).status_code == 200
     finally:
         app.dependency_overrides.pop(get_database, None)
+
+
+def test_a_basic_period_asks_no_application_evidence():
+    """DI-6, owner 2026-10-12: application is asked of the practice periods and the chapter test."""
+    docs = documents()
+    plan = build_plan(
+        "math-g5-decimals", "Số thập phân", "STP", docs, build_bank("math-g5-decimals", "STP", docs)
+    )
+    first = plan.package.nodes[0]
+    assert first.layer == "BASIC" and not first.pass_rule.require_application and first.transfer == []
+    assert not any(p.startswith("STP-T01: needs at least 1 transfer") for p in plan.problems)

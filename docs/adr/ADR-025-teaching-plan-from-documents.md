@@ -43,11 +43,11 @@ Gia sư dạy theo gói chương (`ChapterPackage` cùng các `LessonPackage`): 
 
 | Chương | Bài | Câu bài tập và phiếu | Kiểm tra cuối chương | Còn thiếu |
 |---|---|---|---|---|
-| Số thập phân | 11 | 177 | 46 | 22 |
-| Diện tích tam giác, hình thang | 8 | 118 | 33 | 13 |
+| Số thập phân | 11 | 177 | 46 | 16 |
+| Diện tích tam giác, hình thang | 8 | 118 | 33 | 9 |
 
+- **Câu vận dụng:** chủ dự án quyết ngày 2026-10-12 rằng tiết khái niệm không đòi bằng chứng vận dụng (DI-6). Vì vậy chỉ còn 3 tiết luyện tập thiếu câu vận dụng (tài liệu có 6 câu vận dụng mỗi chương).
 - **Phần còn thiếu chủ yếu do tài liệu:**
-  - 13 tiết không có câu vận dụng (tài liệu chỉ có 6 câu vận dụng mỗi chương);
   - 12 tiết có bước Củng cố là câu hỏi chứ không trích quy tắc, nên chưa có ý chính để con nói lại;
   - 5 tiết luyện tập chỉ có một cách giảng.
 - **Không đưa vào:** 3 câu Số thập phân bị đọc sai (ADR-023); câu 10 và 23 của bài tập hình học vì giáo án không có tiết nào dùng.
@@ -60,4 +60,4 @@ Gia sư dạy theo gói chương (`ChapterPackage` cùng các `LessonPackage`): 
   - ý chính để con nói lại;
   - thang gợi ý H1–H3;
   - câu hỏi kết cho cách giảng còn thiếu.
-- **Chủ dự án quyết thêm:** cách xử lý tiết thiếu câu vận dụng. Có thể bổ sung tài liệu, cho AI soạn câu (bộ chấm kiểm lại), hoặc với tiết khái niệm thì không đòi bằng chứng vận dụng (đổi DI-6).
+- **Đã quyết (DI-6, 2026-10-12):** tiết khái niệm không đòi bằng chứng vận dụng. 3 tiết luyện tập còn thiếu câu vận dụng sẽ được AI soạn hoặc giáo viên bổ sung.
