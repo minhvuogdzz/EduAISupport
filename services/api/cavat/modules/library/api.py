@@ -14,6 +14,7 @@ import hashlib
 import re
 from dataclasses import asdict
 from fractions import Fraction
+from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Form, UploadFile
@@ -23,6 +24,7 @@ from pydantic import BaseModel
 
 from cavat.config import REPO_ROOT, get_settings
 from cavat.core.repository import new_id
+from cavat.modules.ai_gateway.base import ModelUnavailable, QuotaExceeded
 from cavat.modules.assessment.math_checker import parse_literal
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import Item
@@ -98,31 +100,61 @@ def _safe_name(filename: str) -> str:
     return stem[-120:]
 
 
-def _ocr():
-    """Gemini OCR when a key is configured (ADR-017); None leaves scans and photos as NEEDS_OCR.
+class GeminiReader:
+    """Gemini OCR (ADR-017) with its readings kept on disk by the hash of the bytes and the prompt: reading
+    a document again (a new upload of the same file, the import of a folder) costs no quota.
 
-    Readings are kept on disk by the hash of the bytes and the prompt: reading a document again (a new
-    upload of the same file, the import of a folder) costs no quota.
+    ``check`` reads a page a second time with another model (INGEST-1, DI-43): a fraction printed as an
+    image is in no text layer, so only a second, independent reading can confirm it. Seen live: one model
+    read the answer key's 9/10 and 6/100 as 7/10 and 9/100.
     """
+
+    def __init__(self, router: Any, cache: Path) -> None:
+        self.router, self.cache = router, cache
+        self.last_model = ""  # the model of the last reading ("" for a reading cached before INGEST-1)
+
+    def __call__(self, data: bytes, mime: str, prompt: str) -> str:
+        text, self.last_model = self._read(data, mime, prompt, self.router.vision_models, "read")
+        return text
+
+    def check(self, data: bytes, mime: str, prompt: str, *, other_than: str) -> str:
+        # Another model than the first reading's; the chain reversed when that model is not known.
+        models = tuple(m for m in reversed(self.router.vision_models) if m != other_than)
+        text, _ = self._read(data, mime, prompt, models, f"check:{other_than}")
+        return text
+
+    def _read(
+        self, data: bytes, mime: str, prompt: str, models: tuple[str, ...], kind: str
+    ) -> tuple[str, str]:
+        tag = "" if kind == "read" else kind  # the first readings keep the keys they had before INGEST-1
+        key = hashlib.sha256(data + prompt.encode() + tag.encode()).hexdigest()
+        kept = self.cache / f"{key}.txt"
+        meta = self.cache / f"{key}.model"
+        if kept.exists():
+            return kept.read_text(encoding="utf-8"), meta.read_text() if meta.exists() else ""
+        last: Exception | None = None
+        for model in models:
+            try:
+                result = self.router.describe_image_with(model, data, prompt, mime_type=mime)
+                break
+            except (QuotaExceeded, ModelUnavailable) as exc:
+                last = exc
+        else:
+            raise last or ModelUnavailable("no vision model")
+        self.cache.mkdir(parents=True, exist_ok=True)
+        kept.write_text(result.text, encoding="utf-8")
+        meta.write_text(result.model)
+        return result.text, result.model
+
+
+def _ocr() -> GeminiReader | None:
+    """Gemini OCR when a key is configured (ADR-017); None leaves scans and photos as NEEDS_OCR."""
     settings = get_settings()
     if settings.gemini_api_key is None or not settings.gemini_api_key.get_secret_value():
         return None
     from cavat.modules.ai_gateway.router import build_router
 
-    router = build_router(settings)
-    cache = settings.storage_dir / "cache" / "ocr"
-
-    def read(data: bytes, mime: str, prompt: str) -> str:
-        key = hashlib.sha256(data + prompt.encode()).hexdigest()
-        kept = cache / f"{key}.txt"
-        if kept.exists():
-            return kept.read_text(encoding="utf-8")
-        text = router.describe_image(data, prompt, mime_type=mime).text
-        cache.mkdir(parents=True, exist_ok=True)
-        kept.write_text(text, encoding="utf-8")
-        return text
-
-    return read
+    return GeminiReader(build_router(settings), settings.storage_dir / "cache" / "ocr")
 
 
 def read_document(

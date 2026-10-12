@@ -419,6 +419,43 @@ def test_gemini_429_raises_quota_exceeded():
         GeminiVision(client=_FakeGenaiClient(error)).describe_image(b"png", "Mô tả.")
 
 
+def test_gemini_vision_tries_the_next_free_model_when_one_is_rate_limited():
+    """INGEST-1: 20 requests a day per free model; the owner's documents need 31 pages read."""
+    quota = genai_errors.APIError(
+        429, {"error": {"code": 429, "message": "quota", "status": "RESOURCE_EXHAUSTED"}}
+    )
+    ok = genai_types.GenerateContentResponse(
+        candidates=[
+            genai_types.Candidate(
+                content=genai_types.Content(role="model", parts=[genai_types.Part(text="7/10")])
+            )
+        ]
+    )
+
+    class ByModel:
+        def __init__(self):
+            self.calls = []
+
+        def generate_content(self, *, model, contents, config):
+            self.calls.append((model, config.thinking_config))
+            if model == "gemini-3.8-flash":
+                raise quota
+            return ok
+
+    fake = _FakeGenaiClient(None)
+    fake.models = ByModel()
+    vision = GeminiVision(client=fake, fallbacks=("gemini-2.5-flash", "gemini-3.5-flash-lite"))
+    result = vision.describe_image(b"%PDF", "Chép lại trang.", mime_type="application/pdf")
+    assert (result.text, result.model) == ("7/10", "gemini-2.5-flash")
+    (first, _), (second, thinking) = fake.models.calls
+    assert (first, second) == ("gemini-3.8-flash", "gemini-2.5-flash")
+    assert thinking.thinking_budget == 0  # Gemini 2.5 takes a budget, not a level
+
+    every = GeminiVision(client=_FakeGenaiClient(quota), fallbacks=("gemini-2.5-flash",))
+    with pytest.raises(QuotaExceeded):
+        every.describe_image(b"png", "Mô tả.")
+
+
 # --- Boundary: vendor SDKs and URLs live only in ai_gateway/ (rule 6) --------------------------
 
 API_DIR = Path(__file__).resolve().parents[1]

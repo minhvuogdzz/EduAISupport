@@ -36,6 +36,12 @@ Hạn mức tính theo **project**, nên tạo thêm khóa trong cùng project *
 | Gemini 3.8 Flash | 5 | 250K | **20** |
 | Gemini 2.5 Flash | 5 | 250K | 20 |
 | Gemini 2.5 Flash Lite | 10 | 250K | 20 |
+
+**[FACT] 2026-10-12 (INGEST-1):**
+- `gemini-2.5-flash-lite` trả 404 "no longer available to new users", và Google đề nghị dùng `gemini-3.5-flash-lite`.
+- Đã thử `gemini-3.5-flash-lite` đọc trang PDF: đọc đúng cả hỗn số, qua kiểm chứng số (DI-43). Hạn mức của model này **[OPEN]**.
+- Đọc ảnh và OCR dùng chuỗi `gemini-3.8-flash` → `gemini-2.5-flash` → `gemini-3.5-flash-lite`. Mỗi model có hạn mức ngày riêng.
+- Đọc 31 trang tài liệu của chủ dự án làm hết 20 lần/ngày của `gemini-3.8-flash`.
 | Gemini 2.5 Flash TTS | 3 | 10K | 10 |
 | `gemini-3.8-live` và các model còn lại | **[OPEN]** | | Ảnh bị cắt, cần chụp thêm |
 

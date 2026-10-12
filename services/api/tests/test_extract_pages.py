@@ -163,3 +163,50 @@ def test_the_import_reads_what_a_file_is_from_its_name():
 def test_latex_in_a_reading_becomes_the_plain_form():
     assert clean_reading(r"Cứ 10 $\text{m}^2$ trồng 4 cây") == "Cứ 10 m² trồng 4 cây"  # seen live
     assert clean_reading(r"$\frac{7}{10}$ = 0,7 và $12 \times 7$") == "7/10 = 0,7 và 12 × 7"
+
+
+class CheckedOcr(FakeOcr):
+    """A first reading, then a second one by another model (``check``)."""
+
+    def __init__(self, reply: str, second: str | Exception) -> None:
+        super().__init__(reply)
+        self.second, self.last_model, self.checked_against = second, "gemini-3.8-flash", []
+
+    def check(self, data: bytes, mime: str, prompt: str, *, other_than: str) -> str:
+        self.checked_against.append(other_than)
+        if isinstance(self.second, Exception):
+            raise self.second
+        return self.second
+
+
+READING = "Cau 1. a) 7/10 b) 35/100\nDap so 0,35 va 12,305"
+
+
+def test_numbers_only_gemini_read_are_confirmed_by_a_second_model():
+    ocr = CheckedOcr(READING, "Cau 1. a) 7/10 b) 35/100\nDap so 0,35 va 12,305")
+    (read,) = extract(_pdf((FRACTIONS, True)), "baitap.pdf", ocr).page_reads
+    assert (read.status, read.note) == ("OK", "CONFIRMED")
+    assert ocr.checked_against == ["gemini-3.8-flash"]  # the second reading must come from another model
+
+
+def test_two_readings_that_disagree_go_to_the_teacher():
+    """Seen live: one model read the answer key's 9/10 as 7/10."""
+    ocr = CheckedOcr(READING, "Cau 1. a) 9/10 b) 35/100\nDap so 0,35 va 12,305")
+    found = extract(_pdf((FRACTIONS, True)), "baitap.pdf", ocr)
+    (read,) = found.page_reads
+    assert (read.status, read.note, read.disputed) == ("NEEDS_REVIEW", "DISAGREE", ("7/10", "9/10"))
+    assert found.needs_review
+
+
+def test_a_reading_that_could_not_be_confirmed_is_marked():
+    ocr = CheckedOcr(READING, RuntimeError("429"))
+    (read,) = extract(_pdf((FRACTIONS, True)), "baitap.pdf", ocr).page_reads
+    assert (read.status, read.note) == ("NEEDS_REVIEW", "UNCONFIRMED:RuntimeError")
+
+
+def test_a_page_with_nothing_new_needs_no_second_reading():
+    ocr = CheckedOcr(
+        f"{LONG}\nCau 4. Tinh dien tich.\n[Hinh: tam giac ABC, day BC = 12 cm, cao AH = 7 cm]", ""
+    )
+    (read,) = extract(_pdf((FIGURE, False)), "hinh.pdf", ocr).page_reads
+    assert (read.status, read.note) == ("OK", "") and ocr.checked_against == []

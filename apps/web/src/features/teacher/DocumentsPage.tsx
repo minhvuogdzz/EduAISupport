@@ -345,6 +345,27 @@ export function DocumentPage() {
   );
 }
 
+const NOTE_LABEL: Record<string, string> = {
+  QuotaExceeded: "Gemini hết hạn mức miễn phí hôm nay, chạy lại sau",
+  ModelUnavailable: "Gemini không trả lời, chạy lại sau",
+  NO_OCR: "chưa có khóa Gemini",
+};
+
+/** What the teacher should check on a page read again (INGEST-1, DI-43). */
+function readingText(r: PageRead): string {
+  if (r.note === "DISAGREE")
+    return `hai lần đọc khác nhau ở ${(r.disputed ?? []).join("; ")}: cô so với file gốc`;
+  if (r.note?.startsWith("UNCONFIRMED"))
+    return `chưa đọc lần hai để xác nhận ${r.added.join("; ")}, chạy lại sau`;
+  if (r.status === "OK") {
+    const confirmed = r.note === "CONFIRMED" ? ", hai lần đọc khớp" : "";
+    return `đã kiểm chứng${r.added.length ? `, Gemini đọc thêm ${r.added.join("; ")}${confirmed}` : ""}`;
+  }
+  const missing = r.missing.length ? `, bản Gemini thiếu ${r.missing.join("; ")}` : "";
+  const note = r.note && NOTE_LABEL[r.note] ? ` (${NOTE_LABEL[r.note]})` : "";
+  return `cần xem lại${missing}${note}, đang giữ chữ gốc`;
+}
+
 const REASON_LABEL: Record<string, string> = {
   IMAGES: "có ảnh (phân số, hình)",
   FIGURE: "có hình vẽ",
@@ -366,10 +387,7 @@ function PageReads({ reads }: { reads: PageRead[] }) {
       <ul className="mt-1 flex flex-col gap-1">
         {again.map((r) => (
           <li key={r.page} className={r.status === "OK" ? "text-slate-600" : "text-amber-900"}>
-            Trang {r.page} {REASON_LABEL[r.reason] ?? r.reason}:{" "}
-            {r.status === "OK"
-              ? `đã kiểm chứng${r.added.length ? `, Gemini đọc thêm ${r.added.join("; ")}` : ""}`
-              : `cần xem lại${r.missing.length ? `, bản Gemini thiếu ${r.missing.join("; ")}` : ""}, đang giữ chữ gốc`}
+            Trang {r.page} {REASON_LABEL[r.reason] ?? r.reason}: {readingText(r)}
           </li>
         ))}
       </ul>

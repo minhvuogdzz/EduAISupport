@@ -79,6 +79,10 @@ class PageRead:
     status: str = "OK"  # OK | NEEDS_REVIEW (OCR missing, failed or disagreeing: the text layer is kept)
     missing: tuple[str, ...] = ()  # numbers of the text layer that Gemini's text lacks
     added: tuple[str, ...] = ()  # numbers only Gemini read: fractions in images, measures of a figure
+    # QuotaExceeded, ModelUnavailable, EMPTY, NO_OCR: why there is no reading; CONFIRMED: a second model read
+    # the same added numbers; DISAGREE: it did not (``disputed``); UNCONFIRMED:<error>: no second reading.
+    note: str = ""
+    disputed: tuple[str, ...] = ()  # added numbers the two readings do not share: for the teacher
 
 
 @dataclass(frozen=True)
@@ -123,7 +127,7 @@ def _pdf(data: bytes, ocr: Ocr | None) -> Extraction:
         reason = why_read_again(page, layer)
         text, read = layer, PageRead(number, "pdf-text")
         if reason and ocr is None:
-            read = PageRead(number, "pdf-text", reason, "NEEDS_REVIEW")
+            read = PageRead(number, "pdf-text", reason, "NEEDS_REVIEW", note="NO_OCR")
         elif reason:
             text, read = _read_again(page, number, layer, reason, ocr)  # type: ignore[arg-type]
         texts.append(text)
@@ -175,14 +179,35 @@ def _read_again(page: PageObject, number: int, layer: str, reason: str, ocr: Ocr
     writer.write(single)
     try:
         read = clean_reading(ocr(single.getvalue(), "application/pdf", OCR_PAGE_PROMPT)).strip()
-    except Exception:  # quota, network: the text layer stays and the teacher is told
-        return layer, PageRead(number, "pdf-text", reason, "NEEDS_REVIEW")
+    except Exception as exc:  # quota, network: the text layer stays and the teacher is told
+        return layer, PageRead(number, "pdf-text", reason, "NEEDS_REVIEW", note=type(exc).__name__)
     if not read:
-        return layer, PageRead(number, "pdf-text", reason, "NEEDS_REVIEW")
+        return layer, PageRead(number, "pdf-text", reason, "NEEDS_REVIEW", note="EMPTY")
     missing, added = compare_numbers(layer, read)
     if missing:
         return layer, PageRead(number, "pdf-text", reason, "NEEDS_REVIEW", missing, added)
-    return read, PageRead(number, "ocr-gemini", reason, "OK", (), added)
+    check = getattr(ocr, "check", None)
+    if not added or check is None:
+        return read, PageRead(number, "ocr-gemini", reason, "OK", (), added)
+    # What only this reading has (a fraction in an image) is confirmed by a second reading of another model.
+    try:
+        second = clean_reading(
+            check(
+                single.getvalue(),
+                "application/pdf",
+                OCR_PAGE_PROMPT,
+                other_than=getattr(ocr, "last_model", ""),
+            )
+        )
+    except Exception as exc:
+        return read, PageRead(
+            number, "ocr-gemini", reason, "NEEDS_REVIEW", (), added, f"UNCONFIRMED:{type(exc).__name__}"
+        )
+    _, added_again = compare_numbers(layer, second)
+    disputed = tuple(sorted(set(added) ^ set(added_again)))
+    if disputed:
+        return read, PageRead(number, "ocr-gemini", reason, "NEEDS_REVIEW", (), added, "DISAGREE", disputed)
+    return read, PageRead(number, "ocr-gemini", reason, "OK", (), added, "CONFIRMED")
 
 
 _LATEX_POWER = re.compile(r"\$\s*(?:\\text\{|\\mathrm\{)?\s*([a-zA-Z]+)\s*\}?\s*\^\s*\{?([23])\}?\s*\$")

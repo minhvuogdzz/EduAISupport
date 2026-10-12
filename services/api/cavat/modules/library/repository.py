@@ -37,6 +37,8 @@ class PageReadRecord(BaseModel):
     status: str = "OK"
     missing: list[str] = Field(default_factory=list)
     added: list[str] = Field(default_factory=list)
+    note: str = ""
+    disputed: list[str] = Field(default_factory=list)
 
 
 class TeacherDocument(TenantDocument):

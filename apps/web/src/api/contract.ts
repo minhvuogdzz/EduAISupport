@@ -714,6 +714,13 @@ export interface PageRead {
   missing: string[];
   /** Numbers only the reading has (fractions in images, measures of a figure): for the teacher to check. */
   added: string[];
+  /**
+   * QuotaExceeded, ModelUnavailable, EMPTY, NO_OCR: why there is no reading. CONFIRMED: a second model read
+   * the same added numbers; DISAGREE: it did not (see `disputed`); UNCONFIRMED:<error>: no second reading.
+   */
+  note?: string;
+  /** Added numbers the two readings do not share. */
+  disputed?: string[];
 }
 
 /** A document the teacher uploaded; its text feeds the Hybrid RAG, unless it is an answer key or a test. */

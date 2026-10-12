@@ -22,16 +22,28 @@ Bản đọc cũ (DOC-1) chỉ dùng OCR khi cả file không có chữ, nên **
 2. **Kiểm chứng như lớp "khẳng định và bằng chứng" của 2T-KT.**
    - Bản Gemini chỉ thay lớp chữ khi giữ đủ mọi số của lớp chữ.
    - Không đủ: giữ lớp chữ và đánh dấu trang "cần xem lại".
-   - Số chỉ Gemini đọc được liệt kê cho giáo viên đối chiếu, vì Gemini có thể đọc sai một phân số trong ảnh.
+   - Số chỉ Gemini đọc được (phân số trong ảnh) không có trong lớp chữ để đối chiếu. Vì vậy **một model khác đọc lại trang đó lần hai**: hai lần phải ra đúng các số ấy. Lệch thì trang được đánh dấu cho giáo viên, kèm các số bị lệch.
    - LaTeX trong bản đọc (`$\text{m}^2$`) được đưa về dạng thường (`m²`).
 3. **Loại tài liệu mới:** bài giảng, phiếu luyện tập, đáp án, lỗi sai.
    - Đáp án và đề kiểm tra không bao giờ vào RAG.
    - Một file đáp án được nối với file đề của nó (`answers_for`).
-4. **Bản đọc của Gemini được lưu trên đĩa** theo mã băm của trang và lời nhắc, nên đọc lại không tốn hạn mức.
+4. **Bản đọc của Gemini được lưu trên đĩa** theo mã băm của trang và lời nhắc, kèm model đã đọc, nên đọc lại không tốn hạn mức. Mọi lời gọi đi qua `ai_gateway`. Chuỗi model miễn phí là `gemini-3.8-flash` → `gemini-2.5-flash` → `gemini-3.5-flash-lite` (mỗi model 20 lần/ngày).
 5. **`make library-import DIR=tailieu`:**
    - Nhập cả thư mục qua đúng đường của nút tải lên.
    - Loại và chương lấy từ tên file `<STP|DTTGHT>-<loại>[-dapan]`.
    - Ghi vào database của `.env`. Đây là tài liệu thật của giáo viên, không phải dữ liệu demo.
+
+## Kết quả trên 18 file của chủ dự án (2026-10-12)
+
+- 31/77 trang được đọc lại: 12 trang có ảnh, 19 trang có hình vẽ hoặc trục số. Không trang nào thiếu số so với lớp chữ.
+- 8 trang có số chỉ Gemini đọc được, đều là phân số dạng ảnh của chương Số thập phân:
+  - 6 trang: hai model đọc khớp nhau;
+  - **2 trang lệch nhau**, nên được đánh dấu cho giáo viên xem.
+- **[FACT]** Trang 1 file đáp án bài tập, câu 2: ảnh gốc là a) 9/10, b) 6/100. Một model đọc thành 7/10 và 9/100, model kia đọc đúng.
+  - Nếu chỉ đọc một lần, đáp án sai sẽ đi thẳng vào ngân hàng câu hỏi.
+  - Đây là lý do có bước đọc hai lần, và có bước `MathChecker` đối chiếu đáp án với đề ở INGEST-2 (0,9 phải bằng 9/10).
+- Lần chạy đầu hết hạn mức `gemini-3.8-flash` (20 lần/ngày) giữa chừng. Các trang thiếu được đọc lại bằng model dự phòng.
+- `gemini-2.5-flash-lite` đã ngừng cho người dùng mới, nên thay bằng `gemini-3.5-flash-lite`.
 
 ## Hệ quả
 

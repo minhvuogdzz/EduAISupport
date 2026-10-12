@@ -464,9 +464,9 @@ Chạy song song từ Mốc 1:
     - có các dòng chỉ có số rồi một dòng chỉ có một chữ in hoa (trục số "3", "4", "3,5", "M").
   - Bản Gemini đọc chỉ được thay lớp chữ khi **mọi số có từ 2 ký tự trở lên của lớp chữ đều có trong bản đọc**, viết giống hệt hoặc cùng giá trị. Chữ số đứng riêng không tính, vì lớp chữ cắt bảng thành từng chữ số.
   - Thiếu số, Gemini lỗi hoặc không có khóa Gemini: giữ lớp chữ, trang được đánh dấu "cần xem lại" cho giáo viên.
-  - Số chỉ có trong bản Gemini (phân số trong ảnh, số đo trên hình) được liệt kê để giáo viên đối chiếu với file gốc.
+  - Số chỉ có trong bản Gemini (phân số trong ảnh) phải được một model khác đọc lại ra đúng như vậy. Lệch thì trang được đánh dấu "cần xem lại", kèm các số lệch. Trên tài liệu thật, bước này đã bắt được câu 2 của đáp án bài tập: ảnh gốc là 9/10, một model đọc thành 7/10.
   - Đáp án và đề kiểm tra không bao giờ vào RAG (quy tắc 2 của CLAUDE.md).
-  - Trên 18 file của chủ dự án: 31/77 trang được đọc lại (12 trang có ảnh, 19 trang có hình), không có trang đáp án nào bị đánh dấu nhầm.
+  - Trên 18 file của chủ dự án: 31/77 trang được đọc lại (12 trang có ảnh, 19 trang có hình). 8 trang có phân số trong ảnh: 6 trang hai lần đọc khớp nhau, 2 trang chờ giáo viên xem.
 - **DI-42, gia sư theo ngữ cảnh (CTX-1, ADR-022, chờ duyệt):**
   - Con hỏi về gợi ý hay nghĩa một từ: nước đi EXPLAIN, tính là bậc gợi ý tiếp theo; tối đa 2 lần mỗi câu, quá thì gợi ý tiếp; bài kiểm tra cuối bài chỉ nhắc lại đề.
   - Lời Qwen trong bài tập phải giữ ít nhất 60% thuật ngữ Toán của câu mẫu (đủ cả khi câu mẫu có 1–2 thuật ngữ); câu mẫu không có thuật ngữ thì giữ ít nhất 30% số từ.
