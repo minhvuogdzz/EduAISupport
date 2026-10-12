@@ -244,6 +244,11 @@ def _explain(period: PeriodPlan) -> ExplainSpec:
     return ExplainSpec(prompt=prompt, key_ideas=ideas)
 
 
+def _plain_number(text: str) -> bool:
+    q = evaluate(text)
+    return q is not None and not q.dimension and bool(re.fullmatch(r"\d+(?:,\d+)?", text.strip()))
+
+
 def answer_spec(draft: ItemDraft) -> Any:
     """The answer of a draft item as the checker reads it; an open answer when no typed form fits."""
     first = draft.answer.splitlines()[0].strip() if draft.answer else ""
@@ -260,13 +265,14 @@ def answer_spec(draft: ItemDraft) -> Any:
     if m := re.match(r"\s*(Đ|S)\b", first):
         return BooleanAnswer(type="boolean", value=m.group(1) == "Đ", requires_explanation=False)
     pair = re.search(rf"({MEASURE.pattern})\s*(?:…+|\.{{2,}})\s*({MEASURE.pattern})", stem)
-    if pair and re.search(r"[<>=]", first):
+    # The checker compares and orders plain numbers: measures ("2,5 m …… 250 cm") stay open answers.
+    if pair and re.search(r"[<>=]", first) and all(_plain_number(g) for g in pair.groups()):
         return CompareAnswer(type="compare", left=pair.group(1).strip(), right=pair.group(2).strip())
     lowered = stem.lower()
     if ("sắp xếp" in lowered or "xếp" in lowered) and re.search(r"[<>]", first):
         numbers = re.findall(rf"{MEASURE.pattern}", first)
         direction = "desc" if ">" in first else "asc"
-        if numbers and all(evaluate(n) is not None for n in numbers):
+        if numbers and all(_plain_number(n) for n in numbers):
             return OrderAnswer(type="order", numbers=[n.strip() for n in numbers], direction=direction)
     blank = re.search(r"(?:=|≈)\s*(?:…+|\.{2,})\s*([^\s.…]*)", stem)
     given = answer_quantity(first)

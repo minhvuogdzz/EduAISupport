@@ -40,16 +40,23 @@ async def rebuild(database: Any, school_id: str, chapter_id: str) -> ItemBank:
     return await repo.get(chapter_id) or bank
 
 
-async def rebuild_plan(database: Any, school_id: str, chapter_id: str) -> TeachingPlan:
-    """The draft teaching plan of the chapter from its documents and its item bank, both of now."""
+async def rebuild_plan(database: Any, school_id: str, chapter_id: str, drafter: Any = None) -> TeachingPlan:
+    """The draft teaching plan of the chapter from its documents and its item bank, both of now. With a
+    ``drafting.Drafter``, what the documents leave out is drafted by Qwen and checked (INGEST-3b)."""
+    from cavat.modules.content.chapter_package import validate_chapter
+    from cavat.modules.ingest.drafting import as_records
+
     bank = await rebuild(database, school_id, chapter_id)
     documents = [
         d for d in await DocumentRepository(database, school_id).list_all() if d.chapter_id == chapter_id
     ]
-    drafts = [ItemDraft(**item) for item in bank.items]
+    drafts_in = [ItemDraft(**item) for item in bank.items]
     plan = build_plan(
-        chapter_id, TITLES.get(chapter_id, chapter_id), PREFIXES.get(chapter_id, "CH"), documents, drafts
+        chapter_id, TITLES.get(chapter_id, chapter_id), PREFIXES.get(chapter_id, "CH"), documents, drafts_in
     )
+    drafted = drafter.draft(plan) if drafter is not None else []
+    if drafted:
+        plan.problems = validate_chapter(plan.chapter())
     stored = TeachingPlan(
         school_id=school_id,
         chapter_id=chapter_id,
@@ -60,6 +67,7 @@ async def rebuild_plan(database: Any, school_id: str, chapter_id: str) -> Teachi
         problems=plan.problems,
         sources=plan.sources,
         left_out=plan.left_out,
+        drafts=as_records(drafted),
     )
     repo = TeachingPlanRepository(database, school_id)
     await repo.save(stored)

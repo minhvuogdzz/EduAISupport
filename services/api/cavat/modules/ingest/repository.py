@@ -59,6 +59,7 @@ class TeachingPlan(TenantDocument):
     problems: list[str] = Field(default_factory=list)  # what the tutor's validation still asks for
     sources: dict[str, list[str]] = Field(default_factory=dict)  # node → its pages
     left_out: list[str] = Field(default_factory=list)  # items not placed, and why
+    drafts: list[dict[str, Any]] = Field(default_factory=list)  # what Qwen wrote and the checks said (3b)
 
 
 class TeachingPlanRepository(TenantScopedRepository):

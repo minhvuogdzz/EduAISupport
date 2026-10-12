@@ -16,7 +16,8 @@ Lý thuyết · Số thập phân
 Bài 11 · So sánh các số thập phân
 GHI NHỚ · Cách so sánh hai số thập phân
 Bước 1. So sánh phần nguyên: số nào có phần nguyên lớn hơn thì lớn hơn.
-Bước 2. Phần nguyên bằng nhau thì so sánh lần lượt từng hàng của phần thập phân.
+Bước 2. Phần nguyên bằng nhau thì so sánh lần lượt từng hàng của phần thập phân:
+hàng phần mười, hàng phần trăm; viết thêm chữ số 0 cho đủ.
 VÍ DỤ · So sánh 7,25 và 7,3
 Phần nguyên cùng là 7. Viết 7,3 = 7,30. Hàng phần mười: 2 < 3 nên 7,25 < 7,3.
 LƯU Ý · Đừng nhầm
