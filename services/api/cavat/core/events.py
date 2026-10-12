@@ -70,6 +70,7 @@ class EventType(StrEnum):
     QUESTION_PARKED = "QUESTION_PARKED"
     # contextual reading (CTX-1)
     MESSAGE_READ = "MESSAGE_READ"
+    CONTEXT_ROUTED = "CONTEXT_ROUTED"
     # assessment / teacher
     EVIDENCE_RECORDED = "EVIDENCE_RECORDED"
     TEACHER_OVERRIDE = "TEACHER_OVERRIDE"
@@ -297,6 +298,17 @@ class ChoiceMade(_Payload):
     label: str
 
 
+class ContextRouted(_Payload):
+    """What the conductor (``teaching/conductor.py``) did with a message before the loop read it: the text
+    as typed, the text the loop read, what it found, and whether it unstuck a repeated tutor turn."""
+
+    raw: str
+    text: str
+    signals: list[str] = Field(default_factory=list)  # TEENCODE, EMOJI, STRETCHED, LONG, KEYWORD_DUMP...
+    route: Literal["PASS", "UNSTICK"] = "PASS"
+    version: str
+
+
 class SafetyFlagged(_Payload):
     """The model judged the student's message worrying (constitution rule 8). For the teacher to review."""
 
@@ -306,6 +318,7 @@ class SafetyFlagged(_Payload):
 
 PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.SAFETY_FLAGGED: SafetyFlagged,
+    EventType.CONTEXT_ROUTED: ContextRouted,
     EventType.STUDENT_MESSAGE: StudentMessage,
     EventType.HINT_REQUESTED: HintRequested,
     EventType.CHOICE_MADE: ChoiceMade,

@@ -18,7 +18,7 @@ from cavat.core.pedagogy import Outcome
 from cavat.core.vi_text import fold
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 
-INTENT_VERSION = "student-intent/0.1.0"
+INTENT_VERSION = "student-intent/0.2.0"  # 0.2.0: more teen code, keyword dumps (conductor)
 
 # Short forms as children type them, token by token. Only used to read the intent: answers are parsed
 # from the raw text. DI-32: "k", "v", "r" stand alone only in this sense in a lesson about decimals.
@@ -51,6 +51,53 @@ _SHORT_FORMS: dict[str, str] = {
     "ntn": "như thế nào",
     "mk": "mình",
     "mik": "mình",
+    # student-intent/0.2.0 (conductor): what the owner's students type. Not "kg", "m", "s", "t": units, "Sai".
+    "hk": "không",
+    "hong": "không",
+    "hum": "không",
+    "kô": "không",
+    "khong": "không",
+    "kbt": "không biết",
+    "kb": "không biết",
+    "pít": "biết",
+    "bíc": "biết",
+    "biet": "biết",
+    "hieu": "hiểu",
+    "chx": "chưa",
+    "đag": "đang",
+    "dag": "đang",
+    "ròi": "rồi",
+    "zậy": "vậy",
+    "zị": "vậy",
+    "lun": "luôn",
+    "wá": "quá",
+    "qá": "quá",
+    "bùn": "buồn",
+    "chời": "trời",
+    "vs": "với",
+    "ms": "mới",
+    "nx": "nữa",
+    "trc": "trước",
+    "nma": "nhưng mà",
+    "lsao": "làm sao",
+    "ntnao": "như thế nào",
+    "ok": "được",
+    "oke": "được",
+    "okie": "được",
+    "okela": "được",
+    "uk": "ừ",
+    "uh": "ừ",
+    "ừm": "ừ",
+    "đk": "được",
+    "dk": "được",
+    "đuợc": "được",
+    "jo": "giờ",
+    "h": "giờ",
+    "bh": "bao giờ",
+    "nhìu": "nhiều",
+    "iu": "yêu",
+    "thik": "thích",
+    "thíc": "thích",
 }
 _TOKEN_RE = re.compile(r"\w+|\W+")
 
@@ -243,6 +290,24 @@ def expand_short_forms(text: str) -> str:
     return "".join(_SHORT_FORMS.get(p, p) for p in parts)
 
 
+_TERM_PIECES = frozenset("số phân thập phần hàng mười trăm nghìn đơn vị chục dấu phẩy và với của".split())
+_FILLER = frozenset("ạ à ơi cô con dạ thì là".split())
+
+
+def keyword_dump(text: str) -> bool:
+    """A heap of lesson keywords with no question and no answer in it ("phân số thập phân mẫu số tử số hàng
+    phần mười"): at least three distinct terms, no digit, no question, and nothing left once the terms (and
+    their pieces, fillers) are taken out. The tutor says the task again rather than guess (R-CLARIFY).
+    Linking words ("trước", "rồi", "vì", "bằng") make a sentence of it: an explanation is not a heap."""
+    from cavat.modules.assessment.math_terms import _TERM_RE, terms_in
+
+    t = expand_short_forms(text)
+    if re.search(r"\d", t) or asks_question(text) or len(terms_in(t)) < 3:
+        return False
+    left = [w for w in re.findall(r"\w+", _TERM_RE.sub(" ", t)) if w not in _TERM_PIECES | _FILLER]
+    return not left
+
+
 def read_intent(text: str, has_answer: bool = False) -> Outcome | None:
     """The intent of a message that is not an attempt, or None for an attempt (an answer, a retell).
 
@@ -259,7 +324,7 @@ def read_intent(text: str, has_answer: bool = False) -> Outcome | None:
         return None
     if _AFFECT_RE.search(t):
         return Outcome.NEGATIVE_AFFECT
-    if _CLARIFY_RE.search(t):
+    if _CLARIFY_RE.search(t) or keyword_dump(text):
         return Outcome.CLARIFY_REQUEST
     if _HELP_RE.search(t):
         return Outcome.HELP_REQUEST
@@ -290,6 +355,7 @@ _TAIL = r"(?:\s+(?:a|vay|the|ha|nhi|co|oi))*\W*$"
 _ENDING_RE = re.compile(
     r"\b(?:la sao|the nao|nhu nao|ra sao|bao nhieu|duoc khong|dung khong|phai khong|khong|chua|gi)" + _TAIL
 )
+_NEGATION_END_RE = re.compile(r"\b(?:thi|cung|van|deu|lai)\s+(?:khong|chua)\W*$")
 _PARTICLE_RE = re.compile(r"\s(?:à|hả|nhỉ)(?:\s+(?:cô|ạ))*\W*$")
 
 
@@ -301,7 +367,10 @@ def asks_question(text: str) -> bool:
     folded = fold(t)
     if _OPENING_RE.match(folded):
         return True
-    # "không", "chưa" alone answer a question; a closing particle asks only after a few words
+    # "không", "chưa" alone answer a question; a closing particle asks only after a few words, and a
+    # negation ("bỏ số 0 ở giữa thì không", "con cũng chưa") says something: it asks nothing (0.2.0).
+    if _NEGATION_END_RE.search(folded):
+        return False
     return len(folded.split()) >= 3 and bool(_ENDING_RE.search(folded))
 
 

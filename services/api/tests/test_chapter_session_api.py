@@ -208,3 +208,27 @@ def test_a_new_session_continues_where_the_student_stopped(client):
     assert [s["session_id"] for s in client.get("/v1/sessions/mine", headers=lan).json()] == [
         other["session_id"]
     ]
+
+
+def test_the_conductor_cleans_a_message_and_unsticks_a_tutor_saying_the_same_thing(client, memory):
+    """Teen code and emoji are read (and recorded as typed); a child the redirect does not reach is not sent
+    the same redirect again: the next hint of the item follows (conductor/0.1.0)."""
+    import asyncio
+
+    from cavat.modules.session.repository import LearningSessionRepository
+
+    state = advance(client, start(client), "c0")  # the theory question, then the first item
+    assert state["teaching"]["awaiting"] == "ANSWER"
+    state = advance(client, state, "c1", "😭😭 ko bít lm jjjj")
+    before = len(state["transcript"])
+    state = advance(client, state, "c2", "xyz abc")
+    state = advance(client, state, "c3", "xyz abc")
+    tutor = [t["text"] for t in state["transcript"][before:] if t["actor"] != "student"]
+    assert len(tutor) >= 3 and tutor[-1] != tutor[-2], tutor  # not the same redirect twice in a row
+    session = asyncio.run(LearningSessionRepository(memory, service.DEMO_SCHOOL_ID).get(state["session_id"]))
+    routed = [e.payload for e in session.events if e.event_type == "CONTEXT_ROUTED"]
+    assert routed[0]["raw"] == "😭😭 ko bít lm jjjj" and routed[0]["text"] == "ko bít lm j"
+    assert {"EMOJI", "STRETCHED", "TEENCODE"} <= set(routed[0]["signals"])
+    assert routed[-1]["route"] == "UNSTICK"
+    again = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
+    assert again["transcript"] == state["transcript"]  # rebuilt from the events alone

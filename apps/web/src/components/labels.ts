@@ -117,6 +117,17 @@ export const STUDENT_KIND_LABEL: Record<StudentAnnotation["kind"], string> = {
   MESSAGE: "Tin nhắn",
   HINT_REQUEST: "Bấm xin gợi ý",
   CHOICE: "Chọn",
+  UNSTICK: "Gia sư tự gợi ý",
+};
+
+/** What the conductor found in a message (conductor/0.1.0). */
+export const CONDUCTED_LABEL: Record<string, string> = {
+  EMOJI: "biểu tượng cảm xúc",
+  STRETCHED: "chữ kéo dài",
+  TEENCODE: "viết tắt",
+  O_AS_ZERO: "chữ o thay số 0",
+  LONG: "tin quá dài",
+  KEYWORD_DUMP: "dồn từ khóa",
 };
 
 // ---------------------------------------------------------------- teaching on the knowledge graph (M1-7)

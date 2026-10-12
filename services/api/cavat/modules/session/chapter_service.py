@@ -18,13 +18,14 @@ warm-up item (N-WARMUP). The teaching state (what was taught, asked, decided) is
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from cavat.config import REPO_ROOT
-from cavat.core.events import EventType, NodeDecisionMade, SafetyFlagged
+from cavat.core.events import ContextRouted, EventType, NodeDecisionMade, SafetyFlagged
 from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, TeachAction
 from cavat.core.repository import new_id
 from cavat.modules.assessment.projector import (
@@ -48,12 +49,14 @@ from cavat.modules.session.service import (
 from cavat.modules.session.service import (
     _actor as actor_for,
 )
+from cavat.modules.teaching.conductor import CONDUCTOR_VERSION, clean, repeats
 from cavat.modules.teaching.grounded import GroundedSpeaker
 from cavat.modules.teaching.loop import (
     ACTIVITY_FOR,
     TEMPLATES_VERSION,
     Awaiting,
     LoopEvent,
+    MessageKind,
     TeachingLoop,
     TeachTurn,
 )
@@ -248,15 +251,20 @@ def apply_command(
     loop = TeachingLoop.resume(chapter, session.id, history, session.events)
     loop.go_live(live_renderer, reader, speaker)  # the replay above used templates; this turn may call models
     seconds = max((now - session.updated_at).total_seconds(), 0.0)
+    routed: ContextRouted | None = None
     if command == "CHOICE":
         assert choice_id is not None
         turn = loop.on_choice(choice_id, now, seconds)
     elif command == "HINT_REQUEST":
         turn = loop.on_hint_request(now, seconds)
     else:
-        turn = loop.on_student(text, now, seconds)
+        turn, routed = _conducted(loop, text, now, seconds)
 
     events, attempt, node_id = _convert(session, turn.events, session.state.item, act.get("node_id"))
+    if routed is not None:  # what the conductor read and did, for the teacher; never replayed
+        events.insert(
+            0, NewEvent(event_type=EventType.CONTEXT_ROUTED.value, payload=routed.model_dump(mode="json"))
+        )
     if events:  # lets the API answer a repeated Idempotency-Key with the version this command made
         events[0].correlation["state_version"] = str(session.state_version + 1)
     trace = getattr(live_renderer, "last_trace", None)
@@ -273,6 +281,61 @@ def apply_command(
         events.append(NewEvent(event_type=EventType.SESSION_COMPLETED.value, payload={}))
         return Step(state, events, {"ended_at": now, "end_reason": "COMPLETED"})
     return Step(state, events, {})
+
+
+def _conducted(
+    loop: TeachingLoop, text: str, now: datetime, seconds: float
+) -> tuple[TeachTurn, ContextRouted | None]:
+    """The conductor (``teaching/conductor.py``) around one message: the loop reads the cleaned text; when
+    the tutor would say again what it said a moment ago on the same question, the next hint follows."""
+    cleaned = clean(text)
+    route: Literal["PASS", "UNSTICK"] = "PASS"
+    speaker = loop.speaker
+    if loop.awaiting in (Awaiting.THEORY_REPLY, Awaiting.RETELL) and _side_replies(loop) >= 2:
+        # Twice already the tutor answered or parked what it took for a question, and asked its own again:
+        # this message is read as the reply (the loop does not ask the RAG about it).
+        loop.speaker, route = None, "UNSTICK"
+    recent = [
+        e.payload.get("text", "")
+        for e in loop.events[-6:]
+        if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
+    ]
+    turn = loop.on_student(cleaned.text, now, seconds)
+    loop.speaker = speaker
+    said = [m.text for m in turn.messages if m.kind == MessageKind.ITEM]
+    if (
+        turn.awaiting == Awaiting.ANSWER
+        and turn.item_phase == Phase.AWAITING
+        and not turn.choice_open
+        and repeats(said, recent)
+    ):
+        try:
+            hinted = loop.on_hint_request(now, 0.0)
+        except RuntimeError:
+            hinted = None
+        if hinted is not None:
+            route = "UNSTICK"
+            turn = replace(
+                hinted, messages=turn.messages + hinted.messages, events=turn.events + hinted.events
+            )
+    if not cleaned.signals and route == "PASS":
+        return turn, None
+    return turn, ContextRouted(
+        raw=text, text=cleaned.text, signals=list(cleaned.signals), route=route, version=CONDUCTOR_VERSION
+    )
+
+
+def _side_replies(loop: TeachingLoop) -> int:
+    """Tutor answers and redirects since the loop last asked its own question (theory, retell)."""
+    count = 0
+    for e in reversed(loop.events):
+        if e.event_type != EventType.TEACH_MESSAGE_SENT:
+            continue
+        kind = e.payload.get("kind")
+        if kind in ("THEORY", "RETELL_PROMPT"):
+            break
+        count += kind in ("ANSWER", "FEEDBACK")
+    return count
 
 
 # --------------------------------------------------------------------------- events and state

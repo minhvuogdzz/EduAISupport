@@ -492,6 +492,8 @@ def build_teacher_transcript(
     retell: dict[str, Any] | None = None  # the student's retell that RETELL_JUDGED annotates
     last_student: dict[str, Any] | None = None  # the student's words a SAFETY_FLAGGED event is about
     grounding: dict[str, Any] = {}  # RAG-2: the retrieval and the parked question the next reply carries
+    routed: dict[str, Any] | None = None  # the conductor's record of the message that follows it
+    unstick = False  # the next HINT_REQUESTED was asked by the conductor, not by the child
 
     def add(turn: dict[str, Any], attempt: str | None) -> None:
         block = blocks.get(attempt) if attempt else None
@@ -564,6 +566,9 @@ def build_teacher_transcript(
                 {**base, "actor": "tutor", "text": p["text"], "tutor": None, "student": None, "teach": teach},
                 None,
             )
+        elif kind == EventType.CONTEXT_ROUTED:
+            routed = {"raw": p["raw"], "signals": p.get("signals", []), "route": p.get("route", "PASS")}
+            unstick = routed["route"] == "UNSTICK"
         elif kind == EventType.SAFETY_FLAGGED and last_student is not None:
             last_student["safety"] = True
         elif kind == EventType.MESSAGE_READ and last_student is not None:
@@ -580,6 +585,12 @@ def build_teacher_transcript(
         elif kind in (EventType.STUDENT_MESSAGE, EventType.HINT_REQUESTED, EventType.CHOICE_MADE):
             if kind == EventType.STUDENT_MESSAGE:
                 text, turn_kind = p["text"], p["kind"]
+            elif kind == EventType.HINT_REQUESTED and unstick:
+                text, turn_kind, unstick = (
+                    "(Gia sư tự đưa gợi ý: câu nhắc lại không giúp được con)",
+                    "UNSTICK",
+                    False,
+                )
             elif kind == EventType.HINT_REQUESTED:
                 text, turn_kind = CHOICES[CHOICE_HINT], "HINT_REQUEST"
             else:
@@ -592,6 +603,9 @@ def build_teacher_transcript(
                 "safety": False,
             }
             last_student = student
+            if kind == EventType.STUDENT_MESSAGE and routed is not None:
+                student["conducted"] = routed  # what the child typed, and what the conductor found in it
+                routed = None
             if kind == EventType.STUDENT_MESSAGE:
                 graded[attempt] = student
                 if str(p.get("item_id", "")).endswith(":RETELL"):

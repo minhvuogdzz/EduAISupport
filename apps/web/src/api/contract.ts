@@ -309,7 +309,7 @@ export interface TutorAnnotation {
 }
 
 export interface StudentAnnotation {
-  kind: ResponseKind | "HINT_REQUEST" | "CHOICE";
+  kind: ResponseKind | "HINT_REQUEST" | "CHOICE" | "UNSTICK";
   /** null when the answer was not graded (for example an EXIT item in the mock). */
   outcome: Outcome | null;
   /** Checker's reading of the answer, already formatted vi-VN (e.g. "0,25 > 0,3"). */
@@ -321,6 +321,8 @@ export interface StudentAnnotation {
   safety?: boolean;
   /** CTX-1: how an unclear message was read in context, by Qwen (LLM) or by rule. */
   read?: { label: string; focus: string; source: "LLM" | "RULE" } | null;
+  /** The conductor: what the child typed (teen code, emoji…) before the loop read the cleaned text. */
+  conducted?: { raw: string; signals: string[]; route: "PASS" | "UNSTICK" } | null;
 }
 
 /** The node decision behind a teaching-loop message (chapter sessions). */
