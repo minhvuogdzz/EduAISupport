@@ -112,6 +112,20 @@ def foreign_text(text: str) -> str | None:
     return next((w for w in re.findall(r"[a-z]+", lowered) if w in _ENGLISH_WORDS), None)
 
 
+# Other ways of calling the child than the lesson's ``student_address``. "bạn" stays out: a child who says
+# "bị bạn đánh" is echoed with it. "em bé" is a baby, not the child.
+_ADDRESSES = ("em", "cháu", "cậu")
+
+
+def wrong_address(text: str, student_address: str) -> str | None:
+    """A word that calls the child something else than the lesson does ("em" in a lesson that says "con")."""
+    lowered = text.lower()
+    for word in _ADDRESSES:
+        if word != student_address and re.search(rf"(?<!\w){word}(?!\w)(?! bé)", lowered):
+            return word
+    return None
+
+
 def _value(token: str) -> Fraction | None:
     n = parse_number(token)
     return n.value if n is not None else None
@@ -256,6 +270,9 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
     foreign = foreign_text(text)
     if foreign:
         issues.append(ValidationIssue(ValidationCode.FOREIGN_TEXT, foreign))
+    address = wrong_address(text, ctx.persona.student_address)
+    if address:
+        issues.append(ValidationIssue(ValidationCode.WRONG_ADDRESS, address))
 
     words = len(text.split())
     if words > ctx.max_words:

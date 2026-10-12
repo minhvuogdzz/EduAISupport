@@ -72,6 +72,7 @@ RETRY_NOTES: dict[str, str] = {
     ValidationCode.UNGROUNDED_NUMBER: "dùng số không có trong bài",
     ValidationCode.EMPTY: "message trống",
     ValidationCode.FOREIGN_TEXT: "có chữ hoặc từ không phải tiếng Việt",
+    ValidationCode.WRONG_ADDRESS: "gọi học sinh sai xưng hô trong [XƯNG HÔ]",
     "BEYOND_ANCHOR": "dùng số hoặc bước làm không có trong câu mẫu",
     "REPEATS_PREVIOUS": "lặp lại nguyên văn câu gia sư đã nói",
     "OFF_ANCHOR": "không bám câu mẫu: phải giữ đúng ý và câu hỏi của câu mẫu",

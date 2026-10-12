@@ -134,6 +134,8 @@ class ValidationCode(StrEnum):
     EMPTY = "EMPTY"
     # Qwen sometimes slips into Chinese or English mid-sentence ("số chữ số thập分 like nha", seen live)
     FOREIGN_TEXT = "FOREIGN_TEXT"
+    # Qwen called the child "em" although the lesson says "con" ("…trong số đếm của em", seen live, TQ-3)
+    WRONG_ADDRESS = "WRONG_ADDRESS"
 
 
 @dataclass(frozen=True)

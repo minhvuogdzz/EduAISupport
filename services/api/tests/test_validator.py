@@ -12,7 +12,7 @@ from cavat.modules.tutor.contracts import (
     RenderContext,
     ValidationCode,
 )
-from cavat.modules.tutor.validator import foreign_text, validate_message
+from cavat.modules.tutor.validator import foreign_text, validate_message, wrong_address
 
 LESSON = Path(__file__).resolve().parents[3] / "docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml"
 PKG = load_lesson_package(LESSON)
@@ -169,3 +169,32 @@ def test_a_message_that_is_not_vietnamese_is_refused(text):
 )
 def test_vietnamese_with_units_is_not_foreign(text):
     assert foreign_text(text) is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Phân số thập phân có dấu vết trong số đếm của em.",  # seen live from Qwen (TQ-3)
+        "Em thử nhìn mẫu số nhé?",
+        "Cháu đọc lại đề giúp cô nhé?",
+    ],
+)
+def test_calling_the_child_other_than_con_is_refused(text):
+    assert wrong_address(text, "con") is not None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Con nhìn mẫu số nhé?",
+        "Con bị bạn trêu à? Con nói ngay với thầy cô nhé.",  # "bạn" echoes the child's words
+        "Em bé có 3 quả táo.",
+        "Kem que dài 12 cm.",
+    ],
+)
+def test_the_lesson_address_and_lookalikes_pass(text):
+    assert wrong_address(text, "con") is None
+
+
+def test_wrong_address_is_a_validation_code():
+    assert ValidationCode.WRONG_ADDRESS.value in codes("Em thử so sánh hàng phần mười xem?")

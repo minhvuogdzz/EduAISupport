@@ -449,7 +449,7 @@ Chạy song song từ Mốc 1:
   - Coi là hỏi lại đúng câu gia sư đang hỏi khi ít nhất 80% từ có nghĩa của câu con hỏi nằm trong câu đó.
   - Đòi đáp án, than chán, lạc đề giữ đường riêng của ADR-019.
   - Các câu mẫu mới (`teaching-templates/0.3.0`: `question_back`, `question_parked`, `question_same`, `question_later`, `question_limit`) là bản nháp chờ duyệt.
-- **DI-40, kiểm chứng lời Qwen (RAG-2, chờ duyệt; `grounded-speech/0.2.1`):**
+- **DI-40, kiểm chứng lời Qwen (RAG-2, chờ duyệt; `grounded-speech/0.2.2`; 0.2.2 thêm chặn sai xưng hô):**
   - thuật ngữ Toán (`MATH_TERMS`) và con số phải có trong nguồn;
   - ít nhất 60% từ có nghĩa khác nhau có trong nguồn (bản 0.1.0 dùng 80% có trọng số idf và đã chặn oan câu đúng, mục 5.6.2);
   - không có chữ hay từ ngoài tiếng Việt;
