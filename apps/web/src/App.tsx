@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 
 import type { AccountKind } from "./api/contract";
 import { AuthGate, RequireKind } from "./features/auth/AuthGate";
+import { homeOf, useAuth } from "./features/auth/authContext";
 import { ParentChildPage, ParentPage } from "./features/parent/ParentPages";
 import { SessionPage } from "./features/student/SessionPage";
 import { StudentStartPage } from "./features/student/StudentStartPage";
@@ -19,11 +20,17 @@ function only(kind: AccountKind, page: ReactNode) {
   return <RequireKind kind={kind}>{page}</RequireKind>;
 }
 
+/** With an account the home is that role's own area; without one, the page that presents the three roles. */
+function Home() {
+  const { user } = useAuth();
+  return user ? <Navigate to={homeOf(user.kind)} replace /> : <HomePage />;
+}
+
 export function App() {
   return (
     <AuthGate>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Home />} />
         <Route path="/student" element={only("STUDENT", <StudentStartPage />)} />
         <Route path="/student/sessions/:sessionId" element={only("STUDENT", <SessionPage />)} />
         <Route path="/parent" element={only("PARENT", <ParentPage />)} />

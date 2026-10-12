@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { useApi } from "../../api/apiContext";
+import { DEMO_STUDENT_NAME } from "../../api/http/httpApi";
 import type { SessionSummary, StudentOverview } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
 import { useAuth } from "../auth/authContext";
@@ -49,8 +50,8 @@ export function StudentStartPage() {
     retry: false,
   });
   const { user } = useAuth();
-  // With accounts (ACC-1) the name is the account's: the child never types a name.
-  const name = user?.display_name || overview.data?.student_display_name || null;
+  // The trial has one student (ACC-1, ACC-2): the account's name, else the demo student's. Never typed.
+  const name = user?.display_name || overview.data?.student_display_name || DEMO_STUDENT_NAME;
 
   const start = useMutation({
     mutationFn: (studentName: string) => api.createDemoSession({ student_display_name: studentName }),
@@ -68,7 +69,7 @@ export function StudentStartPage() {
           <div className="grid items-center gap-4 p-6 md:grid-cols-[1fr_auto] md:p-8">
             <div>
               <h1 className="text-2xl font-extrabold md:text-3xl">
-                {name ? `Chào ${name}, hôm nay mình học gì nhé?` : "Chào con!"}
+                {`Chào ${name}, hôm nay mình học gì nhé?`}
               </h1>
               <p className="mt-2 text-base text-slate-700">
                 {overview.data
@@ -118,67 +119,27 @@ function StartForm({
   failed,
   onStart,
 }: {
-  knownName: string | null;
+  knownName: string;
   pending: boolean;
   failed: boolean;
   onStart: (name: string) => void;
 }) {
-  const [name, setName] = useState("");
-  if (knownName) {
-    return (
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => onStart(knownName)}
-          className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-lg font-semibold text-brand-900 ring-1 ring-brand-200 hover:bg-brand-50 disabled:opacity-50"
-        >
-          Bắt đầu buổi mới <ArrowRightIcon className="size-5" />
-        </button>
-        {failed && (
-          <p role="alert" className="text-lg text-red-700">
-            Chưa tạo được buổi học. Con thử lại nhé.
-          </p>
-        )}
-      </div>
-    );
-  }
   return (
-    <form
-      className="mt-5 flex max-w-xl flex-col gap-3 rounded-2xl bg-white/85 p-5 ring-1 ring-gold/40"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (name.trim()) onStart(name.trim());
-      }}
-    >
-      <label htmlFor="student-name" className="text-2xl font-semibold">
-        Con tên là gì?
-      </label>
-      <p id="student-name-help" className="text-lg text-slate-600">
-        Chỉ cần tên gọi, ví dụ: Minh.
-      </p>
-      <input
-        id="student-name"
-        aria-describedby="student-name-help"
-        value={name}
-        maxLength={30}
-        autoComplete="given-name"
-        onChange={(event) => setName(event.target.value)}
-        className="rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-2xl focus:border-brand-600"
-      />
+    <div className="mt-5 flex flex-wrap gap-3">
       <button
-        type="submit"
-        disabled={!name.trim() || pending}
-        className="mt-1 rounded-full bg-brand-700 px-6 py-3.5 text-2xl font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+        type="button"
+        disabled={pending}
+        onClick={() => onStart(knownName)}
+        className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-lg font-semibold text-brand-900 ring-1 ring-brand-200 hover:bg-brand-50 disabled:opacity-50"
       >
-        Bắt đầu học
+        Bắt đầu buổi mới <ArrowRightIcon className="size-5" />
       </button>
       {failed && (
         <p role="alert" className="text-lg text-red-700">
           Chưa tạo được buổi học. Con thử lại nhé.
         </p>
       )}
-    </form>
+    </div>
   );
 }
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { memoryStorage } from "../../test/memoryStorage";
 import { ApiError, type SessionApi } from "../client";
 import type { ChatTurn, SessionState, StreamEvent } from "../contract";
-import { createHttpApi } from "./httpApi";
+import { memoryStorage } from "../../test/memoryStorage";
+import { createHttpApi, DEMO_STUDENT_ID, DEMO_STUDENT_NAME } from "./httpApi";
 
 interface Call {
   method: string;
@@ -87,7 +87,7 @@ const ANSWER = {
 
 function client(routes: Record<string, Route>, storage: Storage | null = null) {
   const server = fakeServer(routes);
-  const api = createHttpApi({ fetch: server.fetchFn, storage, typingDelayMs: 0, newId: () => "browser-1" });
+  const api = createHttpApi({ fetch: server.fetchFn, storage, typingDelayMs: 0 });
   return { api, calls: server.calls };
 }
 
@@ -106,24 +106,47 @@ function untilState(api: SessionApi, sessionId: string): Promise<StreamEvent[]> 
 }
 
 describe("createHttpApi", () => {
-  it("creates a session with the demo identity of this browser and keeps that identity", async () => {
+  it("keeps the login of each role on this device and switches between them (ACC-2)", async () => {
     const storage = memoryStorage();
-    const { api, calls } = client({ "POST /v1/sessions": () => ({ status: 201, body: BEFORE }) }, storage);
+    const users = {
+      hocsinh: { user_id: "u-s", kind: "STUDENT", display_name: "Minh", child_id: null },
+      giaovien: { user_id: "u-t", kind: "TEACHER", display_name: "Cô Lan", child_id: null },
+    } as const;
+    const { api, calls } = client(
+      {
+        "POST /v1/auth/login": (call) => {
+          const name = (call.body as { login_name: keyof typeof users }).login_name;
+          return { body: { token: `token-${name}`, user: users[name] } };
+        },
+        "GET /v1/auth/me": () => ({ body: users.hocsinh }),
+      },
+      storage,
+    );
+    await api.auth!.login("hocsinh", "2468");
+    await api.auth!.login("giaovien", "2468");
+    expect(api.auth!.switchTo("PARENT")).toBe(false); // never logged in here: the PIN is needed
+    expect(api.auth!.switchTo("STUDENT")).toBe(true);
+    await api.auth!.me();
+    expect(calls.at(-1)?.headers.Authorization).toBe("Bearer token-hocsinh");
+
+    // A reload keeps both logins and the current role.
+    const reloaded = createHttpApi({ fetch: fakeServer({}).fetchFn, storage, typingDelayMs: 0 });
+    expect(reloaded.auth!.switchTo("TEACHER")).toBe(true);
+    // An expired login is forgotten for its role only.
+    reloaded.auth!.logout();
+    expect(reloaded.auth!.switchTo("TEACHER")).toBe(false);
+    expect(reloaded.auth!.switchTo("STUDENT")).toBe(true);
+  });
+
+  it("creates a session as the one demo student, the same in every browser (ACC-2)", async () => {
+    const { api, calls } = client({ "POST /v1/sessions": () => ({ status: 201, body: BEFORE }) });
 
     expect(api.engine).toBe("live");
-    await expect(api.createDemoSession({ student_display_name: "Minh" })).resolves.toEqual({
+    await expect(api.createDemoSession({ student_display_name: DEMO_STUDENT_NAME })).resolves.toEqual({
       session_id: "s1",
     });
-    expect(calls[0].headers["X-Demo-Student"]).toBe("browser-1");
-    expect(calls[0].body).toEqual({ student_display_name: "Minh" });
-
-    const again = createHttpApi({
-      fetch: fakeServer({}).fetchFn,
-      storage,
-      newId: () => "another-id",
-    });
-    await again.getState("s1").catch(() => undefined);
-    expect(storage.getItem("cavat.demo.student-id")).toBe("browser-1");
+    expect(calls[0].headers["X-Demo-Student"]).toBe(DEMO_STUDENT_ID);
+    expect(calls[0].body).toEqual({ student_display_name: "An" });
   });
 
   it("returns the ack, then streams only the new tutor turns and the new state", async () => {
@@ -141,7 +164,7 @@ describe("createHttpApi", () => {
 
     expect(ack).toEqual({ accepted: true, state_version: 5, tutor_turn_id: "t3" });
     const post = calls.find((c) => c.method === "POST");
-    expect(post?.headers).toMatchObject({ "Idempotency-Key": "key-1", "X-Demo-Student": "browser-1" });
+    expect(post?.headers).toMatchObject({ "Idempotency-Key": "key-1", "X-Demo-Student": DEMO_STUDENT_ID });
     expect(post?.body).toEqual(ANSWER);
 
     const events = await stream;

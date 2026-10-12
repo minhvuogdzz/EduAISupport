@@ -9,11 +9,11 @@
  * **Temporary identity (until T12):** the student is a random id kept in this browser and sent as
  * `X-Demo-Student`; teacher calls send `X-Demo-Teacher`. Neither is real authentication.
  */
-import { newId } from "../../lib/ids";
 import { ApiError, type SessionApi } from "../client";
 import {
   API_ERROR_CODES,
   type ApiErrorCode,
+  type AccountKind,
   type AuthConfig,
   type AuthUser,
   type ChapterContent,
@@ -39,15 +39,21 @@ export interface HttpApiOptions {
   /** Origin of the API. "" (default) uses the page's origin: the Vite dev server proxies /v1. */
   baseUrl?: string;
   fetch?: typeof fetch;
-  /** Where the temporary demo identity is kept. Default: localStorage when usable. null: memory only. */
+  /** Where the login token is kept. Default: localStorage when usable. null: memory only. */
   storage?: Storage | null;
   /** Delay between the words of a new tutor turn, in ms. */
   typingDelayMs?: number;
-  newId?: () => string;
 }
 
-const STUDENT_KEY = "cavat.demo.student-id";
-const TOKEN_KEY = "cavat.auth.token";
+/**
+ * The one student of the trial when no account logs in (AUTH_MODE=demo, ACC-2): every browser is the same
+ * child, as with accounts. A random id per browser made each new browser a new student.
+ */
+export const DEMO_STUDENT_ID = "demo-student";
+export const DEMO_STUDENT_NAME = "An";
+/** The kept login of each role on this device (ACC-2), and which role is current. */
+const TOKENS_KEY = "cavat.auth.tokens";
+const CURRENT_KEY = "cavat.auth.current";
 const TEACHER_HEADERS = { "X-Demo-Teacher": "web" };
 const PARENT_HEADERS = { "X-Demo-Parent": "web" };
 
@@ -89,32 +95,37 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
   const baseUrl = options.baseUrl ?? "";
   const doFetch = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
   const typingDelayMs = options.typingDelayMs ?? 30;
-  const makeId = options.newId ?? newId;
   const storage = options.storage === undefined ? browserStorage() : options.storage;
 
   const listeners = new Map<string, Set<(event: StreamEvent) => void>>();
   /** Highest sequence_no this client has already shown, per session: newer tutor turns are streamed. */
   const seen = new Map<string, number>();
-  let memoryStudentId: string | null = null;
 
-  let memoryToken: string | null = null;
+  // In memory first: storage may be blocked, then the logins last until the page is reloaded.
+  let tokens: Partial<Record<AccountKind, string>> = readStored(TOKENS_KEY) ?? {};
+  let current: AccountKind | null = readStored(CURRENT_KEY);
 
-  function token(): string | null {
+  function readStored<T>(key: string): T | null {
     try {
-      return memoryToken ?? storage?.getItem(TOKEN_KEY) ?? null;
+      const raw = storage?.getItem(key);
+      return raw ? (JSON.parse(raw) as T) : null;
     } catch {
-      return memoryToken;
+      return null;
     }
   }
 
-  function keepToken(value: string | null): void {
-    memoryToken = value;
+  function store(): void {
     try {
-      if (value === null) storage?.removeItem(TOKEN_KEY);
-      else storage?.setItem(TOKEN_KEY, value);
+      storage?.setItem(TOKENS_KEY, JSON.stringify(tokens));
+      if (current === null) storage?.removeItem(CURRENT_KEY);
+      else storage?.setItem(CURRENT_KEY, JSON.stringify(current));
     } catch {
-      // storage blocked: the login lasts until the page is reloaded
+      // storage blocked: kept in memory only
     }
+  }
+
+  function token(): string | null {
+    return current ? (tokens[current] ?? null) : null;
   }
 
   /** The logged-in account (ACC-1); the X-Demo-* headers only without a login (AUTH_MODE=demo). */
@@ -128,18 +139,7 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
   }
 
   function demoStudentHeaders(): Record<string, string> {
-    let id = memoryStudentId;
-    try {
-      id ??= storage?.getItem(STUDENT_KEY) ?? null;
-      if (!id) {
-        id = makeId();
-        storage?.setItem(STUDENT_KEY, id);
-      }
-    } catch {
-      id ??= makeId();
-    }
-    memoryStudentId = id;
-    return { "X-Demo-Student": id };
+    return { "X-Demo-Student": DEMO_STUDENT_ID };
   }
 
   async function request<T>(
@@ -293,7 +293,9 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
             pin,
           },
         );
-        keepToken(result.token);
+        tokens = { ...tokens, [result.user.kind]: result.token };
+        current = result.user.kind;
+        store();
         return result.user;
       },
       me() {
@@ -301,8 +303,16 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
         if (!current) return Promise.reject(new ApiError(401, "NOT_SESSION_OWNER", "please log in"));
         return request<AuthUser>("GET", "/v1/auth/me", { Authorization: `Bearer ${current}` });
       },
+      switchTo(kind) {
+        if (!tokens[kind]) return false;
+        current = kind;
+        store();
+        return true;
+      },
       logout() {
-        keepToken(null);
+        if (current) tokens = Object.fromEntries(Object.entries(tokens).filter(([kind]) => kind !== current));
+        current = null;
+        store();
       },
     },
 

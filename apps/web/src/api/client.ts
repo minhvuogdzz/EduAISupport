@@ -1,5 +1,6 @@
 import type {
   ApiErrorCode,
+  AccountKind,
   AuthConfig,
   AuthUser,
   ChapterContent,
@@ -57,11 +58,18 @@ export interface SessionApi {
   getMyOverview?: () => Promise<StudentOverview>;
   /** Parent: the child behind a code (real API only). */
   getChildOverview?: (code: string) => Promise<ParentChildView>;
-  /** Accounts (ACC-1, real API only): the login of the trial's student, parent and teacher. */
+  /**
+   * Accounts (ACC-1, real API only): the login of the trial's student, parent and teacher. Each role logs in
+   * once on a device and is kept (ACC-2): switching role needs no logout and, after the first PIN, no PIN.
+   */
   auth?: {
     config(): Promise<AuthConfig>;
+    /** Logs in and makes that account the current one. */
     login(loginName: string, pin: string): Promise<AuthUser>;
     me(): Promise<AuthUser>;
+    /** Makes the kept login of this role the current one; false when this role never logged in here. */
+    switchTo(kind: AccountKind): boolean;
+    /** Forgets the current role's login (an expired token); the other roles stay kept. */
     logout(): void;
   };
   /** Parent account: the linked child (real API only). */
