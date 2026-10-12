@@ -350,6 +350,16 @@ def _check_order(spec: OrderAnswer, text: str, pkg: LessonPackage) -> CheckResul
 _ASSIGNED_RE = re.compile(rf"(?<!\w)[a-z]\s*(?:=|:|{_words('là', 'bằng')})\s*$")
 
 
+def _written_as_asked(form: str | None, n: ParsedNumber, target: ParsedNumber) -> bool:
+    """A fraction with the key's denominator (475/1000 for "0,475 = ……", not 19/40), or a decimal."""
+    if form == "decimal":
+        return n.form in ("integer", "decimal")
+    if form == "fraction":
+        denominator = re.sub(r"\s", "", target.text).split("/")[-1]
+        return n.form == "fraction" and re.sub(r"\s", "", n.text).split("/")[-1] == denominator
+    return True
+
+
 def _check_numeric(spec: NumericAnswer, text: str) -> CheckResult:
     target = parse_literal(spec.value)
     t = normalize_text(text)
@@ -370,8 +380,12 @@ def _check_numeric(spec: NumericAnswer, text: str) -> CheckResult:
             correct_answer=spec.value,
             detail={"interpretation": format_vi(n.value)},
         )
+    if n.value == target.value and not _written_as_asked(spec.form, n, target):
+        detail = {"form": spec.form, "written": n.text}
+        return CheckResult(Outcome.WRONG, normalized=n.text, correct_answer=spec.value, detail=detail)
     if n.value == target.value:
-        return CheckResult(Outcome.CORRECT, normalized=format_vi(n.value), correct_answer=spec.value)
+        normalized = n.text if spec.form == "fraction" else format_vi(n.value)
+        return CheckResult(Outcome.CORRECT, normalized=normalized, correct_answer=spec.value)
     result = CheckResult(Outcome.WRONG, normalized=format_vi(n.value), correct_answer=spec.value)
     for wrong, mid in spec.wrong_answers.items():
         if parse_literal(wrong).value == n.value:

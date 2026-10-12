@@ -260,6 +260,22 @@ def test_numeric_isomorphic_item():
     assert_result(check("GP-07b", "1"), WRONG, "DEC-M01")
 
 
+def test_a_decimal_fraction_is_written_as_asked():
+    """ "0,475 = ……" asks 475/1000: the same value written back as 0,475, or reduced to 19/40, is wrong."""
+    item = PKG.item("GP-07b").model_copy(
+        update={"answer": NumericAnswer(type="numeric", value="475/1000", form="fraction")}
+    )
+    assert check_answer(item, "475/1000", PKG).outcome is CORRECT
+    assert check_answer(item, "dạ là 475 / 1000 ạ", PKG).outcome is CORRECT
+    for text in ("0,475", "19/40"):
+        result = check_answer(item, text, PKG)
+        assert result.outcome is WRONG and result.correct_answer == "475/1000"
+    assert check_answer(item, "47/100", PKG).outcome is WRONG
+    item = item.model_copy(update={"answer": NumericAnswer(type="numeric", value="0,49", form="decimal")})
+    assert check_answer(item, "0,49", PKG).outcome is CORRECT
+    assert check_answer(item, "49/100", PKG).outcome is WRONG
+
+
 # --------------------------------------------------------------------------- choice (GP-08, GP-10)
 
 

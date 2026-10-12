@@ -169,3 +169,43 @@ def test_the_review_view_shows_the_chapter_its_sources_and_what_waits(client):
     assert view["items"]["STP-PH01-1"]["status"] == "VERIFIED"
     assert "STP-T01: chưa duyệt" in view["review"]["blockers"]
     assert client.get(f"{URL}/view", headers={"X-Demo-Student": "s"}).status_code in (401, 403)
+
+
+async def test_a_batch_of_decisions_is_checked_whole_then_written_once_with_its_reasons(
+    tmp_path, monkeypatch
+):
+    from cavat.modules.ingest.review import ReviewError
+    from cavat.modules.ingest.service import decide_many, rebuild
+
+    monkeypatch.setenv("STORAGE_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    database = InMemoryDatabase()
+    await ensure_indexes(database)
+    repo = DocumentRepository(database, DEMO_SCHOOL_ID)
+    exercises, sheets = doc("BAI_TAP", EXERCISES), doc("PHIEU", SHEETS)
+    for d in (
+        doc("BAI_GIANG", THEORY),
+        doc("GIAO_AN", PLAN2),
+        exercises,
+        doc("DAP_AN", KEY, answers_for=exercises.id),
+        sheets,
+        doc("DAP_AN", SHEET_KEY, answers_for=sheets.id),
+    ):
+        await repo.create(d.model_copy(update={"school_id": DEMO_SCHOOL_ID}))
+    await rebuild(database, DEMO_SCHOOL_ID, "math-g5-decimals")
+    good = {"target": "item:STP-PH02-3/answer", "action": "edit", "value": "7,008", "reason": "đáp án in sai"}
+    with pytest.raises(ReviewError):
+        await decide_many(
+            database, DEMO_SCHOOL_ID, "math-g5-decimals", [good, {"target": "x", "action": "approve"}], "gv"
+        )
+    plan = await decide_many(
+        database,
+        DEMO_SCHOOL_ID,
+        "math-g5-decimals",
+        [good, {"target": "node:STP-T01", "action": "approve"}],
+        "gv",
+    )
+    assert plan.decisions["item:STP-PH02-3/answer"]["reason"] == "đáp án in sai"
+    assert plan.decisions["node:STP-T01"]["by"] == "gv" and "reason" not in plan.decisions["node:STP-T01"]
+    assert set(plan.decisions) == {"item:STP-PH02-3/answer", "node:STP-T01"}
+    get_settings.cache_clear()

@@ -635,7 +635,7 @@ def check_choice(options: dict[str, str], answer: str) -> list[Finding]:
 
 def check_true_false(stem: str, answer: str) -> list[Finding]:
     """ "0,50 = 0,5 ……" answered Đ or S: the truth of the numeric statement."""
-    said = re.match(r"\s*(Đ|S)\b", answer)
+    said = re.match(r"\s*(Đ|S)\s*(?:\(|$)", answer)  # not "S = 12 × 7 : 2" (an area)
     if not said:
         return []
     statement = re.sub(r"\s*(?:…+|\.{2,})\s*\(?(?:Đ/S)?\)?\s*$", "", stem).strip()

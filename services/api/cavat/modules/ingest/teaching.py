@@ -262,7 +262,8 @@ def answer_spec(draft: ItemDraft) -> Any:
                 for k, v in draft.options.items()
             ],
         )
-    if m := re.match(r"\s*(Đ|S)\b", first):
+    # "Đ" or "S" alone (or with its reason in brackets); "S = 12 × 7 : 2 = 42 cm²" is an area, not "Sai".
+    if m := re.match(r"\s*(Đ|S)\s*(?:\(|$)", first):
         return BooleanAnswer(type="boolean", value=m.group(1) == "Đ", requires_explanation=False)
     pair = re.search(rf"({MEASURE.pattern})\s*(?:…+|\.{{2,}})\s*({MEASURE.pattern})", stem)
     # The checker compares and orders plain numbers: measures ("2,5 m …… 250 cm") stay open answers.
@@ -274,6 +275,19 @@ def answer_spec(draft: ItemDraft) -> Any:
         direction = "desc" if ">" in first else "asc"
         if numbers and all(_plain_number(n) for n in numbers):
             return OrderAnswer(type="order", numbers=[n.strip() for n in numbers], direction=direction)
+    gap = re.search(r"…|\.{3,}", stem)
+    # "0,475 = ……" in a sheet about decimal fractions: the key 475/1000 is the form asked, not only its value.
+    if gap and (fraction := re.fullmatch(r"(\d+)\s*/\s*(\d+)", first)):
+        return NumericAnswer(
+            type="numeric", value=f"{fraction.group(1)}/{fraction.group(2)}", form="fraction"
+        )
+    # "Ba phẩy bốn: ……", "Gồm 17 đơn vị, 1 phần mười, 8 phần trăm: ……": a number written in the gap.
+    if gap and re.fullmatch(r"\d+(?:,\d+)?", first) and "=" not in stem:
+        return NumericAnswer(type="numeric", value=first)
+    # "49/100 = ……", "16 99/100 = ……": the decimal is asked, not the fraction written back.
+    asks_decimal = bool(re.match(r"\s*(?:\d+\s+)?\d+/\d+\s*=", stem))
+    if gap and asks_decimal and re.fullmatch(r"\d+,\d+", first):
+        return NumericAnswer(type="numeric", value=first, form="decimal")
     blank = re.search(r"(?:=|≈)\s*(?:…+|\.{2,})\s*([^\s.…]*)", stem)
     given = answer_quantity(first)
     if blank and given is not None and not re.search(r"[a-zà-ỹ]{3,}", first.split("=")[-1].lower()):
@@ -281,6 +295,26 @@ def answer_spec(draft: ItemDraft) -> Any:
         value = given.value / UNITS[unit][1] if unit in UNITS and given.dimension else given.value
         from cavat.modules.assessment.vi_numbers import format_vi
 
+        return NumericAnswer(type="numeric", value=format_vi(value))
+    # A question that asks for a computed quantity ("Tính diện tích…", "Hỏi … bao nhiêu"): the value its
+    # worked answer ends on, in the unit it is written in.
+    asks = re.search(r"\b(Tính|Hỏi|bao nhiêu)\b", stem, re.IGNORECASE)
+    question = [q for q in re.split(r"(?<=[.?])\s+", re.sub(r"\[[^\]]*\]", "", stem)) if q.strip()]
+    several = sum(1 for q in question if re.search(r"\b(Tính|Hỏi|bao nhiêu|mấy)\b|\?", q, re.I)) > 1
+    if asks and (several or re.search(r"\b(các|nào|hai kết quả)\b|\svà\s", (question or [""])[-1], re.I)):
+        asks = None  # "Hình nào lớn hơn và lớn hơn bao nhiêu?", "Tính … các tam giác": not one number
+    # The answer's conclusion: its last sentence with a number ("Tổng: 30 m²", "Tăng thêm 30 cm²"), brackets
+    # and an advice line ("Gợi ý: …") left out; the result is its last measure.
+    plain = re.sub(r"\([^)]*\)", "", draft.answer)
+    sentences = [p.strip(" .") for line in plain.splitlines() for p in re.split(r"\.\s+", line) if p.strip()]
+    numbered = [p for p in sentences if re.search(r"\d", p) and not p.startswith("Gợi ý")]
+    last = numbered[-1] if numbered else ""
+    measures = [m.group(0) for m in MEASURE.finditer(last)]
+    result = evaluate(measures[-1]) if asks and measures else None
+    if result is not None:
+        from cavat.modules.assessment.vi_numbers import format_vi
+
+        value = result.value / UNITS[result.unit][1] if result.dimension else result.value
         return NumericAnswer(type="numeric", value=format_vi(value))
     return OpenAnswer(
         type="open", rubric=f"Đáp án của giáo viên: {draft.answer}", sample_answer=first or draft.answer

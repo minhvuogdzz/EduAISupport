@@ -6,8 +6,8 @@ The documents are written for the tests in the layouts of the owner's documents 
 from __future__ import annotations
 
 from cavat.core.repository import new_id
-from cavat.modules.ingest.build import build_bank
-from cavat.modules.ingest.teaching import assign_sections, build_plan
+from cavat.modules.ingest.build import ItemDraft, build_bank
+from cavat.modules.ingest.teaching import answer_spec, assign_sections, build_plan
 from cavat.modules.ingest.theory import parse_lesson_plan, parse_mistakes, parse_theory
 from cavat.modules.library.repository import TeacherDocument
 
@@ -247,3 +247,58 @@ def test_a_basic_period_asks_no_application_evidence():
     first = plan.package.nodes[0]
     assert first.layer == "BASIC" and not first.pass_rule.require_application and first.transfer == []
     assert not any(p.startswith("STP-T01: needs at least 1 transfer") for p in plan.problems)
+
+
+def _draft(stem: str, answer: str) -> ItemDraft:
+    """A bank item as the builder leaves it: the checks read the sub-question (the last line)."""
+    return ItemDraft(
+        item_id="DTTGHT-BT-01",
+        chapter_id="c",
+        source="BAI_TAP",
+        document_id="d",
+        answer_document_id="a",
+        page=1,
+        section="Phần 2",
+        label="1",
+        part="",
+        stage="LUYEN_TAP",
+        stem=stem,
+        answer=answer,
+        check_stem=stem.split("\n")[-1],
+    )
+
+
+def test_an_area_answer_is_a_number_not_true_or_false():
+    spec = answer_spec(_draft("Tam giác có đáy 6 m, chiều cao 2 m. Tính diện tích.", "S = 6 × 2 : 2 = 6 m²."))
+    assert spec.type == "numeric" and spec.value == "6"
+    assert answer_spec(_draft("7,5 > 7,49 …", "Đ")).type == "boolean"
+
+
+def test_a_word_problem_is_checked_on_the_number_its_answer_ends_on():
+    spec = answer_spec(
+        _draft(
+            "Hình thang có diện tích 150 cm², đáy lớn 18 cm, đáy bé 12 cm.\nb) Tăng chiều cao thêm 2 cm thì"
+            " diện tích tăng thêm bao nhiêu?",
+            "Chiều cao mới 12 cm: S = 30 × 12 : 2 = 180 cm².\nTăng thêm 30 cm².",
+        )
+    )
+    assert spec.type == "numeric" and spec.value == "30"
+
+
+def test_a_question_asking_several_things_is_left_to_the_rubric():
+    for stem, answer in (
+        (
+            "Tam giác đáy 10 cm, cao 6 cm và hình thang hai đáy 7 cm, 5 cm, cao 6 cm."
+            " Hình nào lớn hơn và lớn hơn bao nhiêu?",
+            "Tam giác 30 cm². Hình thang 36 cm². Hình thang lớn hơn 6 cm².",
+        ),
+        (
+            "BM = 4 cm, MC = 6 cm, cao 5 cm. Tính diện tích các tam giác ABM, ACM và ABC.",
+            "SABM = 10 cm²; SACM = 15 cm²; SABC = 25 cm².",
+        ),
+        (
+            "Đáy 6 cm, cao 4 cm. Tính diện tích. Nếu gấp đôi đáy thì diện tích gấp mấy lần?",
+            "S = 12 cm². Đáy 12 cm: S = 24 cm² (gấp 2).",
+        ),
+    ):
+        assert answer_spec(_draft(stem, answer)).type == "open"

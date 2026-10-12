@@ -48,6 +48,9 @@ class NumericAnswer(_Model):
     value: str
     # Specific wrong answers that reveal a misconception, e.g. {"1": "DEC-M01"}.
     wrong_answers: dict[str, str] = Field(default_factory=dict)
+    # The form the question asks: "fraction" with the key's denominator ("0,475 = ……" asks 475/1000; 0,475
+    # written back, or 19/40, is not what is asked); "decimal" ("49/100 = ……" asks 0,49, not 49/100).
+    form: Literal["fraction", "decimal"] | None = None
 
 
 class Probe(_Model):
