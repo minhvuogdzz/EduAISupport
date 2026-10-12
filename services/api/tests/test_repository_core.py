@@ -146,6 +146,7 @@ EXPECTED_COLLECTIONS = {
     "student_kc_states",
     "documents",
     "item_banks",
+    "teaching_plans",
 }
 
 

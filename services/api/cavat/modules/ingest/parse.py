@@ -46,7 +46,9 @@ _STOP = re.compile(
 )
 # The running title of a page ("Bài tập · Số thập phân", "Đáp án phiếu luyện tập. Số thập phân").
 _RUNNING = re.compile(
-    r"^(Bài tập|Đáp án.*|Phiếu luyện tập.*|Đề kiểm tra.*)\s*[·.]\s*(Số thập phân|Diện tích.*)$", re.IGNORECASE
+    r"^(Bài tập|Đáp án.*|Phiếu luyện tập.*|Đề kiểm tra.*|Lý thuyết|Giáo án.*|Ghi chú lỗi sai.*)"
+    r"\s*[·.]\s*(Số thập phân|Diện tích.*)$",
+    re.IGNORECASE,
 )
 _SCORE_LINE = re.compile(r"^(?:0,25|0,5|0,75|1,0|1,5|2,0)(?:\s*\(mỗi ý)?$|^0,25\)$")
 _SCORE_CELL = re.compile(r"\s*\|\s*\d,\d{1,2}(\s*\(mỗi ý\s*\d,\d{1,2}\))?\s*$")

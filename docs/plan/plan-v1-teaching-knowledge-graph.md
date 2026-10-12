@@ -456,6 +456,21 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-45, dựng phương án dạy nháp từ tài liệu (INGEST-3a, ADR-025, chờ duyệt):**
+  - Mỗi tiết có bài trong giáo án là một node. Tiết ôn tập là bài kiểm tra cuối chương.
+  - Node vận dụng (IMPLEMENT) là tiết có tên chứa "luyện tập, ứng dụng, thực tế, vận dụng, hình ghép, công thức ngược".
+  - Ghép mục lý thuyết vào tiết cùng bài SGK theo từ chung có trọng số. Trọng số là log(số tiết / số tiết có từ đó), tên tính gấp ba. Từng khung VÍ DỤ được ghép riêng.
+  - Tiết không có câu "Kiểm tra hiểu" thì câu đầu của phiếu tiết đó là câu kiểm tra (mức A).
+  - Mức nhận thức và độ khó theo mục của tài liệu:
+
+    | Mục | Mức | Độ khó |
+    |---|---|---|
+    | Kiểm tra hiểu | A | 0,2 |
+    | Cùng làm | B | 0,35 |
+    | Luyện tập | B | 0,5 |
+    | Phiếu | B | 0,45 |
+    | Vận dụng | D | 0,7, có chuyển giao gần |
+
 - **DI-44, kiểm đáp án của ngân hàng câu nháp (INGEST-2, ADR-024, chờ duyệt):**
   - Làm tròn "nửa lên" (chữ số bên phải từ 5 trở lên thì tăng 1), làm một lần, theo hàng đề nêu. Số đo được làm tròn theo đơn vị nó được viết.
   - Một số trong đáp án "có căn cứ" khi:
