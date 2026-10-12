@@ -9,6 +9,8 @@ applied on top, so fixing a misread answer key or rewording a hint is never lost
   their findings are shown;
 - ``hint:<item>:H<n>``: approve, reject or edit (the text) one hint;
 - ``item:<id>/stage``: put an item at another stage of its period (checks, completion, practice, transfer);
+- ``item:<id>/facts``: what a right answer to an open question must say (``KeyFacts``, DI-48), when the
+  key does not let the builder read it;
 - ``node:<id>``: approve a period as a whole; ``node:<id>/<path>``: edit one part of it, e.g.
   ``node:STP-T01/theory/T1/reply``, ``node:STP-T01/method/rule``, ``node:STP-T01/explain/key_ideas``; an
   explanation or worked example the documents lack is added by its first edit
@@ -65,6 +67,15 @@ def check_decision(target: str, action: str, value: Any) -> None:
         raise ReviewError("an edit needs a value")
     if kind == "item" and target.endswith("/stage") and value not in STAGES:
         raise ReviewError(f"{target}: one of " + ", ".join(STAGES))
+    if kind == "item" and target.endswith("/facts"):
+        from pydantic import ValidationError
+
+        from cavat.modules.content.lesson_package import KeyFacts
+
+        try:
+            KeyFacts.model_validate(value)
+        except ValidationError as exc:
+            raise ReviewError(f"{target}: {exc.errors()[0]['msg']}") from exc
     if kind == "node" and "/" in target:
         path = target.split("/")[1:]
         if path[0] not in NODE_FIELDS or path[-1] not in NODE_FIELDS[path[0]]:
@@ -117,7 +128,15 @@ def apply_plan_decisions(plan: Plan, decisions: Mapping[str, Mapping[str, Any]])
                     hints.append(
                         HintTemplate(target=_TARGETS[level], level=level, text=str(decision["value"]))
                     )
-            items.append(item.model_copy(update={"hints": sorted(hints, key=lambda h: int(h.level))}))
+            update: dict[str, Any] = {"hints": sorted(hints, key=lambda h: int(h.level))}
+            facts = decisions.get(f"item:{item.id}/facts", {})
+            if facts.get("action") == "edit" and item.answer.type == "open":
+                from cavat.modules.content.lesson_package import KeyFacts
+
+                update["answer"] = item.answer.model_copy(
+                    update={"facts": KeyFacts.model_validate(facts["value"])}
+                )
+            items.append(item.model_copy(update=update))
         plan.lessons[lesson_id] = lesson.model_copy(update={"items": items})
     nodes = []
     for node in plan.package.nodes:
@@ -171,8 +190,11 @@ def _edit_node(node: Any, path: list[str], value: Any) -> Any:
 
 def _move_items(plan: Plan, decisions: Mapping[str, Mapping[str, Any]]) -> None:
     """Items the teacher put at another stage of their period ("item:STP-BT-31/stage" = "transfer")."""
-    moves = {t.split(":", 1)[1].removesuffix("/stage"): str(d["value"]) for t, d in decisions.items()}
-    moves = {k: v for k, v in moves.items() if f"item:{k}/stage" in decisions}
+    moves = {
+        t.removeprefix("item:").removesuffix("/stage"): str(d["value"])
+        for t, d in decisions.items()
+        if t.startswith("item:") and t.endswith("/stage")
+    }
     if not moves:
         return
     nodes = []

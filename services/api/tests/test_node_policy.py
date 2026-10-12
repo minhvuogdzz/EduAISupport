@@ -216,7 +216,7 @@ def test_decisions_are_deterministic_and_carry_the_policy_version():
     first, again = run(Student()), run(Student())
     assert decisions(first) == decisions(again)
     versions = {e.payload["policy_version"] for e in first if e.event_type == EventType.NODE_DECISION}
-    assert versions == {"node-policy/0.1.0"}
+    assert versions == {"node-policy/0.2.0"}
 
 
 def test_item_decisions_carry_the_support_of_the_mastery_band():
@@ -243,3 +243,29 @@ def _is_pass(event, node_id):
         and event.payload["action"] == A.PASS_NODE
         and event.payload["node_id"] == node_id
     )
+
+
+def test_an_item_of_a_missing_form_comes_before_the_budget_runs_out():
+    """DI-49: twelve fill-in items in a row would spend the budget of a node that needs two forms."""
+    from types import SimpleNamespace
+
+    from cavat.modules.teaching.node_policy import _Policy as NodePolicy
+
+    numeric = [
+        i.id
+        for n in CHAPTER.nodes
+        for i in CHAPTER.lesson_of(n.practice[0]).items
+        if i.answer.type == "numeric"
+    ]
+    other = next(
+        i.id
+        for n in CHAPTER.nodes
+        for i in CHAPTER.lesson_of(n.practice[0]).items
+        if i.answer.type == "compare"
+    )
+    ns = SimpleNamespace(forms=["numeric"], levels=["A", "B", "C"])
+    policy = SimpleNamespace(chapter=CHAPTER)
+    long_list = [*numeric[:1] * 10, other]
+    assert NodePolicy._covering(policy, long_list, ns, budget_left=6)[0] == other
+    assert NodePolicy._covering(policy, long_list, ns, budget_left=12) == long_list  # it fits: file order
+    assert NodePolicy._covering(policy, [numeric[0], other], ns, budget_left=6) == [numeric[0], other]

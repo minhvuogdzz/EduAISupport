@@ -460,6 +460,23 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-49, chọn câu bù dạng còn thiếu (`node-policy/0.2.0`, 2026-10-12):** khi tiết còn thiếu dạng câu hoặc mức nhận thức để "hiểu" (DI-6), danh sách câu luyện dài hơn ngân sách còn lại, và câu đầu tiên bù được chỗ thiếu nằm từ vị trí (ngân sách còn lại − 2) trở đi, thì câu đó được đưa lên trước. Các trường hợp khác giữ thứ tự cũ. Phiên học thử phát hiện STP-T06: học sinh làm đúng 11/12 câu vẫn bị dừng tiết vì 12 câu đầu cùng một dạng.
+- **DI-48, chấm tất định câu đáp án mở (`KeyFacts`, 2026-10-12):**
+  - Câu đáp án mở mang các ý bắt buộc, rút từ đáp án của giáo viên hoặc do giáo viên ghi (`item:<id>/facts`). `MathChecker` đúng khi mọi ý đều có:
+    - số (mỗi nhóm một trong các cách viết tương đương, viết bằng số hoặc bằng chữ);
+    - cụm từ;
+    - dấu so sánh theo đúng thứ tự;
+    - tên theo đúng thứ tự;
+    - cặp (từ, tên) trong cùng một vế câu;
+    - đọc số bằng chữ (không được viết lại chữ số);
+    - `only_numbers`: không có giá trị thừa.
+  - Thiếu ý thì chấm sai. Không đọc được ý nào thì hỏi lại.
+  - Câu không rút được ý chắc chắn và giáo viên chưa ghi thì không có `facts`, và không được dạy (lần duyệt 2026-10-12 loại STP-BT-14, STP-BT-28).
+- **DI-47, duyệt thay chủ dự án và đọc đáp án (2026-10-12, Claude duyệt theo ủy quyền; nhật ký: `evals/reports/2026-10-12-review-log.md`):**
+  - Một tiết mà mọi câu trong tài liệu chỉ có một dạng (viết số đo, làm tròn, viết số thập phân) được hạ `min_forms` xuống 1 (STP-T01, T07, T08, T09). Không tự đặt câu ngoài tài liệu để đủ hai dạng.
+  - `NumericAnswer.form`: "0,475 = ……" trong phần viết phân số thập phân đòi đúng phân số có mẫu của đáp án (475/1000); "49/100 = ……" đòi số thập phân. Cùng giá trị nhưng sai dạng thì chấm sai.
+  - Câu hỏi nhiều ý (nhiều câu hỏi, "các", "nào… và…"), dòng có nhiều cặp so sánh, và câu có số đo nhiều đơn vị mà đề không nói đơn vị kết quả thì chấm theo rubric (đáp án mở), không ép thành một số.
+  - Câu dựa vào hình mà đề không mô tả đủ để bé làm trong khung chat thì loại (STP-BT-06, STP-BT-30).
 - **DI-46, phần do Qwen soạn (INGEST-3b, ADR-026, chờ duyệt):**
   - Gợi ý: H1 TASK, H2 CONCEPT, H3 STRATEGY; tối đa 40 từ; kết thúc bằng một câu hỏi.
   - Gợi ý qua `validate_message`. Thuật ngữ Toán phải có trong đề hoặc quy tắc của tiết.

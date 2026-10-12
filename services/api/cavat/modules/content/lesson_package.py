@@ -86,10 +86,29 @@ class BooleanAnswer(_Model):
     wrong_answers: dict[str, str] = Field(default_factory=dict)
 
 
+class KeyFacts(_Model):
+    """What a right answer to an open question must say, read by the checker without a model (DI-48).
+
+    Every listed fact must hold: ``numbers`` (each group: one of its values, written as a number or in
+    words), ``phrases`` (each group: one of its phrasings), ``relations`` (the signs <, >, = in this order),
+    ``order`` (these words in this order), ``pairs`` ([word, name]: one clause says both),
+    ``reading`` (this number written in words, without digits). ``only_numbers``: no other value is given.
+    """
+
+    numbers: list[list[str]] = Field(default_factory=list)
+    only_numbers: bool = False
+    phrases: list[list[str]] = Field(default_factory=list)
+    relations: list[Literal["<", ">", "="]] = Field(default_factory=list)
+    order: list[str] = Field(default_factory=list)
+    pairs: list[tuple[str, str]] = Field(default_factory=list)
+    reading: str | None = None
+
+
 class OpenAnswer(_Model):
     type: Literal["open"]
     rubric: str
     sample_answer: str
+    facts: KeyFacts | None = None  # without facts the answer can only be read by a model or the teacher
 
 
 AnswerSpec = Annotated[

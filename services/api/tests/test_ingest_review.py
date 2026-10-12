@@ -227,3 +227,21 @@ def test_the_teacher_may_lower_the_question_forms_a_period_asks():
             return self
 
     assert _edit_node(Node(), ["pass_rule", "min_forms"], "1").pass_rule.min_forms == 1
+
+
+def test_an_item_moved_to_another_stage_stays_there_once_it_is_approved(client):
+    client.post(f"{URL}/build", headers=TEACHER)
+    decide(client, "item:STP-PH02-3/answer", "edit", "7,008")
+    decide(client, "item:STP-PH02-3/stage", "edit", "transfer")
+    plan = decide(client, "item:STP-PH02-3", "approve")  # once crashed: the approval read as a stage
+    node = items_of(plan, "STP-T02")
+    assert "STP-PH02-3" in node["transfer"] and "STP-PH02-3" not in node["practice"]
+
+
+def test_the_teacher_writes_what_a_right_open_answer_must_say(client):
+    client.post(f"{URL}/build", headers=TEACHER)
+    bad = {"target": "item:STP-PH02-1/facts", "action": "edit", "value": {"relations": ["≠"]}}
+    assert client.post(f"{URL}/decisions", headers=TEACHER, json=bad).status_code == 409
+    plan = decide(client, "item:STP-PH01-1/facts", "edit", {"numbers": [["0,7"]]})  # not an open item
+    item = next(i for i in plan["lessons"]["STP-Bài11"]["items"] if i["id"] == "STP-PH01-1")
+    assert item["answer"]["type"] != "open" or item["answer"]["facts"] == {"numbers": [["0,7"]]}

@@ -237,6 +237,8 @@ class _Policy:
         missing = set(ns.missing)
         active = {m.id for m in ns.misconceptions if m.status != "RESOLVED"}
         practice = self._fresh(node.practice, probing=active)
+        if "UNDERSTOOD" in missing and not active:
+            practice = self._covering(practice, ns, node.pass_rule.max_items - visit.items)
         transfer = self._fresh(node.transfer)
         reasons = sorted(missing)
         enough_practice = visit.practice_successes >= self.config.practice_before_transfer or not practice
@@ -301,6 +303,20 @@ class _Policy:
             return (not probes, item_id in self.seen, index)
 
         return [item_id for _, item_id in sorted(enumerate(candidates), key=key)]
+
+    def _covering(self, item_ids: list[str], ns: NodeState, budget_left: int) -> list[str]:
+        """DI-49: an item that adds the question form or cognitive level "understood" still lacks is moved
+        forward when the list is longer than the budget left and, in file order, the budget would run out
+        before it (two tries kept)."""
+
+        def adds(item_id: str) -> bool:
+            item = self.chapter.item(item_id)
+            return item.answer.type not in ns.forms or item.cognitive_level not in ns.levels
+
+        first = next((k for k, item_id in enumerate(item_ids) if adds(item_id)), None)
+        if first is None or first < budget_left - 2 or len(item_ids) <= budget_left:
+            return item_ids  # reached in time, or the whole list fits in the budget: file order
+        return [item_ids[first], *item_ids[:first], *item_ids[first + 1 :]]
 
     def _unused_example(self, visit: Visit, node: Node) -> str | None:
         used = self.state.examples_used.get(node.id, [])

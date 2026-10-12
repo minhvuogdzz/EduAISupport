@@ -15,7 +15,7 @@ from cavat.core.events import EventType, ItemResolved, NodeDecisionMade, RetellJ
 from cavat.core.pedagogy import ItemResolution, TeachAction
 from cavat.modules.assessment.projector import DEFAULT_POLICY
 
-NODE_POLICY_VERSION = "node-policy/0.1.0"
+NODE_POLICY_VERSION = "node-policy/0.2.0"  # 0.2.0: DI-49, items that add a form or level first
 
 Phase = Literal["NEW", "CHECK", "CHECK_FAILED", "PRACTICE"]
 

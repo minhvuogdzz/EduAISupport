@@ -480,3 +480,54 @@ def test_wrong_choice_with_probe_waits_for_the_probe():
     result = check("GP-08", "Lan")
     assert result.detail["probe_option"] == "A"
     assert result.misconception_id is None and result.error_class is ErrorClass.UNKNOWN
+
+
+# --------------------------------------------------------------------------- open answers with facts (DI-48)
+
+
+def _open(text: str, **facts) -> Outcome:
+    from cavat.modules.content.lesson_package import KeyFacts
+
+    spec = OpenAnswer(type="open", rubric="", sample_answer="mẫu", facts=KeyFacts(**facts))
+    item = PKG.item("GP-07b").model_copy(update={"answer": spec})
+    return check_answer(item, text, PKG).outcome
+
+
+@pytest.mark.parametrize(
+    ("facts", "text", "outcome"),
+    [
+        ({"phrases": [["đơn vị"]], "numbers": [["4"]]}, "hàng đơn vị, giá trị là 4 ạ", CORRECT),
+        ({"phrases": [["đơn vị"]], "numbers": [["4"]]}, "hàng chục, giá trị 40", WRONG),
+        ({"reading": "14,205"}, "mười bốn phẩy hai trăm linh năm", CORRECT),
+        ({"reading": "5,7"}, "5,7", WRONG),  # the number written back is not read
+        ({"reading": "5,7"}, "năm phẩy tám", WRONG),
+        ({"numbers": [["2"], ["3"], ["4"], ["5"]], "only_numbers": True}, "x = 2; 3; 4; 5", CORRECT),
+        ({"numbers": [["2"], ["3"], ["4"], ["5"]], "only_numbers": True}, "2, 3, 4", WRONG),
+        ({"numbers": [["2"], ["3"], ["4"], ["5"]], "only_numbers": True}, "2 3 4 5 6", WRONG),
+        ({"relations": ["<", "=", "<", ">"]}, "<, =, <, >", CORRECT),
+        ({"relations": [">"]}, "0,8 kg bé hơn 750 g", WRONG),
+        ({"order": ["Chi", "An", "Bình"]}, "Chi, An, Bình. Bình cao nhất", CORRECT),
+        ({"order": ["Chi", "An", "Bình"]}, "Bình, An, Chi", WRONG),
+        ({"pairs": [["nhẹ", "C"], ["nặng", "A"]]}, "nặng nhất là bao A còn nhẹ nhất là bao C", CORRECT),
+        ({"pairs": [["nhẹ", "C"], ["nặng", "A"]]}, "bao A nhẹ nhất, bao C nặng nhất", WRONG),
+        ({"numbers": [["375", "3,75"]]}, "3,75 dm2", CORRECT),
+        ({"phrases": [["đơn vị"]]}, "con nghĩ mãi", UNPARSEABLE),  # nothing the facts can read: asked again
+    ],
+)
+def test_an_open_answer_is_read_against_the_facts_of_its_key(facts, text, outcome):
+    assert _open(text, **facts) is outcome
+
+
+def test_an_open_answer_without_facts_still_needs_a_reader():
+    item = PKG.item("GP-07b").model_copy(
+        update={"answer": OpenAnswer(type="open", rubric="", sample_answer="x")}
+    )
+    assert check_answer(item, "gì đó", PKG).outcome is Outcome.NEEDS_LLM
+
+
+def test_a_pair_may_be_said_with_a_colon():
+    assert _open("Nhẹ nhất: bao C. Nặng nhất: bao A.", pairs=[["nhẹ", "C"], ["nặng", "A"]]) is CORRECT
+
+
+def test_a_pair_said_the_wrong_way_round_is_wrong():
+    assert _open("bao A nhẹ nhất còn bao C nặng nhất", pairs=[["nhẹ", "C"], ["nặng", "A"]]) is WRONG
