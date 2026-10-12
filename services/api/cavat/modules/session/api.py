@@ -775,11 +775,21 @@ def _package(lesson_id: str) -> LessonPackage:
     return pkg
 
 
-def _chapter(chapter_id: str) -> Chapter:
-    chapter = chapter_service.chapters().get(chapter_id)
+def _chapter(chapter_id: str, version: str | None = None) -> Chapter:
+    """A chapter for a new session (``version`` None), or the one a session started with (INGEST-4)."""
+    chapter = (
+        chapter_service.chapter_for(chapter_id, version)
+        if version
+        else chapter_service.chapters().get(chapter_id)
+    )
     if chapter is None:
         raise ApiError(404, "NOT_FOUND", f"chapter {chapter_id!r} not found")
     return chapter
+
+
+async def published_chapters(database: Database) -> None:
+    """Every request of the session routers first knows the plans the teacher published (INGEST-4)."""
+    await chapter_service.load_published(database, service.DEMO_SCHOOL_ID)
 
 
 def _earlier(sessions: list[LearningSession], session: LearningSession) -> list[Any]:
@@ -808,7 +818,9 @@ async def _history(database: Any, session: LearningSession) -> list[Any]:
 async def _view(database: Any, session: LearningSession) -> dict[str, Any]:
     if chapter_service.is_chapter(session):
         history = await _history(database, session)
-        return chapter_service.student_view(_chapter(session.lesson_id), session, history)
+        return chapter_service.student_view(
+            _chapter(session.lesson_id, session.lesson_version), session, history
+        )
     return service.student_view(_package(session.lesson_id), session)
 
 
@@ -816,7 +828,11 @@ def _summaries(sessions: list[LearningSession]) -> list[dict[str, Any]]:
     """Summaries of a list of sessions; chapter progress counts what the student passed before too."""
     packages, chapters = service.lesson_packages(), chapter_service.chapters()
     return [
-        chapter_service.summary(chapters[s.lesson_id], s, _earlier(sessions, s))
+        chapter_service.summary(
+            chapter_service.chapter_for(s.lesson_id, s.lesson_version) or chapters[s.lesson_id],
+            s,
+            _earlier(sessions, s),
+        )
         if chapter_service.is_chapter(s) and s.lesson_id in chapters
         else service.summary(packages.get(s.lesson_id), s)
         for s in sessions
@@ -873,7 +889,7 @@ async def _command(
 
     router = tutor_router()
     if chapter_service.is_chapter(session):
-        content: Any = _chapter(session.lesson_id)
+        content: Any = _chapter(session.lesson_id, session.lesson_version)
         persona = content.package.persona
         # RAG-2: the child's questions are answered from the index of this moment (rebuilt when the
         # teacher's documents changed); without TUTOR_RENDERER=llm the answers are passages word for word.
@@ -964,7 +980,9 @@ async def get_transcript(session_id: str, database: Database, teacher: Teacher):
         raise ApiError(404, "NOT_FOUND", "session not found")
     if chapter_service.is_chapter(session):
         history = await _history(database, session)
-        return chapter_service.teacher_transcript(_chapter(session.lesson_id), session, history)
+        return chapter_service.teacher_transcript(
+            _chapter(session.lesson_id, session.lesson_version), session, history
+        )
     return service.teacher_transcript(_package(session.lesson_id), session)
 
 
@@ -975,7 +993,7 @@ async def get_report(session_id: str, database: Database, teacher: Teacher):
     if session is None or not chapter_service.is_chapter(session):
         raise ApiError(404, "NOT_FOUND", "no teaching report for this session")
     history = await _history(database, session)
-    return chapter_service.report(_chapter(session.lesson_id), session, history)
+    return chapter_service.report(_chapter(session.lesson_id, session.lesson_version), session, history)
 
 
 @router.post("/{session_id}/join", response_model=SessionStateView)
@@ -985,7 +1003,9 @@ async def join_session(session_id: str, database: Database, student: Student):
     if session.state.lifecycle == LifecycleState.READY:
         if chapter_service.is_chapter(session):
             history = await _history(database, session)
-            step = chapter_service.join(_chapter(session.lesson_id), session, utc_now(), history)
+            step = chapter_service.join(
+                _chapter(session.lesson_id, session.lesson_version), session, utc_now(), history
+            )
         else:
             step = service.join(_package(session.lesson_id), session, utc_now())
         try:
@@ -1180,7 +1200,8 @@ def register(app: FastAPI) -> None:
     )
     app.include_router(rag_api.build_router(get_database, teacher_identity, lambda: _rag_service))
     app.include_router(ingest_api.build_router(get_database, teacher_identity, service.DEMO_SCHOOL_ID))
-    app.include_router(router)
-    app.include_router(students)
-    app.include_router(parents)
-    app.include_router(teachers)
+    published = [Depends(published_chapters)]  # INGEST-4: the teacher's published plans
+    app.include_router(router, dependencies=published)
+    app.include_router(students, dependencies=published)
+    app.include_router(parents, dependencies=published)
+    app.include_router(teachers, dependencies=published)

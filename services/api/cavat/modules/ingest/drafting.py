@@ -145,6 +145,8 @@ class Drafter:
         if kept.exists():
             saved = json.loads(kept.read_text(encoding="utf-8"))
             return saved["data"], saved["model"]
+        if self.router is None:  # cache only: a teacher's decision never waits for a model
+            return {}, ""
         if self.calls and self.pause:
             self.sleep(self.pause)  # 8 000 tokens a minute on the free tier
         request = ChatRequest(
