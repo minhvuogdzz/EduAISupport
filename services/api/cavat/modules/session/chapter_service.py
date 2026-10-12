@@ -107,8 +107,59 @@ def chapter_sources() -> dict[str, tuple[Chapter, Path]]:
     return {chapter.package.chapter_id: (chapter, path) for path in found for chapter in [load_chapter(path)]}
 
 
+# INGEST-4: the teaching plans the teacher published, built from their documents. Every version is kept: a
+# session replays with the version it started with (``chapter_for``); new sessions take the current one.
+_published: dict[str, dict[str, Chapter]] = {}
+_current: dict[str, str] = {}
+_loaded: set[int] = set()
+
+
+def register_published(
+    chapter_id: str, version: str, package: dict, lessons: dict, *, current: bool
+) -> Chapter:
+    """Make a published plan known to the tutor (validated like a chapter file)."""
+    from cavat.modules.content.chapter_package import ChapterPackage
+    from cavat.modules.content.lesson_package import LessonPackage
+
+    built = {k: LessonPackage.model_validate(v) for k, v in lessons.items()}
+    items = {it.id: (it, lesson) for lesson in built.values() for it in lesson.items}
+    chapter = Chapter(package=ChapterPackage.model_validate(package), lessons=built, _items=items)
+    _published.setdefault(chapter_id, {})[version] = chapter
+    if current:
+        _current[chapter_id] = version
+    return chapter
+
+
+async def load_published(database: Any, school_id: str) -> None:
+    """Read the published plans of this database once (the first request that needs a chapter)."""
+    if id(database) in _loaded:
+        return
+    from cavat.modules.ingest.repository import TeachingPlanRepository
+
+    _loaded.add(id(database))
+    for plan in await TeachingPlanRepository(database, school_id).list_published():
+        for version, snap in plan.published.items():
+            register_published(
+                plan.chapter_id, version, snap["package"], snap["lessons"], current=version == plan.current
+            )
+
+
 def chapters() -> dict[str, Chapter]:
-    return {cid: chapter for cid, (chapter, _) in chapter_sources().items()}
+    """The chapters new sessions use: a published plan of the teacher's documents, else the chapter file."""
+    out = {cid: chapter for cid, (chapter, _) in chapter_sources().items()}
+    for cid, version in _current.items():
+        out[cid] = _published[cid][version]
+    return out
+
+
+def chapter_for(chapter_id: str, version: str | None) -> Chapter | None:
+    """The chapter a session started with (its ``lesson_version``), so a replay never changes."""
+    if version and version in _published.get(chapter_id, {}):
+        return _published[chapter_id][version]
+    source = chapter_sources().get(chapter_id)
+    if source is not None and (version is None or source[0].package.version == version):
+        return source[0]
+    return chapters().get(chapter_id)
 
 
 def is_chapter(session: LearningSession) -> bool:

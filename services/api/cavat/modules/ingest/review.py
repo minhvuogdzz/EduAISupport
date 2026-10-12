@@ -1,0 +1,231 @@
+"""The teacher's review of a draft teaching plan (INGEST-4): decisions that outlive every rebuild.
+
+The plan is rebuilt from the documents, the item bank and Qwen's cached drafts; the teacher's decisions are
+applied on top, so fixing a misread answer key or rewording a hint is never lost. A decision names a target:
+
+- ``item:<id>``: approve or reject an item; ``item:<id>/stem`` and ``item:<id>/answer``: what the item asks
+  and its right answer, as the teacher writes them. An item whose answer the teacher wrote is taught
+  (status TEACHER) even when the documents' answer was disputed or in conflict; the checks still run and
+  their findings are shown;
+- ``hint:<item>:H<n>``: approve, reject or edit (the text) one hint;
+- ``item:<id>/stage``: put an item at another stage of its period (checks, completion, practice, transfer);
+- ``node:<id>``: approve a period as a whole; ``node:<id>/<path>``: edit one part of it, e.g.
+  ``node:STP-T01/theory/T1/reply``, ``node:STP-T01/method/rule``, ``node:STP-T01/explain/key_ideas``; an
+  explanation or worked example the documents lack is added by its first edit
+  (``node:STP-T03/theory/T2/text``).
+
+A plan is published only when every period is approved and the tutor's validation asks for nothing: the
+teacher, not the builder, decides what is taught (CLAUDE.md: the owner approves pedagogical content).
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Mapping
+from typing import Any
+
+from cavat.core.pedagogy import HintLevel
+from cavat.modules.content.chapter_package import validate_chapter
+from cavat.modules.content.lesson_package import HintTemplate
+from cavat.modules.ingest.build import ItemDraft, judge
+from cavat.modules.ingest.teaching import Plan
+
+ACTIONS = frozenset({"approve", "reject", "edit"})
+NODE_FIELDS = {
+    "theory": ("text", "ask", "reply", "accept", "representation"),
+    "method": ("rule", "steps"),
+    "explain": ("prompt", "key_ideas"),
+    "worked_examples": ("problem", "steps", "answer"),
+}
+STAGES = {  # where the teacher may put an item: node list, purpose, level, transfer
+    "checks": ("CONCEPT_CHECK", "A", "none"),
+    "completion": ("PRACTICE", "B", "none"),
+    "practice": ("PRACTICE", "B", "none"),
+    "transfer": ("PRACTICE", "D", "near"),
+}
+
+
+class ReviewError(ValueError):
+    """A decision that names nothing in the plan, or an action the target does not take."""
+
+
+def check_decision(target: str, action: str, value: Any) -> None:
+    if action not in ACTIONS:
+        raise ReviewError(f"unknown action {action!r}")
+    kind = target.split(":", 1)[0]
+    if kind not in ("item", "hint", "node"):
+        raise ReviewError(f"unknown target {target!r}")
+    editable = target.count("/") > 0 or kind == "hint"
+    if action == "edit" and not editable:
+        raise ReviewError(f"{target} is approved or rejected, its parts are edited")
+    if action == "edit" and (value is None or value == "" or value == []):
+        raise ReviewError("an edit needs a value")
+    if kind == "item" and target.endswith("/stage") and value not in STAGES:
+        raise ReviewError(f"{target}: one of " + ", ".join(STAGES))
+    if kind == "node" and "/" in target:
+        path = target.split("/")[1:]
+        if path[0] not in NODE_FIELDS or path[-1] not in NODE_FIELDS[path[0]]:
+            raise ReviewError(
+                f"{target}: a node edits " + ", ".join(f"{k}/{v}" for k, v in NODE_FIELDS.items())
+            )
+
+
+def apply_item_overrides(
+    drafts: list[ItemDraft], decisions: Mapping[str, Mapping[str, Any]]
+) -> list[ItemDraft]:
+    """The bank with the teacher's stems and answers; a rejected item is never taught."""
+    out = []
+    for draft in drafts:
+        stem = decisions.get(f"item:{draft.item_id}/stem")
+        answer = decisions.get(f"item:{draft.item_id}/answer")
+        verdict = decisions.get(f"item:{draft.item_id}", {}).get("action")
+        if stem or answer:
+            if stem:
+                draft.stem = str(stem["value"])
+                draft.check_stem = draft.stem.split("\n")[-1].removeprefix(f"{draft.part}) ").strip()
+            if answer:
+                draft.answer = str(answer["value"])
+            judge(draft, set())  # the checks still run on the teacher's text, and are shown
+            draft.status = "TEACHER"
+        if verdict == "reject":
+            draft.status = "REJECTED"
+        out.append(draft)
+    return out
+
+
+def apply_plan_decisions(plan: Plan, decisions: Mapping[str, Mapping[str, Any]]) -> None:
+    """Hints and parts of periods as the teacher decided; the plan's problems are computed again."""
+    for lesson_id, lesson in list(plan.lessons.items()):
+        items = []
+        for item in lesson.items:
+            hints = []
+            for hint in item.hints:
+                decision = decisions.get(f"hint:{item.id}:H{int(hint.level)}", {})
+                if decision.get("action") == "reject":
+                    continue
+                if decision.get("action") == "edit":
+                    hint = hint.model_copy(update={"text": str(decision["value"])})
+                hints.append(hint)
+            present = {int(h.level) for h in hints}
+            for target, decision in decisions.items():  # a hint the teacher wrote where Qwen gave none
+                m = re.fullmatch(rf"hint:{re.escape(item.id)}:H(\d)", target)
+                if m and decision.get("action") == "edit" and int(m.group(1)) not in present:
+                    level = HintLevel(int(m.group(1)))
+                    hints.append(
+                        HintTemplate(target=_TARGETS[level], level=level, text=str(decision["value"]))
+                    )
+            items.append(item.model_copy(update={"hints": sorted(hints, key=lambda h: int(h.level))}))
+        plan.lessons[lesson_id] = lesson.model_copy(update={"items": items})
+    nodes = []
+    for node in plan.package.nodes:
+        for target, decision in decisions.items():
+            if target.startswith(f"node:{node.id}/") and decision.get("action") == "edit":
+                node = _edit_node(node, target.split("/")[1:], decision["value"])
+        nodes.append(node)
+    plan.package = plan.package.model_copy(update={"nodes": nodes})
+    _move_items(plan, decisions)
+    plan.problems = validate_chapter(plan.chapter())
+
+
+_TARGETS = {}
+
+
+def _init_targets() -> None:
+    from cavat.core.pedagogy import HintTarget
+
+    _TARGETS.update({HintLevel.H1: HintTarget.TASK, HintLevel.H2: HintTarget.CONCEPT})
+    _TARGETS.update(
+        {HintLevel.H3: HintTarget.STRATEGY, HintLevel.H4: HintTarget.STEP, HintLevel.H5: HintTarget.STEP}
+    )
+
+
+_init_targets()
+
+
+def _edit_node(node: Any, path: list[str], value: Any) -> Any:
+    """One part of a period as the teacher writes it; an explanation or a worked example the documents do
+    not have is created by its first edit ("node:STP-T03/theory/T2/text")."""
+    from cavat.modules.content.chapter_package import TheoryVariant, WorkedExample
+
+    part, field = path[0], path[-1]
+    if part in ("theory", "worked_examples"):
+        element_id = path[1]
+        elements = list(getattr(node, part))
+        if not any(e.id == element_id for e in elements):
+            empty = (
+                TheoryVariant(id=element_id, representation=f"cách giảng {element_id}", text="", ask="")
+                if part == "theory"
+                else WorkedExample(id=element_id, problem="", steps=[], answer="")
+            )
+            elements.append(empty)
+        elements = [
+            e.model_copy(update={field: _as(field, value)}) if e.id == element_id else e for e in elements
+        ]
+        return node.model_copy(update={part: elements})
+    owner = getattr(node, part)
+    return node.model_copy(update={part: owner.model_copy(update={field: _as(field, value)})})
+
+
+def _move_items(plan: Plan, decisions: Mapping[str, Mapping[str, Any]]) -> None:
+    """Items the teacher put at another stage of their period ("item:STP-BT-31/stage" = "transfer")."""
+    moves = {t.split(":", 1)[1].removesuffix("/stage"): str(d["value"]) for t, d in decisions.items()}
+    moves = {k: v for k, v in moves.items() if f"item:{k}/stage" in decisions}
+    if not moves:
+        return
+    nodes = []
+    for node in plan.package.nodes:
+        lists = {name: [i for i in getattr(node, name) if i not in moves] for name in STAGES}
+        for item_id, stage in moves.items():
+            if any(item_id in getattr(node, name) for name in STAGES):
+                lists[stage].append(item_id)
+        nodes.append(node.model_copy(update=lists))
+    plan.package = plan.package.model_copy(update={"nodes": nodes})
+    for lesson_id, lesson in list(plan.lessons.items()):
+        items = []
+        for item in lesson.items:
+            if item.id in moves:
+                purpose, level, transfer = STAGES[moves[item.id]]
+                item = item.model_copy(
+                    update={"purpose": purpose, "cognitive_level": level, "transfer": transfer}
+                )
+            items.append(item)
+        plan.lessons[lesson_id] = lesson.model_copy(update={"items": items})
+
+
+def _as(field: str, value: Any) -> Any:
+    """Lists are written one per line by the teacher; key ideas one idea per line, phrasings split by "/"."""
+    if field == "key_ideas":
+        lines = value if isinstance(value, list) else str(value).splitlines()
+        return [
+            [p.strip() for p in (line if isinstance(line, list) else str(line).split("/")) if p.strip()]
+            for line in lines
+            if line
+        ]
+    if field in ("accept", "steps"):
+        return (
+            value
+            if isinstance(value, list)
+            else [line.strip() for line in str(value).splitlines() if line.strip()]
+        )
+    return str(value)
+
+
+def review_state(
+    plan_nodes: list[dict[str, Any]], decisions: Mapping[str, Mapping[str, Any]]
+) -> dict[str, Any]:
+    """What is approved and what still waits for the teacher, period by period."""
+    approved = [
+        n["id"] for n in plan_nodes if decisions.get(f"node:{n['id']}", {}).get("action") == "approve"
+    ]
+    return {
+        "approved_nodes": approved,
+        "waiting_nodes": [n["id"] for n in plan_nodes if n["id"] not in approved],
+    }
+
+
+def publish_blockers(
+    plan_nodes: list[dict[str, Any]], problems: list[str], decisions: Mapping[str, Any]
+) -> list[str]:
+    """Why the plan cannot be published yet (empty: it can)."""
+    waiting = review_state(plan_nodes, decisions)["waiting_nodes"]
+    return [f"{node}: chưa duyệt" for node in waiting] + list(problems)

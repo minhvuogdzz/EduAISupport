@@ -60,6 +60,14 @@ class TeachingPlan(TenantDocument):
     sources: dict[str, list[str]] = Field(default_factory=dict)  # node → its pages
     left_out: list[str] = Field(default_factory=list)  # items not placed, and why
     drafts: list[dict[str, Any]] = Field(default_factory=list)  # what Qwen wrote and the checks said (3b)
+    # INGEST-4: the teacher's decisions by target ("item:STP-BT-02a", "hint:STP-PH01-2:H3", "node:STP-T01",
+    # "node:STP-T01/theory/T1/reply"): {"action": approve|reject|edit, "value": …, "by": …, "at": …}. They
+    # survive every rebuild and are applied to what the documents and Qwen give.
+    decisions: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # Published versions (status PUBLISHED): {version: {"package": …, "lessons": …, "at": …, "by": …}}. A
+    # session keeps the version it started with, so its replay never changes.
+    published: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    current: str | None = None  # the published version new sessions use
 
 
 class TeachingPlanRepository(TenantScopedRepository):
@@ -83,3 +91,6 @@ class TeachingPlanRepository(TenantScopedRepository):
     async def get(self, chapter_id: str) -> TeachingPlan | None:
         doc = await self._find_one({"chapter_id": chapter_id})
         return TeachingPlan.from_doc(doc) if doc else None
+
+    async def list_published(self) -> list[TeachingPlan]:
+        return [TeachingPlan.from_doc(d) for d in await self._find({"current": {"$ne": None}})]

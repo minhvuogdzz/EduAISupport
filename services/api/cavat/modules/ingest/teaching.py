@@ -64,7 +64,7 @@ from cavat.modules.library.repository import TeacherDocument
 from cavat.modules.rag.bm25 import content_words
 
 PLAN_VERSION = "teaching-plan/0.1.0"
-USABLE = ("VERIFIED", "REVIEW", "UNCHECKED")  # never CONFLICT, DISPUTED or NO_ANSWER
+USABLE = ("VERIFIED", "REVIEW", "UNCHECKED", "TEACHER")  # never CONFLICT, DISPUTED, NO_ANSWER or REJECTED
 _IMPLEMENT = re.compile(r"luyện tập|ứng dụng|thực tế|vận dụng|hình ghép|công thức ngược", re.IGNORECASE)
 _STAGE = {
     "KIEM_TRA_HIEU": ("checks", "CONCEPT_CHECK", "A", 0.2),
