@@ -43,9 +43,12 @@ class ItemDraft:
     periods: list[int] = field(default_factory=list)  # lesson-plan periods that practise it
     assessment: bool = False  # a test question: its answer never reaches a prompt (CLAUDE.md rule 2)
     figure: bool = False  # the question rests on a figure (described in "[Hình: …]")
-    status: str = "UNCHECKED"  # VERIFIED | CONFLICT | DISPUTED | UNCHECKED | NO_ANSWER
+    status: str = "UNCHECKED"  # VERIFIED | REVIEW | CONFLICT | DISPUTED | UNCHECKED | NO_ANSWER
     findings: list[dict[str, object]] = field(default_factory=list)
     disputed: list[str] = field(default_factory=list)
+    check_stem: str = ""  # what the checks read: the sub-question (or the question)
+    context: str = ""  # and around it: the title of the part or sheet, the shared stem
+    question: str = ""  # the whole question as printed, every sub-question
 
 
 def build_bank(chapter_id: str, prefix: str, documents: Sequence[TeacherDocument]) -> list[ItemDraft]:
@@ -106,8 +109,10 @@ def _items_of(
                 assessment=layout == "DE_KIEM_TRA",
                 figure="[Hình" in q.text,
             )
-            _judge(item, part_text or shared_stem, context, disputed)
-            items.append(item)
+            item.context = context
+            item.check_stem = part_text or shared_stem
+            item.question = q.text
+            items.append(judge(item, disputed))
     return items
 
 
@@ -161,19 +166,31 @@ def _disputed(doc: TeacherDocument) -> set[str]:
     return {n for r in doc.page_reads for n in r.disputed}
 
 
-def _judge(item: ItemDraft, part: str, context: str, disputed: set[str]) -> None:
+def judge(item: ItemDraft, disputed: set[str] | None = None) -> ItemDraft:
+    """Check the item's answer against its question; ``disputed``: numbers the two readings disputed."""
+    disputed = disputed if disputed is not None else set(item.disputed)
     if not item.answer.strip():
         item.status = "NO_ANSWER"
-        return
-    findings: list[Finding] = check_item(part, item.answer, options=item.options or None, context=context)
+        return item
+    findings: list[Finding] = check_item(
+        item.check_stem,
+        item.answer,
+        options=item.options or None,
+        context=item.context,
+        question=item.question,
+    )
     item.findings = [asdict(f) for f in findings]
     numbers = set(re.findall(r"\d+(?:[.,/]\d+)*", f"{item.stem} {item.answer}"))
     item.disputed = sorted(n for n in disputed if n in numbers)
+    wrong = [f for f in findings if not f.ok]
     if item.disputed:
         item.status = "DISPUTED"
-    elif any(not f.ok for f in findings):
+    elif wrong and all(f.check == "GROUNDED" for f in wrong):
+        item.status = "REVIEW"  # the answer holds; its explanation has a number to look at
+    elif wrong:
         item.status = "CONFLICT"
     elif findings:
         item.status = "VERIFIED"
     else:
         item.status = "UNCHECKED"
+    return item

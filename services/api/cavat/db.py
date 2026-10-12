@@ -42,6 +42,7 @@ def repository_classes() -> tuple[type, ...]:
     from cavat.modules.assessment.repository import EvidenceRepository
     from cavat.modules.content.repository import LessonRepository
     from cavat.modules.identity.repository import UserRepository
+    from cavat.modules.ingest.repository import ItemBankRepository
     from cavat.modules.learner.repository import StudentKCStateRepository
     from cavat.modules.library.repository import DocumentRepository
     from cavat.modules.org.repository import ClassRepository, EnrollmentRepository, SchoolRepository
@@ -60,6 +61,7 @@ def repository_classes() -> tuple[type, ...]:
         EvidenceRepository,
         StudentKCStateRepository,
         DocumentRepository,
+        ItemBankRepository,
     )
 
 

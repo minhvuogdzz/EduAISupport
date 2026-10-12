@@ -249,13 +249,36 @@ def _edge(segment: str, *, suffix: bool) -> str:
         return ""
     term = m.group(0).strip().rstrip("×:+-−").strip()
     # A term followed or preceded by words is part of a sentence ("Đáy lớn: 24 − 9 = 15 cm" keeps "24 − 9").
-    return term if evaluate(term) is not None else ""
+    if evaluate(term) is not None:
+        return term
+    if suffix:  # "9 m: 8 × 9 : 2": the colon ends a phrase, the expression is what follows it
+        for cut in re.finditer(r"[:×+\-−]\s*", term):
+            rest = term[cut.end() :].strip()
+            if rest and evaluate(rest) is not None and not re.search(r"[×:+\-−]\s*$", term[: cut.start()]):
+                return rest
+    return ""
+
+
+_PLACE_WORDS = {"mười": 10, "trăm": 100, "nghìn": 1000}
+_COMPUTING = frozenset(
+    {"CONVERSION", "ROUNDING", "PLACE", "COMPOSE", "AREA", "WORDS", "EXTREME", "EQUAL", "RANGE", "DIGIT"}
+)
+
+
+def _plain(text: str) -> str:
+    """Relations read as numbers: "3 phần trăm" is 3/100, labels "(1)" go, and a relation inside
+    parentheses ("B (0,250 = 0,25)") stands on its own line."""
+    text = re.sub(
+        r"(\d+)\s+phần\s+(mười|trăm|nghìn)", lambda m: f"{m.group(1)}/{_PLACE_WORDS[m.group(2)]}", text
+    )
+    text = re.sub(r"\(\d\)\s*", "", text)
+    return re.sub(r"\(([^()]*[<>=≠][^()]*)\)", r"\n\1\n", text)
 
 
 def check_relations(text: str) -> list[Finding]:
     """Every relation written in an answer must hold (a reading or a typing error breaks one)."""
     findings = []
-    for left, sign, right in relations(text):
+    for left, sign, right in relations(_plain(text)):
         a, b = evaluate(left), evaluate(right)
         if a is None or b is None or sign == "≈":
             continue
@@ -281,14 +304,19 @@ def answer_quantity(answer: str, *, dimension: str | None = None) -> Quantity | 
     """
     lines = answer.splitlines() if answer else []
     if dimension is not None:
-        lines = lines[::-1]  # steps first, the result last ("Hình chữ nhật: … 40 m²", …, "Tổng: … 52 m²")
+        # Steps first, the result last ("Hình chữ nhật: … 24 m². Tam giác: … 6 m². Tổng: 30 m²."): read the
+        # sentences from the end.
+        lines = [p for line in lines for p in re.split(r"\.\s+", line) if p.strip()][::-1]
     for line in lines:
         line = re.sub(r"\(.*?\)", "", line).strip()
         for sign in ("≈", "="):
             if sign in line:
                 line = line.rsplit(sign, 1)[1]
                 break
-        term = _edge(line.strip(), suffix=False)
+        else:
+            if ":" in line and not re.search(r"\d\s*:\s*\d", line):  # "Tổng: 30 m²", not "12 : 2"
+                line = line.rsplit(":", 1)[1]
+        term = _edge(line.strip().rstrip("."), suffix=False)
         q = evaluate(term) if term else None
         if dimension is None:
             return q
@@ -316,7 +344,8 @@ def place_named(text: str) -> int | None:
 
 
 def check_fill(stem: str, answer: str, context: str = "") -> list[Finding]:
-    """A blank after "=" or "≈" in the question: the answer's value is the left side's, converted or rounded."""
+    """A blank after "=" or "≈" in the question: the answer's value is the left side's, converted or
+    rounded."""
     m = re.search(r"(.+?)\s*(=|≈)\s*(?:…+|\.{2,})\s*([^\s.…]*)", stem)
     if not m:
         return []
@@ -353,7 +382,16 @@ def check_compare(stem: str, answer: str) -> list[Finding]:
     if order is None:
         return []
     truth = {-1: "<", 0: "=", 1: ">"}[order]
-    return [Finding("COMPARE", sign.group(1) == truth, f"{m.group(1)} {truth} {m.group(2)}")]
+    findings = [Finding("COMPARE", sign.group(1) == truth, f"{m.group(1)} {truth} {m.group(2)}")]
+    # The answer writes the question's two numbers ("8,3 > 8,29"), not others.
+    written = relations(answer.splitlines()[0])
+    if written:
+        left, _, right = written[0]
+        x, y = evaluate(left), evaluate(right)
+        if x is not None and y is not None:
+            same = _same(x, a) and _same(y, b)
+            findings.append(Finding("COMPARE", bool(same), f"{m.group(1)} và {m.group(2)}"))
+    return findings
 
 
 def check_order(stem: str, answer: str) -> list[Finding]:
@@ -615,18 +653,32 @@ def _fmt(value: Fraction) -> str:
 
 
 def check_item(
-    stem: str, answer: str, *, options: dict[str, str] | None = None, context: str = ""
+    stem: str,
+    answer: str,
+    *,
+    options: dict[str, str] | None = None,
+    context: str = "",
+    question: str = "",
 ) -> list[Finding]:
     """Every check that applies to this question and its answer."""
     findings: list[Finding] = []
     stem = " ".join(stem.split())
     context = " ".join(context.split())
     findings += check_relations(answer)
+    # The whole question too: an answer key may explain two sub-questions under the last one.
+    sources = " ; ".join([context, question, stem, *(options or {}).values()])
+    whole_answer = answer
     if options:
         findings += check_choice(options, answer)
         chosen = re.match(r"\s*([A-D])\b", answer)
         if not chosen or chosen.group(1) not in options:
             return findings
+        # A worked answer ending "→ 2,07 m" ends on the chosen option's value.
+        arrow = re.search(rf"→\s*({MEASURE.pattern})\s*\.?\s*$", answer.splitlines()[0])
+        if arrow and (x := evaluate(arrow.group(1))) and (y := evaluate(options[chosen.group(1)])):
+            same = _same(x, y)
+            if same is not None:
+                findings.append(Finding("CHOICE", same, f"→ {options[chosen.group(1)]}"))
         answer = options[chosen.group(1)]  # what the question's blank receives is the chosen option
     findings += check_true_false(stem, answer)
     findings += check_fill(stem, answer, context)
@@ -644,6 +696,14 @@ def check_item(
     findings += check_digit_x(stem, answer)
     if "diện tích" in f"{context} {stem}".lower() or re.search(r"\bS\s*=", stem):
         findings += check_area(stem, answer, context)
+    if findings and all(f.ok for f in findings):  # an answer the other checks verified
+        # What a check computed (a relation or a comparison only repeats the answer's own numbers), and the
+        # value the answer gives when a computing check confirmed it.
+        verified = _values(" ; ".join(f.detail for f in findings if f.check in _COMPUTING))
+        given = answer_quantity(answer)
+        if given is not None and any(f.check in _COMPUTING for f in findings):
+            verified.add(given.value)
+        findings += check_grounded(whole_answer, sources, verified)
     return findings
 
 
@@ -746,7 +806,7 @@ def check_shapes(stem: str, answer: str) -> list[Finding]:
             findings += _compare((a.value + b.value) * h.value / 2, given, [a, b, h], squared=True)
     if given is not None and (
         m := re.search(
-            rf"hình chữ nhật\s+({m_})\s*×\s*({m_}).*?tam giác.*?đáy\s+({m_}),\s*(?:chiều\s+)?cao\s+({m_})",
+            rf"hình chữ nhật\s+({m_})\s*[×x]\s*({m_}).*?tam giác.*?đáy\s+({m_}),\s*(?:chiều\s+)?cao\s+({m_})",
             stem,
         )
     ):
@@ -808,3 +868,57 @@ def check_digit_x(stem: str, answer: str) -> list[Finding]:
     said = answer.splitlines()[0].split("(")[0] if answer else ""
     given = sorted({int(d) for d in re.findall(r"(?<!\d)(?<!\d,)(\d)(?!\d|,\d)", said.split("=", 1)[-1])})
     return [Finding("DIGIT", given == expected, f"x = {', '.join(map(str, expected))}")]
+
+
+def _values(text: str) -> set[Fraction]:
+    """Every value written in a text: numbers as they are, measures also in their base unit."""
+    out: set[Fraction] = set()
+    for m in MEASURE.finditer(_plain(text)):
+        q = evaluate(m.group(0))
+        if q is None:
+            continue
+        out.add(q.value)
+        if q.dimension:  # "980 m" is also 0,98 (km), 9800 (dm)…: the same length in each unit
+            out |= {q.value / factor for dim, factor in UNITS.values() if dim == q.dimension}
+        for n in re.findall(rf"{_MIXED}|{_NUM}", m.group(0)):
+            if (v := number(n)) is not None:
+                out.add(v)
+    return out
+
+
+def explanation_of(answer: str) -> str:
+    """What explains an answer rather than gives it: the lines after the first, and parentheses."""
+    first, _, rest = answer.partition("\n")
+    inside = " ; ".join(re.findall(r"\(([^()]*)\)", first))
+    return "\n".join(t for t in (inside, rest) if t.strip())
+
+
+def check_grounded(answer: str, sources: str, verified: set[Fraction]) -> list[Finding]:
+    """Each number of two or more digits in an answer and its explanation comes from the question (by
+    value, units converted), is what the other checks computed (``verified``), a side of an equality of the
+    answer that holds (a conversion, a computation), or the question's "x" with a digit put in. A digit
+    changed by a misreading or a typo makes a number that is none of these; so may a sound intermediate
+    step ("tô 3 cột, 30 ô"), which is why this only asks the teacher to look (REVIEW)."""
+    explanation = answer
+    allowed = _values(sources) | verified
+    for left, sign, right in relations(_plain(answer)):
+        if sign != "=":  # a comparison makes no new number ("12,01 < 12,7" is true and still made up)
+            continue
+        holds = check_relations(f"{left} {sign} {right}")
+        if holds and all(f.ok for f in holds):
+            allowed |= _values(left) | _values(right)
+    for pattern in re.finditer(r"(\d+,\d*)x(\d*)", sources):  # "5,x3" with each digit
+        allowed |= {
+            v for d in range(10) if (v := number(f"{pattern.group(1)}{d}{pattern.group(2)}")) is not None
+        }
+    stray = []
+    for m in MEASURE.finditer(explanation):
+        token = m.group(0)
+        if len(re.sub(r"\D", "", token)) < 2:
+            continue
+        values = _values(token)
+        if values and not values & allowed:
+            stray.append(token.strip())
+    if not stray:
+        return []
+    return [Finding("GROUNDED", False, "số không có trong đề: " + "; ".join(dict.fromkeys(stray)))]

@@ -456,6 +456,17 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-44, kiểm đáp án của ngân hàng câu nháp (INGEST-2, ADR-024, chờ duyệt):**
+  - Làm tròn "nửa lên" (chữ số bên phải từ 5 trở lên thì tăng 1), làm một lần, theo hàng đề nêu. Số đo được làm tròn theo đơn vị nó được viết.
+  - Một số trong đáp án "có căn cứ" khi:
+    - có trong đề hoặc trong cả câu (mọi câu nhỏ), so theo giá trị và mọi đơn vị cùng loại;
+    - hoặc là kết quả một bước kiểm tự tính;
+    - hoặc là một vế của phép "=" đúng.
+    Phép so sánh không tạo ra số mới.
+  - Số có 1 chữ số không xét "có căn cứ", vì lời giải hay dùng chữ số đơn lẻ.
+  - Câu trắc nghiệm: giá trị điền vào chỗ trống là giá trị của phương án được chọn.
+  - Thứ tự ưu tiên trạng thái: số đọc chưa chắc (DISPUTED) > mâu thuẫn (CONFLICT) > cần xem lời giải (REVIEW, khi chỉ phần "có căn cứ" không đạt) > đã kiểm (VERIFIED) > chưa kiểm được (UNCHECKED).
+  - Đo độ nhạy: đổi từng chữ số của dòng đáp án (+1 và +5). Trên tài liệu thật bắt được 97,1% và 98,4%.
 - **DI-43, đọc tài liệu từng trang có kiểm chứng (INGEST-1, ADR-023, chờ duyệt):**
   - Một trang PDF được Gemini đọc lại khi lớp chữ của nó không giữ được hết nội dung. Có 4 dấu hiệu:
     - dưới 40 ký tự (bản scan);
