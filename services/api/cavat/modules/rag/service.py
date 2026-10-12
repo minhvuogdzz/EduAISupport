@@ -19,7 +19,7 @@ from fastapi.concurrency import run_in_threadpool
 from cavat.config import get_settings
 from cavat.core.repository import utc_now
 from cavat.modules.content.chapter_package import ORDER_RELATIONS, Chapter
-from cavat.modules.library.repository import DocumentRepository, TeacherDocument
+from cavat.modules.library.repository import RAG_KINDS, DocumentRepository, TeacherDocument
 from cavat.modules.rag.bm25 import TwoFormBM25
 from cavat.modules.rag.chunks import Chunk, chapter_chunks, document_chunks
 from cavat.modules.rag.embed import Embedder, GatewayEmbedder
@@ -100,7 +100,7 @@ class RagService:
 
     def _signature_of(self, docs: list[TeacherDocument]) -> str:
         parts = [f"{cid}:{c.package.version}" for cid, c in sorted(self._chapters().items())]
-        parts += [f"{d.id}:{d.sha256}:{d.status}:{len(d.text)}:{d.chapter_id}" for d in docs]
+        parts += [f"{d.id}:{d.sha256}:{d.status}:{len(d.text)}:{d.chapter_id}:{d.kind}" for d in docs]
         return hashlib.sha256("|".join(parts).encode()).hexdigest()
 
     def _build(self, docs: list[TeacherDocument]) -> RagIndex:
@@ -119,7 +119,7 @@ class RagService:
                     graph.setdefault(r.target, set()).add(r.source)
         passages: list[Chunk] = []
         for doc in docs:
-            if doc.text:
+            if doc.text and doc.kind in RAG_KINDS:  # never an answer key or a test (rule 2)
                 passages += document_chunks(doc.id, doc.title, doc.chapter_id, doc.text)
         chunks += tag_passages(passages, chunks)
         if not self._embedder_made:

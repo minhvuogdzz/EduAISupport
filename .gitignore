@@ -33,3 +33,6 @@ evals/reports/*
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+
+# Tài liệu thật của giáo viên (SGK, bài tập, đề): chỉ nằm trên máy, không bao giờ lên git
+tailieu/

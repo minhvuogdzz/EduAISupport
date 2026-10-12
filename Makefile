@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -29,6 +29,9 @@ api-memory: ## Run the API on an in-memory database: nothing is written to Atlas
 
 accounts: ## Create or update the three trial accounts (one student, one parent, one teacher) in the database of .env
 	cd services/api && .venv/bin/python -m cavat.accounts
+
+library-import: ## Import a folder of teacher documents (DIR=tailieu) into the library of the database of .env, read page by page
+	cd services/api && .venv/bin/python -m cavat.library_import "$(DIR)" $(if $(AGAIN),--again,)
 
 teach: ## Talk with the AI tutor in the terminal: the teaching loop on the decimals chapter, offline
 	cd services/api && .venv/bin/python scripts/teach_cli.py

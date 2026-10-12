@@ -22,7 +22,7 @@ async def client(tmp_path, monkeypatch):
     get_settings.cache_clear()
     # No call to Gemini from a test: a fake OCR reads scans and photos.
     monkeypatch.setattr(
-        library_api, "_ocr", lambda: lambda data, mime: f"[Trang 1]\nChữ đọc bằng OCR ({mime})"
+        library_api, "_ocr", lambda: lambda data, mime, prompt: f"[Trang 1]\nChữ đọc bằng OCR ({mime})"
     )
     database = InMemoryDatabase()
     await ensure_indexes(database)
@@ -147,3 +147,30 @@ def test_the_teacher_reads_the_chapter_with_its_answers(client):
     assert item["hints"] and item["wrong_answers"] == {"0,09": "FRAC-M01"}
     assert any(m["id"] == "FRAC-M01" for m in content["misconceptions"])
     assert client.get("/v1/teachers/chapters/nope", headers=TEACHER).status_code == 404
+
+
+def test_the_gemini_reader_keeps_readings_and_checks_with_another_model(tmp_path):
+    """INGEST-1: readings are cached with their model; the check skips the first reading's model."""
+    from cavat.modules.ai_gateway.base import QuotaExceeded, VisionResult
+
+    class Router:
+        vision_models = ("gemini-3.8-flash", "gemini-2.5-flash", "gemini-3.5-flash-lite")
+
+        def __init__(self):
+            self.calls = []
+
+        def describe_image_with(self, model, data, prompt, *, mime_type):
+            self.calls.append(model)
+            if model == "gemini-3.8-flash" and len(self.calls) > 1:
+                raise QuotaExceeded("rate limited", model=model, reset_at=None)
+            return VisionResult(model=model, text=f"đọc bởi {model}")
+
+    router = Router()
+    reader = library_api.GeminiReader(router, tmp_path)
+    assert reader(b"page", "application/pdf", "p") == "đọc bởi gemini-3.8-flash"
+    assert reader.last_model == "gemini-3.8-flash"
+    assert reader.check(b"page", "application/pdf", "p", other_than="gemini-3.8-flash") == (
+        "đọc bởi gemini-3.5-flash-lite"
+    )
+    assert reader(b"page", "application/pdf", "p") == "đọc bởi gemini-3.8-flash"  # from the disk cache
+    assert router.calls == ["gemini-3.8-flash", "gemini-3.5-flash-lite"]

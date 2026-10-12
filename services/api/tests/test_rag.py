@@ -345,6 +345,19 @@ async def test_the_service_rebuilds_only_when_the_corpus_changes():
     assert await rag.current(database, force=True) is not second
 
 
+@pytest.mark.parametrize("kind", ["DAP_AN", "DE_KIEM_TRA"])
+async def test_answer_keys_and_tests_never_reach_the_rag(kind):
+    """INGEST-1, CLAUDE.md rule 2: a passage of the RAG can reach a prompt, an answer never may."""
+    database = InMemoryDatabase()
+    await ensure_indexes(database)
+    repo = DocumentRepository(database, service.DEMO_SCHOOL_ID)
+    await repo.create(document("[Trang 1]\nCâu 5: 2 m 7 cm = 2,07 m. Đáp án B.", kind=kind, title="Đáp án"))
+    await repo.create(document("[Trang 1]\nMuốn so sánh hai số thập phân, so sánh phần nguyên trước."))
+    index = await offline_service().current(database)
+    titles = {c.title for c in index.chunks if c.source == "document"}
+    assert titles == {"Phiếu so sánh, trang 1"}
+
+
 async def test_the_service_tries_the_embedding_model_again_after_a_failure():
     class Flaky:
         name, semantic = "flaky", True

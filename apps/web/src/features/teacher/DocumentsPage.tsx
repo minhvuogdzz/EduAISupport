@@ -3,30 +3,42 @@ import { useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
-import type { DocumentKind, TeacherDocument } from "../../api/contract";
+import type { DocumentKind, PageRead, TeacherDocument } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
 import { formatViDateTime } from "../../lib/viNumber";
 import { TeacherHeader } from "./TeacherHeader";
 
 const KIND_LABEL: Record<DocumentKind, string> = {
   SGK: "Sách giáo khoa",
+  BAI_GIANG: "Bài giảng, lý thuyết",
   GIAO_AN: "Giáo án",
-  BAI_TAP: "Phiếu bài tập",
+  BAI_TAP: "Bài tập",
+  PHIEU: "Phiếu luyện tập",
   DE_KIEM_TRA: "Đề kiểm tra",
+  DAP_AN: "Đáp án",
+  LOI_SAI: "Lỗi sai hay gặp",
   KHAC: "Khác",
 };
 
 const STATUS_LABEL: Record<TeacherDocument["status"], string> = {
   READ: "Đã đọc",
+  NEEDS_REVIEW: "Cần xem lại",
   NEEDS_OCR: "Cần đọc ảnh (OCR)",
   FAILED: "Không đọc được",
 };
 
 const STATUS_TONE: Record<TeacherDocument["status"], string> = {
   READ: "bg-emerald-50 text-emerald-900 ring-emerald-200",
+  NEEDS_REVIEW: "bg-amber-50 text-amber-900 ring-amber-200",
   NEEDS_OCR: "bg-amber-50 text-amber-900 ring-amber-200",
   FAILED: "bg-rose-50 text-rose-900 ring-rose-200",
 };
+
+/** The status of a document, with the pages to look at and whether the RAG reads it (INGEST-1). */
+function statusText(d: TeacherDocument): string {
+  const pages = d.review_pages?.length ? ` trang ${d.review_pages.join(", ")}` : "";
+  return `${STATUS_LABEL[d.status]}${d.status === "NEEDS_REVIEW" ? pages : ""}`;
+}
 
 const ACCEPT = ".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp";
 
@@ -106,8 +118,11 @@ export function DocumentsPage() {
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${STATUS_TONE[d.status]}`}
                         >
-                          {STATUS_LABEL[d.status]}
+                          {statusText(d)}
                         </span>
+                        {d.in_rag === false && (
+                          <span className="mt-1 block text-xs text-slate-500">Không vào RAG</span>
+                        )}
                       </td>
                       <td className="py-2 whitespace-nowrap">{formatViDateTime(d.uploaded_at)}</td>
                     </tr>
@@ -277,9 +292,13 @@ export function DocumentPage() {
             <span
               className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${STATUS_TONE[d.status]}`}
             >
-              {STATUS_LABEL[d.status]}
+              {statusText(d)}
             </span>
+            {d.in_rag === false && (
+              <span className="ml-2 text-xs text-slate-500">Không vào RAG (đáp án, đề kiểm tra)</span>
+            )}
             {d.error && <p className="mt-1 text-sm text-rose-700">{d.error}</p>}
+            <PageReads reads={d.page_reads ?? []} />
           </div>
           <div className="flex gap-2">
             <button
@@ -323,5 +342,55 @@ export function DocumentPage() {
         {body}
       </div>
     </AppShell>
+  );
+}
+
+const NOTE_LABEL: Record<string, string> = {
+  QuotaExceeded: "Gemini hết hạn mức miễn phí hôm nay, chạy lại sau",
+  ModelUnavailable: "Gemini không trả lời, chạy lại sau",
+  NO_OCR: "chưa có khóa Gemini",
+};
+
+/** What the teacher should check on a page read again (INGEST-1, DI-43). */
+function readingText(r: PageRead): string {
+  if (r.note === "DISAGREE")
+    return `hai lần đọc khác nhau ở ${(r.disputed ?? []).join("; ")}: cô so với file gốc`;
+  if (r.note?.startsWith("UNCONFIRMED"))
+    return `chưa đọc lần hai để xác nhận ${r.added.join("; ")}, chạy lại sau`;
+  if (r.status === "OK") {
+    const confirmed = r.note === "CONFIRMED" ? ", hai lần đọc khớp" : "";
+    return `đã kiểm chứng${r.added.length ? `, Gemini đọc thêm ${r.added.join("; ")}${confirmed}` : ""}`;
+  }
+  const missing = r.missing.length ? `, bản Gemini thiếu ${r.missing.join("; ")}` : "";
+  const note = r.note && NOTE_LABEL[r.note] ? ` (${NOTE_LABEL[r.note]})` : "";
+  return `cần xem lại${missing}${note}, đang giữ chữ gốc`;
+}
+
+const REASON_LABEL: Record<string, string> = {
+  IMAGES: "có ảnh (phân số, hình)",
+  FIGURE: "có hình vẽ",
+  SCAN: "là ảnh chụp, bản scan",
+};
+
+/**
+ * The pages read again by Gemini (INGEST-1): what it added, for the teacher to check against the original,
+ * and the pages whose reading could not be checked (DI-43).
+ */
+function PageReads({ reads }: { reads: PageRead[] }) {
+  const again = reads.filter((r) => r.reason);
+  if (again.length === 0) return null;
+  return (
+    <details className="mt-2 text-sm">
+      <summary className="cursor-pointer text-slate-700">
+        {again.length} trang được đọc lại bằng Gemini
+      </summary>
+      <ul className="mt-1 flex flex-col gap-1">
+        {again.map((r) => (
+          <li key={r.page} className={r.status === "OK" ? "text-slate-600" : "text-amber-900"}>
+            Trang {r.page} {REASON_LABEL[r.reason] ?? r.reason}: {readingText(r)}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

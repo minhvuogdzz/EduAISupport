@@ -130,8 +130,13 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | TQ-3 | Giám khảo của `make eval-hard` nhận lượt dạng các dòng có nhãn (dạng JSON khiến nó chấm 1/1/1/1 "không có phản hồi"); chặn câu Qwen gọi học sinh sai xưng hô (`WRONG_ADDRESS`, cả lời có căn cứ `grounded-speech/0.2.2`) | Xong |
 | CTX-2 | Bước tới Qwen tự chủ: chính sách đưa các nước đi được phép kèm giới hạn, Qwen chọn nước và nêu lý do, chính sách kiểm lại và có quyền chặn (đáp án, bài kiểm tra, an toàn) | Chưa |
 | RAG-3 | Câu con tự hỏi trong lúc làm bài tập (không phải bài kiểm tra): trả lời có căn cứ mà không lộ đáp án câu đang làm; prompt `grounded.v2` chọn đoạn trả lời đúng câu hỏi thay vì đoạn đứng đầu (ca G09) | Chưa |
-| DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án | Chờ tài liệu |
-| DATA-2 | Chương Diện tích hình tam giác, hình thang (có hình vẽ: OCR và mô tả hình bằng Gemini) | Chờ tài liệu |
+| DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án: INGEST-1..4 trên các file `STP-*` | Đang làm (tài liệu đã có, 2026-10-12) |
+| DATA-2 | Chương Diện tích hình tam giác, hình thang: INGEST-1..4 trên các file `DTTGHT-*`, kèm bài nền nhân, chia số thập phân (chủ dự án quyết 2026-10-12: "vẫn dạy") | Đang làm |
+| INGEST-1 | Đọc tài liệu từng trang có kiểm chứng (ADR-023, DI-43): Gemini đọc lại trang có ảnh, hình vẽ, trục số; mọi số của lớp chữ phải có trong bản đọc; loại tài liệu mới (bài giảng, phiếu, đáp án, lỗi sai); **đáp án và đề kiểm tra không vào RAG**; `make library-import DIR=tailieu` | Xong |
+| INGEST-2 | Tách bài tập, phiếu, đề thành từng câu nhỏ kèm đáp án (ghép file đề với file đáp án); `MathChecker` kiểm từng đáp án; gắn câu vào tiết và bài theo giáo án ("Thực hành: bài tập câu 1, 2, 6; phiếu số 1") | Chưa |
+| INGEST-3 | Dựng đồ thị bài học và phương án dạy từ lý thuyết và giáo án: bài, tiên quyết, thứ tự tiết, cách giảng, phương pháp, bài mẫu, lỗi sai; mọi đoạn trích trang gốc; Qwen chỉ đề xuất chỗ tài liệu không nói rõ | Chưa |
+| INGEST-4 | Trang duyệt của giáo viên: bản nháp đặt cạnh tài liệu gốc, duyệt từng phần; gia sư dạy từ bản đã duyệt (lúc Claude chạy thử thì tự duyệt) | Chưa |
+| RAG-3 | Đánh giá lại Hybrid RAG trên tài liệu thật: bộ câu hỏi mới có phần giữ riêng, chạy `make eval-rag LIVE=1`, báo số liệu | Chưa |
 
 **RAG-2, những điều RAG-1 đã chốt cho bước nối với gia sư:**
 - Câu truy vấn ghép câu học sinh vừa nói với tên, mô tả bài và mã lỗi sai vừa gặp (plan 5.5.3). Nhưng **"có căn cứ" phải tính trên chính câu của học sinh**: ghép tên bài vào thì câu lạc đề nào cũng gần nội dung chương hơn.

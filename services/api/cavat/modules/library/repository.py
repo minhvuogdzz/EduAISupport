@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from cavat.core.repository import (
     ASCENDING,
@@ -17,8 +17,28 @@ from cavat.core.repository import (
     utc_now,
 )
 
-DocumentKind = Literal["SGK", "GIAO_AN", "BAI_TAP", "DE_KIEM_TRA", "KHAC"]
-DocumentStatus = Literal["READ", "NEEDS_OCR", "FAILED"]
+DocumentKind = Literal[
+    "SGK", "BAI_GIANG", "GIAO_AN", "BAI_TAP", "PHIEU", "DE_KIEM_TRA", "DAP_AN", "LOI_SAI", "KHAC"
+]
+# NEEDS_REVIEW: read, but some pages could not be checked (INGEST-1); the teacher looks at those pages.
+DocumentStatus = Literal["READ", "NEEDS_REVIEW", "NEEDS_OCR", "FAILED"]
+
+# What the Hybrid RAG may read (INGEST-1). Never an answer key or a test: a passage of the RAG can reach a
+# prompt, and an answer of an assessment item never may (CLAUDE.md rule 2).
+RAG_KINDS: frozenset[str] = frozenset({"SGK", "BAI_GIANG", "GIAO_AN", "BAI_TAP", "PHIEU", "LOI_SAI", "KHAC"})
+
+
+class PageReadRecord(BaseModel):
+    """How one page was read (``extract.PageRead``)."""
+
+    page: int
+    method: str
+    reason: str = ""
+    status: str = "OK"
+    missing: list[str] = Field(default_factory=list)
+    added: list[str] = Field(default_factory=list)
+    note: str = ""
+    disputed: list[str] = Field(default_factory=list)
 
 
 class TeacherDocument(TenantDocument):
@@ -33,10 +53,12 @@ class TeacherDocument(TenantDocument):
     uploaded_by: str  # the teacher account
     uploaded_at: datetime = Field(default_factory=utc_now)
     status: DocumentStatus = "READ"
-    method: str = ""  # how the text was read: pdf-text, docx, text, ocr-gemini
+    method: str = ""  # how the text was read: pdf-text, pdf-text+ocr, docx, text, ocr-gemini
     pages: int = 0
     text: str = ""
     error: str | None = None
+    page_reads: list[PageReadRecord] = Field(default_factory=list)  # PDF, page by page (INGEST-1)
+    answers_for: str | None = None  # an answer key: the document of the questions it answers
 
 
 class DocumentRepository(TenantScopedRepository):

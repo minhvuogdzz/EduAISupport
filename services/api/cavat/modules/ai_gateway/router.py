@@ -166,6 +166,19 @@ class AIRouter:
             raise ModelUnavailable("no vision provider configured")
         return self._vision.describe_image(image_bytes, prompt, mime_type=mime_type)
 
+    @property
+    def vision_models(self) -> tuple[str, ...]:
+        """The vision chain, first model first (empty without a vision provider)."""
+        return tuple(getattr(self._vision, "models", ())) if self._vision is not None else ()
+
+    def describe_image_with(
+        self, model: str, image_bytes: bytes, prompt: str, *, mime_type: str = "image/png"
+    ) -> VisionResult:
+        """VISION_OCR on one model of the chain, no fallback (INGEST-1: a second, independent reading)."""
+        if self._vision is None:
+            raise ModelUnavailable("no vision provider configured")
+        return self._vision.describe_with(model, image_bytes, prompt, mime_type=mime_type)
+
 
 def _embedding_name(provider: EmbeddingProvider | None) -> str | None:
     return getattr(provider, "model", None)
@@ -188,7 +201,11 @@ def build_router(
     if settings.gemini_api_key is not None and settings.gemini_api_key.get_secret_value():
         from .gemini import GeminiEmbeddings, GeminiVision
 
-        vision = GeminiVision(settings.gemini_api_key, model=settings.gemini_vision_model)
+        vision = GeminiVision(
+            settings.gemini_api_key,
+            model=settings.gemini_vision_model,
+            fallbacks=settings.gemini_vision_fallbacks,
+        )
         embeddings = GeminiEmbeddings(settings.gemini_api_key, model=settings.gemini_embedding_model)
     return AIRouter(
         chat_provider=groq,
