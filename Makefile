@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank eval-items teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -32,6 +32,12 @@ accounts: ## Create or update the three trial accounts (one student, one parent,
 
 library-import: ## Import a folder of teacher documents (DIR=tailieu) into the library of the database of .env, read page by page
 	cd services/api && .venv/bin/python -m cavat.library_import "$(DIR)" $(if $(AGAIN),--again,)
+
+item-bank: ## Build the draft item bank of each chapter from the imported teacher documents (database of .env)
+	cd services/api && .venv/bin/python -m cavat.item_bank
+
+eval-items: ## Mutate every checked answer of the item banks and count how many the checks catch (read-only)
+	cd services/api && .venv/bin/python scripts/eval_item_bank.py
 
 teach: ## Talk with the AI tutor in the terminal: the teaching loop on the decimals chapter, offline
 	cd services/api && .venv/bin/python scripts/teach_cli.py

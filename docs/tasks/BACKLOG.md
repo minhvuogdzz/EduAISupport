@@ -133,7 +133,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án: INGEST-1..4 trên các file `STP-*` | Đang làm (tài liệu đã có, 2026-10-12) |
 | DATA-2 | Chương Diện tích hình tam giác, hình thang: INGEST-1..4 trên các file `DTTGHT-*`, kèm bài nền nhân, chia số thập phân (chủ dự án quyết 2026-10-12: "vẫn dạy") | Đang làm |
 | INGEST-1 | Đọc tài liệu từng trang có kiểm chứng (ADR-023, DI-43): Gemini đọc lại trang có ảnh, hình vẽ, trục số; mọi số của lớp chữ phải có trong bản đọc; loại tài liệu mới (bài giảng, phiếu, đáp án, lỗi sai); **đáp án và đề kiểm tra không vào RAG**; `make library-import DIR=tailieu` | Xong |
-| INGEST-2 | Tách bài tập, phiếu, đề thành từng câu nhỏ kèm đáp án (ghép file đề với file đáp án); `MathChecker` kiểm từng đáp án; gắn câu vào tiết và bài theo giáo án ("Thực hành: bài tập câu 1, 2, 6; phiếu số 1") | Chưa |
+| INGEST-2 | Ngân hàng câu nháp (ADR-024, DI-44): tách bài tập, phiếu, đề thành câu nhỏ kèm đáp án, gắn tiết theo giáo án, kiểm mọi đáp án với đề bằng tính toán chính xác và kiểm "có căn cứ"; `make item-bank`, `make eval-items` (độ nhạy 97,1% / 98,4%), API giáo viên `/v1/teachers/item-banks/…` | Xong |
 | INGEST-3 | Dựng đồ thị bài học và phương án dạy từ lý thuyết và giáo án: bài, tiên quyết, thứ tự tiết, cách giảng, phương pháp, bài mẫu, lỗi sai; mọi đoạn trích trang gốc; Qwen chỉ đề xuất chỗ tài liệu không nói rõ | Chưa |
 | INGEST-4 | Trang duyệt của giáo viên: bản nháp đặt cạnh tài liệu gốc, duyệt từng phần; gia sư dạy từ bản đã duyệt (lúc Claude chạy thử thì tự duyệt) | Chưa |
 | RAG-3 | Đánh giá lại Hybrid RAG trên tài liệu thật: bộ câu hỏi mới có phần giữ riêng, chạy `make eval-rag LIVE=1`, báo số liệu | Chưa |

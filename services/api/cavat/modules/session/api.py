@@ -36,6 +36,7 @@ from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
 from cavat.modules.identity.api import AuthError, demo_mode, identity_from, register_auth, require
 from cavat.modules.identity.repository import UserRepository
+from cavat.modules.ingest import api as ingest_api
 from cavat.modules.library import api as library_api
 from cavat.modules.rag import api as rag_api
 from cavat.modules.rag.service import RagService
@@ -1178,6 +1179,7 @@ def register(app: FastAPI) -> None:
         )
     )
     app.include_router(rag_api.build_router(get_database, teacher_identity, lambda: _rag_service))
+    app.include_router(ingest_api.build_router(get_database, teacher_identity, service.DEMO_SCHOOL_ID))
     app.include_router(router)
     app.include_router(students)
     app.include_router(parents)
