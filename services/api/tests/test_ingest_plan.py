@@ -302,3 +302,25 @@ def test_a_question_asking_several_things_is_left_to_the_rubric():
         ),
     ):
         assert answer_spec(_draft(stem, answer)).type == "open"
+
+
+def test_a_measure_in_tonnes_is_a_number_and_a_list_of_values_is_not():
+    spec = answer_spec(_draft("17 tấn 2 kg = …… tấn", "17,002 tấn"))
+    assert spec.type == "numeric" and spec.value == "17,002"
+    assert answer_spec(_draft("Số tự nhiên x: 1,8 < x < 5,4: x = ……", "x = 2 ; 3 ; 4 ; 5")).type == "open"
+
+
+def test_a_key_that_restates_the_question_is_read_on_its_right_side():
+    spec = answer_spec(
+        _draft("Viết thành số thập phân hoặc phân số thập phân:\nc) 0,29 = ……", "0,29 = 29/100")
+    )
+    assert (spec.type, spec.value, spec.form) == ("numeric", "29/100", "fraction")
+    spec = answer_spec(_draft("Làm tròn:\na) 8,49 đến hàng đơn vị", "8,49 ≈ 8"))
+    assert (spec.type, spec.value) == ("numeric", "8")
+
+
+def test_several_comparisons_or_free_units_are_left_to_the_rubric():
+    line = "a) Điền dấu >, <, = : 7,35 …… 7,4    0,60 …… 0,6"
+    assert answer_spec(_draft(line, "7,35 < 7,4; 0,60 = 0,6")).type == "open"
+    stem = "Tính diện tích hình tam giác (đổi về cùng đơn vị trước):\na) đáy 3 dm, chiều cao 25 cm"
+    assert answer_spec(_draft(stem, "3 dm = 30 cm; S = 30 × 25 : 2 = 375 cm².")).type == "open"

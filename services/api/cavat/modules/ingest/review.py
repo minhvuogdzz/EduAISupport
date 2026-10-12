@@ -12,7 +12,8 @@ applied on top, so fixing a misread answer key or rewording a hint is never lost
 - ``node:<id>``: approve a period as a whole; ``node:<id>/<path>``: edit one part of it, e.g.
   ``node:STP-T01/theory/T1/reply``, ``node:STP-T01/method/rule``, ``node:STP-T01/explain/key_ideas``; an
   explanation or worked example the documents lack is added by its first edit
-  (``node:STP-T03/theory/T2/text``).
+  (``node:STP-T03/theory/T2/text``); ``node:<id>/pass_rule/min_forms``: how many question forms the
+  period asks, when its documents give fewer than the default two.
 
 A plan is published only when every period is approved and the tutor's validation asks for nothing: the
 teacher, not the builder, decides what is taught (CLAUDE.md: the owner approves pedagogical content).
@@ -36,6 +37,8 @@ NODE_FIELDS = {
     "method": ("rule", "steps"),
     "explain": ("prompt", "key_ideas"),
     "worked_examples": ("problem", "steps", "answer"),
+    # A period whose documents give one question form only: the teacher lowers its pass rule (a DI).
+    "pass_rule": ("min_forms",),
 }
 STAGES = {  # where the teacher may put an item: node list, purpose, level, transfer
     "checks": ("CONCEPT_CHECK", "A", "none"),
@@ -194,6 +197,8 @@ def _move_items(plan: Plan, decisions: Mapping[str, Mapping[str, Any]]) -> None:
 
 def _as(field: str, value: Any) -> Any:
     """Lists are written one per line by the teacher; key ideas one idea per line, phrasings split by "/"."""
+    if field == "min_forms":
+        return int(value)
     if field == "key_ideas":
         lines = value if isinstance(value, list) else str(value).splitlines()
         return [

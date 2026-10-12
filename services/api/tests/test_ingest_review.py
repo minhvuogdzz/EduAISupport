@@ -209,3 +209,21 @@ async def test_a_batch_of_decisions_is_checked_whole_then_written_once_with_its_
     assert plan.decisions["node:STP-T01"]["by"] == "gv" and "reason" not in plan.decisions["node:STP-T01"]
     assert set(plan.decisions) == {"item:STP-PH02-3/answer", "node:STP-T01"}
     get_settings.cache_clear()
+
+
+def test_the_teacher_may_lower_the_question_forms_a_period_asks():
+    from cavat.modules.content.chapter_package import PassRule
+    from cavat.modules.ingest.review import ReviewError, _edit_node, check_decision
+
+    check_decision("node:STP-T08/pass_rule/min_forms", "edit", 1)
+    with pytest.raises(ReviewError):
+        check_decision("node:STP-T08/pass_rule/min_mastery", "edit", 0.1)
+
+    class Node:  # the part of a period the edit touches
+        pass_rule = PassRule()
+
+        def model_copy(self, update):
+            self.pass_rule = update["pass_rule"]
+            return self
+
+    assert _edit_node(Node(), ["pass_rule", "min_forms"], "1").pass_rule.min_forms == 1
