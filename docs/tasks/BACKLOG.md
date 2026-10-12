@@ -135,8 +135,8 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | INGEST-1 | Đọc tài liệu từng trang có kiểm chứng (ADR-023, DI-43): Gemini đọc lại trang có ảnh, hình vẽ, trục số; mọi số của lớp chữ phải có trong bản đọc; loại tài liệu mới (bài giảng, phiếu, đáp án, lỗi sai); **đáp án và đề kiểm tra không vào RAG**; `make library-import DIR=tailieu` | Xong |
 | INGEST-2 | Ngân hàng câu nháp (ADR-024, DI-44): tách bài tập, phiếu, đề thành câu nhỏ kèm đáp án, gắn tiết theo giáo án, kiểm mọi đáp án với đề bằng tính toán chính xác và kiểm "có căn cứ"; `make item-bank`, `make eval-items` (độ nhạy 97,1% / 98,4%), API giáo viên `/v1/teachers/item-banks/…` | Xong |
 | INGEST-3a | Phương án dạy nháp (ADR-025, DI-45): mỗi tiết một node; cách giảng, phương pháp, bài mẫu, "con nói lại", lỗi sai lấy nguyên văn từ tài liệu kèm trang; câu theo 4 mức từ ngân hàng câu; đáp án chuyển sang dạng bộ chấm dùng; `make teaching-plan`, API giáo viên | Xong |
-| INGEST-3b | Qwen soạn phần tài liệu không có (câu trả lời mẫu cho câu hỏi gợi mở, ý chính để con nói lại, thang gợi ý H1–H3), bộ kiểm chặn lộ đáp án và số không có căn cứ, giáo viên duyệt; chủ dự án quyết cách xử lý 13 tiết thiếu câu vận dụng | Chưa |
-| INGEST-4 | Trang duyệt của giáo viên: bản nháp đặt cạnh tài liệu gốc, duyệt từng phần; gia sư dạy từ bản đã duyệt (lúc Claude chạy thử thì tự duyệt) | Chưa |
+| INGEST-3b | Qwen soạn phần tài liệu không có (ADR-026, DI-46): thang gợi ý H1–H3 qua bộ kiểm của gia sư, câu trả lời mẫu và cách nói được chấp nhận, ý chính để con nói lại; câu kiểm tra không bao giờ gửi model; lưu vết từng phần; `make draft-teaching` | Xong |
+| INGEST-4 | Trang duyệt của giáo viên: phương án nháp cạnh tài liệu gốc, sửa và duyệt từng phần (gồm phần Qwen soạn, 2 trang đáp án đọc lệch); gia sư dạy từ phương án đã duyệt (lúc Claude chạy thử thì tự duyệt) | Chưa |
 | RAG-3 | Đánh giá lại Hybrid RAG trên tài liệu thật: bộ câu hỏi mới có phần giữ riêng, chạy `make eval-rag LIVE=1`, báo số liệu | Chưa |
 
 **RAG-2, những điều RAG-1 đã chốt cho bước nối với gia sư:**

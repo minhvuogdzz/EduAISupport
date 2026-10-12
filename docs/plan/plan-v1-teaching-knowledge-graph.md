@@ -460,6 +460,12 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-46, phần do Qwen soạn (INGEST-3b, ADR-026, chờ duyệt):**
+  - Gợi ý: H1 TASK, H2 CONCEPT, H3 STRATEGY; tối đa 40 từ; kết thúc bằng một câu hỏi.
+  - Gợi ý qua `validate_message`. Thuật ngữ Toán phải có trong đề hoặc quy tắc của tiết.
+  - Câu trả lời mẫu tối đa 35 từ, cách nói được chấp nhận tối đa 6 từ. Số và thuật ngữ phải có trong chữ của tiết.
+  - Ý chính tối đa 8 từ, ít nhất 80% số từ có nghĩa có trong chữ của tiết.
+  - Mỗi lần gọi gồm 6 câu, các lần gọi cách nhau 8 giây.
 - **DI-45, dựng phương án dạy nháp từ tài liệu (INGEST-3a, ADR-025, chờ duyệt):**
   - Mỗi tiết có bài trong giáo án là một node. Tiết ôn tập là bài kiểm tra cuối chương.
   - Node vận dụng (IMPLEMENT) là tiết có tên chứa "luyện tập, ứng dụng, thực tế, vận dụng, hình ghép, công thức ngược".
