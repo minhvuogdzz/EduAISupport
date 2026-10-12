@@ -22,7 +22,7 @@ async def client(tmp_path, monkeypatch):
     get_settings.cache_clear()
     # No call to Gemini from a test: a fake OCR reads scans and photos.
     monkeypatch.setattr(
-        library_api, "_ocr", lambda: lambda data, mime: f"[Trang 1]\nChữ đọc bằng OCR ({mime})"
+        library_api, "_ocr", lambda: lambda data, mime, prompt: f"[Trang 1]\nChữ đọc bằng OCR ({mime})"
     )
     database = InMemoryDatabase()
     await ensure_indexes(database)

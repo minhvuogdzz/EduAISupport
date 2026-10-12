@@ -698,9 +698,25 @@ export interface AuthUser {
 
 // ---------------------------------------------------------------- teacher library and lesson content (DOC-1)
 
-export type DocumentKind = "SGK" | "GIAO_AN" | "BAI_TAP" | "DE_KIEM_TRA" | "KHAC";
+export type DocumentKind =
+  "SGK" | "BAI_GIANG" | "GIAO_AN" | "BAI_TAP" | "PHIEU" | "DE_KIEM_TRA" | "DAP_AN" | "LOI_SAI" | "KHAC";
 
-/** A document the teacher uploaded; its text feeds the Hybrid RAG. */
+/** How one page of a PDF was read (INGEST-1). */
+export interface PageRead {
+  page: number;
+  /** pdf-text | ocr-gemini */
+  method: string;
+  /** Why the page was read again: IMAGES | FIGURE | SCAN, "" when its text layer is whole. */
+  reason: string;
+  /** OK, or NEEDS_REVIEW: the reading could not be checked and the text layer was kept. */
+  status: string;
+  /** Numbers of the text layer that the reading lacked. */
+  missing: string[];
+  /** Numbers only the reading has (fractions in images, measures of a figure): for the teacher to check. */
+  added: string[];
+}
+
+/** A document the teacher uploaded; its text feeds the Hybrid RAG, unless it is an answer key or a test. */
 export interface TeacherDocument {
   document_id: string;
   title: string;
@@ -710,16 +726,26 @@ export interface TeacherDocument {
   content_type: string;
   size: number;
   uploaded_at: string;
-  /** READ: text read; NEEDS_OCR: a scan or photo with no OCR configured; FAILED: unreadable. */
-  status: "READ" | "NEEDS_OCR" | "FAILED";
+  /**
+   * READ: text read; NEEDS_REVIEW: read, some pages could not be checked; NEEDS_OCR: a scan or photo with no
+   * OCR configured; FAILED: unreadable.
+   */
+  status: "READ" | "NEEDS_REVIEW" | "NEEDS_OCR" | "FAILED";
   method: string;
   pages: number;
   chars: number;
   error: string | null;
+  /** An answer key: the document of its questions. */
+  answers_for?: string | null;
+  /** False for an answer key or a test: never a source of the RAG. */
+  in_rag?: boolean;
+  /** The pages the teacher should look at. */
+  review_pages?: number[];
 }
 
 export interface TeacherDocumentDetail extends TeacherDocument {
   text: string;
+  page_reads?: PageRead[];
 }
 
 export interface ChapterSummary {

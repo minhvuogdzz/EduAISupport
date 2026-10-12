@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from dataclasses import asdict
 from fractions import Fraction
 from typing import Annotated, Any
 
@@ -25,8 +26,14 @@ from cavat.core.repository import new_id
 from cavat.modules.assessment.math_checker import parse_literal
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import Item
-from cavat.modules.library.extract import KINDS, OCR_PROMPT, Extraction, extension_of, extract
-from cavat.modules.library.repository import DocumentKind, DocumentRepository, TeacherDocument
+from cavat.modules.library.extract import KINDS, Extraction, Ocr, extension_of, extract
+from cavat.modules.library.repository import (
+    RAG_KINDS,
+    DocumentKind,
+    DocumentRepository,
+    PageReadRecord,
+    TeacherDocument,
+)
 
 MAX_BYTES = 25 * 1024 * 1024  # DI: a chapter of a textbook as a PDF fits
 
@@ -51,10 +58,14 @@ class DocumentView(BaseModel):
     pages: int
     chars: int
     error: str | None
+    answers_for: str | None = None
+    in_rag: bool = True  # an answer key or a test never is (INGEST-1)
+    review_pages: list[int] = []  # pages read again whose reading could not be checked
 
 
 class DocumentDetail(DocumentView):
     text: str
+    page_reads: list[PageReadRecord] = []
 
 
 def _view(doc: TeacherDocument, with_text: bool = False) -> dict[str, Any]:
@@ -72,9 +83,13 @@ def _view(doc: TeacherDocument, with_text: bool = False) -> dict[str, Any]:
         "pages": doc.pages,
         "chars": len(doc.text),
         "error": doc.error,
+        "answers_for": doc.answers_for,
+        "in_rag": doc.kind in RAG_KINDS,
+        "review_pages": [r.page for r in doc.page_reads if r.status != "OK"],
     }
     if with_text:
         out["text"] = doc.text
+        out["page_reads"] = doc.page_reads
     return out
 
 
@@ -84,14 +99,80 @@ def _safe_name(filename: str) -> str:
 
 
 def _ocr():
-    """Gemini OCR when a key is configured (ADR-017); None leaves scans and photos as NEEDS_OCR."""
+    """Gemini OCR when a key is configured (ADR-017); None leaves scans and photos as NEEDS_OCR.
+
+    Readings are kept on disk by the hash of the bytes and the prompt: reading a document again (a new
+    upload of the same file, the import of a folder) costs no quota.
+    """
     settings = get_settings()
     if settings.gemini_api_key is None or not settings.gemini_api_key.get_secret_value():
         return None
     from cavat.modules.ai_gateway.router import build_router
 
     router = build_router(settings)
-    return lambda data, mime: router.describe_image(data, OCR_PROMPT, mime_type=mime).text
+    cache = settings.storage_dir / "cache" / "ocr"
+
+    def read(data: bytes, mime: str, prompt: str) -> str:
+        key = hashlib.sha256(data + prompt.encode()).hexdigest()
+        kept = cache / f"{key}.txt"
+        if kept.exists():
+            return kept.read_text(encoding="utf-8")
+        text = router.describe_image(data, prompt, mime_type=mime).text
+        cache.mkdir(parents=True, exist_ok=True)
+        kept.write_text(text, encoding="utf-8")
+        return text
+
+    return read
+
+
+def read_document(
+    data: bytes,
+    filename: str,
+    *,
+    school_id: str,
+    title: str,
+    kind: str,
+    chapter_id: str,
+    answers_for: str,
+    uploaded_by: str,
+    ocr: Ocr | None,
+    document_id: str | None = None,
+) -> TeacherDocument:
+    """Keep the file on disk and read its text: the upload and ``make library-import`` share this path."""
+    document_id = document_id or new_id()
+    relative = f"documents/{document_id}/{_safe_name(filename)}"
+    target = get_settings().storage_dir / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+    status, error = "READ", None
+    try:
+        found = extract(data, filename, ocr)
+        if found.needs_ocr:
+            status = "NEEDS_OCR"
+        elif found.needs_review:
+            status = "NEEDS_REVIEW"
+    except Exception as exc:  # a broken file or a failed OCR must not lose the upload
+        found, status, error = Extraction("", 0, ""), "FAILED", f"{type(exc).__name__}: {exc}"[:300]
+    return TeacherDocument(
+        id=document_id,
+        school_id=school_id,
+        title=title.strip() or filename,
+        kind=kind,  # type: ignore[arg-type]
+        chapter_id=chapter_id or None,
+        filename=filename,
+        content_type=KINDS[extension_of(filename)],
+        size=len(data),
+        sha256=hashlib.sha256(data).hexdigest(),
+        stored_path=relative,
+        uploaded_by=uploaded_by,
+        status=status,  # type: ignore[arg-type]
+        method=found.method,
+        pages=found.pages,
+        text=found.text,
+        error=error,
+        page_reads=[PageReadRecord(**asdict(r)) for r in found.page_reads],
+        answers_for=answers_for or None,
+    )
 
 
 def answer_text(item: Item) -> str:
@@ -204,6 +285,7 @@ def build_router(
         title: Annotated[str, Form()] = "",
         kind: Annotated[DocumentKind, Form()] = "KHAC",
         chapter_id: Annotated[str, Form()] = "",
+        answers_for: Annotated[str, Form()] = "",
         database: Any = database_dep,
         teacher: str = teacher_dep,
     ):
@@ -217,35 +299,17 @@ def build_router(
             raise LibraryError(413, "VALIDATION_ERROR", "the file is larger than 25 MB")
         if not data:
             raise LibraryError(422, "VALIDATION_ERROR", "the file is empty")
-        document_id = new_id()
-        relative = f"documents/{document_id}/{_safe_name(filename)}"
-        target = get_settings().storage_dir / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
-        status, error = "READ", None
-        try:
-            found: Extraction = await run_in_threadpool(extract, data, filename, _ocr())
-            if found.needs_ocr:
-                status = "NEEDS_OCR"
-        except Exception as exc:  # a broken file or a failed OCR must not lose the upload
-            found, status, error = Extraction("", 0, ""), "FAILED", f"{type(exc).__name__}: {exc}"[:300]
-        document = TeacherDocument(
-            id=document_id,
+        document = await run_in_threadpool(
+            read_document,
+            data,
+            filename,
             school_id=school_id,
-            title=title.strip() or filename,
+            title=title,
             kind=kind,
-            chapter_id=chapter_id or None,
-            filename=filename,
-            content_type=KINDS[ext],
-            size=len(data),
-            sha256=hashlib.sha256(data).hexdigest(),
-            stored_path=relative,
+            chapter_id=chapter_id,
+            answers_for=answers_for,
             uploaded_by=teacher,
-            status=status,  # type: ignore[arg-type]
-            method=found.method,
-            pages=found.pages,
-            text=found.text,
-            error=error,
+            ocr=_ocr(),
         )
         await repo(database).create(document)
         return _view(document)
