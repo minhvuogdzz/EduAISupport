@@ -13,6 +13,9 @@ variant, a worked example, an item or the retell prompt. Rules, in priority orde
 - N-REMEDIATE a critical misconception of an earlier node, a failed warm-up item, or a second failed
               check while a prerequisite is weak: put the node on hold and teach that prerequisite;
 - N-WARMUP    entering a node whose prerequisite has no evidence in this session: one quick item of it;
+- N-RECALL    (DI-52) entering a node without a warm-up, or its first check failed: the child recalls the key
+              idea of a related node learnt before (the closest prerequisite first, then a similar node),
+              once per pair in a session; the reply is judged like a retell and is evidence on that node;
 - N-TEACH     nothing taught in this visit: the first theory variant not used in the session;
 - N-CHECK     after teaching: a concept-check item, then the retell; later also when explanation is missing;
 - N-RETEACH   the check failed: the next theory variant; none left, a worked example with high support;
@@ -81,8 +84,11 @@ class _Policy:
         visit = st.current
         if visit is None:
             return self._between_nodes()
-        if visit.pending is not None or visit.retell_pending:
-            raise PendingResult(f"waiting for {visit.pending or 'the retell'} at {visit.node_id}")
+        if visit.pending is not None or visit.retell_pending or visit.recall_pending is not None:
+            what = visit.pending or (
+                "the retell" if visit.retell_pending else f"the recall of {visit.recall_pending}"
+            )
+            raise PendingResult(f"waiting for {what} at {visit.node_id}")
         return self._in_node(visit)
 
     # ------------------------------------------------------------------ between nodes
@@ -154,6 +160,8 @@ class _Policy:
             warmup = self._warmup(node)
             if warmup is not None:
                 return warmup
+            if not visit.recalls and (recall := self._recall(node, "AT_ENTRY")) is not None:
+                return recall
         elif (
             visit.warmup_ok is False and visit.warmup_node and self._may_remediate(node.id, visit.warmup_node)
         ):
@@ -175,6 +183,28 @@ class _Policy:
                     TeachAction.WARMUP_ITEM, "N-WARMUP", prereq, fresh[0], reasons=[f"FOR:{node.id}"]
                 )
         return None
+
+    def _recall(self, node: Node, why: str) -> NodeDecisionMade | None:
+        """DI-52: a related node the child has learnt (passed, or met in this session), not recalled for
+        this node yet: a prerequisite first, the closest one first (the latest in the chapter order, the one
+        the node builds on directly), then a similar node. Not one just re-taught."""
+        if not self.config.recall_prior:
+            return None
+        prereqs = self.chapter.prerequisites(node.id)
+        similar = [n for rel in ("SIMILAR", "SUBCLASS") for n in self.chapter.related(node.id, rel)]
+        known = [
+            n
+            for n in dict.fromkeys([*prereqs, *similar])
+            if n != node.id
+            and (self.nodes[n].passed_at is not None or n in self.state.evidence_nodes)
+            and (node.id, n) not in self.state.recalled
+            and (node.id, n) not in self.state.remediated
+            and self.chapter.node(n).explain.key_ideas
+        ]
+        if not known:
+            return None
+        pick = min(known, key=lambda n: (n not in prereqs, -self.order.index(n)))
+        return self._make(TeachAction.RECALL_PRIOR, "N-RECALL", node.id, pick, reasons=[why])
 
     def _teach(self, visit: Visit, node: Node, rule: str, reasons: Iterable[str] = ()) -> NodeDecisionMade:
         used = self.state.variants_used.get(node.id, [])
@@ -205,6 +235,8 @@ class _Policy:
                 return self._make(
                     TeachAction.SWITCH_TO_PREREQUISITE, "N-REMEDIATE", weakest, reasons=["CHECK_FAILED_TWICE"]
                 )
+        if failures == 1 and (recall := self._recall(node, "CHECK_FAILED")) is not None:
+            return recall
         untaught = [t.id for t in node.theory if t.id not in visit.taught]
         used = self.state.variants_used.get(node.id, [])
         variant = next((v for v in untaught if v not in used), untaught[0] if untaught else None)

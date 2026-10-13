@@ -94,3 +94,34 @@ describe("teacher transcript of grounded speech (RAG-2)", () => {
     expect(screen.getByText("Gia sư hiểu: con hỏi về «mẫu» (Qwen đọc)")).toBeInTheDocument();
   });
 });
+
+describe("teacher transcript of a recall (DI-52)", () => {
+  it("tells a recall of an earlier node from a retell", () => {
+    const said = (sequence_no: number, purpose: "RETELL" | "RECALL", found: number): TranscriptTurn => ({
+      sequence_no,
+      occurred_at: "2026-10-07T08:05:00Z",
+      actor: "student",
+      text: "phân số có mẫu số 10",
+      tutor: null,
+      teach: null,
+      student: {
+        kind: "EXPLANATION",
+        outcome: null,
+        normalized_answer: null,
+        misconception: null,
+        safety: false,
+        retell: { purpose, score: found / 3, ideas_found: found, ideas_total: 3 },
+      },
+    });
+    render(
+      <TranscriptView
+        transcript={{
+          ...TRANSCRIPT,
+          segments: [{ kind: "session", turns: [said(1, "RECALL", 1), said(2, "RETELL", 3)] }],
+        }}
+      />,
+    );
+    expect(screen.getByText("Nhớ lại bài cũ: 1/3 ý")).toBeInTheDocument();
+    expect(screen.getByText("Nói lại: 3/3 ý")).toBeInTheDocument();
+  });
+});

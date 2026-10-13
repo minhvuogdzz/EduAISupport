@@ -52,6 +52,7 @@ class Student:
 
     wrong: dict[str, str | None] = field(default_factory=dict)  # item id -> misconception shown
     weak_retells: dict[str, int] = field(default_factory=dict)  # node id -> failed retells left
+    weak_recalls: set[str] = field(default_factory=set)  # DI-52: earlier nodes the student cannot recall
 
     def answer(self, d: NodeDecisionMade, session: str) -> Ev:
         if d.ref in self.wrong:
@@ -62,6 +63,11 @@ class Student:
         failures = self.weak_retells.get(d.node_id, 0)
         self.weak_retells[d.node_id] = max(failures - 1, 0)
         payload = RetellJudged(node_id=d.node_id, text="...", ideas_total=3, score=0.0 if failures else 1.0)
+        return Ev(EventType.RETELL_JUDGED, payload.model_dump(mode="json"), session)
+
+    def recall(self, d: NodeDecisionMade, session: str) -> Ev:
+        score = 0.0 if d.ref in self.weak_recalls else 1.0
+        payload = RetellJudged(node_id=d.ref, text="...", ideas_total=2, score=score, purpose="RECALL")
         return Ev(EventType.RETELL_JUDGED, payload.model_dump(mode="json"), session)
 
 
@@ -77,6 +83,8 @@ def run(student, history=(), session="s1", steps=400):
             events.append(student.answer(d, session))
         elif d.action == A.ASK_RETELL:
             events.append(student.retell(d, session))
+        elif d.action == A.RECALL_PRIOR:
+            events.append(student.recall(d, session))
     raise AssertionError("the session never finished")
 
 
@@ -149,7 +157,7 @@ def test_a_new_session_warms_up_with_a_prerequisite_item_before_teaching():
     assert steps[:3] == [
         (A.ENTER_NODE, "KC-DEC-CONCEPT", None, "N-NEXT"),
         (A.WARMUP_ITEM, "KC-DEC-FRAC", "TP-PR-01", "N-WARMUP"),
-        (A.TEACH_THEORY, "KC-DEC-CONCEPT", "T1", "N-TEACH"),
+        (A.TEACH_THEORY, "KC-DEC-CONCEPT", "T1", "N-TEACH"),  # DI-52: the warm-up item is the recall
     ]
 
 
@@ -216,7 +224,7 @@ def test_decisions_are_deterministic_and_carry_the_policy_version():
     first, again = run(Student()), run(Student())
     assert decisions(first) == decisions(again)
     versions = {e.payload["policy_version"] for e in first if e.event_type == EventType.NODE_DECISION}
-    assert versions == {"node-policy/0.2.0"}
+    assert versions == {"node-policy/0.3.0"}
 
 
 def test_item_decisions_carry_the_support_of_the_mastery_band():
@@ -269,3 +277,80 @@ def test_an_item_of_a_missing_form_comes_before_the_budget_runs_out():
     assert NodePolicy._covering(policy, long_list, ns, budget_left=6)[0] == other
     assert NodePolicy._covering(policy, long_list, ns, budget_left=12) == long_list  # it fits: file order
     assert NodePolicy._covering(policy, [numeric[0], other], ns, budget_left=6) == [numeric[0], other]
+
+
+# --------------------------------------------------------------------------- DI-52: N-RECALL
+
+
+def recalls(events):
+    return [(n, r, why) for a, n, r, _, why in decisions(events) if a == A.RECALL_PRIOR]
+
+
+def test_a_node_with_a_prerequisite_learnt_starts_by_recalling_it():
+    steps = short(run(Student()))
+    start = steps.index((A.ENTER_NODE, "KC-DEC-CONCEPT", None, "N-NEXT"))
+    assert steps[start + 1 : start + 3] == [
+        (A.RECALL_PRIOR, "KC-DEC-CONCEPT", "KC-DEC-FRAC", "N-RECALL"),
+        (A.TEACH_THEORY, "KC-DEC-CONCEPT", "T1", "N-TEACH"),
+    ]
+    assert steps[1] == (A.TEACH_THEORY, "KC-DEC-FRAC", "T1", "N-TEACH")  # nothing to recall before the first
+
+
+def test_each_node_recalls_each_related_node_once_and_a_prerequisite_first():
+    found = recalls(run(Student()))
+    assert len(found) == len(set((n, r) for n, r, _ in found))
+    assert all(r in CHAPTER.prerequisites(n) for n, r, _ in found)
+    assert {n for n, _, _ in found} == set(CHAPTER.topological_order()[1:])  # every node with a prerequisite
+
+
+def test_a_failed_check_recalls_the_other_prerequisite_before_reteaching():
+    events = run(Student(weak_retells={"KC-DEC-CMP": 1}))
+    cmp_recalls = [(r, why) for n, r, why in recalls(events) if n == "KC-DEC-CMP"]
+    assert [why for _, why in cmp_recalls] == [("AT_ENTRY",), ("CHECK_FAILED",)]
+    assert [r for r, _ in cmp_recalls] == ["KC-DEC-EQ", "KC-DEC-PLACE"]  # the closest prerequisite first
+    steps = short(events)
+    second = steps.index((A.RECALL_PRIOR, "KC-DEC-CMP", cmp_recalls[1][0], "N-RECALL"))
+    assert steps[second + 1][0] == A.TEACH_THEORY and steps[second + 1][3] == "N-RETEACH"
+
+
+def test_a_node_with_one_prerequisite_reteaches_at_once_after_a_failed_check():
+    events = run(Student(weak_retells={"KC-DEC-CONCEPT": 1}))
+    assert [why for n, _, why in recalls(events) if n == "KC-DEC-CONCEPT"] == [("AT_ENTRY",)]
+
+
+def test_a_failed_recall_lowers_the_earlier_node_but_never_takes_its_pass_back():
+    good, weak = run(Student()), run(Student(weak_recalls={"KC-DEC-FRAC"}))
+
+    def cut(events):  # up to the first recall judged
+        return events[: next(i for i, e in enumerate(events) if e.payload.get("purpose") == "RECALL") + 1]
+
+    before, after = project_chapter(cut(good), CHAPTER), project_chapter(cut(weak), CHAPTER)
+    assert after.nodes["KC-DEC-FRAC"].mastery < before.nodes["KC-DEC-FRAC"].mastery
+    assert after.nodes["KC-DEC-FRAC"].passed_at is not None
+
+
+def test_the_recall_can_be_turned_off():
+    from cavat.modules.teaching.state import NodePolicyConfig
+
+    off = NodePolicyConfig(recall_prior=False)
+    events = []
+    for _ in range(400):
+        d = decide(CHAPTER, project_chapter(events, CHAPTER), teaching_state(events, off), off)
+        events.append(Ev(EventType.NODE_DECISION, d.model_dump(mode="json")))
+        assert d.action != A.RECALL_PRIOR
+        if d.action == A.FINISH:
+            break
+        if d.action in ITEM_ACTIONS:
+            events.append(Student().answer(d, "s1"))
+        elif d.action == A.ASK_RETELL:
+            events.append(Student().retell(d, "s1"))
+
+
+def test_a_recall_waits_for_its_answer():
+    events = []
+    for e in run(Student()):
+        events.append(e)
+        if e.event_type == EventType.NODE_DECISION and e.payload["action"] == A.RECALL_PRIOR:
+            break
+    with pytest.raises(PendingResult, match="recall of KC-DEC-FRAC"):
+        decide(CHAPTER, project_chapter(events, CHAPTER), teaching_state(events))

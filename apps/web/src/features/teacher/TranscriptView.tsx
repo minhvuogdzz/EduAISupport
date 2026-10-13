@@ -280,7 +280,7 @@ function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
       )}
       {retell && (
         <Chip tone={retell.score >= 0.5 ? "emerald" : "rose"} title="Số ý bắt buộc con nói được">
-          Nói lại: {retell.ideas_found}/{retell.ideas_total} ý
+          {`${retell.purpose === "RECALL" ? "Nhớ lại bài cũ" : "Nói lại"}: ${retell.ideas_found}/${retell.ideas_total} ý`}
         </Chip>
       )}
       {misconception && (

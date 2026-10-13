@@ -71,6 +71,7 @@ DEFAULT_CHAPTER_ID = "math-g5-decimals"
 # Step of the teaching cycle (plan v1, 5.2) that each decision carries out.
 STEP_OF: dict[TeachAction, int] = {
     TeachAction.WARMUP_ITEM: 1,
+    TeachAction.RECALL_PRIOR: 1,
     TeachAction.TEACH_THEORY: 2,
     TeachAction.CHECK_ITEM: 3,
     TeachAction.ASK_RETELL: 3,
@@ -414,7 +415,11 @@ def _state_after(
         }
     else:  # a theory question or a retell: the student answers in words, no item is open
         activity_type = (
-            ActivityType.TEACH if turn.awaiting == Awaiting.THEORY_REPLY else ActivityType.CONCEPT_CHECK
+            ActivityType.TEACH
+            if turn.awaiting == Awaiting.THEORY_REPLY
+            else ActivityType.WARMUP_REVIEW
+            if last.action == TeachAction.RECALL_PRIOR
+            else ActivityType.CONCEPT_CHECK
         )
         item = {
             "item_attempt_id": new_id(),

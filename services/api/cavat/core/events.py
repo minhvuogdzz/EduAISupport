@@ -206,6 +206,9 @@ class RetellJudged(_Payload):
     ideas_total: int = Field(ge=1)
     score: float = Field(ge=0.0, le=1.0)
     label_source: Literal["RUBRIC_RULE", "LLM", "TEACHER"] = "RUBRIC_RULE"
+    # DI-52: RECALL is the child recalling a node learnt before, asked when a related node starts or its
+    # check fails; it is evidence on that earlier node like any retell (R).
+    purpose: Literal["RETELL", "RECALL"] = "RETELL"
     label_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     modality: Literal["TEXT", "VOICE"] = "TEXT"
 

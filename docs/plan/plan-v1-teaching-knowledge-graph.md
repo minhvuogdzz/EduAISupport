@@ -129,6 +129,7 @@ Luật tất định, mỗi luật một mã `N-*`, có version như policy gợ
 | Luật | Khi nào | Làm gì |
 |---|---|---|
 | N-WARMUP | Vào node có tiên quyết chưa đủ bằng chứng trong buổi | Hỏi nhanh một câu của node tiên quyết |
+| N-RECALL (DI-52) | Vào node không có câu ôn nền, hoặc kiểm tra hiểu sai lần đầu | Mời học sinh nhớ lại ý chính của một node liên quan đã học, chấm như phần nói lại, rồi nối sang node đang học |
 | N-REMEDIATE | Câu ôn nền sai, hoặc kiểm tra hiểu sai hai lần mà node tiên quyết yếu | Đẩy node hiện tại vào ngăn chờ, chuyển sang dạy node tiên quyết |
 | N-TEACH | Node chưa được giảng | Giảng cách 1 |
 | N-CHECK | Vừa giảng xong | Câu kiểm tra hiểu, rồi mời giải thích lại |
@@ -460,6 +461,24 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-52, hỏi lại bài đã học (N-RECALL, `node-policy/0.3.0`, `teaching-templates/0.4.0`, 2026-10-13):** chủ dự án định hướng: gia sư hỏi lại kiến thức của bài có liên quan tới bài đang học.
+  - **Khi nào:**
+    - vào một tiết mà không có câu ôn nền (N-WARMUP chỉ chạy khi tiết tiên quyết chưa có bằng chứng trong buổi);
+    - hoặc khi kiểm tra hiểu sai lần đầu, trước khi giảng lại.
+  - **Hỏi tiết nào:** một tiết đã qua hoặc đã gặp trong buổi. Ưu tiên tiết tiên quyết gần nhất (tiết mà tiết đang học dựa trực tiếp vào), sau đó tới tiết tương tự (SIMILAR, SUBCLASS).
+    - Mỗi cặp (tiết đang học, tiết được hỏi lại) chỉ hỏi một lần trong buổi.
+    - Không hỏi lại tiết vừa được dạy lại (N-REMEDIATE).
+  - **Câu hỏi:** câu "nói lại" của tiết cũ, bỏ phần "Con nói lại giúp cô:".
+    - Câu chỉ ghép tên tiết với "thế nào?" (thường gặp ở chương phát hành từ tài liệu) chỉ rõ nghĩa ngay sau khi vừa giảng. Với các câu đó, gia sư hỏi chung: "bài X cho con biết những điều gì?".
+  - **Chấm:** theo các ý chính của tiết cũ, như phần nói lại (`RETELL_JUDGED`, `purpose: RECALL`).
+    - Đây là bằng chứng R của tiết cũ: nhớ được thì điểm tăng, không nhớ thì điểm giảm.
+    - Tiết đã qua không bị lấy lại dấu qua. Điểm thấp làm tiết đó dễ được ôn xen kẽ và dễ được quay về dạy lại (N-REMEDIATE) khi kiểm tra hiểu sai hai lần.
+    - Không đổi công thức mastery (`node-mastery/0.1.0`).
+  - **Lời đáp:**
+    - nhớ đủ: khen rồi nối sang tiết mới ("Mình dùng điều đó cho bài …");
+    - nhớ một phần hoặc không nhớ: gia sư nhắc lại ý chính của tiết cũ, rồi nối sang tiết mới.
+  - **Tắt được:** `NodePolicyConfig.recall_prior`.
+  - **[OPEN]** Chưa có câu hỏi lại bài liên quan trong lúc làm bài tập (bậc gợi ý của item). Bậc gợi ý vẫn theo Hint Engine hiện tại.
 - **DI-51, tra nguồn chính thống khi tài liệu không trả lời (WEB-1, ADR-029, 2026-10-13):**
   - **Nguồn:** chỉ Wikipedia tiếng Việt, qua API chính thức.
   - **Phạm vi câu hỏi:** chỉ câu "X là gì / nghĩa là gì / là con gì", mở bài có tiêu đề X (hoặc chuyển hướng chính thức). Không tra câu về người, câu thuộc bài sau, câu không an toàn (`UNSAFE`), câu có thông tin liên lạc.
