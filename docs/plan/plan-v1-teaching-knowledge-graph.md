@@ -461,6 +461,10 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-56, làm lại câu bù dạng (`node-policy/0.3.1`, 2026-10-13):** chạy Vương với lỗi sai điển hình thì lộ ra hai chỗ chặn qua tiết.
+  - **Chỗ 1:** khi gia sư đang theo dõi một lỗi sai, các câu bắt lại lỗi đó được đưa lên trước, và luật DI-49 (đưa câu bù dạng lên trước) bị tắt. Các câu bắt lỗi đều là câu điền số, nên tiết hết 12 câu mà vẫn thiếu dạng. Sửa: DI-49 vẫn chạy khi đang theo dõi lỗi sai.
+  - **Chỗ 2:** tiết DTTGHT-T02 chỉ có một câu trả lời tự do (BT-02) giữa các câu điền số. Bé sai câu đó lúc mới vào bài thì tiết không bao giờ đủ hai dạng câu.
+  - **Luật mới:** khi không còn câu mới nào bù được dạng câu hoặc mức nhận thức còn thiếu, câu bù dạng mà bé từng làm chưa được sẽ được hỏi lại **một lần** (`reason_codes` có `RETRY_FORM`). Lúc đó bé đã học thêm, nên làm lại có ý nghĩa.
 - **DI-55, chấm bước "vì sao" (WHY-1, `reason-rubric/0.1.0`, `hint-policy/0.7.0`, `template-renderer.v5`, `node-mastery/0.2.0`, 2026-10-13):** trước đây mọi câu trả lời "vì sao" không phải "không biết" đều được nhận.
   - **Ba dấu hiệu:** câu trả lời nói về câu đang làm khi có
     - **SỐ**: một số của câu (trong đề, đáp án, lời giải);

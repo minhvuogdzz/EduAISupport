@@ -53,6 +53,20 @@ ASK_WORD = {
 }
 
 
+VAGUE_WHY = ["vì con làm theo quy tắc cô dạy ạ", "tại vì con thấy vậy á cô", "vì đúng mà cô 😅"]
+
+
+def specific_why(chapter, item_id: str) -> str:
+    """A reason with the numbers of the item, as a child who got it says it."""
+    item = chapter.item(item_id)
+    nums = re.findall(r"\d+(?:,\d+)?", item.stem)[:3]
+    return (
+        f"vì con lấy {' với '.join(nums)} rồi tính ra {right_answer(chapter, item_id)}"
+        if nums
+        else "vì con so sánh từng hàng ạ"
+    )
+
+
 def right_answer(chapter, item_id: str) -> str:
     ans = chapter.item(item_id).answer
     if ans.type == "compare":
@@ -73,8 +87,16 @@ def right_answer(chapter, item_id: str) -> str:
 
 
 def wrong_answer(chapter, item_id: str, rng: random.Random) -> str:
-    """Wrong the way a child is wrong."""
+    """Wrong the way a child is wrong: most often the typical mistake the teacher's documents name for
+    this item (MISC-1: "quên chia 2", "3,05 viết 3,5"...), else a generic slip."""
     ans = chapter.item(item_id).answer
+    typical = list(getattr(ans, "wrong_answers", {}) or {})
+    if typical and rng.random() < 0.75:
+        return rng.choice(typical)
+    if ans.type == "choice" and rng.random() < 0.75:
+        marked = [o.id for o in ans.options if o.misconceptions and not o.correct]
+        if marked:
+            return rng.choice(marked)
     if ans.type == "compare":
         return {"<": ">", ">": "<", "=": "<"}.get(right_answer(chapter, item_id), "<")
     if ans.type == "order":
@@ -173,7 +195,10 @@ class Vuong:
         item = state["item"]
         item_id = item["item_id"]
         if item["expecting"] == "EXPLANATION":
-            return ("ANSWER", self.chapter.item(item_id).explanation or "vì con làm theo quy tắc cô dạy ạ")
+            # WHY-1: a child who does not get it yet says something vague first; asked again, the numbers.
+            if u < 0.55 and self.once(item_id, "vague-why", 0.8):
+                return ("ANSWER", self.rng.choice(VAGUE_WHY))
+            return ("ANSWER", self.chapter.item(item_id).explanation or specific_why(self.chapter, item_id))
         self.tries[item_id] = self.tries.get(item_id, 0) + 1
         first = self.tries[item_id] == 1
         if first:

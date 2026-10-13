@@ -269,10 +269,17 @@ class _Policy:
         missing = set(ns.missing)
         active = {m.id for m in ns.misconceptions if m.status != "RESOLVED"}
         practice = self._fresh(node.practice, probing=active)
-        if "UNDERSTOOD" in missing and not active:
+        if "UNDERSTOOD" in missing:
+            # DI-49, also while a misconception is followed (0.3.1): the items probing it come first, but
+            # one that adds the missing form still comes in time, or the budget ends the period (seen when
+            # MISC-1 found "quên chia 2" and every probing item was a number to fill in).
             practice = self._covering(practice, ns, node.pass_rule.max_items - visit.items)
         transfer = self._fresh(node.transfer)
         reasons = sorted(missing)
+        if "UNDERSTOOD" in missing and (again := self._retry_for_form(visit, node, ns)) is not None:
+            return self._make(
+                TeachAction.PRACTICE_ITEM, "N-PRACTICE", node.id, again, support, [*reasons, "RETRY_FORM"]
+            )
         enough_practice = visit.practice_successes >= self.config.practice_before_transfer or not practice
         if "APPLICATION" in missing and transfer and enough_practice:
             return self._make(TeachAction.TRANSFER_ITEM, "N-TRANSFER", node.id, transfer[0], support, reasons)
@@ -349,6 +356,20 @@ class _Policy:
         if first is None or first < budget_left - 2 or len(item_ids) <= budget_left:
             return item_ids  # reached in time, or the whole list fits in the budget: file order
         return [item_ids[first], *item_ids[:first], *item_ids[first + 1 :]]
+
+    def _retry_for_form(self, visit: Visit, node: Node, ns: NodeState) -> str | None:
+        """DI-56: when no fresh item adds the question form or level "understood" still lacks, the item that
+        adds it and was not solved earlier is asked once more (a period with one open question among its
+        number items could never pass after a first miss on it)."""
+        every = [*node.checks, *node.completion, *node.practice, *node.transfer]
+
+        def adds(item_id: str) -> bool:
+            item = self.chapter.item(item_id)
+            return item.answer.type not in ns.forms or item.cognitive_level not in ns.levels
+
+        if any(adds(i) for i in self._fresh(every)):
+            return None
+        return next((i for i in every if i in self.state.asked and i not in visit.retried and adds(i)), None)
 
     def _unused_example(self, visit: Visit, node: Node) -> str | None:
         used = self.state.examples_used.get(node.id, [])

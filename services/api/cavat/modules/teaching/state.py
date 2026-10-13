@@ -15,7 +15,7 @@ from cavat.core.events import EventType, ItemResolved, NodeDecisionMade, RetellJ
 from cavat.core.pedagogy import ItemResolution, TeachAction
 from cavat.modules.assessment.projector import DEFAULT_POLICY
 
-NODE_POLICY_VERSION = "node-policy/0.3.0"  # 0.3.0: DI-52, N-RECALL; 0.2.0: DI-49, forms and levels first
+NODE_POLICY_VERSION = "node-policy/0.3.1"  # 0.3.1: DI-49 with a misconception followed, DI-56 retry
 
 Phase = Literal["NEW", "CHECK", "CHECK_FAILED", "PRACTICE"]
 
@@ -57,6 +57,7 @@ class Visit:
     warmup_item: str | None = None
     warmup_ok: bool | None = None
     recalls: list[str] = field(default_factory=list)  # DI-52: nodes recalled in this visit
+    retried: list[str] = field(default_factory=list)  # DI-56: items asked again in this visit
     recall_pending: str | None = None  # the node whose recall waits for the child
     recall_ok: bool | None = None
     completion_asked: bool = False
@@ -161,6 +162,8 @@ def _visit_decision(state: TeachingState, visit: Visit, d: NodeDecisionMade) -> 
         state.asked.add(ref)
     else:  # CHECK_ITEM, COMPLETION_ITEM, PRACTICE_ITEM, TRANSFER_ITEM
         assert ref is not None
+        if ref in state.asked:
+            visit.retried.append(ref)
         if action == TeachAction.CHECK_ITEM:
             visit.check_item = ref
         elif action == TeachAction.COMPLETION_ITEM:
