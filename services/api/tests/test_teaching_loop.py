@@ -149,3 +149,76 @@ def test_a_worked_example_is_shown_step_by_step():
     example = next(m for t in turns for m in t.messages if m.kind == MessageKind.EXAMPLE)
     worked = CHAPTER.node(example.node_id).worked_examples[0]
     assert worked.problem in example.text and "Bước 1:" in example.text and worked.answer in example.text
+
+
+# ------------------------------------------------------------------------ DI-52: asking back an earlier node
+
+
+def until_recall(learner):
+    loop, turns = TeachingLoop(CHAPTER, "s1"), []
+    turns.append(loop.start(T0))
+    while not any(m.ref == "RECALL" and m.kind == MessageKind.RETELL_PROMPT for m in turns[-1].messages):
+        turns.append(loop.on_student(learner.reply(turns[-1]), T0 + timedelta(seconds=len(turns)), 1))
+    return loop, turns
+
+
+def test_a_new_node_asks_back_its_prerequisite_before_the_theory():
+    _, turns = until_recall(Learner())
+    asked = turns[-1]
+    prompt = next(m for m in asked.messages if m.kind == MessageKind.RETELL_PROMPT)
+    frac = CHAPTER.node("KC-DEC-FRAC")
+    assert prompt.node_id == "KC-DEC-FRAC"
+    assert "Khái niệm số thập phân" in prompt.text and "dùng tới bài Phân số thập phân" in prompt.text
+    assert "nói lại giúp" not in asked.prompt and asked.prompt in frac.explain.prompt
+    assert (asked.awaiting, asked.node_id) == (Awaiting.RETELL, "KC-DEC-FRAC")
+
+
+def test_a_good_recall_is_praised_bridged_and_judged_as_evidence_on_the_earlier_node():
+    loop, turns = until_recall(Learner())
+    reply = ". ".join(ideas[0] for ideas in CHAPTER.node("KC-DEC-FRAC").explain.key_ideas)
+    turn = loop.on_student(reply, T0 + timedelta(minutes=30), 8)
+    judged = next(e.payload for e in turn.events if e.event_type == "RETELL_JUDGED")
+    assert (judged["node_id"], judged["purpose"], judged["score"]) == ("KC-DEC-FRAC", "RECALL", 1.0)
+    said = [(m.kind, m.node_id) for m in turn.messages]
+    assert said[:2] == [(MessageKind.FEEDBACK, "KC-DEC-FRAC"), (MessageKind.THEORY, "KC-DEC-CONCEPT")]
+    assert "nhớ bài cũ tốt lắm" in turn.messages[0].text and "Khái niệm số thập phân" in turn.messages[0].text
+
+
+def test_a_child_who_does_not_remember_hears_the_earlier_idea_then_the_new_node_is_taught():
+    loop, _ = until_recall(Learner())
+    turn = loop.on_student("con ko nhớ ạ", T0 + timedelta(minutes=30), 8)
+    assert CHAPTER.node("KC-DEC-FRAC").description in turn.messages[0].text
+    assert (turn.messages[1].kind, turn.messages[1].node_id) == (MessageKind.THEORY, "KC-DEC-CONCEPT")
+    before = [s for s in loop.projection().trace if s.node_id == "KC-DEC-FRAC"]
+    assert before[-1].mastery < before[-2].mastery  # the failed recall counts against the earlier node
+
+
+def test_a_session_waiting_for_a_recall_resumes_the_same_way():
+    loop, _ = until_recall(Learner())
+    resumed = TeachingLoop.resume(CHAPTER, "s1", [], list(loop.events))
+    assert resumed.current_turn().prompt == loop.current_turn().prompt
+    now = T0 + timedelta(minutes=30)
+    original, again = (
+        loop.on_student("phân số có mẫu số 10", now, 3),
+        resumed.on_student("phân số có mẫu số 10", now, 3),
+    )
+    assert again.messages == original.messages and again.events == original.events
+
+
+def test_a_retell_prompt_that_only_names_the_node_is_asked_back_in_general_words():
+    from cavat.modules.teaching.loop import recall_question
+
+    frac = CHAPTER.node("KC-DEC-FRAC")
+    assert recall_question(frac).startswith("phân số thập phân là phân số thế nào")
+    generic = frac.model_copy(
+        update={
+            "explain": frac.explain.model_copy(
+                update={"prompt": "Con nói lại giúp cô bằng lời của con: phân số thập phân thế nào?"}
+            )
+        }
+    )
+    assert recall_question(generic) is None
+    bare = frac.model_copy(
+        update={"explain": frac.explain.model_copy(update={"prompt": "Các bước nào em đã làm?"})}
+    )
+    assert recall_question(bare) is None

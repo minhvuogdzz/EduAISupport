@@ -177,6 +177,7 @@ export const TEACH_KIND_LABEL: Record<TeachMessageKind, string> = {
 export const TEACH_ACTION_LABEL: Record<TeachAction, string> = {
   ENTER_NODE: "Vào bài",
   WARMUP_ITEM: "Câu ôn bài nền",
+  RECALL_PRIOR: "Hỏi lại bài đã học",
   SWITCH_TO_PREREQUISITE: "Quay về bài nền",
   TEACH_THEORY: "Giảng lý thuyết",
   CHECK_ITEM: "Câu kiểm tra hiểu",
@@ -298,6 +299,7 @@ export const QUALITY_TONE: Record<Quality, string> = {
 export const RULE_LABEL: Record<string, string> = {
   "N-NEXT": "Chọn bài tiếp theo",
   "N-WARMUP": "Ôn bài nền",
+  "N-RECALL": "Hỏi lại bài đã học",
   "N-TEACH": "Giảng bài",
   "N-CHECK": "Kiểm tra hiểu",
   "N-RETEACH": "Giảng lại cách khác",

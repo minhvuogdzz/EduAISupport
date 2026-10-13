@@ -575,6 +575,7 @@ def build_teacher_transcript(
             last_student["read"] = {"label": p["label"], "focus": p.get("focus", ""), "source": p["source"]}
         elif kind == EventType.RETELL_JUDGED and retell is not None:
             retell["retell"] = {
+                "purpose": p.get("purpose", "RETELL"),
                 "score": p["score"],
                 "ideas_found": len(p["ideas_found"]),
                 "ideas_total": p["ideas_total"],
@@ -608,7 +609,7 @@ def build_teacher_transcript(
                 routed = None
             if kind == EventType.STUDENT_MESSAGE:
                 graded[attempt] = student
-                if str(p.get("item_id", "")).endswith(":RETELL"):
+                if str(p.get("item_id", "")).endswith((":RETELL", ":RECALL")):
                     retell = student
             add({**base, "actor": "student", "text": text, "tutor": None, "student": student}, attempt)
         elif kind == EventType.ANSWER_SUBMITTED and attempt in graded:

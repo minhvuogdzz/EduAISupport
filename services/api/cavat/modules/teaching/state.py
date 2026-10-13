@@ -15,7 +15,7 @@ from cavat.core.events import EventType, ItemResolved, NodeDecisionMade, RetellJ
 from cavat.core.pedagogy import ItemResolution, TeachAction
 from cavat.modules.assessment.projector import DEFAULT_POLICY
 
-NODE_POLICY_VERSION = "node-policy/0.2.0"  # 0.2.0: DI-49, items that add a form or level first
+NODE_POLICY_VERSION = "node-policy/0.3.0"  # 0.3.0: DI-52, N-RECALL; 0.2.0: DI-49, forms and levels first
 
 Phase = Literal["NEW", "CHECK", "CHECK_FAILED", "PRACTICE"]
 
@@ -31,6 +31,7 @@ class NodePolicyConfig:
     remediate_after_check_failures: int = 2  # "kiểm tra hiểu sai hai lần mà node tiên quyết yếu"
     success_max_hint: int = DEFAULT_POLICY.success_max_hint  # the projector's success, kept identical
     support_bands: tuple[float, ...] = (40, 60, 75, 90)  # DI-8: lower bounds of GUIDED .. CHALLENGE
+    recall_prior: bool = True  # DI-52: N-RECALL, ask back a related node learnt before
 
 
 DEFAULT_CONFIG = NodePolicyConfig()
@@ -55,6 +56,9 @@ class Visit:
     warmup_node: str | None = None
     warmup_item: str | None = None
     warmup_ok: bool | None = None
+    recalls: list[str] = field(default_factory=list)  # DI-52: nodes recalled in this visit
+    recall_pending: str | None = None  # the node whose recall waits for the child
+    recall_ok: bool | None = None
     completion_asked: bool = False
     check_item: str | None = None  # since the last teaching
     check_ok: bool | None = None
@@ -76,6 +80,7 @@ class TeachingState:
     passed: list[str] = field(default_factory=list)  # in order, this session
     stopped: set[str] = field(default_factory=set)
     remediated: set[tuple[str, str]] = field(default_factory=set)  # (node put on hold, prerequisite)
+    recalled: set[tuple[str, str]] = field(default_factory=set)  # DI-52: (node, node recalled), this session
     review_due: bool = False
     finished: bool = False
 
@@ -144,6 +149,11 @@ def _visit_decision(state: TeachingState, visit: Visit, d: NodeDecisionMade) -> 
     elif action == TeachAction.ASK_RETELL:
         visit.retell_asked, visit.retell_pending = True, True
         visit.retells += 1
+    elif action == TeachAction.RECALL_PRIOR:
+        assert ref is not None
+        visit.recalls.append(ref)
+        visit.recall_pending, visit.recall_ok = ref, None
+        state.recalled.add((visit.node_id, ref))
     elif action == TeachAction.WARMUP_ITEM:
         assert ref is not None
         visit.warmup_node, visit.warmup_item = d.node_id, ref
@@ -177,6 +187,9 @@ def _item(state: TeachingState, p: ItemResolved, config: NodePolicyConfig) -> No
 
 def _retell(state: TeachingState, p: RetellJudged, config: NodePolicyConfig) -> None:
     visit = state.current
+    if visit is not None and p.purpose == "RECALL" and visit.recall_pending == p.node_id:
+        visit.recall_pending, visit.recall_ok = None, p.score >= config.retell_pass
+        return
     if visit is None or visit.node_id != p.node_id or not visit.retell_pending:
         return
     visit.retell_pending = False

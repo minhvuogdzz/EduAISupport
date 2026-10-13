@@ -31,6 +31,7 @@ from cavat.core.events import (
     NodeDecisionMade,
     QuestionParked,
     RagRetrieved,
+    RetellJudged,
     SafetyFlagged,
     StudentMessage,
     TeachMessageSent,
@@ -42,7 +43,7 @@ from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, pr
 from cavat.modules.assessment.retell import judge_retell
 from cavat.modules.assessment.student_intent import expand_short_forms, signals_distress
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
-from cavat.modules.content.chapter_package import Chapter, TheoryVariant
+from cavat.modules.content.chapter_package import Chapter, Node, TheoryVariant
 from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
 from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
@@ -61,7 +62,9 @@ from cavat.modules.tutor.reader import ContextReader, recorded
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
-TEMPLATES_VERSION = "teaching-templates/0.3.1"  # 0.3.1: a parked question is not "outside the lesson"
+TEMPLATES_VERSION = "teaching-templates/0.4.0"  # 0.4.0: DI-52 recall; 0.3.1: a parked question is kept
+
+RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
@@ -122,6 +125,15 @@ PHRASES: dict[str, str] = {
     "question_limit": (
         "{T} ghi lại các câu {s} hỏi để mình nói sau nhé. Bây giờ {s} trả lời câu của {t}: {ask}"
     ),
+    # DI-52 (drafted for the owner's review): asking back a related node learnt before, then the bridge.
+    "recall_ask": "bài {prior} cho {s} biết những điều gì?",
+    "recall": "Bài {name} dùng tới bài {prior} mình đã học. {S} nhớ lại giúp {t} nhé: {ask}",
+    "recall_check": "Mình cùng nhớ lại bài {prior} một chút nhé, nó giúp {s} hiểu bài này: {ask}",
+    "recall_good": "Đúng rồi, {s} nhớ bài cũ tốt lắm! Mình dùng điều đó cho bài {name} nhé.",
+    "recall_partial": (
+        "{S} nhớ được một phần rồi. {T} nhắc lại nhé: {idea} Mình dùng điều đó cho bài {name} nhé."
+    ),
+    "recall_help": "Không sao đâu, {t} nhắc lại bài cũ nhé: {idea} Mình dùng điều đó cho bài {name} nhé.",
     "retell_help": "Không sao đâu, {t} nhắc lại ý chính nhé: {idea}",
     "retell_affect": "{S} đã cố gắng nhiều rồi đấy. {T} nhắc lại ý chính nhé: {idea}",
     "retell_again": "{S} đã làm thêm nhiều bài rồi.",
@@ -136,6 +148,22 @@ PHRASES: dict[str, str] = {
     "summary_none": "Hôm nay mình dừng ở đây nhé.",
     "summary_end": "{T} khen {s} đã cố gắng!",
 }
+
+
+# "Con nói lại giúp cô: ..." asks for a retell; for a recall only the question after it is kept (DI-52).
+_RETELL_LEAD = re.compile(
+    r"^[^:?]{0,40}\b(?:nói lại|kể lại|nhắc lại|giải thích lại)\b[^:?]{0,30}:\s*", re.IGNORECASE
+)
+
+
+def recall_question(node: Node) -> str | None:
+    """The question of a node's retell prompt without its "nói lại giúp cô" lead, when it asks something of
+    its own. None for a prompt that only names the node ("so sánh hai số thập phân thế nào?") or has no such
+    lead: such a question is clear just after the theory, not later (seen on the published chapters)."""
+    m = _RETELL_LEAD.match(node.explain.prompt)
+    rest = node.explain.prompt[m.end() :].strip() if m else ""
+    own = rest.lower().replace(node.name.lower(), "").replace("thế nào", "").strip(" ?.")
+    return rest if own else None
 
 
 def _bare_no(text: str) -> bool:
@@ -234,6 +262,7 @@ class TeachingLoop:
         self._node: str | None = None  # node of the theory or retell being waited for
         self._ref: str | None = None
         self._prompt: str | None = None
+        self._for: str | None = None  # DI-52: the node a recall of an earlier node prepares
         self._retry = False  # "Con tự thử lại" closed the micro choice until the next input
         p = chapter.package.persona
         self._persona = {
@@ -302,7 +331,7 @@ class TeachingLoop:
             return self._item_input(now, self._record(now, EventType.STUDENT_MESSAGE, message), text, seconds)
         assert self._node is not None
         node_id, kind = self._node, "MESSAGE" if self.awaiting == Awaiting.THEORY_REPLY else "EXPLANATION"
-        ref = self._ref if self.awaiting == Awaiting.THEORY_REPLY else "RETELL"
+        ref = self._ref if self.awaiting == Awaiting.THEORY_REPLY else (self._ref or "RETELL")
         message = StudentMessage(item_id=f"{node_id}:{ref}", kind=kind, text=text, seconds=seconds)
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
         messages: list[TeachMessage] = []
@@ -338,6 +367,8 @@ class TeachingLoop:
             return self._advance(now, messages, events)
         node = self.chapter.node(node_id)
         judged = judge_retell(node_id, text, node.explain)
+        if self._ref == RECALL:
+            return self._on_recall(judged, intent, now, messages, events)
         events.append(self._record(now, EventType.RETELL_JUDGED, judged))
         if intent is not None and not judged.ideas_found:
             # "Con không biết", "là sao ạ?", "chán quá": remind the main idea instead of only saying that
@@ -350,6 +381,33 @@ class TeachingLoop:
             said = self._phrase("retell_partial" if judged.ideas_found else "retell_none")
         self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, node_id))
         return self._advance(now, messages, events)
+
+    def _on_recall(
+        self,
+        judged: RetellJudged,
+        intent: Outcome | None,
+        now: datetime,
+        messages: list[TeachMessage],
+        events: list[LoopEvent],
+    ) -> TeachTurn:
+        """DI-52: the recall of an earlier node is judged like a retell (evidence on that node), then bridged
+        to the node being learnt; a recall not good enough gets the earlier node's main idea first."""
+        judged = judged.model_copy(update={"purpose": RECALL})
+        events.append(self._record(now, EventType.RETELL_JUDGED, judged))
+        prior = self.chapter.node(judged.node_id)
+        name = self.chapter.node(self._for).name if self._for else prior.name
+        if judged.score >= self.config.retell_pass:
+            said = self._phrase("recall_good", name=name)
+        elif judged.ideas_found and intent is None:
+            said = self._phrase("recall_partial", idea=prior.description, name=name)
+        else:
+            said = self._phrase("recall_help", idea=prior.description, name=name)
+        self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, prior.id, RECALL))
+        return self._advance(now, messages, events)
+
+    def _recall_ask(self, prior_id: str) -> str:
+        prior = self.chapter.node(prior_id)
+        return recall_question(prior) or self._phrase("recall_ask", prior=prior.name)
 
     def _theory_feedback(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> Spoken:
         """Right, not quite, or no attempt: the reason (`reply`) in each case. Never graded (ADR-019).
@@ -551,6 +609,14 @@ class TeachingLoop:
                 prompt = f"{self._phrase('retell_again')} {prompt}"
             say(TeachMessage(MessageKind.RETELL_PROMPT, prompt, node_id))
             return self._wait(Awaiting.RETELL, node_id, None, prompt, messages, events)
+        elif a == TeachAction.RECALL_PRIOR:
+            assert d.ref is not None and node_id is not None
+            ask = self._recall_ask(d.ref)
+            key = "recall_check" if "CHECK_FAILED" in d.reason_codes else "recall"
+            text = self._phrase(key, name=name, prior=self.chapter.node(d.ref).name, ask=ask)
+            say(TeachMessage(MessageKind.RETELL_PROMPT, text, d.ref, RECALL))
+            self._for = node_id
+            return self._wait(Awaiting.RETELL, d.ref, RECALL, ask, messages, events)
         elif a == TeachAction.SHOW_WORKED_EXAMPLE:
             example = next(w for w in self.chapter.node(node_id).worked_examples if w.id == d.ref)
             steps = "\n".join(f"Bước {i}: {step}" for i, step in enumerate(example.steps, 1))
@@ -691,6 +757,11 @@ class TeachingLoop:
                 prompt = asked["text"] if asked else self.chapter.node(d.node_id).explain.prompt
                 self.awaiting, self._ref, self._prompt = Awaiting.RETELL, None, prompt
             self._node = d.node_id
+        elif d.action == TeachAction.RECALL_PRIOR:
+            assert d.ref is not None
+            ask = self._recall_ask(d.ref)
+            self.awaiting, self._node, self._ref, self._prompt = Awaiting.RETELL, d.ref, RECALL, ask
+            self._for = d.node_id
         else:
             raise ValueError(f"the events end on {d.action}, which waits for nothing")
 

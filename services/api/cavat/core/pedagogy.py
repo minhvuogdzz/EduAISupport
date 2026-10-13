@@ -144,6 +144,7 @@ class TeachAction(StrEnum):
 
     ENTER_NODE = "ENTER_NODE"
     WARMUP_ITEM = "WARMUP_ITEM"  # step 1: a quick item of a prerequisite
+    RECALL_PRIOR = "RECALL_PRIOR"  # step 1 (DI-52): recall a related node learnt before
     SWITCH_TO_PREREQUISITE = "SWITCH_TO_PREREQUISITE"  # the current node waits; teach the prerequisite
     TEACH_THEORY = "TEACH_THEORY"  # step 2 (and re-teaching): one theory variant
     CHECK_ITEM = "CHECK_ITEM"  # step 3: a concept-check item

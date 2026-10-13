@@ -316,7 +316,13 @@ export interface StudentAnnotation {
   normalized_answer: string | null;
   misconception: { id: string; name: string; confidence: number } | null;
   /** A retell judged against the node's key ideas (chapter sessions). */
-  retell?: { score: number; ideas_found: number; ideas_total: number } | null;
+  retell?: {
+    /** RECALL: the child recalled a node learnt before (DI-52). */
+    purpose?: "RETELL" | "RECALL";
+    score: number;
+    ideas_found: number;
+    ideas_total: number;
+  } | null;
   /** The child's words raised a safety flag (SAFE-1): the teacher should read them. */
   safety?: boolean;
   /** CTX-1: how an unclear message was read in context, by Qwen (LLM) or by rule. */
@@ -380,6 +386,7 @@ export interface SessionTranscript {
 export const TEACH_ACTIONS = [
   "ENTER_NODE",
   "WARMUP_ITEM",
+  "RECALL_PRIOR",
   "SWITCH_TO_PREREQUISITE",
   "TEACH_THEORY",
   "CHECK_ITEM",
