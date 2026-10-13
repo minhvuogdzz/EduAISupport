@@ -141,7 +141,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.1.0",
         "policy": "node-policy/0.2.0",
-        "templates": "teaching-templates/0.3.0",
+        "templates": "teaching-templates/0.3.1",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None
@@ -208,3 +208,75 @@ def test_a_new_session_continues_where_the_student_stopped(client):
     assert [s["session_id"] for s in client.get("/v1/sessions/mine", headers=lan).json()] == [
         other["session_id"]
     ]
+
+
+def test_the_conductor_cleans_a_message_and_unsticks_a_tutor_saying_the_same_thing(client, memory):
+    """Teen code and emoji are read (and recorded as typed); a child the redirect does not reach is not sent
+    the same redirect again: the next hint of the item follows (conductor/0.1.0)."""
+    import asyncio
+
+    from cavat.modules.session.repository import LearningSessionRepository
+
+    state = advance(client, start(client), "c0")  # the theory question, then the first item
+    assert state["teaching"]["awaiting"] == "ANSWER"
+    state = advance(client, state, "c1", "😭😭 ko bít lm jjjj")
+    before = len(state["transcript"])
+    state = advance(client, state, "c2", "xyz abc")
+    state = advance(client, state, "c3", "xyz abc")
+    tutor = [t["text"] for t in state["transcript"][before:] if t["actor"] != "student"]
+    assert len(tutor) >= 3 and tutor[-1] != tutor[-2], tutor  # not the same redirect twice in a row
+    session = asyncio.run(LearningSessionRepository(memory, service.DEMO_SCHOOL_ID).get(state["session_id"]))
+    routed = [e.payload for e in session.events if e.event_type == "CONTEXT_ROUTED"]
+    assert routed[0]["raw"] == "😭😭 ko bít lm jjjj" and routed[0]["text"] == "ko bít lm j"
+    assert {"EMOJI", "STRETCHED", "TEENCODE"} <= set(routed[0]["signals"])
+    assert routed[-1]["route"] == "UNSTICK"
+    again = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
+    assert again["transcript"] == state["transcript"]  # rebuilt from the events alone
+
+
+def test_the_teacher_views_name_their_chapter(client):
+    advance(client, start(client), "t0")
+    default = client.get("/v1/teachers/class", headers=TEACHER)
+    named = client.get(f"/v1/teachers/class?chapter={chapter_service.DEFAULT_CHAPTER_ID}", headers=TEACHER)
+    assert default.status_code == named.status_code == 200 and default.json() == named.json()
+    assert client.get("/v1/teachers/class?chapter=nope", headers=TEACHER).status_code == 404
+    student = client.get("/v1/teachers/students/minh?chapter=nope", headers=TEACHER)
+    assert student.status_code == 404
+
+
+def test_praise_said_again_on_the_next_item_is_not_a_stuck_tutor(client, memory):
+    """Two right answers in a row: the same "Đúng rồi! … sang câu tiếp theo" is no reason for a hint."""
+    import asyncio
+
+    from cavat.modules.session.repository import LearningSessionRepository
+
+    state = advance(client, start(client), "p0")
+    for n in range(1, 8):
+        state = advance(client, state, f"p{n}")
+    session = asyncio.run(LearningSessionRepository(memory, service.DEMO_SCHOOL_ID).get(state["session_id"]))
+    assert not [e for e in session.events if e.event_type in ("CONTEXT_ROUTED", "HINT_REQUESTED")]
+
+
+def test_the_teacher_sees_the_learning_journey_and_the_conversation(client):
+    state = start(client)
+    for n in range(200):
+        if state["lifecycle_state"] == "COMPLETED":
+            break
+        state = advance(client, state, f"j{n}", "ko bít 😭" if n == 2 else None)
+    view = client.get("/v1/teachers/students/minh", headers=TEACHER).json()
+    assert len(view["journey"]) >= 5 and {s["resolution"] for s in view["journey"]} <= {
+        "INDEPENDENT",
+        "SUPPORTED",
+        "WORKED",
+        "UNRESOLVED",
+    }
+    passes = [p["passed"] for p in view["curve"] if p["passed"]]
+    assert sorted(passes) == sorted(n["node_id"] for n in view["nodes"] if n["passed"])
+    assert view["curve"][-1]["mastery"] >= view["curve"][0]["mastery"]
+    talk = view["conversation"]
+    assert talk["messages"] > 0 and talk["signals"].get("EMOJI") == 1 and talk["hint_button"] >= 0
+
+
+def test_the_teacher_lists_the_chapters_the_tutor_teaches(client):
+    chapters = client.get("/v1/teachers/taught-chapters", headers=TEACHER).json()
+    assert {"chapter_id": chapter_service.DEFAULT_CHAPTER_ID, "title": CHAPTER.package.title} in chapters

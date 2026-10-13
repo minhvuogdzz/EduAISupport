@@ -636,6 +636,33 @@ class ActivityDay(BaseModel):
     passed: int
 
 
+class JourneyStep(BaseModel):
+    node_id: str
+    item_id: str
+    resolution: str
+    attempts: int
+    hints: int
+    at: datetime
+
+
+class CurvePoint(BaseModel):
+    at: datetime
+    mastery: float
+    node_id: str
+    node_mastery: float
+    passed: str | None = None
+
+
+class ConversationStats(BaseModel):
+    messages: int = 0
+    hint_button: int = 0
+    questions: int = 0
+    parked: int = 0
+    safety: int = 0
+    signals: dict[str, int] = Field(default_factory=dict)
+    intents: dict[str, int] = Field(default_factory=dict)
+
+
 class TeacherStudentView(BaseModel):
     """GET /v1/teachers/students/{id}: §23 and §43 overview, §24 radar, §27 timeline, §39 velocity, §56
     activity and the §57 detail of every KC."""
@@ -656,6 +683,9 @@ class TeacherStudentView(BaseModel):
     velocity: Velocity | None
     activity: list[ActivityDay]
     attention: list[AttentionReason]
+    journey: list[JourneyStep] = Field(default_factory=list)
+    curve: list[CurvePoint] = Field(default_factory=list)
+    conversation: ConversationStats = Field(default_factory=ConversationStats)
 
 
 class CommandAck(BaseModel):
@@ -1128,10 +1158,26 @@ async def _child_view(database: Any, student_id: str, today: date) -> dict[str, 
     }
 
 
+def _teacher_chapter(chapter_id: str | None) -> Any:
+    """The chapter a teacher's view is about (``?chapter=``), the default one when none is named."""
+    chapter_id = chapter_id or chapter_service.DEFAULT_CHAPTER_ID
+    if chapter_id not in chapter_service.chapters():
+        raise ApiError(404, "NOT_FOUND", f"no chapter {chapter_id!r}")
+    return _chapter(chapter_id)
+
+
+@teachers.get("/taught-chapters", response_model=list[ChapterRef])
+async def taught_chapters(teacher: Teacher):
+    """Teacher: the chapters the tutor teaches now (built in or published from the teacher's documents)."""
+    return [
+        {"chapter_id": cid, "title": c.package.title} for cid, c in sorted(chapter_service.chapters().items())
+    ]
+
+
 @teachers.get("/class", response_model=ClassOverviewView)
-async def class_view(database: Database, teacher: Teacher, today: Today):
+async def class_view(database: Database, teacher: Teacher, today: Today, chapter: str | None = None):
     """Teacher: the class on the chapter, replayed from every student's sessions (rule 3)."""
-    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+    chapter = _teacher_chapter(chapter)
     enrolled = await _enrolled(database)
     by_student: dict[str, list[LearningSession]] = {}
     for session in await _repo(database).list_lesson(chapter.package.chapter_id):
@@ -1152,9 +1198,11 @@ async def _enrolled(database: Any) -> set[str] | None:
 
 
 @teachers.get("/students/{student_id}", response_model=TeacherStudentView)
-async def teacher_student(student_id: str, database: Database, teacher: Teacher, today: Today):
-    """Teacher: one student on the chapter, with every KC in detail."""
-    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+async def teacher_student(
+    student_id: str, database: Database, teacher: Teacher, today: Today, chapter: str | None = None
+):
+    """Teacher: one student on the chapter (``?chapter=``), with every KC in detail."""
+    chapter = _teacher_chapter(chapter)
     enrolled = await _enrolled(database)
     if enrolled is not None and student_id not in enrolled:
         raise ApiError(404, "NOT_FOUND", "no student account has this id")

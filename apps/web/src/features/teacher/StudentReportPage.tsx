@@ -17,11 +17,15 @@ import {
 import { formatViDateTime, formatViDecimal } from "../../lib/viNumber";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
 import { ActivityChart } from "./analytics/ActivityChart";
+import { ConversationPanel } from "./analytics/ConversationPanel";
+import { JourneyHeatmap } from "./analytics/JourneyHeatmap";
+import { MasteryCurve } from "./analytics/MasteryCurve";
 import { KcDetail } from "./analytics/KcDetail";
 import { MasteryGauge } from "./analytics/MasteryGauge";
 import { MasteryTimeline } from "./analytics/MasteryTimeline";
 import { RadarChart } from "./analytics/RadarChart";
 import { zoneOf } from "./analytics/zones";
+import { ChapterTabs } from "./ChapterTabs";
 import { TeacherHeader } from "./TeacherHeader";
 import { Method } from "./analytics/Method";
 
@@ -32,9 +36,10 @@ export function StudentReportPage() {
   const api = useApi();
   const { studentId = "" } = useParams();
   const [params, setParams] = useSearchParams();
+  const chapter = params.get("chapter") ?? undefined;
   const report = useQuery({
-    queryKey: ["student-report", studentId],
-    queryFn: () => api.getStudentReport!(studentId),
+    queryKey: ["student-report", studentId, chapter],
+    queryFn: () => api.getStudentReport!(studentId, chapter),
     enabled: api.getStudentReport !== undefined,
     refetchInterval: 10_000,
     retry: false,
@@ -60,7 +65,12 @@ export function StudentReportPage() {
       <StudentReport
         view={report.data}
         selected={params.get("node")}
-        onSelect={(nodeId) => setParams({ node: nodeId }, { replace: true, preventScrollReset: true })}
+        onSelect={(nodeId) =>
+          setParams(chapter ? { chapter, node: nodeId } : { node: nodeId }, {
+            replace: true,
+            preventScrollReset: true,
+          })
+        }
       />
     );
   }
@@ -68,7 +78,10 @@ export function StudentReportPage() {
     <AppShell>
       <title>{report.data ? `${report.data.display_name} · Giáo viên · CAVAT` : "Học sinh · CAVAT"}</title>
       <TeacherHeader title={report.data ? `Học sinh ${report.data.display_name}` : "Học sinh"} />
-      <div className="mx-auto max-w-7xl px-4 pb-10">{body}</div>
+      <div className="mx-auto max-w-7xl px-4 pb-10">
+        <ChapterTabs current={chapter ?? report.data?.chapter.chapter_id} />
+        {body}
+      </div>
     </AppShell>
   );
 }
@@ -283,6 +296,45 @@ function StudentReport({
           <ActivityChart days={view.activity} />
         </section>
       </div>
+
+      {view.curve && view.curve.length > 0 && (
+        <section aria-labelledby="curve-title" className="card flex flex-col gap-2 p-5">
+          <h2 id="curve-title" className="text-lg font-bold">
+            Từ chưa hiểu đến hiểu
+          </h2>
+          <Method>
+            Điểm hiểu bài của cả chương sau từng bằng chứng, qua các buổi (bài chưa học tính 0); chấm xanh là
+            lúc qua một bài. Đường nét đứt: ngưỡng qua bài 75.
+          </Method>
+          <MasteryCurve points={view.curve} nodes={view.nodes} />
+        </section>
+      )}
+
+      {view.journey && view.journey.length > 0 && (
+        <section aria-labelledby="journey-title" className="card flex flex-col gap-2 p-5">
+          <h2 id="journey-title" className="text-lg font-bold">
+            Bản đồ nhiệt quá trình học
+          </h2>
+          <Method>
+            Mỗi hàng là một bài, mỗi ô là một câu theo thứ tự con gặp: tự làm được, nhờ gợi ý, cần làm mẫu hay
+            chưa giải quyết. Hàng chuyển từ đỏ, vàng sang xanh là bài con học được ngay trong buổi.
+          </Method>
+          <JourneyHeatmap steps={view.journey} nodes={view.nodes} />
+        </section>
+      )}
+
+      {view.conversation && view.conversation.messages > 0 && (
+        <section aria-labelledby="conversation-title" className="card flex flex-col gap-2 p-5">
+          <h2 id="conversation-title" className="text-lg font-bold">
+            Các tình huống trong hội thoại
+          </h2>
+          <Method>
+            Bộ điều phối đọc từng tin nhắn trước khi gia sư trả lời (conductor/0.1.0); ý định theo ADR-019;
+            câu hỏi về bài được trả lời bằng tài liệu của bài đang học.
+          </Method>
+          <ConversationPanel stats={view.conversation} />
+        </section>
+      )}
 
       <section aria-labelledby="sessions-title" className="card p-5">
         <h2 id="sessions-title" className="text-lg font-bold">

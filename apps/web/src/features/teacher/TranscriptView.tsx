@@ -16,6 +16,7 @@ import {
   OUTCOME_LABEL,
   RESOLUTION_LABEL,
   RULE_LABEL,
+  CONDUCTED_LABEL,
   STUDENT_KIND_LABEL,
   TEACH_KIND_LABEL,
 } from "../../components/labels";
@@ -255,6 +256,12 @@ function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
     <p className="flex flex-wrap gap-1">
       <Chip>{STUDENT_KIND_LABEL[kind]}</Chip>
       {annotation.safety && <Chip tone="rose">Đáng lo: cô cần đọc kỹ câu này</Chip>}
+      {annotation.conducted && annotation.conducted.signals.length > 0 && (
+        <Chip tone="amber" title={`Bé gõ: ${annotation.conducted.raw}`}>
+          Bé gõ «{annotation.conducted.raw}» ·{" "}
+          {annotation.conducted.signals.map((s) => CONDUCTED_LABEL[s] ?? s).join(", ")}
+        </Chip>
+      )}
       {annotation.read && (
         <Chip tone="sky" title={annotation.read.source === "LLM" ? "Qwen đọc câu này" : "Đọc bằng luật"}>
           Gia sư hiểu: {READ_LABEL[annotation.read.label] ?? annotation.read.label}

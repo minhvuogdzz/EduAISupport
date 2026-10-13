@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
 import type { ClassOverview } from "../../api/contract";
@@ -12,6 +12,7 @@ import { Heatmap } from "./analytics/Heatmap";
 import { columns, urgency } from "./analytics/helpers";
 import { MisconceptionChart } from "./analytics/MisconceptionChart";
 import { zoneOf } from "./analytics/zones";
+import { ChapterTabs } from "./ChapterTabs";
 import { TeacherHeader } from "./TeacherHeader";
 import { Method } from "./analytics/Method";
 
@@ -21,9 +22,11 @@ import { Method } from "./analytics/Method";
  */
 export function ClassPage() {
   const api = useApi();
+  const [params] = useSearchParams();
+  const chapter = params.get("chapter") ?? undefined;
   const overview = useQuery({
-    queryKey: ["class-overview"],
-    queryFn: () => api.getClassOverview!(),
+    queryKey: ["class-overview", chapter],
+    queryFn: () => api.getClassOverview!(chapter),
     enabled: api.getClassOverview !== undefined,
     refetchInterval: 10_000,
     retry: false,
@@ -52,7 +55,10 @@ export function ClassPage() {
     <AppShell>
       <title>Lớp học · CAVAT</title>
       <TeacherHeader title={overview.data ? `Lớp học · ${overview.data.chapter.title}` : "Lớp học"} />
-      <div className="mx-auto max-w-7xl px-4 pb-10">{body}</div>
+      <div className="mx-auto max-w-7xl px-4 pb-10">
+        <ChapterTabs current={chapter ?? overview.data?.chapter.chapter_id} />
+        {body}
+      </div>
     </AppShell>
   );
 }

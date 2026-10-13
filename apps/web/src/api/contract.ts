@@ -309,7 +309,7 @@ export interface TutorAnnotation {
 }
 
 export interface StudentAnnotation {
-  kind: ResponseKind | "HINT_REQUEST" | "CHOICE";
+  kind: ResponseKind | "HINT_REQUEST" | "CHOICE" | "UNSTICK";
   /** null when the answer was not graded (for example an EXIT item in the mock). */
   outcome: Outcome | null;
   /** Checker's reading of the answer, already formatted vi-VN (e.g. "0,25 > 0,3"). */
@@ -321,6 +321,8 @@ export interface StudentAnnotation {
   safety?: boolean;
   /** CTX-1: how an unclear message was read in context, by Qwen (LLM) or by rule. */
   read?: { label: string; focus: string; source: "LLM" | "RULE" } | null;
+  /** The conductor: what the child typed (teen code, emoji…) before the loop read the cleaned text. */
+  conducted?: { raw: string; signals: string[]; route: "PASS" | "UNSTICK" } | null;
 }
 
 /** The node decision behind a teaching-loop message (chapter sessions). */
@@ -676,6 +678,39 @@ export interface TeacherStudentView {
     passed: number;
   }[];
   attention: AttentionReason[];
+  /** Every item met, in order, with how it ended: the rows of the learning heatmap. */
+  journey?: JourneyStep[];
+  /** Overall M (nodes not met count 0) after every change of a node's score; a period's pass marked. */
+  curve?: CurvePoint[];
+  /** What the child's messages were and how the tutor met them (conductor, ADR-019, RAG). */
+  conversation?: ConversationStats;
+}
+
+export interface JourneyStep {
+  node_id: string;
+  item_id: string;
+  resolution: ItemResolution;
+  attempts: number;
+  hints: number;
+  at: string;
+}
+
+export interface CurvePoint {
+  at: string;
+  mastery: number;
+  node_id: string;
+  node_mastery: number;
+  passed: string | null;
+}
+
+export interface ConversationStats {
+  messages: number;
+  hint_button: number;
+  questions: number;
+  parked: number;
+  safety: number;
+  signals: Record<string, number>;
+  intents: Record<string, number>;
 }
 
 // ---------------------------------------------------------------- accounts (ACC-1)

@@ -402,18 +402,28 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       );
     },
 
-    getClassOverview() {
-      return request<ClassOverview>(
+    getTaughtChapters() {
+      return request<{ chapter_id: string; title: string }[]>(
         "GET",
-        "/v1/teachers/class",
+        "/v1/teachers/taught-chapters",
         as(() => TEACHER_HEADERS),
       );
     },
 
-    getStudentReport(studentId) {
+    getClassOverview(chapterId) {
+      const query = chapterId ? `?chapter=${encodeURIComponent(chapterId)}` : "";
+      return request<ClassOverview>(
+        "GET",
+        `/v1/teachers/class${query}`,
+        as(() => TEACHER_HEADERS),
+      );
+    },
+
+    getStudentReport(studentId, chapterId) {
+      const query = chapterId ? `?chapter=${encodeURIComponent(chapterId)}` : "";
       return request<TeacherStudentView>(
         "GET",
-        `/v1/teachers/students/${encodeURIComponent(studentId)}`,
+        `/v1/teachers/students/${encodeURIComponent(studentId)}${query}`,
         as(() => TEACHER_HEADERS),
       );
     },

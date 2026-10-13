@@ -109,9 +109,11 @@ export interface SessionApi {
     search(query: string, options: { nodeId?: string; mode: RagMode; k?: number }): Promise<RagSearch>;
   };
   /** Teacher: the class on the chapter, Student × KC (real API only). */
-  getClassOverview?: () => Promise<ClassOverview>;
+  getClassOverview?: (chapterId?: string) => Promise<ClassOverview>;
+  /** Teacher: the chapters the tutor teaches now (real API only). */
+  getTaughtChapters?: () => Promise<{ chapter_id: string; title: string }[]>;
   /** Teacher: one student on the chapter, every KC in detail (real API only). */
-  getStudentReport?: (studentId: string) => Promise<TeacherStudentView>;
+  getStudentReport?: (studentId: string, chapterId?: string) => Promise<TeacherStudentView>;
   /** Teacher: sessions to review. Not in PART 29 yet; proposal: GET /v1/sessions?class_id=… */
   listSessions(): Promise<SessionSummary[]>;
   /** Teacher: GET /v1/sessions/{id}/transcript (audited). */

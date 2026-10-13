@@ -19,7 +19,7 @@ from fractions import Fraction
 from functools import cmp_to_key
 
 from cavat.core.pedagogy import ErrorClass, Outcome
-from cavat.modules.assessment.student_intent import looks_off_topic, read_intent
+from cavat.modules.assessment.student_intent import keyword_dump, looks_off_topic, read_intent
 from cavat.modules.assessment.vi_numbers import (
     ParsedNumber,
     extract_numbers,
@@ -595,6 +595,11 @@ def check_answer(item: Item, text: str, pkg: LessonPackage) -> CheckResult:
     """Check one student message against `item`. Never calls an LLM."""
     intent = classify_intent(text)
     if intent is not None:
+        if intent == Outcome.CLARIFY_REQUEST and keyword_dump(text) and isinstance(item.answer, OpenAnswer):
+            # An open answer may be a list of terms ("phần nguyên, phần thập phân, dấu phẩy"): graded first.
+            result = _check_spec(item, text, pkg)
+            if result.outcome == Outcome.CORRECT:
+                return result
         return CheckResult(intent)
     result = _check_spec(item, text, pkg)
     if result.outcome == Outcome.UNPARSEABLE and looks_off_topic(text):
