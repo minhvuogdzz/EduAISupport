@@ -2,9 +2,10 @@
 \documentclass[11pt,a4paper]{article}
 
 \usepackage{fontspec}
-\setmainfont{Times New Roman}
-\setsansfont{Arial}
-\setmonofont{Menlo}[Scale=0.85]
+% TeX Gyre: Vietnamese glyphs, shipped with the TeX distribution (the build is the same on any machine)
+\setmainfont{texgyretermes}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\setsansfont{texgyreheros}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\setmonofont{texgyrecursor}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic,Scale=0.95]
 \usepackage{amsmath,amssymb}
 \usepackage[a4paper,margin=2.3cm]{geometry}
 \usepackage{booktabs,tabularx,multirow,array}
@@ -33,6 +34,7 @@
 \definecolor{cavat}{HTML}{1F6F78}
 \definecolor{soft}{HTML}{E8F3F4}
 \sloppy
+\hbadness=10000 % narrow left-aligned table cells leave white space on purpose
 
 \title{\textbf{CAVAT: Gia sư Toán lớp~5 theo phương pháp Socratic\\ trên đồ thị tri thức, với Hybrid RAG có kiểm chứng\\ và đánh giá tất định}\\[4pt]
 \large Phương pháp đánh giá đa chiều và kết quả thực nghiệm}
