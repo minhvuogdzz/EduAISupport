@@ -61,7 +61,7 @@ const TRANSCRIPT: SessionTranscript = {
             read: { label: "ASKS_ABOUT", focus: "mẫu", source: "LLM" },
           },
         },
-        turn(2, "Câu này nằm ngoài bài mình đang học…", {
+        turn(2, "Cô chưa tìm được câu trả lời chắc chắn trong tài liệu của bài…", {
           kind: "ANSWER",
           node_id: "KC-DEC-CONCEPT",
           rule_ids: [],

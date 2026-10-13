@@ -402,6 +402,14 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       );
     },
 
+    getTaughtChapters() {
+      return request<{ chapter_id: string; title: string }[]>(
+        "GET",
+        "/v1/teachers/taught-chapters",
+        as(() => TEACHER_HEADERS),
+      );
+    },
+
     getClassOverview(chapterId) {
       const query = chapterId ? `?chapter=${encodeURIComponent(chapterId)}` : "";
       return request<ClassOverview>(

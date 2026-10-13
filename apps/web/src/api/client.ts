@@ -110,6 +110,8 @@ export interface SessionApi {
   };
   /** Teacher: the class on the chapter, Student × KC (real API only). */
   getClassOverview?: (chapterId?: string) => Promise<ClassOverview>;
+  /** Teacher: the chapters the tutor teaches now (real API only). */
+  getTaughtChapters?: () => Promise<{ chapter_id: string; title: string }[]>;
   /** Teacher: one student on the chapter, every KC in detail (real API only). */
   getStudentReport?: (studentId: string, chapterId?: string) => Promise<TeacherStudentView>;
   /** Teacher: sessions to review. Not in PART 29 yet; proposal: GET /v1/sessions?class_id=… */

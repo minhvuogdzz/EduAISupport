@@ -1166,6 +1166,14 @@ def _teacher_chapter(chapter_id: str | None) -> Any:
     return _chapter(chapter_id)
 
 
+@teachers.get("/taught-chapters", response_model=list[ChapterRef])
+async def taught_chapters(teacher: Teacher):
+    """Teacher: the chapters the tutor teaches now (built in or published from the teacher's documents)."""
+    return [
+        {"chapter_id": cid, "title": c.package.title} for cid, c in sorted(chapter_service.chapters().items())
+    ]
+
+
 @teachers.get("/class", response_model=ClassOverviewView)
 async def class_view(database: Database, teacher: Teacher, today: Today, chapter: str | None = None):
     """Teacher: the class on the chapter, replayed from every student's sessions (rule 3)."""

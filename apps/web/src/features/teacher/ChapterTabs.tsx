@@ -8,9 +8,9 @@ export function ChapterTabs({ current }: { current: string | undefined }) {
   const api = useApi();
   const [params, setParams] = useSearchParams();
   const chapters = useQuery({
-    queryKey: ["library-chapters"],
-    queryFn: () => api.library!.chapters(),
-    enabled: api.library !== undefined,
+    queryKey: ["taught-chapters"],
+    queryFn: () => api.getTaughtChapters!(),
+    enabled: api.getTaughtChapters !== undefined,
     retry: false,
   });
   if (!chapters.data || chapters.data.length < 2) return null;

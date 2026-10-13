@@ -141,7 +141,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.1.0",
         "policy": "node-policy/0.2.0",
-        "templates": "teaching-templates/0.3.0",
+        "templates": "teaching-templates/0.3.1",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None
@@ -275,3 +275,8 @@ def test_the_teacher_sees_the_learning_journey_and_the_conversation(client):
     assert view["curve"][-1]["mastery"] >= view["curve"][0]["mastery"]
     talk = view["conversation"]
     assert talk["messages"] > 0 and talk["signals"].get("EMOJI") == 1 and talk["hint_button"] >= 0
+
+
+def test_the_teacher_lists_the_chapters_the_tutor_teaches(client):
+    chapters = client.get("/v1/teachers/taught-chapters", headers=TEACHER).json()
+    assert {"chapter_id": chapter_service.DEFAULT_CHAPTER_ID, "title": CHAPTER.package.title} in chapters

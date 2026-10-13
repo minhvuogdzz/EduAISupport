@@ -59,7 +59,7 @@ from cavat.modules.tutor.reader import ContextReader, recorded
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
-TEMPLATES_VERSION = "teaching-templates/0.3.0"
+TEMPLATES_VERSION = "teaching-templates/0.3.1"  # 0.3.1: a parked question is not "outside the lesson"
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
@@ -103,7 +103,8 @@ PHRASES: dict[str, str] = {
     "theory_check_lead": "Mình cùng xem lại nhé:",
     "question_back": "Mình quay lại câu của {t} nhé: {ask}",
     "question_parked": (
-        "Câu này nằm ngoài bài mình đang học, {t} ghi lại để thầy cô trên lớp giải đáp cho {s} nhé. "
+        "{T} chưa tìm được câu trả lời chắc chắn trong tài liệu của bài, {t} ghi lại để thầy cô trên lớp "
+        "giải đáp cho {s} nhé. "
         "Mình quay lại câu của {t}: {ask}"
     ),
     "question_same": "Đó chính là câu {t} đang hỏi {s} đấy! {S} thử nghĩ xem nhé: {ask}",
