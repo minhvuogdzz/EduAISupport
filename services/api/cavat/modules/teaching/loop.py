@@ -62,9 +62,10 @@ from cavat.modules.tutor.reader import ContextReader, recorded
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
-TEMPLATES_VERSION = "teaching-templates/0.4.0"  # 0.4.0: DI-52 recall; 0.3.1: a parked question is kept
+TEMPLATES_VERSION = "teaching-templates/0.5.0"  # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
+RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
@@ -134,6 +135,8 @@ PHRASES: dict[str, str] = {
         "{S} nhớ được một phần rồi. {T} nhắc lại nhé: {idea} Mình dùng điều đó cho bài {name} nhé."
     ),
     "recall_help": "Không sao đâu, {t} nhắc lại bài cũ nhé: {idea} Mình dùng điều đó cho bài {name} nhé.",
+    # DI-53 (drafted for the owner's review): after a first wrong answer, the idea of the node it rests on.
+    "recall_hint": "Gợi ý từ bài cũ: ở bài {prior}, mình đã học: {idea}",
     "retell_help": "Không sao đâu, {t} nhắc lại ý chính nhé: {idea}",
     "retell_affect": "{S} đã cố gắng nhiều rồi đấy. {T} nhắc lại ý chính nhé: {idea}",
     "retell_again": "{S} đã làm thêm nhiều bài rồi.",
@@ -310,7 +313,7 @@ class TeachingLoop:
             raise RuntimeError("the teaching loop has already started")
         return self._advance(now, [], [])
 
-    def on_student(self, text: str, now: datetime, seconds: float = 0.0) -> TeachTurn:
+    def on_student(self, text: str, now: datetime, seconds: float = 0.0, modality: str = "TEXT") -> TeachTurn:
         if self.awaiting in (None, Awaiting.NOTHING):
             raise RuntimeError(f"no student input expected (awaiting {self.awaiting})")
         if self.awaiting == Awaiting.ANSWER:
@@ -318,7 +321,9 @@ class TeachingLoop:
             item_id = self.tutor.item.id
             if signals_distress(text):  # DI-41: care and the teacher first; not an attempt at the item
                 # ":SAFETY" keeps the message out of the item's replay (``_restore`` replays the item's id).
-                said = StudentMessage(item_id=f"{item_id}:SAFETY", kind="MESSAGE", text=text, seconds=seconds)
+                said = StudentMessage(
+                    item_id=f"{item_id}:SAFETY", kind="MESSAGE", text=text, seconds=seconds, modality=modality
+                )
                 events = [self._record(now, EventType.STUDENT_MESSAGE, said)]
                 flagged = SafetyFlagged(item_id=item_id, source="RULE")
                 events.append(self._record(now, EventType.SAFETY_FLAGGED, flagged))
@@ -327,12 +332,16 @@ class TeachingLoop:
                 self._say(now, messages, events, care)
                 return self._waiting_for_item(messages, events)
             kind = "EXPLANATION" if self.tutor.phase in _WORDS else "ANSWER"
-            message = StudentMessage(item_id=item_id, kind=kind, text=text, seconds=seconds)
+            message = StudentMessage(
+                item_id=item_id, kind=kind, text=text, seconds=seconds, modality=modality
+            )
             return self._item_input(now, self._record(now, EventType.STUDENT_MESSAGE, message), text, seconds)
         assert self._node is not None
         node_id, kind = self._node, "MESSAGE" if self.awaiting == Awaiting.THEORY_REPLY else "EXPLANATION"
         ref = self._ref if self.awaiting == Awaiting.THEORY_REPLY else (self._ref or "RETELL")
-        message = StudentMessage(item_id=f"{node_id}:{ref}", kind=kind, text=text, seconds=seconds)
+        message = StudentMessage(
+            item_id=f"{node_id}:{ref}", kind=kind, text=text, seconds=seconds, modality=modality
+        )
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
         messages: list[TeachMessage] = []
         intent = classify_intent(text)
@@ -569,6 +578,11 @@ class TeachingLoop:
         node_id = self._item_node(item_id)
         messages = [TeachMessage(MessageKind.ITEM, turn.text, node_id, item_id)]
         if not turn.resolved:
+            prior = self._hint_from_earlier(item_id, node_id, turn.events)
+            if prior is not None:
+                idea = self.chapter.node(prior).description
+                text = self._phrase("recall_hint", prior=self.chapter.node(prior).name, idea=idea)
+                self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, text, prior, RECALL_HINT))
             return self._waiting_for_item(messages, events)
         self.tutor = None
         return self._advance(now, messages, events)
@@ -667,6 +681,55 @@ class TeachingLoop:
         if speaker is None:
             return None
         return lambda focus, last_tutor: speaker.passages(focus, node_id, context=last_tutor)
+
+    def _hint_from_earlier(self, item_id: str, node_id: str | None, new: Iterable[TutorEvent]) -> str | None:
+        """DI-53: the first wrong answer to an item of the current node brings back the idea of the earlier
+        node it rests on: the home of the misconception the answer showed when that is an earlier node,
+        else the closest prerequisite. Once per item; never for a warm-up or review item."""
+        state = teaching_state(self.events, self.config)
+        if node_id is None or state.current is None or state.current.node_id != node_id:
+            return None
+        wrong = [
+            e.payload
+            for e in new
+            if e.type == EventType.ANSWER_SUBMITTED and e.payload.get("outcome") == Outcome.WRONG
+        ]
+        if not wrong or self._recall_hint_given(item_id):
+            return None
+        earlier = self._earlier(node_id)
+        mis_id = wrong[-1].get("misconception_id")
+        info = self.chapter.lesson_of(item_id).misconception(mis_id) if mis_id else None
+        if info is not None and info.kc_id in earlier:
+            return info.kc_id
+        prereqs = self.chapter.prerequisites(node_id)
+        if not prereqs:
+            return None
+        order = self.chapter.topological_order()
+        return max(prereqs, key=order.index)
+
+    def _recall_hint_given(self, item_id: str) -> bool:
+        last = max(
+            (
+                i
+                for i, e in enumerate(self.events)
+                if e.event_type == EventType.NODE_DECISION and e.payload.get("ref") == item_id
+            ),
+            default=-1,
+        )
+        return any(
+            e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("ref") == RECALL_HINT
+            for e in self.events[last + 1 :]
+        )
+
+    def _earlier(self, node_id: str) -> set[str]:
+        found: set[str] = set()
+        todo = list(self.chapter.prerequisites(node_id))
+        while todo:
+            n = todo.pop()
+            if n not in found:
+                found.add(n)
+                todo.extend(self.chapter.prerequisites(n))
+        return found
 
     def _waiting_for_item(self, messages: list[TeachMessage], events: list[LoopEvent]) -> TeachTurn:
         assert self.tutor is not None

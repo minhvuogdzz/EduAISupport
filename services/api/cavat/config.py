@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = None
     groq_model: str = "qwen/qwen3.8-27b"
     groq_stt_model: str = "whisper-large-v3"
+    # ADR-030 voice: the tutor's voice from VieNeu-TTS running locally (`make voice`); off or not running,
+    # the browser reads with its own Vietnamese voice.
+    tts: Literal["vieneu", "off"] = "vieneu"
+    vieneu_url: str = "http://127.0.0.1:8010"
+    vieneu_voice: str = ""  # a preset voice of VieNeu (empty: its default)
     gemini_api_key: SecretStr | None = None
     gemini_vision_model: str = "gemini-3.8-flash"
     # Free tier (docs/poc/free-tier-quota.md): 20 requests a day per model. When the first model is rate

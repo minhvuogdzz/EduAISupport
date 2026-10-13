@@ -222,3 +222,47 @@ def test_a_retell_prompt_that_only_names_the_node_is_asked_back_in_general_words
         update={"explain": frac.explain.model_copy(update={"prompt": "Các bước nào em đã làm?"})}
     )
     assert recall_question(bare) is None
+
+
+# --------------------------------------------------------------- DI-53: the earlier node after a wrong answer
+
+
+def until_item_of(node_id, learner):
+    loop, turns = TeachingLoop(CHAPTER, "s1"), []
+    turns.append(loop.start(T0))
+    while not (
+        turns[-1].awaiting == Awaiting.ANSWER
+        and turns[-1].node_id == node_id
+        and turns[-1].item_phase == Phase.AWAITING
+        and CHAPTER.item(turns[-1].item_id).kc_ids[0] == node_id
+    ):
+        turns.append(loop.on_student(learner.reply(turns[-1]), T0 + timedelta(seconds=len(turns)), 1))
+    return loop, turns
+
+
+def test_a_first_wrong_answer_brings_back_the_closest_prerequisite_once():
+    loop, turns = until_item_of("KC-DEC-CMP", Learner())
+    item_id = turns[-1].item_id
+    flip = {"<": ">", ">": "<", "=": "<"}
+    wrong = loop.on_student(flip[correct_text(item_id)], T0 + timedelta(hours=1), 5)
+    hint = [m for m in wrong.messages if m.ref == "RECALL_HINT"]
+    assert len(hint) == 1 and hint[0].node_id == "KC-DEC-EQ"  # the closest of PLACE and EQ
+    assert CHAPTER.node("KC-DEC-EQ").description in hint[0].text and "Gợi ý từ bài cũ" in hint[0].text
+    if wrong.awaiting == Awaiting.ANSWER and wrong.item_id == item_id and wrong.item_phase == Phase.AWAITING:
+        again = loop.on_student("456", T0 + timedelta(hours=1, seconds=30), 5)
+        assert not [m for m in again.messages if m.ref == "RECALL_HINT"]
+
+
+def test_the_first_node_has_no_earlier_node_to_bring_back():
+    loop, turns = until_item_of("KC-DEC-FRAC", Learner())
+    wrong = loop.on_student("123", T0 + timedelta(hours=1), 5)
+    assert not [m for m in wrong.messages if m.ref == "RECALL_HINT"]
+
+
+def test_a_reminder_of_an_earlier_node_survives_the_replay():
+    loop, turns = until_item_of("KC-DEC-PLACE", Learner())
+    loop.on_student("123", T0 + timedelta(hours=1), 5)
+    resumed = TeachingLoop.resume(CHAPTER, "s1", [], list(loop.events))
+    now = T0 + timedelta(hours=2)
+    original, again = loop.on_student("789", now, 3), resumed.on_student("789", now, 3)
+    assert again.messages == original.messages and again.events == original.events

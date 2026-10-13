@@ -51,6 +51,7 @@ from cavat.modules.session.repository import (
 )
 from cavat.modules.teaching.grounded import GroundedSpeaker
 from cavat.modules.tutor.reader import LiveReader, ModelReader
+from cavat.modules.voice import api as voice_api
 
 MAX_TEXT_CHARS = 500
 
@@ -1243,6 +1244,10 @@ def register(app: FastAPI) -> None:
     async def _library_error(_: Request, exc: library_api.LibraryError) -> JSONResponse:
         return _error(exc.status, exc.code, exc.message)
 
+    @app.exception_handler(voice_api.VoiceError)
+    async def _voice_error(_: Request, exc: voice_api.VoiceError) -> JSONResponse:
+        return _error(exc.status, exc.code, exc.message)
+
     @app.exception_handler(AuthError)
     async def _auth_error(_: Request, exc: AuthError) -> JSONResponse:
         return _error(exc.status, exc.code, exc.message)
@@ -1259,6 +1264,7 @@ def register(app: FastAPI) -> None:
     )
     app.include_router(rag_api.build_router(get_database, teacher_identity, lambda: _rag_service))
     app.include_router(ingest_api.build_router(get_database, teacher_identity, service.DEMO_SCHOOL_ID))
+    app.include_router(voice_api.build_router(student_identity, lambda: _shared_router()))
     published = [Depends(published_chapters)]  # INGEST-4: the teacher's published plans
     app.include_router(router, dependencies=published)
     app.include_router(students, dependencies=published)

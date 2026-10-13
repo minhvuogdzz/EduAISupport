@@ -26,7 +26,9 @@ from .base import (
     PromptTooLong,
     QuotaExceeded,
     QuotaTracker,
+    Speech,
     SpeechToText,
+    TextToSpeech,
     Transcription,
     VisionProvider,
     VisionResult,
@@ -85,6 +87,7 @@ class AIRouter:
         *,
         chat_provider: ChatProvider | None = None,
         stt_provider: SpeechToText | None = None,
+        tts_provider: TextToSpeech | None = None,
         vision_provider: VisionProvider | None = None,
         embedding_provider: EmbeddingProvider | None = None,
         chains: Mapping[ModelClass, tuple[str, ...]] | None = None,
@@ -95,6 +98,7 @@ class AIRouter:
     ) -> None:
         self._chat = chat_provider
         self._stt = stt_provider
+        self._tts = tts_provider
         self._vision = vision_provider
         self._embedding = embedding_provider
         self._chains = dict(chains or default_chat_chains())
@@ -146,6 +150,21 @@ class AIRouter:
         if self._stt is None:
             raise ModelUnavailable("no speech-to-text provider configured")
         return self._stt.transcribe(audio, model=self._stt_model, language=language, filename=filename)
+
+    @property
+    def can_transcribe(self) -> bool:
+        return self._stt is not None
+
+    @property
+    def speech_model(self) -> str | None:
+        """TTS_VI, or None: the browser's own voice reads the tutor (ADR-030)."""
+        return self._tts.name if self._tts is not None else None
+
+    def speak(self, text: str) -> Speech:
+        """TTS_VI (VieNeu-TTS, local). Not counted in the per-session LLM cap; the voice module caches."""
+        if self._tts is None:
+            raise ModelUnavailable("no text-to-speech provider configured")
+        return self._tts.speak(text)
 
     @property
     def embedding_model(self) -> str | None:
@@ -207,9 +226,15 @@ def build_router(
             fallbacks=settings.gemini_vision_fallbacks,
         )
         embeddings = GeminiEmbeddings(settings.gemini_api_key, model=settings.gemini_embedding_model)
+    tts = None
+    if settings.tts == "vieneu":
+        from .vieneu import VieneuSpeech
+
+        tts = VieneuSpeech(settings.vieneu_url, voice=settings.vieneu_voice)
     return AIRouter(
         chat_provider=groq,
         stt_provider=groq,
+        tts_provider=tts,
         vision_provider=vision,
         embedding_provider=embeddings,
         chains={**default_chat_chains(settings.groq_model), **(chains or {})},
