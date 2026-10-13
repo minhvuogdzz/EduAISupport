@@ -326,8 +326,10 @@ def run(
     return sessions
 
 
-def _in_memory(settings) -> None:
-    """Copy the teacher's documents and plans into an in-memory database: nothing reaches the real one."""
+def _in_memory(settings, student: str | None = None, templates_only: bool = True):
+    """Copy the teacher's documents and plans into an in-memory database: nothing reaches the real one.
+
+    ``student``: also the student's sessions (to resume one, and the earlier ones the tutor reads)."""
     import asyncio
 
     from cavat import db
@@ -344,11 +346,40 @@ def _in_memory(settings) -> None:
             docs = await real[name].find({}).to_list(None)
             if docs:
                 await memory[name].insert_many(docs)
+        if student:
+            docs = await real["learning_sessions"].find({"student_id": student}).to_list(None)
+            if docs:
+                await memory["learning_sessions"].insert_many(docs)
         await db.close_client()
 
     asyncio.run(copy())
     app.dependency_overrides[get_database] = lambda: memory
-    session_api.tutor_router = lambda: None  # templates only: no model call
+    if templates_only:
+        session_api.tutor_router = lambda: None  # templates only: no model call
+    return memory
+
+
+def _write_back(settings, memory, session_ids: list[str]) -> None:
+    """--write-at-end: each session the run made or resumed, as one document (rule 10), and its new ledger
+    events, written to the database of .env once (a slow line made every turn take half a minute)."""
+    import asyncio
+
+    from cavat import db
+
+    async def write() -> None:
+        real = db.get_db(settings)
+        for sid in session_ids:
+            doc = await memory["learning_sessions"].find_one({"_id": sid})
+            await real["learning_sessions"].replace_one({"_id": sid}, doc, upsert=True)
+            events = await memory["events"].find({"session_id": sid}).to_list(None)
+            have = {x["_id"] async for x in real["events"].find({"session_id": sid}, {"_id": 1})}
+            new = [e for e in events if e["_id"] not in have]
+            if new:
+                await real["events"].insert_many(new)
+            print(f"  ghi {sid}: {len(doc['events'])} sự kiện trong buổi, {len(new)} sự kiện mới vào sổ")
+        await db.close_client()
+
+    asyncio.run(write())
 
 
 def main() -> None:
@@ -367,12 +398,20 @@ def main() -> None:
         help="copy the plans to an in-memory database, run there, templates only",
     )
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "--write-at-end",
+        action="store_true",
+        help="run in memory with the live tutor, then write the sessions to the database of .env at the end",
+    )
     parser.add_argument("--resume", help="session id to go on with (the first chapter given)")
     args = parser.parse_args()
     settings = get_settings()
     print(f"Database: {settings.mongodb_db} · học sinh {args.student_id} ({args.name})")
+    memory = None
     if args.memory:
         _in_memory(settings)
+    elif args.write_at_end:
+        memory = _in_memory(settings, args.student_id, templates_only=False)
     elif not args.write:
         sys.exit("Thêm --write để ghi thật (CLAUDE.md quy tắc 11: chỉ khi chủ dự án yêu cầu), hoặc --memory.")
     app.dependency_overrides[student_identity] = lambda: args.student_id
@@ -389,6 +428,8 @@ def main() -> None:
             made[chapter_id] = run(client, chapter_id, args.student_id, args.sessions, args.turns, resume)
     if args.memory:
         return
+    if memory is not None:
+        _write_back(settings, memory, [x["session_id"] for runs in made.values() for x in runs])
     out = settings.storage_dir / "reports" / "simulated-sessions.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     previous = json.loads(out.read_text()) if out.exists() else []
