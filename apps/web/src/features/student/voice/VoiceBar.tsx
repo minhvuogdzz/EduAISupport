@@ -8,6 +8,9 @@ const PHASE_TEXT: Record<VoiceLive["phase"], string> = {
   waiting: "",
 };
 
+// VOICE-2 (drafted for the owner's review): the child knows it may talk over the tutor.
+const SPEAKING_BARGE = "Cô đang nói… con muốn nói thì cứ nói, cô sẽ dừng lại nghe con.";
+
 /** The voice live switch and what the tutor is doing: speaking, listening, what it heard (ADR-030). */
 export function VoiceBar({ voice }: { voice: VoiceLive }) {
   if (!voice.available) return null;
@@ -28,7 +31,9 @@ export function VoiceBar({ voice }: { voice: VoiceLive }) {
         <button
           type="button"
           onClick={voice.listenNow}
-          aria-label={listening ? "Dừng nghe" : "Bấm để nói"}
+          aria-label={
+            listening ? "Dừng nghe" : voice.phase === "speaking" ? "Ngắt lời cô để nói" : "Bấm để nói"
+          }
           className={`flex size-9 items-center justify-center rounded-full ring-1 ${
             listening ? "bg-rose-500 text-white ring-rose-500" : "bg-white ring-slate-300"
           }`}
@@ -44,7 +49,9 @@ export function VoiceBar({ voice }: { voice: VoiceLive }) {
       {voice.on && (
         <p className="min-w-0 flex-1 truncate text-sm text-slate-700">
           {voice.problem ??
-            (PHASE_TEXT[voice.phase] || (voice.heard ? `Cô nghe con nói: «${voice.heard}»` : ""))}
+            (voice.phase === "speaking" && voice.bargeIn
+              ? SPEAKING_BARGE
+              : PHASE_TEXT[voice.phase] || (voice.heard ? `Cô nghe con nói: «${voice.heard}»` : ""))}
         </p>
       )}
     </div>
