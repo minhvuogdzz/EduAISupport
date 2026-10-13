@@ -892,6 +892,16 @@ def _ack_for_key(session: LearningSession, key: str) -> CommandAck | None:
     )
 
 
+def _web_source() -> Any:
+    """WEB-1 (DI-51): the trusted source a question the documents do not answer may be looked up in."""
+    settings = get_settings()
+    if settings.web_lookup != "wikipedia":
+        return None
+    from cavat.modules.teaching.web import WikipediaVi
+
+    return WikipediaVi(cache_dir=settings.storage_dir / "web")
+
+
 async def _command(
     database: Any,
     session_id: str,
@@ -931,6 +941,7 @@ async def _command(
             student_name=session.student_display_name,
             calls_used=(session.state.activity or {}).get("llm_calls", 0),
             order=content.topological_order(),
+            web=_web_source(),
         )
         # CTX-1: an unclear item message is read in context: by Qwen when it may be called, else by rule.
         calls = (session.state.activity or {}).get("llm_calls", 0)

@@ -87,7 +87,9 @@ describe("teacher transcript of grounded speech (RAG-2)", () => {
     expect(screen.getByText("Nguồn: Khái niệm số thập phân · phương pháp")).toBeInTheDocument();
     expect(screen.getByText("Qwen bị chặn 1 lần: UNSUPPORTED_CLAIM")).toBeInTheDocument();
     expect(screen.getByText("Không có căn cứ (cosine 0.58 < 0.65)")).toBeInTheDocument();
-    expect(screen.getByText("Ngoài bài: để lại cho giáo viên")).toBeInTheDocument();
+    expect(
+      screen.getByText("Tài liệu và nguồn tra cứu chưa trả lời được: để lại cho giáo viên"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Đáng lo: cô cần đọc kỹ câu này")).toBeInTheDocument();
     expect(screen.getByText("Gia sư hiểu: con hỏi về «mẫu» (Qwen đọc)")).toBeInTheDocument();
   });

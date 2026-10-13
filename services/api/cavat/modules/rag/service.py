@@ -26,6 +26,7 @@ from cavat.modules.rag.embed import Embedder, GatewayEmbedder
 from cavat.modules.rag.retrieve import RagIndex
 
 TAG_MARGIN = 1.5  # DI-17
+SPREAD_SHARE, SPREAD_NODES = 0.5, 3  # DI-50: three nodes at half the best score or more: a passage of several
 SEMANTIC_RETRY = timedelta(minutes=10)  # after a failed embedding call (quota, network), try again
 
 
@@ -69,11 +70,14 @@ def tag_passages(passages: list[Chunk], reference: list[Chunk]) -> list[Chunk]:
         ordered = sorted(best.items(), key=lambda kv: -kv[1])
         first = ordered[0] if ordered else ("", 0.0)
         second = ordered[1][1] if len(ordered) > 1 else 0.0
-        if first[1] > 0 and first[1] >= TAG_MARGIN * second:
+        # DI-50: a passage about several periods (a chapter overview, a list of mistakes of every lesson)
+        # scores close to its best on many nodes: it is tied to none of them, whatever its margin.
+        spread = tuple(n for n, score in ordered if score > 0 and score >= SPREAD_SHARE * first[1])
+        if first[1] > 0 and first[1] >= TAG_MARGIN * second and len(spread) < SPREAD_NODES:
             chapter = next(c.chapter_id for c in tied if c.node_id == first[0])
             out.append(replace(passage, node_id=first[0], chapter_id=passage.chapter_id or chapter))
-        else:
-            out.append(passage)
+        else:  # the nodes it may be about: it reaches a question only when every one of them is in scope
+            out.append(replace(passage, candidates=spread))
     return out
 
 

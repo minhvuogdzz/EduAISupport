@@ -66,7 +66,42 @@ KIND_FACTOR = {  # DI-17: what each mode needs first
     # X repeats the term more often in fewer words, so keywords alone put it first.
     "definition": {"theory": 1.3, "method": 1.3, "misconception_note": 0.8},
 }
-_DEFINITION = re.compile(r"\b(la gi|la cai gi|nghia la gi|goi la gi|la sao|nghia la sao|la nhu the nao)\b")
+_DEFINITION = re.compile(
+    r"\b(la gi|la cai gi|nghia la gi|goi la gi|la sao|nghia la sao|la nhu the nao|la hang nao|la canh nao"
+    r"|la phan nao|la hinh nhu the nao|la hinh gi|gom may phan|gom nhung gi)\b"
+)
+# DI-50: the term a definition question asks about ("đường cao là gì vậy cô" -> "duong cao"), and the sentence
+# forms that define it in a passage ("đường cao ... là", "gọi là đường cao", "đường cao gồm").
+_TERM = re.compile(r"^(?:co oi |cho con hoi |the |vay )*(.+?)\s+(?:la|gom|nghia la|goi la)\b")
+LATER_MARGIN = 0.03  # DI-50: how much closer a later period's passage must be to say "bài sau mình học"
+DEFINES_FACTOR = 1.6  # DI-50: a passage that defines the term asked about, in a definition question
+_FILLERS = ("cua tam giac", "cua hinh thang", "trong so thap phan")
+
+
+def defined_term(query: str) -> str | None:
+    """The term of a definition question, folded, or None."""
+    q = fold(normalize(query))
+    if not _DEFINITION.search(q):
+        return None
+    m = _TERM.match(q)
+    if not m:
+        return None
+    term = m.group(1).strip()
+    for filler in _FILLERS:
+        term = term.removesuffix(filler).strip()
+    return term if 2 <= len(term) <= 40 else None
+
+
+def defines(text: str, term: str) -> bool:
+    """The passage defines the term: "đường cao của tam giác là", "gọi là đường cao", "hình thang là".
+    "đáy và đường cao là những cạnh nào" asks, it does not define: a question word after "là" is none."""
+    t = fold(normalize(text))
+    # nor is a value ("phần nguyên là 0", "phần nguyên đều là 5", "gồm 9 đơn vị"): a number after "là"
+    asks = r"(?!\s+(?:gi|nhung canh nao|canh nao|hang nao|phan nao|sao|bao nhieu|may|cai gi)\b)(?!\s*\d)"
+    defined = rf"\b{re.escape(term)}\b(?:\s+(?!deu\b)\w+){{0,4}}\s+(?:la|gom)\b{asks}"
+    return bool(re.search(rf"{defined}|\bgoi la (?:\w+ )?{re.escape(term)}\b", t))
+
+
 GROUNDED_COVERAGE = 0.5  # DI-17: share of the question's content words a chosen passage must contain
 # DI-17: cosine from which a semantic model grounds a question, calibrated per model with `make eval-rag
 # LIVE=1`: halfway between the off-topic question that comes closest (0.633) and the question on the
@@ -126,6 +161,51 @@ class RagIndex:
             except Exception as exc:  # quota, network: keywords and structure still work (5.5.4)
                 self.semantic_error = f"{type(exc).__name__}: {exc}"[:200]
 
+    def later_node(self, query: str, node_id: str | None, order: list[str]) -> tuple[str, Retrieval] | None:
+        """The node a question is about when it comes after ``node_id`` and the scope cannot reach it: the
+        tutor says where it comes instead of answering (plan 5.5.3, no teaching ahead)."""
+        if node_id is None or node_id not in order:
+            return None
+        found = self.retrieve(query, mode="question", k=3)  # the whole chapter; the vector is cached
+        tied = [s.chunk.node_id for s in found.results if s.chunk.node_id]
+        top = tied[0] if tied and found.grounded else None
+        if top is None or top in self.distances(node_id) or top not in order:
+            return None
+        return (top, found) if order.index(top) > order.index(node_id) else None
+
+    def question(
+        self, query: str, node_id: str | None, order: list[str], *, k: int = 3, max_chars: int = 1800
+    ) -> tuple[str | None, Retrieval]:
+        """A child's question: the passages of its scope, or the later node it is about (DI-50).
+
+        A later node wins only when its passage is clearly closer to the question than the best one in scope
+        (``LATER_MARGIN``): "vì sao diện tích tam giác phải chia 2" is answered in the triangle's period
+        although the trapezoid's formula divides by 2 too."""
+        scoped = self.retrieve(query, node_id=node_id, mode="question", k=k, max_chars=max_chars)
+        later = self.later_node(query, node_id, order)
+        if later is None:
+            return None, scoped
+
+        def best(found: Retrieval) -> float:
+            if found.semantic != "off":
+                return max((s.cosine for s in found.results), default=0.0)
+            return max((s.coverage for s in found.results), default=0.0)
+
+        if not scoped.grounded or best(later[1]) - best(scoped) >= LATER_MARGIN:
+            return later[0], later[1]
+        return None, scoped
+
+    def ancestors(self, node_id: str) -> set[str]:
+        """Every node this one builds on, at any distance (the graph leads back to what a node builds on)."""
+        seen: set[str] = set()
+        todo = list(self.graph.get(node_id, ()))
+        while todo:
+            n = todo.pop()
+            if n not in seen and n != node_id:
+                seen.add(n)
+                todo.extend(self.graph.get(n, ()))
+        return seen
+
     def distances(self, node_id: str | None) -> dict[str, int]:
         if node_id is None:
             return {}
@@ -158,12 +238,24 @@ class RagIndex:
         if mode == "question" and _DEFINITION.search(fold(normalize(query))):
             mode = "definition"
         near = self.distances(node_id)
+        if mode == "definition" and node_id is not None:
+            # DI-50: a term is defined where it is taught, which may be any period this one builds on: every
+            # ancestor is in scope, one step away (a definition does not fade with the distance on the graph).
+            # Later periods stay out (the graph only leads back).
+            near = {**{n: 1 for n in self.ancestors(node_id)}, **near}
+        term = defined_term(query) if mode == "definition" else None
         scope: list[tuple[int, int]] = []  # (chunk index, distance)
         for i, c in enumerate(self.chunks):
             if chapter_id and c.chapter_id not in (chapter_id, ""):
                 continue
             if node_id is None:
                 distance = 0
+            elif c.node_id is None and c.candidates:
+                # DI-50: a passage of several periods reaches a question only when all of them are in scope
+                # (a chapter overview names later periods too: it never teaches ahead)
+                if any(n not in near for n in c.candidates):
+                    continue
+                distance = max(UNASSIGNED_DISTANCE, min(near[n] for n in c.candidates))
             elif c.node_id is None:
                 distance = UNASSIGNED_DISTANCE
             elif c.node_id in near:
@@ -195,7 +287,10 @@ class RagIndex:
         for i, distance in scope:
             chunk = self.chunks[i]
             fused = sum(1 / (RRF_K + r) for r in (bm25_rank.get(i), cos_rank.get(i)) if r is not None)
-            fused *= 1 / (1 + distance)
+            defining = bool(rerank and term and defines(chunk.text, term))
+            # DI-50: the passage that defines the term asked about is where it is taught: no fading with the
+            # distance on the graph (the child asks again what an earlier period taught).
+            fused *= 1.0 if defining else 1 / (1 + distance)
             final, reasons = fused, []
             if rerank and fused > 0:
                 factor = KIND_FACTOR.get(mode, {}).get(chunk.kind, 1.0)
@@ -210,6 +305,9 @@ class RagIndex:
                 if not chunk.approved:
                     factor *= DRAFT_FACTOR
                     reasons.append("bản nháp")
+                if defining:
+                    factor *= DEFINES_FACTOR
+                    reasons.append(f"định nghĩa «{term}»")
                 final = fused * factor
             scored.append(
                 Scored(
@@ -233,10 +331,14 @@ class RagIndex:
         for s in ranked:
             if len(chosen) == k:
                 break
-            if chosen and size + len(s.chunk.text) > max_chars:
+            # DI-50: a passage longer than the whole budget would leave room for nothing else (a lesson-plan
+            # page of 1 258 characters kept the definition out): it is passed over, used only if alone.
+            if len(s.chunk.text) > max_chars or (chosen and size + len(s.chunk.text) > max_chars):
                 continue
             chosen.append(s)
             size += len(s.chunk.text)
+        if not chosen and ranked:
+            chosen = ranked[:1]
         threshold = GROUNDED_COSINE.get(semantic_name)
         if threshold is not None:  # a calibrated model ran for this question: meaning decides
             best = max((s.cosine for s in chosen), default=0.0)

@@ -193,6 +193,7 @@ const SOURCE_LABEL: Record<NonNullable<TeachAnnotation["source"]>, string> = {
   TEMPLATE: "Câu mẫu đã duyệt",
   LLM: "Qwen viết, đã kiểm chứng với nguồn",
   EXTRACT: "Trích nguyên văn đoạn nguồn",
+  WEB: "Tra Wikipedia tiếng Việt (tài liệu chưa có), đã kiểm chứng với bài viết",
 };
 
 /** CTX-1: what an unclear message of the child was read as (tutor/reader.py LABELS). */
@@ -207,7 +208,7 @@ const READ_LABEL: Record<string, string> = {
 };
 
 const PARKED_LABEL: Record<NonNullable<TeachAnnotation["parked"]>, string> = {
-  NOT_GROUNDED: "Ngoài bài: để lại cho giáo viên",
+  NOT_GROUNDED: "Tài liệu và nguồn tra cứu chưa trả lời được: để lại cho giáo viên",
   SAME_AS_CHECK: "Con hỏi lại câu của cô: mời con tự nghĩ",
   LIMIT: "Quá số câu hỏi một lượt: để lại cho giáo viên",
   LATER: "Thuộc bài học sau: không dạy trước",

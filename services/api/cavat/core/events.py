@@ -71,6 +71,7 @@ class EventType(StrEnum):
     # contextual reading (CTX-1)
     MESSAGE_READ = "MESSAGE_READ"
     CONTEXT_ROUTED = "CONTEXT_ROUTED"
+    WEB_LOOKED = "WEB_LOOKED"
     # assessment / teacher
     EVIDENCE_RECORDED = "EVIDENCE_RECORDED"
     TEACHER_OVERRIDE = "TEACHER_OVERRIDE"
@@ -235,7 +236,7 @@ class TeachMessageSent(_Payload):
     templates_version: str
     # RAG-2: who wrote the words. TEMPLATE: approved text; LLM: Qwen, checked against its sources;
     # EXTRACT: a sentence of a retrieved passage, word for word.
-    source: Literal["TEMPLATE", "LLM", "EXTRACT"] = "TEMPLATE"
+    source: Literal["TEMPLATE", "LLM", "EXTRACT", "WEB"] = "TEMPLATE"
     sources: list[str] = Field(default_factory=list)  # titles of the passages the words rest on
     rejected: list[list[str]] = Field(default_factory=list)  # check codes of each refused model output
 
@@ -309,6 +310,19 @@ class ContextRouted(_Payload):
     version: str
 
 
+class WebLooked(_Payload):
+    """A question the teacher's documents did not answer, looked up in the trusted source (WEB-1, DI-51):
+    what was sent, the article it found and whether its words reached the child."""
+
+    node_id: str | None = None
+    query: str
+    source: str  # "Wikipedia tiếng Việt"
+    title: str
+    url: str
+    answered: bool
+    version: str
+
+
 class SafetyFlagged(_Payload):
     """The model judged the student's message worrying (constitution rule 8). For the teacher to review."""
 
@@ -319,6 +333,7 @@ class SafetyFlagged(_Payload):
 PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.SAFETY_FLAGGED: SafetyFlagged,
     EventType.CONTEXT_ROUTED: ContextRouted,
+    EventType.WEB_LOOKED: WebLooked,
     EventType.STUDENT_MESSAGE: StudentMessage,
     EventType.HINT_REQUESTED: HintRequested,
     EventType.CHOICE_MADE: ChoiceMade,

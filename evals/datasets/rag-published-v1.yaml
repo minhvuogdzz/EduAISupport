@@ -1,0 +1,46 @@
+# Bộ câu hỏi đánh giá Hybrid RAG trên HAI CHƯƠNG ĐÃ PHÁT HÀNH từ tài liệu giáo viên (RAG-3), kho đoạn gồm
+# phương án dạy và các đoạn tài liệu lý thuyết, giáo án của giáo viên (đọc từ database của .env, chỉ đọc).
+#
+# Viết ngày 2026-10-13, TRƯỚC khi sửa phạm vi truy xuất. Dùng để chỉnh tham số (DI-50); bộ giữ riêng
+# rag-published-holdout-v1.yaml viết cùng lúc và không dùng để chỉnh gì.
+#
+# `node`: bài con đang học khi hỏi. `relevant`: đoạn trả lời được câu hỏi; "MÃ-BÀI:*" là mọi đoạn của bài đó
+# (lý thuyết, quy tắc, bài mẫu, ghi chú lỗi sai, đoạn tài liệu gắn với bài). Rỗng: không đoạn nào được phép
+# làm căn cứ (bài sau, Toán ngoài chương, chuyện ngoài bài).
+# Nhóm: cung-bai (hỏi về bài đang học), bai-truoc (hỏi lại khái niệm của bài tiên quyết, kể cả xa hơn 2 bước),
+# bai-sau (hỏi trước điều chưa học: không trả lời), lac-de-toan, lac-de.
+# [ASSUME] Nhãn do Claude soạn theo tài liệu của chủ dự án, chờ giáo viên duyệt.
+version: 1
+chapters: [math-g5-decimals, math-g5-area-triangle-trapezoid]
+status: DRAFT
+cases:
+  - {id: D01, group: cung-bai, node: STP-T04, q: "so sánh 7,25 và 7,3 thế nào ạ", relevant: ["STP-T04:*"]}
+  - {id: D02, group: cung-bai, node: STP-T06, q: "2 m 45 cm viết thành mét thế nào", relevant: ["STP-T06:*"]}
+  - {id: D03, group: cung-bai, node: STP-T09, q: "làm tròn 3,7 đến hàng đơn vị là mấy", relevant: ["STP-T09:*"]}
+  - {id: D04, group: cung-bai, node: STP-T03, q: "bỏ số 0 ở cuối có làm đổi giá trị không", relevant: ["STP-T03:*"]}
+  - {id: D05, group: cung-bai, node: DTTGHT-T02, q: "vì sao diện tích tam giác phải chia 2", relevant: ["DTTGHT-T02:*"]}
+  - {id: D06, group: cung-bai, node: DTTGHT-T06, q: "công thức diện tích hình thang là gì", relevant: ["DTTGHT-T06:*"]}
+  - {id: D07, group: cung-bai, node: DTTGHT-T04, q: "biết diện tích và đáy thì tìm chiều cao thế nào", relevant: ["DTTGHT-T04:*"]}
+  - {id: D08, group: cung-bai, node: STP-T08, q: "vì sao diện tích mỗi bước là 2 chữ số", relevant: ["STP-T08:*"]}
+  - {id: D09, group: bai-truoc, node: STP-T05, q: "phần thập phân là gì vậy cô", relevant: ["STP-T02:*", "STP-T01:*"]}
+  - {id: D10, group: bai-truoc, node: STP-T04, q: "hàng phần mười là hàng nào", relevant: ["STP-T02:*"]}
+  - {id: D11, group: bai-truoc, node: STP-T10, q: "làm tròn là gì ạ", relevant: ["STP-T09:*", "STP-T10:*"]}
+  - {id: D12, group: bai-truoc, node: STP-T07, q: "đếm bước là sao ạ", relevant: ["STP-T06:*", "STP-T07:*"]}
+  - {id: D13, group: bai-truoc, node: DTTGHT-T03, q: "đường cao là gì vậy cô", relevant: ["DTTGHT-T01:*"]}
+  - {id: D14, group: bai-truoc, node: DTTGHT-T07, q: "đáy lớn là cạnh nào", relevant: ["DTTGHT-T05:*"]}
+  - {id: D15, group: bai-truoc, node: DTTGHT-T04, q: "đáy của tam giác là gì", relevant: ["DTTGHT-T01:*"]}
+  - {id: D16, group: bai-truoc, node: STP-T08, q: "số thập phân gồm mấy phần", relevant: ["STP-T02:*"]}
+  - {id: D17, group: bai-truoc, node: DTTGHT-T08, q: "hình thang là hình như thế nào", relevant: ["DTTGHT-T05:*"]}
+  - {id: D18, group: bai-truoc, node: STP-T11, q: "phân số thập phân là gì", relevant: ["STP-T01:*"]}
+  - {id: D19, group: bai-sau, node: STP-T02, q: "làm tròn số 3,46 thế nào", relevant: []}
+  - {id: D20, group: bai-sau, node: DTTGHT-T01, q: "diện tích hình thang tính sao", relevant: []}
+  - {id: D21, group: bai-sau, node: STP-T04, q: "2 m 45 cm bằng bao nhiêu mét", relevant: []}
+  - {id: D22, group: bai-sau, node: DTTGHT-T02, q: "hình thang vuông có mấy góc vuông", relevant: []}
+  - {id: D23, group: lac-de-toan, node: STP-T04, q: "cộng hai phân số khác mẫu số thế nào", relevant: []}
+  - {id: D24, group: lac-de-toan, node: DTTGHT-T02, q: "chu vi hình tròn tính thế nào", relevant: []}
+  - {id: D25, group: lac-de-toan, node: STP-T06, q: "nhân 23 với 45 bằng bao nhiêu", relevant: []}
+  - {id: D26, group: lac-de-toan, node: DTTGHT-T06, q: "thể tích hình lập phương là gì", relevant: []}
+  - {id: D27, group: lac-de, node: STP-T04, q: "con thích đá bóng lắm cô ơi", relevant: []}
+  - {id: D28, group: lac-de, node: DTTGHT-T03, q: "hôm nay trời mưa to quá", relevant: []}
+  - {id: D29, group: lac-de, node: STP-T09, q: "cô có xem phim hoạt hình không", relevant: []}
+  - {id: D30, group: lac-de, node: DTTGHT-T05, q: "con đói bụng quá", relevant: []}

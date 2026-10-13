@@ -460,6 +460,21 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-51, tra nguồn chính thống khi tài liệu không trả lời (WEB-1, ADR-029, 2026-10-13):**
+  - **Nguồn:** chỉ Wikipedia tiếng Việt, qua API chính thức.
+  - **Phạm vi câu hỏi:** chỉ câu "X là gì / nghĩa là gì / là con gì", mở bài có tiêu đề X (hoặc chuyển hướng chính thức). Không tra câu về người, câu thuộc bài sau, câu không an toàn (`UNSAFE`), câu có thông tin liên lạc.
+  - **Kiểm chứng:** lời trả lời qua cùng bộ kiểm như với tài liệu. Không qua thì trích nguyên văn hoặc gác cho cô.
+  - **Ghi lại:** mỗi lần tra được ghi thành `WEB_LOOKED`.
+- **DI-50, phạm vi RAG trên chương đã phát hành (RAG-3, 2026-10-13; đánh giá `make eval-rag-published LIVE=1`):**
+  - Câu hỏi định nghĩa ("X là gì", "là hàng nào", "là cạnh nào", "gồm mấy phần"…) tìm ở mọi bài tiên quyết, không giới hạn 2 bước. Bài sau vẫn ngoài phạm vi.
+  - Đoạn có câu định nghĩa đúng thuật ngữ được hỏi ("X … là", "gọi là X") được nhân ×1,6 và không bị giảm điểm theo khoảng cách. Câu hỏi ("X là những cạnh nào") và giá trị ("phần nguyên là 0", "đều là 5") không phải định nghĩa.
+  - Đoạn tài liệu gần ngang điểm với từ 3 bài trở lên (≥ 50% điểm cao nhất) không gắn vào bài nào. Đoạn chưa gắn bài chỉ được làm căn cứ khi mọi bài nó có thể thuộc về đều đã nằm trong phạm vi. Nhờ đó trang tổng quan của chương không làm lộ kiến thức bài sau.
+  - Gia sư chỉ báo "bài sau mình học" khi đoạn của bài sau gần câu hỏi hơn đoạn tốt nhất trong phạm vi ít nhất 0,03 cosine.
+  - Đoạn dài hơn cả ngân sách ký tự bị bỏ qua, trừ khi chỉ còn nó.
+  - Kết quả và giới hạn: `evals/reports/2026-10-13-rag-published-gemini.md`.
+    - Tập chỉnh, Hit@3 nhóm hỏi bài trước: 0,20 → 0,70.
+    - Tập giữ riêng: 0,29 → 0,29, chưa cải thiện. Các câu hỏi khái niệm không theo dạng "là gì" về bài ở xa vẫn ngoài phạm vi.
+    - Chương YAML cũ không tụt (Hit@3: 1,00 / 0,87).
 - **DI-49, chọn câu bù dạng còn thiếu (`node-policy/0.2.0`, 2026-10-12):** khi tiết còn thiếu dạng câu hoặc mức nhận thức để "hiểu" (DI-6), danh sách câu luyện dài hơn ngân sách còn lại, và câu đầu tiên bù được chỗ thiếu nằm từ vị trí (ngân sách còn lại − 2) trở đi, thì câu đó được đưa lên trước. Các trường hợp khác giữ thứ tự cũ. Phiên học thử phát hiện STP-T06: học sinh làm đúng 11/12 câu vẫn bị dừng tiết vì 12 câu đầu cùng một dạng.
 - **DI-48, chấm tất định câu đáp án mở (`KeyFacts`, 2026-10-12):**
   - Câu đáp án mở mang các ý bắt buộc, rút từ đáp án của giáo viên hoặc do giáo viên ghi (`item:<id>/facts`). `MathChecker` đúng khi mọi ý đều có:

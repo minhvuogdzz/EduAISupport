@@ -34,6 +34,9 @@ class Chunk:
     # theory: "reply" is the approved answer to the variant's question; a prompt built while that question
     # waits for the student's answer must leave it out (RAG-2).
     extra: dict[str, str] = field(default_factory=dict)
+    # A document passage tied to no node: the nodes it could be about (DI-50). It may ground a question only
+    # when one of them is in scope: a passage on a later period never reaches an earlier one.
+    candidates: tuple[str, ...] = ()
 
 
 def chapter_chunks(chapter: Chapter) -> list[Chunk]:

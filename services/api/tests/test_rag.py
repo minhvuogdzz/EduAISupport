@@ -4,6 +4,7 @@ trigram embedder stands in for Gemini, and a fake batch function for the gateway
 
 import io
 import zipfile
+from dataclasses import replace
 from datetime import timedelta
 
 import numpy as np
@@ -472,3 +473,89 @@ def test_only_the_teacher_reads_the_rag(client):
         403,
     )
     assert client.get("/v1/teachers/rag/search", params={"q": ""}, headers=TEACHER).status_code == 422
+
+
+# --- scope of a published chapter (DI-50) -------------------------------------------------------------
+
+CHAIN = {"B": ["A"], "C": ["B"], "D": ["C"], "E": ["D"]}  # each node builds on the one before (order edges)
+
+
+def test_a_definition_question_reaches_every_period_the_node_builds_on():
+    chunks = [
+        chunk("A:theory", "Phần thập phân là các chữ số bên phải dấu phẩy.", node="A"),
+        chunk("D:theory", "Sắp xếp các số thập phân từ bé đến lớn.", node="D"),
+    ]
+    index = RagIndex(chunks, None, CHAIN)
+    found = index.retrieve("phần thập phân là gì vậy cô", node_id="D", k=3)
+    assert found.mode == "definition" and found.results[0].chunk.chunk_id == "A:theory"
+    assert "định nghĩa «phan thap phan»" in found.results[0].reasons
+    assert (
+        not index.retrieve("phần thập phân có mấy chữ số", node_id="D", k=3).results[0].chunk.node_id == "A"
+    )
+    assert "E" not in index.ancestors("D") and index.ancestors("D") == {"A", "B", "C"}
+
+
+def test_a_passage_of_several_periods_never_reaches_an_earlier_one():
+    overview = replace(
+        chunk("doc:overview", "Diện tích hình thang bằng tổng hai đáy nhân chiều cao chia 2."),
+        candidates=("A", "B"),
+    )
+    index = RagIndex([overview], None, CHAIN)
+    early = [s.chunk.chunk_id for s in index.retrieve("diện tích hình thang", node_id="A", k=3).ranked]
+    late = [s.chunk.chunk_id for s in index.retrieve("diện tích hình thang", node_id="B", k=3).ranked]
+    assert early == [] and late == ["doc:overview"]  # at A it names B, a period still to come
+
+
+def test_passages_tied_to_several_nodes_stay_untied():
+    reference = [chunk(f"{n}:t", f"tam giác hình thang diện tích {n}", node=n) for n in "ABC"]
+    passage = Chunk(
+        "doc:1", "tam giác hình thang diện tích", "source_passage", "c", None, "document", "d", True
+    )
+    (tagged,) = tag_passages([passage], reference)
+    assert tagged.node_id is None and set(tagged.candidates) == {"A", "B", "C"}
+
+
+def test_a_passage_longer_than_the_budget_does_not_crowd_out_the_others():
+    index = RagIndex(
+        [
+            chunk("page", "đường cao " + "rất dài " * 300),
+            chunk("def", "Đường cao của tam giác là đoạn thẳng."),
+        ],
+        None,
+        {},
+    )
+    found = index.retrieve("đường cao là gì", k=3, max_chars=1200)
+    assert [s.chunk.chunk_id for s in found.results] == ["def"]
+
+
+@pytest.mark.parametrize(
+    ("text", "term", "defines_it"),
+    [
+        ("Đường cao của tam giác là đoạn thẳng kẻ từ một đỉnh", "duong cao", True),
+        ("Cạnh đối diện đó gọi là đáy tương ứng", "day", True),
+        ("Tam giác vuông: đáy và đường cao là những cạnh nào?", "duong cao", False),  # a question
+        ("Số 7,25 có phần nguyên là 7", "phan nguyen", False),  # a value
+        ("phần nguyên đều là 0", "phan nguyen", False),
+    ],
+)
+def test_a_definition_is_told_from_a_question_and_a_value(text, term, defines_it):
+    from cavat.modules.rag.retrieve import defines
+
+    assert defines(text, term) is defines_it
+
+
+def test_a_later_period_wins_only_when_it_is_clearly_closer():
+    from cavat.modules.rag.retrieve import defined_term
+
+    assert defined_term("đường cao là gì vậy cô") == "duong cao"
+    assert defined_term("so sánh 7,25 và 7,3") is None
+    chunks = [
+        chunk("A:theory", "Diện tích tam giác bằng đáy nhân chiều cao chia 2.", node="A"),
+        chunk("E:theory", "Làm tròn số thập phân đến hàng phần trăm.", node="E"),
+    ]
+    index = RagIndex(chunks, None, CHAIN)
+    order = ["A", "B", "C", "D", "E"]
+    later, found = index.question("vì sao diện tích tam giác chia 2", "A", order)
+    assert later is None and found.results[0].chunk.chunk_id == "A:theory"
+    later, _ = index.question("làm tròn số thập phân đến hàng phần trăm thế nào", "A", order)
+    assert later == "E"
