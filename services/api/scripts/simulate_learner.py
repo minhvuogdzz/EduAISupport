@@ -22,6 +22,7 @@ import json
 import random
 import re
 import sys
+import time
 from fractions import Fraction
 
 from cavat.config import get_settings
@@ -53,6 +54,20 @@ ASK_WORD = {
 }
 
 
+VAGUE_WHY = ["vì con làm theo quy tắc cô dạy ạ", "tại vì con thấy vậy á cô", "vì đúng mà cô 😅"]
+
+
+def specific_why(chapter, item_id: str) -> str:
+    """A reason with the numbers of the item, as a child who got it says it."""
+    item = chapter.item(item_id)
+    nums = re.findall(r"\d+(?:,\d+)?", item.stem)[:3]
+    return (
+        f"vì con lấy {' với '.join(nums)} rồi tính ra {right_answer(chapter, item_id)}"
+        if nums
+        else "vì con so sánh từng hàng ạ"
+    )
+
+
 def right_answer(chapter, item_id: str) -> str:
     ans = chapter.item(item_id).answer
     if ans.type == "compare":
@@ -73,8 +88,16 @@ def right_answer(chapter, item_id: str) -> str:
 
 
 def wrong_answer(chapter, item_id: str, rng: random.Random) -> str:
-    """Wrong the way a child is wrong."""
+    """Wrong the way a child is wrong: most often the typical mistake the teacher's documents name for
+    this item (MISC-1: "quên chia 2", "3,05 viết 3,5"...), else a generic slip."""
     ans = chapter.item(item_id).answer
+    typical = list(getattr(ans, "wrong_answers", {}) or {})
+    if typical and rng.random() < 0.75:
+        return rng.choice(typical)
+    if ans.type == "choice" and rng.random() < 0.75:
+        marked = [o.id for o in ans.options if o.misconceptions and not o.correct]
+        if marked:
+            return rng.choice(marked)
     if ans.type == "compare":
         return {"<": ">", ">": "<", "=": "<"}.get(right_answer(chapter, item_id), "<")
     if ans.type == "order":
@@ -165,15 +188,31 @@ class Vuong:
                 return ("ANSWER", variant.reply)
             return ("ANSWER", "con nghĩ là vậy ạ")
         if t["awaiting"] == "RETELL":
-            ideas = self.chapter.node(node).explain.key_ideas
-            if u < 0.45 and self.once(node, "weak-retell", 0.8):
+            # DI-52: a recall asks about an earlier period; the child answers from what it knows of that one.
+            asked = next(
+                (
+                    x
+                    for x in reversed(state["transcript"])
+                    if x["actor"] == "tutor" and x.get("kind") == "RETELL_PROMPT"
+                ),
+                None,
+            )
+            about = (asked or {}).get("node_id") or node
+            u = self.understanding.setdefault(about, 0.12)
+            ideas = self.chapter.node(about).explain.key_ideas
+            if u < 0.45 and self.once(about, "weak-retell", 0.8):
                 return ("ANSWER", "ko nhớ lắm ạ 😅")
-            self.learn(node, 0.05)
+            if about != node and self.once(about, "half-recall", 0.3):
+                return ("ANSWER", ideas[0][0])  # remembers one idea of the earlier period
+            self.learn(about, 0.05)
             return ("ANSWER", ". ".join(phr[0] for phr in ideas))
         item = state["item"]
         item_id = item["item_id"]
         if item["expecting"] == "EXPLANATION":
-            return ("ANSWER", self.chapter.item(item_id).explanation or "vì con làm theo quy tắc cô dạy ạ")
+            # WHY-1: a child who does not get it yet says something vague first; asked again, the numbers.
+            if u < 0.55 and self.once(item_id, "vague-why", 0.8):
+                return ("ANSWER", self.rng.choice(VAGUE_WHY))
+            return ("ANSWER", self.chapter.item(item_id).explanation or specific_why(self.chapter, item_id))
         self.tries[item_id] = self.tries.get(item_id, 0) + 1
         first = self.tries[item_id] == 1
         if first:
@@ -200,16 +239,42 @@ class Vuong:
         return ("ANSWER", wrong_answer(self.chapter, item_id, self.rng))
 
 
-def run(client: TestClient, chapter_id: str, student: str, max_sessions: int, max_turns: int) -> list[dict]:
+def _retrying(call, *args, **kwargs):
+    """A request that survives a short network loss to the database (seen: Atlas DNS gone for a minute)."""
+    for attempt in range(6):
+        try:
+            return call(*args, **kwargs)
+        except Exception as exc:  # pymongo's network errors surface through the test client
+            if attempt == 5:
+                raise
+            print(f"  ! {type(exc).__name__}, thử lại sau {10 * (attempt + 1)} giây")
+            time.sleep(10 * (attempt + 1))
+
+
+def run(
+    client: TestClient,
+    chapter_id: str,
+    student: str,
+    max_sessions: int,
+    max_turns: int,
+    resume: str | None = None,
+) -> list[dict]:
     sessions = []
     vuong = None
     for n in range(max_sessions):
-        created = client.post("/v1/sessions", json={"lesson_id": chapter_id})
-        assert created.status_code == 201, created.text
-        sid = created.json()["session_id"]
-        state = client.post(f"/v1/sessions/{sid}/join").json()
+        if resume and n == 0:  # go on with a session cut short (its periods passed are understood)
+            sid = resume
+            state = _retrying(client.post, f"/v1/sessions/{sid}/join").json()
+        else:
+            created = _retrying(client.post, "/v1/sessions", json={"lesson_id": chapter_id})
+            assert created.status_code == 201, created.text
+            sid = created.json()["session_id"]
+            state = _retrying(client.post, f"/v1/sessions/{sid}/join").json()
         chapter = chapter_service.chapters()[chapter_id]
         vuong = vuong or Vuong(chapter, chapter_id)
+        for node in state["teaching"]["nodes"]:
+            if node["status"] == "PASSED":
+                vuong.understanding.setdefault(node["node_id"], 0.9)
         turns = 0
         seen = len(state["transcript"])
         while state["lifecycle_state"] != "COMPLETED" and turns < max_turns:
@@ -217,17 +282,19 @@ def run(client: TestClient, chapter_id: str, student: str, max_sessions: int, ma
             vuong.notice([x["text"] for x in state["transcript"][seen:] if x["actor"] == "tutor"], node)
             seen = len(state["transcript"])
             command, text = vuong.reply(state)
+            began = time.monotonic()
             v = state["state_version"]
             key = {"Idempotency-Key": f"sim-{sid}-{v}"}
             if command == "CHOICE":
-                r = client.post(
+                r = _retrying(
+                    client.post,
                     f"/v1/sessions/{sid}/choices",
                     json={"choice_id": text, "expected_state_version": v},
                     headers=key,
                 )
             elif command == "HINT":
                 body = {"item_attempt_id": state["teaching"]["input_id"], "expected_state_version": v}
-                r = client.post(f"/v1/sessions/{sid}/hint-requests", json=body, headers=key)
+                r = _retrying(client.post, f"/v1/sessions/{sid}/hint-requests", json=body, headers=key)
             else:
                 body = {
                     "item_attempt_id": state["teaching"]["input_id"] or "",
@@ -235,12 +302,16 @@ def run(client: TestClient, chapter_id: str, student: str, max_sessions: int, ma
                     "content": {"text": text[:500]},
                     "expected_state_version": v,
                 }
-                r = client.post(f"/v1/sessions/{sid}/responses", json=body, headers=key)
+                r = _retrying(client.post, f"/v1/sessions/{sid}/responses", json=body, headers=key)
             if r.status_code != 200:
                 print(f"  ! {r.status_code} {r.text[:200]} on {command} {text!r}")
                 break
-            state = client.get(f"/v1/sessions/{sid}/state").json()
+            state = _retrying(client.get, f"/v1/sessions/{sid}/state").json()
             turns += 1
+            if "--debug" in sys.argv:
+                print(
+                    f"    lượt {turns} {command} {text[:40]!r}: {time.monotonic() - began:.1f}s", flush=True
+                )
         if state["lifecycle_state"] != "COMPLETED" and "--debug" in sys.argv:
             for x in state["transcript"][-40:]:
                 print(f"    {x['actor'][:5]}: {x['text'][:150]}")
@@ -255,8 +326,10 @@ def run(client: TestClient, chapter_id: str, student: str, max_sessions: int, ma
     return sessions
 
 
-def _in_memory(settings) -> None:
-    """Copy the teacher's documents and plans into an in-memory database: nothing reaches the real one."""
+def _in_memory(settings, student: str | None = None, templates_only: bool = True):
+    """Copy the teacher's documents and plans into an in-memory database: nothing reaches the real one.
+
+    ``student``: also the student's sessions (to resume one, and the earlier ones the tutor reads)."""
     import asyncio
 
     from cavat import db
@@ -273,11 +346,40 @@ def _in_memory(settings) -> None:
             docs = await real[name].find({}).to_list(None)
             if docs:
                 await memory[name].insert_many(docs)
+        if student:
+            docs = await real["learning_sessions"].find({"student_id": student}).to_list(None)
+            if docs:
+                await memory["learning_sessions"].insert_many(docs)
         await db.close_client()
 
     asyncio.run(copy())
     app.dependency_overrides[get_database] = lambda: memory
-    session_api.tutor_router = lambda: None  # templates only: no model call
+    if templates_only:
+        session_api.tutor_router = lambda: None  # templates only: no model call
+    return memory
+
+
+def _write_back(settings, memory, session_ids: list[str]) -> None:
+    """--write-at-end: each session the run made or resumed, as one document (rule 10), and its new ledger
+    events, written to the database of .env once (a slow line made every turn take half a minute)."""
+    import asyncio
+
+    from cavat import db
+
+    async def write() -> None:
+        real = db.get_db(settings)
+        for sid in session_ids:
+            doc = await memory["learning_sessions"].find_one({"_id": sid})
+            await real["learning_sessions"].replace_one({"_id": sid}, doc, upsert=True)
+            events = await memory["events"].find({"session_id": sid}).to_list(None)
+            have = {x["_id"] async for x in real["events"].find({"session_id": sid}, {"_id": 1})}
+            new = [e for e in events if e["_id"] not in have]
+            if new:
+                await real["events"].insert_many(new)
+            print(f"  ghi {sid}: {len(doc['events'])} sự kiện trong buổi, {len(new)} sự kiện mới vào sổ")
+        await db.close_client()
+
+    asyncio.run(write())
 
 
 def main() -> None:
@@ -296,11 +398,20 @@ def main() -> None:
         help="copy the plans to an in-memory database, run there, templates only",
     )
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "--write-at-end",
+        action="store_true",
+        help="run in memory with the live tutor, then write the sessions to the database of .env at the end",
+    )
+    parser.add_argument("--resume", help="session id to go on with (the first chapter given)")
     args = parser.parse_args()
     settings = get_settings()
     print(f"Database: {settings.mongodb_db} · học sinh {args.student_id} ({args.name})")
+    memory = None
     if args.memory:
         _in_memory(settings)
+    elif args.write_at_end:
+        memory = _in_memory(settings, args.student_id, templates_only=False)
     elif not args.write:
         sys.exit("Thêm --write để ghi thật (CLAUDE.md quy tắc 11: chỉ khi chủ dự án yêu cầu), hoặc --memory.")
     app.dependency_overrides[student_identity] = lambda: args.student_id
@@ -309,9 +420,16 @@ def main() -> None:
     with TestClient(app) as client:
         for chapter_id in CHAPTERS if args.chapter == "all" else (args.chapter,):
             print(chapter_id)
-            made[chapter_id] = run(client, chapter_id, args.student_id, args.sessions, args.turns)
+            resume = (
+                args.resume
+                if chapter_id == (CHAPTERS[0] if args.chapter == "all" else args.chapter)
+                else None
+            )
+            made[chapter_id] = run(client, chapter_id, args.student_id, args.sessions, args.turns, resume)
     if args.memory:
         return
+    if memory is not None:
+        _write_back(settings, memory, [x["session_id"] for runs in made.values() for x in runs])
     out = settings.storage_dir / "reports" / "simulated-sessions.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     previous = json.loads(out.read_text()) if out.exists() else []

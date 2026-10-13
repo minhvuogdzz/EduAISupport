@@ -224,7 +224,7 @@ def test_decisions_are_deterministic_and_carry_the_policy_version():
     first, again = run(Student()), run(Student())
     assert decisions(first) == decisions(again)
     versions = {e.payload["policy_version"] for e in first if e.event_type == EventType.NODE_DECISION}
-    assert versions == {"node-policy/0.3.0"}
+    assert versions == {"node-policy/0.3.1"}
 
 
 def test_item_decisions_carry_the_support_of_the_mastery_band():
@@ -354,3 +354,29 @@ def test_a_recall_waits_for_its_answer():
             break
     with pytest.raises(PendingResult, match="recall of KC-DEC-FRAC"):
         decide(CHAPTER, project_chapter(events, CHAPTER), teaching_state(events))
+
+
+# --------------------------------------------------------------------------- DI-56: the only item of a form
+
+
+def test_the_only_item_of_a_missing_form_is_asked_once_more_after_a_miss():
+    node = CHAPTER.node("KC-DEC-CONCEPT")
+    every = [*node.checks, *node.completion, *node.practice, *node.transfer]
+    (only,) = [i for i in every if CHAPTER.item(i).answer.type == "choice"]
+    events = run(Student(wrong={only: None}))
+    asked = [(r, why) for a, n, r, _, why in decisions(events) if n == "KC-DEC-CONCEPT" and r == only]
+    assert len(asked) == 2 and "RETRY_FORM" in asked[1][1]
+    assert project_chapter(events, CHAPTER).nodes["KC-DEC-CONCEPT"].passed_at is not None
+
+
+def test_an_item_is_never_retried_twice():
+    node = CHAPTER.node("KC-DEC-CONCEPT")
+    every = [*node.checks, *node.completion, *node.practice, *node.transfer]
+    (only,) = [i for i in every if CHAPTER.item(i).answer.type == "choice"]
+
+    class AlwaysWrong(Student):
+        def answer(self, d, session):
+            return resolved(d.ref, success=d.ref != only, session=session)
+
+    events = run(AlwaysWrong())
+    assert sum(1 for _, n, r, _, _ in decisions(events) if r == only) == 2
