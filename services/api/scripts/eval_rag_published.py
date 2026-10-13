@@ -19,6 +19,7 @@ import asyncio
 import sys
 from collections import defaultdict
 from datetime import date
+from pathlib import Path
 from statistics import mean
 
 from cavat import db
@@ -87,7 +88,7 @@ def misses(results, decided: dict[str, str]) -> list[str]:
     return out or ["- (không có)"]
 
 
-async def main(live: bool) -> int:
+async def main(live: bool, holdout_path=HOLDOUT, tag: str = "") -> int:
     settings = get_settings()
     metered: Metered | None = None
     embedder: Embedder
@@ -108,7 +109,7 @@ async def main(live: bool) -> int:
     if index.semantic_error:
         print(f"The embedding model failed: {index.semantic_error}")
         return 1
-    cases, holdout = load_cases(DATASET), load_cases(HOLDOUT)
+    cases, holdout = load_cases(DATASET), load_cases(holdout_path)
     empty = [c.id for c in cases + holdout if c.relevant and not expand(c.relevant, index)]
     if empty:
         print(f"Labels that name no passage: {empty}")
@@ -142,7 +143,7 @@ async def main(live: bool) -> int:
         "",
         *misses(by_config[production], dev_decided),
         "",
-        "## Bộ câu giữ riêng (không dùng để chỉnh gì)",
+        f"## Bộ câu giữ riêng `{holdout_path.name}` (không dùng để chỉnh gì)",
         "",
         markdown(by_config_holdout, name, production=production, semantic=False),
         "",
@@ -156,7 +157,7 @@ async def main(live: bool) -> int:
         lines += ["", f"Gọi model embedding: {metered.requests} request, {metered.texts} văn bản (lưu đệm)."]
     report = "\n".join(lines) + "\n"
     print(report)
-    out = REPO_ROOT / "evals/reports" / f"{date.today().isoformat()}-rag-published-{kind}.md"
+    out = REPO_ROOT / "evals/reports" / f"{date.today().isoformat()}-rag-published-{kind}{tag}.md"
     out.write_text(report, encoding="utf-8")
     print(f"Report: {out.relative_to(REPO_ROOT)}")
     return 0
@@ -165,4 +166,8 @@ async def main(live: bool) -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--live", action="store_true")
-    sys.exit(asyncio.run(main(parser.parse_args().live)))
+    parser.add_argument("--holdout", default=str(HOLDOUT), help="the held-out questions (default: v1)")
+    parser.add_argument("--tag", default="", help="suffix of the report name")
+    args = parser.parse_args()
+    holdout = args.holdout if args.holdout.startswith("/") else str(REPO_ROOT / args.holdout)
+    sys.exit(asyncio.run(main(args.live, Path(holdout), args.tag)))

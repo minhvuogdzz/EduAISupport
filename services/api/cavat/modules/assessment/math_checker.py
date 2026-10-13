@@ -30,7 +30,7 @@ from cavat.modules.assessment.vi_numbers import (
     phrase_regex,
     tolerant_pattern,
 )
-from cavat.modules.assessment.vi_words import decimal_from_words
+from cavat.modules.assessment.vi_words import decimal_from_words, spoken_to_digits
 from cavat.modules.content.lesson_package import (
     BooleanAnswer,
     ChoiceAnswer,
@@ -362,6 +362,17 @@ def _written_as_asked(form: str | None, n: ParsedNumber, target: ParsedNumber) -
     return True
 
 
+_ASKS_DECIMAL = re.compile(r"(dưới dạng|thành)\s+(một\s+)?số thập phân")
+
+
+def _with_asked_form(spec: NumericAnswer, stem: str) -> NumericAnswer:
+    """DI (GRADE-1): an item without a declared form whose stem asks for a decimal ("Viết 9/10 dưới dạng số
+    thập phân") does not take the fraction back as its answer (seen: "9/10" graded right)."""
+    if spec.form is not None or not _ASKS_DECIMAL.search(normalize_text(stem)):
+        return spec
+    return spec.model_copy(update={"form": "decimal"})
+
+
 def _check_numeric(spec: NumericAnswer, text: str) -> CheckResult:
     target = parse_literal(spec.value)
     t = normalize_text(text)
@@ -614,7 +625,9 @@ def _check_spec(item: Item, text: str, pkg: LessonPackage) -> CheckResult:
     if isinstance(spec, OrderAnswer):
         return _check_order(spec, text, pkg)
     if isinstance(spec, NumericAnswer):
-        return _check_numeric(spec, text)
+        # GRADE-1: "không phẩy chín", "0 phẩy 9" are numbers (a child types or says them, voice live too);
+        # the form the stem asks for counts when the item does not say it ("viết … dưới dạng số thập phân").
+        return _check_numeric(_with_asked_form(spec, item.stem), spoken_to_digits(text))
     if isinstance(spec, ChoiceAnswer):
         return _check_choice(item.stem, spec, text)
     if isinstance(spec, BooleanAnswer):

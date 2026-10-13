@@ -461,6 +461,21 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-58, chấm câu trả lời viết hoặc nói bằng chữ (GRADE-1, 2026-10-13):**
+  - **Đọc số nói (`vi_words.spoken_to_digits`):**
+    - đổi "0 phẩy 9" và "không phẩy chín" thành 0,9;
+    - một số bằng chữ không có "phẩy" ("mười hai", "sáu ạ") chỉ được đọc khi đó là tất cả những gì bé nói, nên "con không biết" không bao giờ thành 0.
+  - **Dạng đề hỏi:** câu số không khai báo `form` mà đề viết "(dưới dạng / thành) số thập phân" thì không nhận phân số (từng thấy: "9/10" được chấm đúng).
+  - **Đo:** bộ chấm `grading-vi-v2` (giữ riêng, commit trước khi sửa) tăng từ 26/35 lên 35/35. Bộ v1, đã xem trước khi sửa: 36/36.
+- **DI-57, định tuyến câu hỏi về bài trước (RAG-4, 2026-10-13):**
+  - **Vấn đề:** đánh giá cho luận văn cho thấy câu hỏi về khái niệm của bài trước, không có dạng "là gì" ("1 m bằng bao nhiêu cm" khi đang học diện tích), không với tới tiết đã dạy nó. Lý do: mỗi bước trên đồ thị nhân điểm với 1/(1 + khoảng cách). Tệ hơn, gia sư vẫn trả lời bằng đoạn của tiết đang học, vì đoạn đó cùng chương nên vẫn "có căn cứ".
+  - **Luật mới:** trước khi xếp hạng, mỗi tiết trong phạm vi (tiết đang học và mọi tiết trước) được chấm bằng đoạn khớp nhất của nó (cosine; độ phủ từ khóa khi không có vector). Một tiết trước khớp hơn tiết đang học từ 0,02 cosine (0,15 độ phủ) trở lên thì được coi là chủ đề câu hỏi: đoạn của nó không bị trừ điểm khoảng cách.
+  - Không bao giờ định tuyến sang tiết sau. Thuộc bước "cấu trúc" của thí nghiệm bỏ từng phần (`rerank`).
+  - **Đo theo đúng quy trình:**
+    - Bộ giữ riêng v2 (`rag-published-holdout-v2.yaml`) được viết và commit **trước** khi sửa, đo đúng một lần sau khi sửa: Hit@3 0,45 → 0,90 (nhóm bài trước 0,08 → 0,83), MRR 0,503 → 0,887.
+    - Bộ chỉnh và v1: Hit@3 1,00.
+    - Chương mẫu không tụt.
+    - Hai giá trị biên độ là giá trị đặt lần đầu, chưa chỉnh lần nào.
 - **DI-56, làm lại câu bù dạng (`node-policy/0.3.1`, 2026-10-13):** chạy Vương với lỗi sai điển hình thì lộ ra hai chỗ chặn qua tiết.
   - **Chỗ 1:** khi gia sư đang theo dõi một lỗi sai, các câu bắt lại lỗi đó được đưa lên trước, và luật DI-49 (đưa câu bù dạng lên trước) bị tắt. Các câu bắt lỗi đều là câu điền số, nên tiết hết 12 câu mà vẫn thiếu dạng. Sửa: DI-49 vẫn chạy khi đang theo dõi lỗi sai.
   - **Chỗ 2:** tiết DTTGHT-T02 chỉ có một câu trả lời tự do (BT-02) giữa các câu điền số. Bé sai câu đó lúc mới vào bài thì tiết không bao giờ đủ hai dạng câu.

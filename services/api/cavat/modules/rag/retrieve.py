@@ -75,6 +75,10 @@ _DEFINITION = re.compile(
 _TERM = re.compile(r"^(?:co oi |cho con hoi |the |vay )*(.+?)\s+(?:la|gom|nghia la|goi la)\b")
 LATER_MARGIN = 0.03  # DI-50: how much closer a later period's passage must be to say "bài sau mình học"
 DEFINES_FACTOR = 1.6  # DI-50: a passage that defines the term asked about, in a definition question
+# DI-57 (RAG-4): how much better an earlier period must match a question than the period being learnt for
+# the question to be taken as about that earlier period (cosine with vectors, keyword coverage without).
+ROUTE_MARGIN_COSINE = 0.02
+ROUTE_MARGIN_COVERAGE = 0.15
 _FILLERS = ("cua tam giac", "cua hinh thang", "trong so thap phan")
 
 
@@ -206,6 +210,23 @@ class RagIndex:
                 todo.extend(self.graph.get(n, ()))
         return seen
 
+    def _route(
+        self, node_id: str, cos_all: np.ndarray, coverage_all: list[float], semantic: bool
+    ) -> str | None:
+        """DI-57: the earlier period a question is about, when it matches clearly better than the period being
+        learnt ("1 m bằng bao nhiêu cm" while learning areas is about lengths). Each period is scored by its
+        best passage; only periods this one builds on (never a later one: no teaching ahead)."""
+        candidates = {node_id, *self.ancestors(node_id)}
+        best: dict[str, float] = {}
+        for i, c in enumerate(self.chunks):
+            if c.node_id in candidates:
+                value = float(cos_all[i]) if semantic else coverage_all[i]
+                best[c.node_id] = max(best.get(c.node_id, 0.0), value)
+        here = best.get(node_id, 0.0)
+        top = max((n for n in best if n != node_id), key=lambda n: best[n], default=None)
+        margin = ROUTE_MARGIN_COSINE if semantic else ROUTE_MARGIN_COVERAGE
+        return top if top is not None and best[top] - here >= margin else None
+
     def distances(self, node_id: str | None) -> dict[str, int]:
         if node_id is None:
             return {}
@@ -244,6 +265,25 @@ class RagIndex:
             # Later periods stay out (the graph only leads back).
             near = {**{n: 1 for n in self.ancestors(node_id)}, **near}
         term = defined_term(query) if mode == "definition" else None
+
+        bm25_all = self.keyword.scores(query) if keyword else [0.0] * len(self.chunks)
+        coverage_all = self.keyword.coverage(query)
+        cos_all = np.zeros(len(self.chunks), dtype=np.float32)
+        semantic_name = "off"
+        if semantic and self.embedder is not None and self.vectors is not None:
+            try:
+                q = self.embedder.embed([query], "RETRIEVAL_QUERY")[0]
+                cos_all = cosine(self.vectors, q)
+                semantic_name = self.embedder.name
+            except Exception:  # noqa: BLE001 - quota or network: keywords and structure only
+                semantic_name = "off"
+
+        routed = None
+        if rerank and node_id is not None and mode in ("question", "definition"):
+            routed = self._route(node_id, cos_all, coverage_all, semantic_name != "off")
+            if routed is not None:
+                # DI-57: the question is about an earlier period: its passages are as close as the period's
+                near = {**{n: 1 for n in self.ancestors(node_id)}, **near, routed: 0}
         scope: list[tuple[int, int]] = []  # (chunk index, distance)
         for i, c in enumerate(self.chunks):
             if chapter_id and c.chapter_id not in (chapter_id, ""):
@@ -263,18 +303,6 @@ class RagIndex:
             else:
                 continue
             scope.append((i, distance))
-
-        bm25_all = self.keyword.scores(query) if keyword else [0.0] * len(self.chunks)
-        coverage_all = self.keyword.coverage(query)
-        cos_all = np.zeros(len(self.chunks), dtype=np.float32)
-        semantic_name = "off"
-        if semantic and self.embedder is not None and self.vectors is not None:
-            try:
-                q = self.embedder.embed([query], "RETRIEVAL_QUERY")[0]
-                cos_all = cosine(self.vectors, q)
-                semantic_name = self.embedder.name
-            except Exception:  # noqa: BLE001 - quota or network: keywords and structure only
-                semantic_name = "off"
 
         def ranks(values: dict[int, float]) -> dict[int, int]:
             ordered = sorted((i for i, v in values.items() if v > 0), key=lambda i: -values[i])

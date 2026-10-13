@@ -13,7 +13,7 @@ Embedder: `gemini-embedding-001`
 | keyword | 57 | 0.74 | 0.91 | 0.67 | 0.82 | 0.826 |
 | semantic | 57 | 0.77 | 1.00 | 0.82 | 0.91 | 0.868 |
 | hybrid | 57 | 0.75 | 0.98 | 0.78 | 0.90 | 0.864 |
-| keyword+rerank | 57 | 0.81 | 0.95 | 0.73 | 0.86 | 0.879 |
+| keyword+rerank | 57 | 0.79 | 0.95 | 0.73 | 0.86 | 0.870 |
 | hybrid+rerank | 57 | 0.88 | 1.00 | 0.86 | 0.93 | 0.939 |
 
 Hit@3 theo nhóm câu hỏi:

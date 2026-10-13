@@ -105,3 +105,42 @@ def decimal_from_words(text: str) -> Fraction | None:
         return None
     digits = "0" * zeros + str(rest)
     return Fraction(whole) + Fraction(int(digits), 10 ** len(digits))
+
+
+# GRADE-1: what a child says or types for a number. Fillers around a number said alone ("sáu ạ", "dạ là năm
+# phẩy tám") are left out; without "phẩy", a number in words is read only when it is all the child said, so
+# "con không biết" never becomes 0.
+_FILLERS = {"dạ", "ạ", "à", "cô", "ơi", "là", "đáp", "án", "con", "nghĩ", "nhé", "thì", "bằng", "ra", "được"}
+
+
+def spoken_to_digits(text: str) -> str:
+    """ "0 phẩy 3" -> "0,3"; "không phẩy không bảy" -> "0,07"; "mười hai" (said alone) -> "12"."""
+    t = re.sub(r"(\d+)\s+phẩy\s+(\d+)", r"\1,\2", text)
+    tokens = re.findall(r"\S+", t)
+    words = [re.sub(r"[^\w]", "", w.lower()) for w in tokens]
+    out, i = [], 0
+    while i < len(tokens):
+        j = i
+        while j < len(tokens) and words[j] in _WORDS:
+            j += 1
+        run = words[i:j]
+        alone = all(w in _FILLERS for w in words[:i] + words[j:])
+        if run and ("phẩy" in run or alone) and any(w in _DIGITS or w == "mười" for w in run):
+            value = decimal_from_words(" ".join(run))
+            if value is not None:
+                out.append(_format(value))
+                i = j
+                continue
+        out.append(tokens[i])
+        i += 1
+    return " ".join(out)
+
+
+def _format(value: Fraction) -> str:
+    if value.denominator == 1:
+        return str(value.numerator)
+    digits = 0
+    while (value * 10**digits).denominator != 1:
+        digits += 1
+    whole, frac = divmod(value.numerator * 10**digits // value.denominator, 10**digits)
+    return f"{whole},{str(frac).zfill(digits)}"
