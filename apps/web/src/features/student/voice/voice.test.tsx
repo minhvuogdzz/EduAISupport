@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { BARGE_LOUD, BARGE_MS, SpeechGate } from "./recorder";
 import type { VoiceLive } from "./useVoiceLive";
 import { sentences } from "./useVoiceLive";
 import { VoiceBar } from "./VoiceBar";
@@ -15,6 +16,7 @@ function live(over: Partial<VoiceLive> = {}): VoiceLive {
     problem: null,
     toggle: vi.fn(),
     listenNow: vi.fn(),
+    bargeIn: false,
     ...over,
   };
 }
@@ -50,5 +52,32 @@ describe("voice live (ADR-030)", () => {
       <VoiceBar voice={live({ on: true, phase: "waiting", problem: "Cô chưa nghe rõ, con nói lại nhé." })} />,
     );
     expect(screen.getByText("Cô chưa nghe rõ, con nói lại nhé.")).toBeInTheDocument();
+  });
+});
+
+describe("talking over the tutor (VOICE-2)", () => {
+  it("takes a voice that lasts, not a short noise or the tutor's quieter echo", () => {
+    const gate = new SpeechGate();
+    const loud = BARGE_LOUD * 2;
+    expect(gate.push(loud, 0)).toBe(false);
+    expect(gate.push(loud, BARGE_MS / 2)).toBe(false);
+    expect(gate.push(BARGE_LOUD / 2, BARGE_MS / 2 + 50)).toBe(false); // a break: start again
+    expect(gate.push(loud, 1000)).toBe(false);
+    expect(gate.push(loud, 1000 + BARGE_MS)).toBe(true);
+    const echo = new SpeechGate();
+    expect([0, 200, 400, 800].some((t) => echo.push(BARGE_LOUD * 0.9, t))).toBe(false);
+  });
+
+  it("tells the child it may talk over the tutor, and the microphone interrupts", () => {
+    const voice = live({ on: true, phase: "speaking", bargeIn: true });
+    render(<VoiceBar voice={voice} />);
+    expect(screen.getByText(/con muốn nói thì cứ nói/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ngắt lời cô để nói" }));
+    expect(voice.listenNow).toHaveBeenCalled();
+  });
+
+  it("says nothing of talking over before the microphone was allowed", () => {
+    render(<VoiceBar voice={live({ on: true, phase: "speaking", bargeIn: false })} />);
+    expect(screen.getByText("Cô đang nói…")).toBeInTheDocument();
   });
 });

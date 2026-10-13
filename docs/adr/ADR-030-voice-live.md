@@ -58,6 +58,12 @@ Chỉ còn thiếu giọng cô và vòng hội thoại bằng giọng nói.
   - `make demo` tự bật server giọng nói nếu đã cài.
 - **Khóa phiên bản:** `onnxruntime==1.24.4` và `huggingface_hub==1.13.0`, đúng như repo VieNeu khóa. `huggingface_hub` 2.x lưu cache theo kiểu mới mà ONNX Runtime từ chối đọc.
 - **Dữ liệu:** Groq nhận bản ghi giọng của bé (D-T3: chủ dự án cho phép dùng giọng thật). Nếu dùng Web Speech API của trình duyệt, âm thanh có thể đi qua máy chủ của hãng trình duyệt.
-- **Chưa làm:**
-  - Chưa ngắt lời: bé nói trong lúc cô đang đọc thì cô chưa dừng.
+- **Ngắt lời (VOICE-2, 2026-10-13):**
+  - Trong lúc cô đọc, micro được theo dõi. Bé nói chen to hơn ngưỡng `BARGE_LOUD` (0,06, gấp 3 ngưỡng thường, vì tiếng cô vọng lại qua micro chỉ được khử một phần) và kéo dài `BARGE_MS` (300 ms) thì cô dừng ngay, rồi ghi lời bé trên chính luồng micro đó.
+  - Chỉ bật sau khi bé đã cho phép micro một lần, để không hiện hộp xin quyền giữa lúc cô đang nói.
+  - Bấm nút micro trong lúc cô đọc cũng là ngắt lời.
+  - Cả hai ngưỡng là DI.
+- **Giới hạn:**
+  - Khoảng 300 ms đầu của câu bé nói chen bị mất, vì phải nghe đủ lâu mới biết là bé nói. Bé thường nói tiếp hoặc nói lại.
+  - Trên loa ngoài to, tiếng cô vọng lại có thể vượt ngưỡng. Dùng tai nghe thì chắc chắn hơn.
   - Phần ước lượng im lặng chỉ dựa vào độ to. Ở chỗ ồn có thể phải bấm micro.
