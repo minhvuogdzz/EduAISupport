@@ -33,7 +33,7 @@ from cavat.core.events import EventType, ExplanationSubmitted, ItemResolved, Que
 from cavat.core.pedagogy import ErrorClass, ItemResolution
 from cavat.modules.content.chapter_package import Chapter
 
-MASTERY_POLICY_VERSION = "node-mastery/0.1.0"
+MASTERY_POLICY_VERSION = "node-mastery/0.2.0"  # 0.2.0: DI-55, a "vì sao" judged by the rubric
 
 DIMENSIONS = ("C", "R", "A", "T", "I", "S", "D")
 APPLICATION_DIMENSIONS = frozenset({"A", "T"})  # DI-6 "application evidence": level D/E or transfer items
@@ -74,6 +74,8 @@ class MasteryPolicy:
     guess_factor: float = 0.5  # DI-3 GUESS
     completion_factor: float = 0.5  # DI: a "cùng làm" item gives part of the solution
     unjudged_explanation_weight: float = 0.3  # DI: a "vì sao" reply nobody judged, like an unverified label
+    rubric_explanation_weight: float = 0.5  # DI-55: a "vì sao" judged by the keyword rubric, not by a person
+    vague_explanation_quality: float = 0.2  # DI-55: at or below it, a "vì sao" is no evidence
     label_min_confidence: float = 0.6  # PART 26.5
     low_confidence_factor: float = 0.3  # PART 26.5
     min_evidence: float = 1.0  # DI-1: a dimension enters M from this much effective evidence
@@ -308,6 +310,13 @@ class _Projector:
     def _explanation(self, seq: int, p: ExplanationSubmitted) -> list[str]:
         if p.label_source == "NONE":
             score, weight = 1.0, self.policy.unjudged_explanation_weight
+        elif p.label_source == "RUBRIC_RULE":
+            score = p.reasoning_quality if p.reasoning_quality is not None else 1.0
+            if score <= self.policy.vague_explanation_quality:
+                # DI-55: "vì con làm theo quy tắc" is no evidence either way: the child may know and not say
+                # it. It does not count as reasoning, and it does not take reasoning away.
+                return []
+            weight = self.policy.rubric_explanation_weight
         else:
             score = p.reasoning_quality if p.reasoning_quality is not None else 1.0
             weight = self._label_weight(p.label_source, p.label_confidence)

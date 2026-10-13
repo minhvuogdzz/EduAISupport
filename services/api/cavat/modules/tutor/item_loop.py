@@ -42,6 +42,7 @@ from cavat.core.pedagogy import (
     resolution_for,
 )
 from cavat.modules.assessment.math_checker import CheckResult, check_answer, classify_intent, parse_relation
+from cavat.modules.assessment.reason import judge_reason
 from cavat.modules.assessment.student_intent import asks_for_hint
 from cavat.modules.assessment.vi_numbers import parse_literal
 from cavat.modules.content.lesson_package import (
@@ -373,11 +374,22 @@ class ItemTutor:
 
     def _on_explanation(self, text: str) -> TutorTurn:
         intent = classify_intent(text)
-        self._explained = intent is None  # DI: not judged yet (no LLM label); a real reply counts
+        self._explained = intent is None
+        self.state.last_explanation_vague = False
         if intent is None:
+            # DI-55: judged by the rubric (numbers, terms, the item's own solution); a vague reply is asked
+            # once more, and whatever comes is recorded with its quality as evidence on R.
+            judged = judge_reason(self.item, text, self.package)
+            self.state.last_explanation_vague = judged.vague
             self._emit(
                 EventType.EXPLANATION_SUBMITTED,
-                ExplanationSubmitted(item_id=self.item.id, text=text),
+                ExplanationSubmitted(
+                    item_id=self.item.id,
+                    text=text,
+                    reasoning_quality=judged.quality,
+                    label_source="RUBRIC_RULE",
+                    label_confidence=1.0,
+                ),
             )
         self.state.verified = True
         check = CheckResult(intent) if intent is not None else None

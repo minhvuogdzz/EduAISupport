@@ -32,7 +32,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.6.0"
+POLICY_VERSION = "hint-policy/0.7.0"  # 0.7.0: DI-55, a vague "vì sao" is asked once more
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -367,6 +367,10 @@ def _after_explanation(st: ItemState, outcome: Outcome | None) -> PolicyDecision
     if again is not None and not st.explanation_asked_again:
         move = Move.TEACH_BACK if st.worked_shown else Move.VERIFY
         return PolicyDecision(move=move, reason_codes=(again, "ASK_AGAIN"), rule_ids=(rule,))
+    if outcome is None and st.last_explanation_vague and not st.explanation_asked_again:
+        # DI-55: "vì con làm theo quy tắc" says nothing of this item: asked once, for the step and numbers.
+        move = Move.TEACH_BACK if st.worked_shown else Move.VERIFY
+        return PolicyDecision(move=move, reason_codes=("VAGUE", "ASK_AGAIN"), rule_ids=(rule,))
     resolution = resolution_for(st.max_hint_level)
     if outcome in _NO_EXPLANATION:
         reasons: tuple[str, ...] = ("NO_EXPLANATION", *((again,) if again else ()))
