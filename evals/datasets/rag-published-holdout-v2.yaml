@@ -1,0 +1,38 @@
+# Bộ câu giữ riêng v2 cho RAG trên hai chương đã phát hành. Viết ngày 2026-10-13, TRƯỚC khi sửa truy xuất câu
+# hỏi bài trước (RAG-4), commit riêng trước mọi thay đổi code; KHÔNG dùng để chỉnh tham số nào. Lý do có v2:
+# các câu trượt của v1 đã được xem khi viết báo cáo đánh giá, nên v1 thôi là bộ giữ riêng.
+# Nhãn theo tiết (NODE:*), do Claude soạn theo tên và nội dung tiết, chờ giáo viên duyệt. [ASSUME]
+version: 2
+chapters: [math-g5-decimals, math-g5-area-triangle-trapezoid]
+status: DRAFT
+cases:
+  - {id: V01, group: cung-bai, node: STP-T02, q: "số 7,25 đọc như thế nào ạ", relevant: ["STP-T02:*"]}
+  - {id: V02, group: cung-bai, node: STP-T04, q: "muốn so sánh hai số thập phân thì nhìn phần nào trước", relevant: ["STP-T04:*"]}
+  - {id: V03, group: cung-bai, node: STP-T06, q: "2 m 7 cm viết thành mét là bao nhiêu", relevant: ["STP-T06:*"]}
+  - {id: V04, group: cung-bai, node: STP-T09, q: "làm tròn 4,6 đến hàng đơn vị thì được mấy", relevant: ["STP-T09:*"]}
+  - {id: V05, group: cung-bai, node: DTTGHT-T02, q: "sao diện tích tam giác lại phải chia cho 2", relevant: ["DTTGHT-T02:*"]}
+  - {id: V06, group: cung-bai, node: DTTGHT-T06, q: "công thức tính diện tích hình thang là gì", relevant: ["DTTGHT-T06:*"]}
+  - {id: V07, group: cung-bai, node: DTTGHT-T01, q: "đường cao của tam giác vẽ từ đâu xuống", relevant: ["DTTGHT-T01:*"]}
+  - {id: V08, group: cung-bai, node: STP-T03, q: "0,6 và 0,60 có bằng nhau không cô", relevant: ["STP-T03:*"]}
+  - {id: V09, group: bai-truoc, node: STP-T05, q: "phần thập phân nằm ở bên nào dấu phẩy", relevant: ["STP-T02:*"]}
+  - {id: V10, group: bai-truoc, node: STP-T07, q: "chữ số ở hàng phần mười chỉ mấy phần", relevant: ["STP-T02:*", "STP-T01:*"]}
+  - {id: V11, group: bai-truoc, node: STP-T04, q: "viết thêm số 0 vào cuối số thập phân có sao không", relevant: ["STP-T03:*"]}
+  - {id: V12, group: bai-truoc, node: STP-T10, q: "làm tròn đến hàng phần mười là nhìn chữ số nào", relevant: ["STP-T09:*"]}
+  - {id: V13, group: bai-truoc, node: STP-T08, q: "1 m bằng bao nhiêu cm vậy cô", relevant: ["STP-T06:*"]}
+  - {id: V14, group: bai-truoc, node: STP-T11, q: "so sánh số thập phân thì làm thế nào", relevant: ["STP-T04:*"]}
+  - {id: V15, group: bai-truoc, node: STP-T06, q: "7/100 viết thành số thập phân thế nào", relevant: ["STP-T01:*"]}
+  - {id: V16, group: bai-truoc, node: DTTGHT-T03, q: "đáy của tam giác là cạnh nào", relevant: ["DTTGHT-T01:*"]}
+  - {id: V17, group: bai-truoc, node: DTTGHT-T05, q: "tính diện tích tam giác thì nhân gì với gì", relevant: ["DTTGHT-T02:*", "DTTGHT-T03:*", "DTTGHT-T04:*"]}
+  - {id: V18, group: bai-truoc, node: DTTGHT-T07, q: "hai cạnh song song của hình thang gọi là gì", relevant: ["DTTGHT-T05:*"]}
+  - {id: V19, group: bai-truoc, node: DTTGHT-T08, q: "muốn tính diện tích hình thang phải biết những gì", relevant: ["DTTGHT-T06:*", "DTTGHT-T07:*"]}
+  - {id: V20, group: bai-truoc, node: DTTGHT-T04, q: "đường cao có vuông góc với đáy không cô", relevant: ["DTTGHT-T01:*"]}
+  - {id: V21, group: bai-sau, node: STP-T02, q: "làm tròn số 5,67 thế nào", relevant: []}
+  - {id: V22, group: bai-sau, node: STP-T04, q: "3 kg 200 g bằng bao nhiêu kg", relevant: []}
+  - {id: V23, group: bai-sau, node: DTTGHT-T02, q: "hình thang có mấy đáy", relevant: []}
+  - {id: V24, group: bai-sau, node: DTTGHT-T01, q: "tính diện tích tam giác đáy 6 cao 4", relevant: []}
+  - {id: V25, group: lac-de-toan, node: STP-T05, q: "chu vi hình tròn tính sao", relevant: []}
+  - {id: V26, group: lac-de-toan, node: DTTGHT-T06, q: "cộng hai phân số khác mẫu thế nào", relevant: []}
+  - {id: V27, group: lac-de-toan, node: STP-T09, q: "bảng cửu chương 7 là gì", relevant: []}
+  - {id: V28, group: lac-de, node: STP-T03, q: "con thích con mèo lắm", relevant: []}
+  - {id: V29, group: lac-de, node: DTTGHT-T05, q: "hôm nay trời mưa to quá cô", relevant: []}
+  - {id: V30, group: lac-de, node: STP-T08, q: "cô ơi con đói bụng", relevant: []}

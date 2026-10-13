@@ -1,0 +1,40 @@
+# EVAL-1 part B: answers a Grade 5 child writes, labelled by hand (truth = what a Vietnamese Grade 5 teacher
+# accepts). Items of the sample chapter docs/pedagogy/math-g5/chuong-so-thap-phan. Never used to tune
+# MathChecker: written for this evaluation (2026-10-13).
+cases:
+  - {item: TP-PR-01, answer: "0,9", correct: true}
+  - {item: TP-PR-01, answer: "0,90", correct: true}
+  - {item: TP-PR-01, answer: "không phẩy chín", correct: true}
+  - {item: TP-PR-01, answer: "o,9", correct: true}
+  - {item: TP-PR-01, answer: "0,9 ạ cô", correct: true}
+  - {item: TP-PR-01, answer: "dạ là 0 phẩy 9", correct: true}
+  - {item: TP-PR-01, answer: "9/10", correct: false, why: "the item asks for a decimal"}
+  - {item: TP-PR-01, answer: "0,09", correct: false}
+  - {item: TP-PR-01, answer: "9,0", correct: false}
+  - {item: KN-PR-01, answer: "5,8", correct: true}
+  - {item: KN-PR-01, answer: "5,80", correct: true}
+  - {item: KN-PR-01, answer: "năm phẩy tám", correct: true}
+  - {item: KN-PR-01, answer: "5,08", correct: false}
+  - {item: KN-PR-01, answer: "58", correct: false}
+  - {item: PL-02, answer: "3,06", correct: true}
+  - {item: PL-02, answer: "3,060", correct: true}
+  - {item: PL-02, answer: "ba phẩy không sáu", correct: true}
+  - {item: PL-02, answer: "3,6", correct: false}
+  - {item: PL-02, answer: "306", correct: false}
+  - {item: CC-02, answer: ">", correct: true}
+  - {item: CC-02, answer: "lớn hơn", correct: true}
+  - {item: CC-02, answer: "0,7 > 0,65", correct: true}
+  - {item: CC-02, answer: "<", correct: false}
+  - {item: CC-02, answer: "bé hơn ạ", correct: false}
+  - {item: CC-02, answer: "0,65 lớn hơn vì 65 lớn hơn 7", correct: false}
+  - {item: GP-05, answer: "=", correct: true}
+  - {item: GP-05, answer: "bằng nhau", correct: true}
+  - {item: GP-05, answer: ">", correct: false}
+  - {item: KN-TR-01, answer: "1,35", correct: true}
+  - {item: KN-TR-01, answer: "1,35 m", correct: true}
+  - {item: KN-TR-01, answer: "135", correct: false}
+  - {item: KN-TR-01, answer: "1,035", correct: false}
+  - {item: GP-06, answer: "0,2; 0,25; 0,3; 0,305", correct: true}
+  - {item: GP-06, answer: "0,2 < 0,25 < 0,3 < 0,305", correct: true}
+  - {item: GP-06, answer: "0,2; 0,3; 0,25; 0,305", correct: false}
+  - {item: GP-06, answer: "0,305; 0,3; 0,25; 0,2", correct: false, why: "the item asks from small to large"}
