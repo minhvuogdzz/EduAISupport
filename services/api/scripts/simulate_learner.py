@@ -22,6 +22,7 @@ import json
 import random
 import re
 import sys
+import time
 from fractions import Fraction
 
 from cavat.config import get_settings
@@ -238,16 +239,42 @@ class Vuong:
         return ("ANSWER", wrong_answer(self.chapter, item_id, self.rng))
 
 
-def run(client: TestClient, chapter_id: str, student: str, max_sessions: int, max_turns: int) -> list[dict]:
+def _retrying(call, *args, **kwargs):
+    """A request that survives a short network loss to the database (seen: Atlas DNS gone for a minute)."""
+    for attempt in range(6):
+        try:
+            return call(*args, **kwargs)
+        except Exception as exc:  # pymongo's network errors surface through the test client
+            if attempt == 5:
+                raise
+            print(f"  ! {type(exc).__name__}, thử lại sau {10 * (attempt + 1)} giây")
+            time.sleep(10 * (attempt + 1))
+
+
+def run(
+    client: TestClient,
+    chapter_id: str,
+    student: str,
+    max_sessions: int,
+    max_turns: int,
+    resume: str | None = None,
+) -> list[dict]:
     sessions = []
     vuong = None
     for n in range(max_sessions):
-        created = client.post("/v1/sessions", json={"lesson_id": chapter_id})
-        assert created.status_code == 201, created.text
-        sid = created.json()["session_id"]
-        state = client.post(f"/v1/sessions/{sid}/join").json()
+        if resume and n == 0:  # go on with a session cut short (its periods passed are understood)
+            sid = resume
+            state = _retrying(client.post, f"/v1/sessions/{sid}/join").json()
+        else:
+            created = _retrying(client.post, "/v1/sessions", json={"lesson_id": chapter_id})
+            assert created.status_code == 201, created.text
+            sid = created.json()["session_id"]
+            state = _retrying(client.post, f"/v1/sessions/{sid}/join").json()
         chapter = chapter_service.chapters()[chapter_id]
         vuong = vuong or Vuong(chapter, chapter_id)
+        for node in state["teaching"]["nodes"]:
+            if node["status"] == "PASSED":
+                vuong.understanding.setdefault(node["node_id"], 0.9)
         turns = 0
         seen = len(state["transcript"])
         while state["lifecycle_state"] != "COMPLETED" and turns < max_turns:
@@ -258,14 +285,15 @@ def run(client: TestClient, chapter_id: str, student: str, max_sessions: int, ma
             v = state["state_version"]
             key = {"Idempotency-Key": f"sim-{sid}-{v}"}
             if command == "CHOICE":
-                r = client.post(
+                r = _retrying(
+                    client.post,
                     f"/v1/sessions/{sid}/choices",
                     json={"choice_id": text, "expected_state_version": v},
                     headers=key,
                 )
             elif command == "HINT":
                 body = {"item_attempt_id": state["teaching"]["input_id"], "expected_state_version": v}
-                r = client.post(f"/v1/sessions/{sid}/hint-requests", json=body, headers=key)
+                r = _retrying(client.post, f"/v1/sessions/{sid}/hint-requests", json=body, headers=key)
             else:
                 body = {
                     "item_attempt_id": state["teaching"]["input_id"] or "",
@@ -273,11 +301,11 @@ def run(client: TestClient, chapter_id: str, student: str, max_sessions: int, ma
                     "content": {"text": text[:500]},
                     "expected_state_version": v,
                 }
-                r = client.post(f"/v1/sessions/{sid}/responses", json=body, headers=key)
+                r = _retrying(client.post, f"/v1/sessions/{sid}/responses", json=body, headers=key)
             if r.status_code != 200:
                 print(f"  ! {r.status_code} {r.text[:200]} on {command} {text!r}")
                 break
-            state = client.get(f"/v1/sessions/{sid}/state").json()
+            state = _retrying(client.get, f"/v1/sessions/{sid}/state").json()
             turns += 1
         if state["lifecycle_state"] != "COMPLETED" and "--debug" in sys.argv:
             for x in state["transcript"][-40:]:
@@ -334,6 +362,7 @@ def main() -> None:
         help="copy the plans to an in-memory database, run there, templates only",
     )
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--resume", help="session id to go on with (the first chapter given)")
     args = parser.parse_args()
     settings = get_settings()
     print(f"Database: {settings.mongodb_db} · học sinh {args.student_id} ({args.name})")
@@ -347,7 +376,12 @@ def main() -> None:
     with TestClient(app) as client:
         for chapter_id in CHAPTERS if args.chapter == "all" else (args.chapter,):
             print(chapter_id)
-            made[chapter_id] = run(client, chapter_id, args.student_id, args.sessions, args.turns)
+            resume = (
+                args.resume
+                if chapter_id == (CHAPTERS[0] if args.chapter == "all" else args.chapter)
+                else None
+            )
+            made[chapter_id] = run(client, chapter_id, args.student_id, args.sessions, args.turns, resume)
     if args.memory:
         return
     out = settings.storage_dir / "reports" / "simulated-sessions.json"
