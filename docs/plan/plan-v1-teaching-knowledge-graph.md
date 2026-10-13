@@ -461,6 +461,20 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-54, nhận ra lỗi sai của chương phát hành (MISC-1, `misconception-rules/0.1.0`, 2026-10-13):** phương án dựng từ tài liệu đã nêu các lỗi sai điển hình của từng tiết, nhưng chưa có đáp án sai nào trỏ tới chúng, nên gia sư không nhận ra lỗi nào.
+  - **Họ lỗi:** mỗi lỗi sai được xếp vào một họ, đọc từ từ khóa và ví dụ trong lời của giáo viên (`families`). Có 14 họ:
+    - số thập phân: mất số 0 giữ chỗ, quên dấu phẩy, đổi đơn vị sai bước, đổi đơn vị diện tích như độ dài, làm tròn dây chuyền, làm tròn quên nhớ, nhìn sai chữ số khi làm tròn;
+    - so sánh: dài hơn thì lớn hơn, so sánh sai phần nguyên;
+    - hình học: quên chia 2, quên nhân 2, nhân hai đáy, thiếu ngoặc, cạnh nghiêng làm đường cao.
+  - **Đáp án sai:** tính từ đáp án đúng và các số trong đề của chính câu đó. Ví dụ: a × h khi đáp án là a × h : 2; 3,5 khi đáp án là 3,05.
+    - Bỏ đáp án sai trùng đáp án đúng, và đáp án sai mà hai họ cùng tạo ra (không phân biệt được).
+    - Luật hình tam giác hoặc hình thang chỉ áp khi đề hoặc tên tiết nói tới hình đó.
+    - Nhân, chia 10 khi đổi đơn vị chỉ áp cho đề có một số đo.
+  - **Mã lỗi:** chọn lỗi cùng họ của chính tiết đó, nếu không có thì của tiết trước gần nhất; trong mỗi nhóm, lỗi CRITICAL được chọn trước. Không gán lỗi của tiết sau.
+  - **Câu so sánh:** được gắn luật lỗi có sẵn (`longer_is_larger`, `ignore_integer_part`).
+  - **Phạm vi:** chỉ bổ sung cho câu chưa có đáp án sai do giáo viên viết, và làm lúc nạp chương, không ghi gì vào database.
+  - **Độ phủ:** báo cáo `make misconception-coverage`.
+  - **Giới hạn:** chưa nhận ra được các lỗi về đơn vị ghi ở đáp số, lỗi vẽ hình, và lỗi cạnh nghiêng (vì đề hiếm khi cho sẵn độ dài cạnh nghiêng).
 - **DI-53, nhắc bài gốc khi làm bài sai (TEACH-2, `teaching-templates/0.5.0`, 2026-10-13):** phần [OPEN] của DI-52.
   - **Khi nào:** lần đầu bé trả lời sai (WRONG) một câu của tiết đang học.
   - **Nhắc tiết nào:** tiết gốc của lỗi sai nếu lỗi đó thuộc một tiết trước; không thì tiết tiên quyết gần nhất. Tiết không có tiết tiên quyết thì không nhắc.
