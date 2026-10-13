@@ -1,0 +1,682 @@
+% CAVAT: bài báo đánh giá hệ thống (tiếng Việt). Biên dịch: tectonic -X compile cavat-paper.tex
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Menlo}[Scale=0.85]
+\usepackage{amsmath,amssymb}
+\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage{booktabs,tabularx,multirow,array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,shapes.geometric,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\captionsetup{font=small,labelfont=bf}
+\renewcommand{\abstractname}{Tóm tắt}
+\renewcommand{\refname}{Tài liệu tham khảo}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\contentsname}{Mục lục}
+\renewcommand{\appendixname}{Phụ lục}
+\setlist{itemsep=1pt,topsep=3pt}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\di}[1]{\textsf{DI-#1}}
+\newcommand{\code}[1]{\texttt{#1}}
+\definecolor{cavat}{HTML}{1F6F78}
+\definecolor{soft}{HTML}{E8F3F4}
+\sloppy
+
+\title{\textbf{CAVAT: Gia sư Toán lớp~5 theo phương pháp Socratic\\ trên đồ thị tri thức, với Hybrid RAG có kiểm chứng\\ và đánh giá tất định}\\[4pt]
+\large Phương pháp đánh giá đa chiều và kết quả thực nghiệm}
+\author{[Họ và tên tác giả]\\
+\small [Khoa / Trường]\\
+\small Người hướng dẫn: [Họ và tên]}
+\date{Bản thảo, ngày 13 tháng 10 năm 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Chatbot dùng mô hình ngôn ngữ lớn (LLM) ngày càng được học sinh dùng để học Toán. Phần lớn các chế độ ``học tập'' hiện có, như Study mode của ChatGPT hay Guided Learning của Gemini, được xây bằng lời nhắc hệ thống (system prompt). Mô hình vẫn tự quyết định khi nào gợi ý, khi nào nói đáp án và khi nào khen học sinh đúng.
+
+Bài báo trình bày \textbf{CAVAT}, một gia sư Toán lớp~5 tiếng Việt được thiết kế theo nguyên tắc ngược lại: \emph{hệ thống học tập được thiết kế trước, AI đặt vào trong}. Cụ thể:
+\begin{itemize}
+  \item Một chính sách dạy tất định trên đồ thị tri thức quyết định mọi nước đi sư phạm.
+  \item LLM (Qwen) chỉ diễn đạt, và lời của nó phải qua bộ kiểm chứng trước khi đến học sinh.
+  \item Đúng hay sai do bộ chấm tất định quyết định, theo chuẩn viết số của Việt Nam.
+  \item Mức hiểu bài là phép chiếu tất định, phát lại được, từ sổ sự kiện, theo khung đánh giá Toán 7 chiều.
+  \item Câu hỏi của học sinh được trả lời bằng Hybrid RAG (BM25, vector và cấu trúc đồ thị) trên chính tài liệu của giáo viên, trong phạm vi bài đang học.
+\end{itemize}
+
+Chúng tôi đề xuất một \textbf{phương pháp đánh giá 8 chiều} với giao thức chống rò rỉ dữ liệu: bộ câu giữ riêng được commit trước mọi thay đổi mã, thí nghiệm bỏ từng phần (ablation), và đối chứng với LLM chỉ có lời nhắc. Kết quả chính:
+\begin{enumerate}[label=(\roman*)]
+  \item RAG đạt trung bình \textbf{85\%} so với 7 mục tiêu đã định hướng (đạt trọn 5/7). Sau khi bổ sung định tuyến theo đồ thị, Hit@3 trên bộ giữ riêng tăng từ 0,45 lên \textbf{0,90}.
+  \item Trong 13 tình huống học sinh khó, LLM chỉ có lời nhắc Socratic được giám khảo LLM chấm cao hơn về giọng văn (4,84 so với 4,46/5). Nhưng LLM này đã \textbf{khen một đáp án sai là đúng rồi nói ra đáp án}, và giám khảo LLM \textbf{không phát hiện}. CAVAT không mắc lỗi này lần nào.
+  \item Cách đánh giá hiểu bài bám sát khung ban đầu ở mức \textbf{74\%} (16/25 mục đầy đủ, 5 mục một phần). Phần còn thiếu đều cần dữ liệu theo thời gian (chiều ghi nhớ).
+\end{enumerate}
+
+Bài báo cũng nêu rõ các giới hạn, trong đó quan trọng nhất là hệ thống chưa được thử nghiệm với học sinh thật.
+\end{abstract}
+
+\noindent\textbf{Từ khóa:} gia sư thông minh, phương pháp Socratic, đồ thị tri thức, Hybrid RAG, đánh giá tất định, mô hình học sinh, LLM-as-a-judge, Toán tiểu học.
+
+\tableofcontents
+\vspace{6pt}\hrule
+
+%=====================================================================
+\section{Giới thiệu}
+%=====================================================================
+
+Gia sư thông minh (Intelligent Tutoring System, ITS) từ lâu đã được chứng minh là cải thiện kết quả học tập ở mức gần với gia sư người khi nó dạy theo từng bước và phản hồi đúng lúc~\cite{vanlehn2011}. Sự xuất hiện của LLM làm chi phí xây một gia sư biết nói giảm mạnh. Tuy vậy, LLM dùng trực tiếp có ba rủi ro sư phạm đã được ghi nhận rộng rãi~\cite{kasneci2023}:
+\begin{enumerate}[label=(R\arabic*)]
+  \item đưa đáp án hoặc làm hộ, khiến học sinh không tự suy nghĩ;
+  \item chấm sai, đặc biệt là \emph{khen một câu sai là đúng};
+  \item không biết học sinh đang ở đâu trong chương trình và đã thật sự hiểu chưa.
+\end{enumerate}
+
+Các nhà cung cấp lớn đã phản hồi bằng các chế độ học tập dựa trên lời nhắc:
+\begin{itemize}
+  \item Study mode của ChatGPT (7/2025) dùng ``chỉ dẫn hệ thống tùy biến'' chứ không phải mô hình riêng~\cite{studymode};
+  \item Guided Learning của Gemini (8/2025) dựa trên họ mô hình LearnLM~\cite{guidedlearning};
+  \item Khanmigo của Khan Academy dựa trên GPT-4 và gắn với kho bài tập tiếng Anh~\cite{khanmigo}.
+\end{itemize}
+Điểm chung của các chế độ này là \emph{mô hình vẫn là nơi ra quyết định}. Các ràng buộc sư phạm chỉ là lời khuyên đặt trong ngữ cảnh.
+
+Bài báo này trình bày CAVAT, một gia sư Toán lớp~5 tiếng Việt cho hai chương ``Số thập phân'' và ``Diện tích hình tam giác, hình thang''. CAVAT được xây theo nguyên tắc ngược lại: \textbf{chính sách quyết định, mô hình chỉ diễn đạt}. Chúng tôi đặt ra bốn câu hỏi nghiên cứu:
+
+\begin{description}[leftmargin=1.2cm,style=nextline]
+  \item[RQ1] Đánh giá một gia sư AI như vậy theo những chiều nào, bằng giao thức nào để kết quả đáng tin?
+  \item[RQ2] Thành phần Hybrid RAG đạt bao nhiêu phần trăm so với các định hướng thiết kế?
+  \item[RQ3] So với các mô hình học sinh đang dùng được trên thị trường, CAVAT giúp học sinh hơn ở điểm nào, và kém ở điểm nào?
+  \item[RQ4] Cách đánh giá ``hiểu bài'' của hệ thống bám sát khung đánh giá ban đầu đến mức nào?
+\end{description}
+
+\paragraph{Đóng góp.}
+\begin{enumerate}
+  \item Một kiến trúc gia sư \emph{policy-first}: vòng dạy 7 bước trên đồ thị tri thức, 14 luật dạy tất định, LLM bị giới hạn ở vai trò diễn đạt và qua bộ kiểm chứng (mục~\ref{sec:system}).
+  \item Một Hybrid RAG tự xây có \emph{định tuyến theo đồ thị}. Câu hỏi về bài trước được đưa về đúng tiết đã dạy nó. Câu hỏi về bài sau không bao giờ được trả lời trước (mục~\ref{sec:rag}).
+  \item Một phương pháp đánh giá 8 chiều, có giao thức \emph{đóng băng bộ giữ riêng trước khi sửa mã} kiểm chứng được qua lịch sử git (mục~\ref{sec:method}).
+  \item Bằng chứng thực nghiệm cho bốn câu hỏi nghiên cứu, gồm một trường hợp cho thấy \emph{giám khảo LLM bỏ sót lỗi chấm của gia sư LLM}. Đây là lập luận định lượng cho nhu cầu kiểm tra tất định (mục~\ref{sec:results}).
+\end{enumerate}
+
+%=====================================================================
+\section{Công trình liên quan}
+%=====================================================================
+
+\paragraph{Gia sư thông minh và mô hình học sinh.}
+\begin{itemize}
+  \item Truy vết tri thức Bayes (BKT)~\cite{corbett1995} và truy vết tri thức sâu (DKT)~\cite{piech2015} dự đoán xác suất học sinh làm đúng câu tiếp theo.
+  \item Gần đây, 2T-KT~\cite{li2026} kết hợp LLM với hai đồ thị tri thức: đồ thị môn học và đồ thị riêng của học sinh. Hướng này mô phỏng ``cách nghĩ của giáo viên'' để dự đoán tốt khi dữ liệu ít.
+  \item CAVAT kế thừa từ 2T-KT ý tưởng đồ thị tri thức có kiểm chứng, ngưỡng tin cậy cho quan hệ do LLM đề xuất ($\theta = 0{,}75$) và cách trình bày thí nghiệm bỏ từng phần.
+  \item Khác với 2T-KT, CAVAT không dừng ở dự đoán: nó \emph{ra quyết định dạy} (giảng, kiểm tra, quay về bài nền, luyện tập) dựa trên trạng thái từng nút.
+\end{itemize}
+
+\paragraph{Truy xuất tăng cường (RAG).}
+\begin{itemize}
+  \item RAG~\cite{lewis2020} gắn lời sinh của LLM với văn bản truy xuất được.
+  \item Truy xuất lai kết hợp BM25~\cite{robertson2009} với vector ngữ nghĩa. Hai danh sách xếp hạng thường được hợp nhất bằng Reciprocal Rank Fusion (RRF)~\cite{cormack2009}.
+  \item Trong giáo dục, RAG còn phải tôn trọng \emph{phạm vi chương trình}: không dạy trước bài sau, và không trả lời bằng kiến thức ngoài chương khi chưa có căn cứ. Đây là ràng buộc ít được các hệ RAG tổng quát xét đến.
+\end{itemize}
+
+\paragraph{Đánh giá hệ thống dùng LLM.}
+\begin{itemize}
+  \item Dùng LLM làm giám khảo (LLM-as-a-judge)~\cite{zheng2023} cho kết quả tương quan khá với người chấm, nhưng có thiên lệch đã biết.
+  \item Thực tiễn tốt gồm: giám khảo khác họ với mô hình được chấm, hiệu chỉnh với nhãn người, và ưu tiên chỉ số tất định khi có thể.
+  \item Chúng tôi áp dụng các thực tiễn này, và báo cáo một trường hợp giám khảo bỏ sót lỗi (mục~\ref{sec:market}).
+\end{itemize}
+
+\paragraph{Sản phẩm trên thị trường.} Bảng~\ref{tab:market} tóm tắt các sản phẩm học sinh có thể dùng (mục~\ref{sec:market}).
+
+%=====================================================================
+\section{Hệ thống CAVAT}\label{sec:system}
+%=====================================================================
+
+\subsection{Nguyên tắc thiết kế}
+Hệ thống tuân theo mười quy tắc không được vi phạm. Năm quy tắc quan trọng nhất cho đánh giá:
+\begin{enumerate}[label=(Q\arabic*)]
+  \item Chính sách quyết định nước đi (loại phản hồi, đích và mức gợi ý). LLM chỉ diễn đạt và đề xuất nhãn. Mọi lời của LLM qua bộ kiểm: lộ đáp án, một câu hỏi mỗi lượt, độ dài, bám nguồn, an toàn.
+  \item Đáp án của câu kiểm tra không bao giờ có trong lời nhắc gửi LLM. Đúng hay sai do bộ chấm tất định \code{MathChecker} quyết định, theo chuẩn vi-VN (dấu phẩy thập phân).
+  \item Mức hiểu bài là \emph{phép chiếu tất định, có phiên bản, phát lại được} từ sổ sự kiện chỉ ghi thêm. LLM không bao giờ ghi trực tiếp điểm thành thạo.
+  \item Mọi công thức và ngưỡng không có trong khung đánh giá gốc được khai báo là \emph{diễn giải} (Declared Interpretation, DI). Đến thời điểm viết bài có 58 DI.
+  \item Ưu tiên dịch vụ miễn phí:
+    \begin{itemize}
+      \item Qwen \code{qwen3.8-27b} trên Groq làm bộ não diễn đạt (lời nhắc $\le 3.000$ token, tắt suy luận);
+      \item Gemini chỉ dùng cho ảnh và embedding;
+      \item giọng nói dùng Whisper (Groq) và VieNeu-TTS chạy cục bộ.
+    \end{itemize}
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+  box/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\small,minimum height=10mm,text width=27mm},
+  llm/.style={box,fill=orange!14,draw=orange!70!black},
+  data/.style={box,fill=gray!10,draw=gray!60},
+  arr/.style={-{Latex[length=2mm]},thick,draw=cavat},
+  lab/.style={font=\scriptsize,fill=white,inner sep=1pt}]
+% hàng 1: luồng chính
+\node[draw=none,font=\small,align=center] (kid) at (0,0) {\textbf{Học sinh}\\\scriptsize gõ hoặc nói};
+\node[box] (cond) at (3.8,0) {Bộ điều phối\\\scriptsize teencode, gỡ bế tắc};
+\node[box] (loop) at (7.6,0) {Vòng dạy 7 bước\\\scriptsize trên đồ thị tri thức};
+\node[box] (policy) at (11.4,0) {Chính sách dạy\\\scriptsize 14 luật N-* tất định};
+% hàng 2: một câu hỏi và lời nói
+\node[box] (check) at (0,-1.9) {MathChecker\\\scriptsize chấm tất định vi-VN};
+\node[box] (item) at (3.8,-1.9) {Vòng một câu hỏi\\\scriptsize Hint Engine H0--H7};
+\node[box] (valid) at (7.6,-1.9) {Bộ kiểm chứng\\\scriptsize lộ, câu hỏi, nguồn};
+\node[llm] (llm) at (11.4,-1.9) {Qwen (LLM)\\\scriptsize chỉ diễn đạt};
+% hàng 3: dữ liệu
+\node[data] (ledger) at (0,-3.8) {Sổ sự kiện\\\scriptsize chỉ ghi thêm};
+\node[box] (proj) at (3.8,-3.8) {Phép chiếu mức hiểu\\\scriptsize 7 chiều, $M$, 6 mức};
+\node[box] (rag) at (7.6,-3.8) {Hybrid RAG\\\scriptsize BM25, vector, đồ thị};
+\node[data] (docs) at (11.4,-3.8) {Tài liệu giáo viên\\\scriptsize đã duyệt};
+% hàng 4
+\node[box] (teacher) at (0,-5.7) {Trang giáo viên\\\scriptsize bản đồ nhiệt, tiến bộ};
+\draw[arr] (kid) -- (cond);
+\draw[arr] (cond) -- (loop);
+\draw[arr] (loop) -- (policy);
+\draw[arr] (policy) -- node[lab,right]{nước đi} (llm);
+\draw[arr] (llm) -- (valid);
+\draw[arr] (valid) -- (item);
+\draw[arr] (loop) -- (item);
+\draw[arr] (item) -- (check);
+\draw[arr] (check) -- node[lab,right]{bằng chứng} (ledger);
+\draw[arr] (ledger) -- (proj);
+\draw[arr] (docs) -- (rag);
+\draw[arr] (rag) -- node[lab,right]{đoạn nguồn} (valid);
+\draw[arr] (ledger) -- (teacher);
+\draw[arr] (proj) -- (teacher);
+\draw[arr] (proj.south) -- ++(0,-0.75) -- ++(9.6,0) node[lab,below,pos=0.5]{trạng thái từng tiết} -- ++(0,0) |- ($(policy.east)+(0,0)$) -- (policy.east);
+\end{tikzpicture}
+\caption{Kiến trúc CAVAT. Ô màu cam là nơi duy nhất có LLM. Mọi quyết định sư phạm và mọi điểm số đi qua các thành phần tất định. Sổ sự kiện là nguồn sự thật: trạng thái dạy và mức hiểu đều được dựng lại bằng cách phát lại sự kiện.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Vòng dạy trên đồ thị tri thức}
+Mỗi chương là một đồ thị có hướng các \emph{tiết} (nút tri thức), có quan hệ tiên quyết. Chương Số thập phân có 11 tiết, chương Diện tích có 8 tiết. Đồ thị, lý thuyết, ví dụ mẫu và ngân hàng câu hỏi (234 và 155 câu) được dựng từ tài liệu của giáo viên rồi giáo viên duyệt.
+
+Tại mỗi tiết, vòng dạy đi qua 7 bước:
+\begin{enumerate}
+  \item ôn bài nền hoặc hỏi lại bài đã học;
+  \item giảng lý thuyết, kết thúc bằng một câu hỏi;
+  \item kiểm tra hiểu, gồm một câu hỏi và mời học sinh nói lại ý chính;
+  \item làm mẫu, rồi ``cô làm nửa, con làm nửa'';
+  \item luyện tập;
+  \item vận dụng;
+  \item qua tiết, hoặc dừng tiết để ôn sau.
+\end{enumerate}
+
+Chính sách dạy là 14 luật tất định, xếp theo thứ tự ưu tiên:
+\begin{center}
+\small
+N-FINISH, N-REVIEW, N-NEXT, N-PASS, N-BUDGET, N-REMEDIATE, N-WARMUP, N-RECALL, N-TEACH, N-CHECK, N-RETEACH, N-METHOD, N-PRACTICE, N-TRANSFER.
+\end{center}
+Mỗi quyết định ghi lại tên luật và lý do, nên giải thích được và kiểm thử được theo từng luật. Hai ví dụ:
+\begin{itemize}
+  \item N-REMEDIATE đưa học sinh quay về tiết tiên quyết khi gặp một lỗi sai nghiêm trọng của tiết đó, hoặc khi kiểm tra hiểu sai hai lần mà tiết tiên quyết còn yếu.
+  \item N-RECALL (\di{52}) hỏi lại ý chính của tiết tiên quyết gần nhất khi vào tiết mới.
+\end{itemize}
+
+\subsection{Mô hình học sinh và đánh giá hiểu bài}
+Mỗi tiết có một phân phối Beta cho mỗi chiều trong bảy chiều của khung đánh giá Toán:
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+C & đúng & T & chuyển giao \\
+R & lập luận & I & độc lập \\
+A & vận dụng & S & ghi nhớ \\
+D & chẩn đoán lỗi & & \\
+\end{tabular}
+\end{center}
+Một bằng chứng có điểm $s \in [0,1]$ và trọng số $w$ cộng $ws$ vào $\alpha$ và $w(1-s)$ vào $\beta$. Mức thành thạo được tính bằng
+\begin{equation}
+M = \frac{\sum_{d \in \mathcal{A}} w_d\, \mu_d}{\sum_{d\in\mathcal{A}} w_d},\qquad
+(w_C,w_R,w_A,w_T,w_I,w_S,w_D) = (0{,}20;\,0{,}20;\,0{,}15;\,0{,}15;\,0{,}10;\,0{,}10;\,0{,}10),
+\end{equation}
+trong đó $\mathcal{A}$ là tập chiều có đủ bằng chứng hiệu dụng (\di{1}). Trọng số của bằng chứng phụ thuộc vào:
+\begin{itemize}
+  \item độ khó: $0{,}5+d$ khi đúng, $1{,}5-d$ khi sai;
+  \item mức gợi ý đã nhận: H0 tính 1,00, giảm dần đến H7 tính 0;
+  \item loại lỗi: lỗi tính toán được 0,5, lỗi định dạng 0,7, lỗi khái niệm 0.
+\end{itemize}
+
+$M$ được xếp vào 6 mức hiểu với các ngưỡng 20, 40, 60, 75, 90. Ngoài ra có các cổng:
+\begin{itemize}
+  \item cổng ``hiểu'': ít nhất 3 lần đúng, trên ít nhất 2 mức nhận thức và ít nhất 2 dạng câu;
+  \item cổng theo chiều (\di{6}): mức ``khái niệm'' cần $\mu_R \ge 0{,}6$, mức ``vận dụng'' cần có bằng chứng vận dụng.
+\end{itemize}
+
+\subsection{Hybrid RAG theo phạm vi bài}\label{sec:rag}
+Kho đoạn của hai chương có 221 đoạn, trong đó 83 đoạn từ tài liệu của giáo viên. Mỗi đoạn được gắn với tiết của nó. Truy xuất cho một câu học sinh hỏi đi qua sáu bước:
+\begin{enumerate}
+  \item \textbf{Phạm vi:} tiết đang học và các tiết gần trên đồ thị.
+  \item \textbf{Chỉ mục từ khóa:} BM25 tự viết trên âm tiết và cặp âm tiết.
+  \item \textbf{Chỉ mục vector:} embedding \code{gemini-embedding-001}, so bằng cosine.
+  \item \textbf{Hợp nhất:} RRF, có trọng số theo khoảng cách đồ thị.
+  \item \textbf{Xếp hạng lại theo sư phạm:} ưu tiên câu định nghĩa, đoạn chưa dùng, đoạn đúng lỗi sai vừa gặp.
+  \item \textbf{Chọn đoạn và quyết định có căn cứ:} cosine $\ge$ ngưỡng đã hiệu chỉnh.
+\end{enumerate}
+
+Bản thân đồ thị tri thức tham gia vào truy xuất qua hai luật:
+\begin{itemize}
+  \item \textbf{Không dạy trước (\di{50}).} Đoạn của tiết sau không bao giờ lọt vào phạm vi. Nếu câu hỏi khớp rõ hơn với một tiết sau, gia sư nói ``bài sau mình sẽ học'' thay vì trả lời.
+  \item \textbf{Định tuyến về bài trước (\di{57}).} Mỗi tiết trong phạm vi (tiết đang học và mọi tiết trước nó) được chấm bằng đoạn khớp nhất. Nếu một tiết trước khớp hơn tiết đang học từ 0,02 cosine trở lên, tiết đó được coi là chủ đề của câu hỏi và không bị trừ điểm khoảng cách.
+\end{itemize}
+
+Lời trả lời do Qwen viết từ các đoạn đã chọn, rồi qua bộ kiểm chứng: số, thuật ngữ, độ phủ, độ dài. Không qua thì gia sư trích nguyên văn đoạn nguồn hoặc ghi câu hỏi lại cho giáo viên. Khi tài liệu không trả lời được câu dạng ``X là gì'', hệ thống được tra Wikipedia tiếng Việt, kiểm chứng cùng cách (\di{51}).
+
+\subsection{Các thành phần hỗ trợ}
+\begin{itemize}
+  \item \textbf{Bộ điều phối hội thoại:} làm sạch emoji, chữ kéo dài, ``o'' thay số 0; giải mã teencode; nhận ra tin nhắn dồn từ khóa; gỡ bế tắc khi gia sư sắp lặp lại chính mình.
+  \item \textbf{Bộ chấm ``vì sao'' (\di{55}):} câu giải thích chung chung (``vì con làm theo quy tắc cô dạy'') được hỏi lại một lần và không được tính là bằng chứng lập luận.
+  \item \textbf{Nhận diện lỗi sai (\di{54}):} 14 họ lỗi đọc từ lời mô tả của giáo viên. Đáp án sai mà mỗi họ lỗi tạo ra được tính từ chính các con số của câu hỏi.
+  \item \textbf{Chế độ giọng nói (ADR-030):} học sinh nói chuyện với gia sư và có thể ngắt lời.
+  \item \textbf{Trang giáo viên:} bản đồ nhiệt hành trình, đường ``từ chưa hiểu đến hiểu'', thống kê tình huống hội thoại, lỗi sai.
+\end{itemize}
+
+%=====================================================================
+\section{Phương pháp đánh giá}\label{sec:method}
+%=====================================================================
+
+\subsection{Nguyên tắc}
+\begin{enumerate}[label=(P\arabic*)]
+  \item \textbf{Tất định trước, mô hình chấm sau.} Những gì đo được bằng luật đều đo bằng luật: lộ đáp án, số câu hỏi mỗi lượt, đúng/sai Toán, phạm vi bài. Giám khảo LLM chỉ dùng cho chất lượng ngôn ngữ và sư phạm, và luôn \emph{khác họ} với mô hình gia sư: gia sư là Qwen, giám khảo là \code{gpt-oss-120b}.
+  \item \textbf{Đóng băng bộ giữ riêng.} Mỗi bộ câu dùng để chỉnh tham số có một bộ giữ riêng không dùng để chỉnh. Khi một bộ giữ riêng đã bị xem (ví dụ khi phân tích lỗi), nó mất tư cách giữ riêng. Bộ mới được viết và \emph{commit trước} khi sửa mã, rồi đo đúng một lần. Thứ tự này kiểm chứng được qua lịch sử git.
+  \item \textbf{Bỏ từng phần (ablation).} Mỗi thành phần của RAG được bỏ riêng để đo đóng góp, theo cách Bảng~5 của 2T-KT~\cite{li2026}.
+  \item \textbf{Đối chứng.} So với LLM chỉ có lời nhắc, cùng mô hình, để tách giá trị của \emph{hệ thống} khỏi giá trị của \emph{mô hình}. So thêm với một chatbot thương mại.
+  \item \textbf{Tái lập và trung thực.} Mỗi con số có một lệnh \code{make}. Câu trượt được liệt kê từng câu. Khi một con số tăng vì đo lại chứ không vì sửa hệ thống, điều đó được ghi rõ.
+\end{enumerate}
+
+\subsection{Khung 8 chiều}
+Bảng~\ref{tab:dims} trình bày khung đánh giá. Bảy chiều đầu và ngưỡng của chúng được đặt trong bản thiết kế \emph{trước} khi xây hệ thống. Chiều thứ tám (kết quả học tập) được bổ sung để nói rõ điều chưa đo được.
+
+\begin{table}[H]
+\centering\small
+\caption{Khung đánh giá 8 chiều}\label{tab:dims}
+\begin{tabularx}{\textwidth}{@{}cp{2.6cm}Yp{2.7cm}p{1.9cm}@{}}
+\toprule
+\# & Chiều & Chỉ số & Ngưỡng ban đầu & Trạng thái \\
+\midrule
+1 & Tuân thủ Socratic & Lộ đáp án (luật); số câu hỏi mỗi lượt; điểm Socratic của giám khảo & Lộ $\le$1\% luyện tập, 0\% kiểm tra & Đã đo \\
+2 & Chất lượng gợi ý & Giám khảo chấm ``đáp đúng ý''; tiến bộ sau gợi ý & $\ge$ 4/5 & Đã đo \\
+3 & Bám nguồn (RAG) & Hit@k, MRR, tỉ lệ có căn cứ, giám khảo chấm bám nguồn & $\ge$ 95\% & Đã đo \\
+4 & Chất lượng sư phạm & Giám khảo chấm ``hợp trẻ''; giáo viên duyệt nội dung & $\ge$ 80\% chấp nhận & Đã đo \\
+5 & Độ tin cậy đánh giá & Tất định; độ chính xác chấm; độ nhạy bộ kiểm đáp án; $\kappa$ với giáo viên & Tất định 100\%; $\kappa \ge 0{,}6$ & Đã đo, trừ $\kappa$ \\
+6 & Tuân thủ phạm vi & Dạy trước bài sau; LLM ghi điểm; vượt quyền & 0 vi phạm & Đã đo \\
+7 & Bịa đặt & Câu không nguồn; lỗi Toán trong lời gia sư & $\le$ 2\% lượt; 0 lỗi Toán & Đã đo \\
+8 & Kết quả học tập & Kiểm tra trước/sau, nhóm đối chứng, ghi nhớ T7/T30 & --- & Chưa đo \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Dữ liệu và bộ đo}
+Bảng~\ref{tab:suites} liệt kê các bộ đo. Toàn bộ chạy được trên máy cá nhân với dịch vụ miễn phí. Embedding được lưu đệm, nên chạy lại không tốn hạn mức.
+
+\begin{table}[H]
+\centering\small
+\caption{Các bộ đo và dữ liệu}\label{tab:suites}
+\begin{tabularx}{\textwidth}{@{}p{3.6cm}Yp{3.4cm}@{}}
+\toprule
+Bộ đo (lệnh) & Nội dung & Quy mô \\
+\midrule
+\code{make test} & Kiểm thử tự động: chính sách dạy, chấm, phát lại tất định, API, an toàn dữ liệu & 1.210 ca \\
+\code{eval-rag} & RAG trên chương mẫu, 5 cấu hình ablation & 67 câu chỉnh + 30 câu giữ riêng \\
+\code{eval-rag-published} & RAG trên 2 chương dựng từ tài liệu thật; kèm quyết định của gia sư & 30 chỉnh; giữ riêng v1: 23, v2: 30 \\
+\code{eval-grounded} & Qwen trả lời câu học sinh hỏi từ RAG, có kiểm chứng; giám khảo chấm & 15 câu hỏi + 6 câu nối \\
+\code{eval-baselines} (EVAL-1) & Hội thoại 13 vai học sinh khó với 3 gia sư; chấm câu trả lời của trẻ & 13 vai, 2 lượt/vai; 36 + 35 câu trả lời \\
+\code{eval-items} & Độ nhạy bộ kiểm đáp án: đổi một chữ số của đáp án & 389 câu, 3.442 lần đổi \\
+\code{trial}, \code{simulate\_learner} & Học sinh mô phỏng học hết hai chương & 4 + 1 hồ sơ học sinh \\
+\code{misconception-}\newline\code{coverage} & Lỗi sai trong tài liệu nhận ra được bao nhiêu & 280 câu số/trắc nghiệm \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=====================================================================
+\section{Kết quả}\label{sec:results}
+%=====================================================================
+
+\subsection{RQ2: RAG đạt bao nhiêu phần trăm so với định hướng}
+
+\paragraph{Mục tiêu.} Bảy mục tiêu R1--R7 được lấy từ bản thiết kế (Bảng~\ref{tab:dims}, chiều 3, 6, 7) và kế hoạch RAG. Quy tắc tính được khai báo trước khi đo lại:
+\begin{itemize}
+  \item mục tiêu dạng ``$\ge$'': mức đạt = kết quả / mục tiêu;
+  \item mục tiêu dạng ``$\le$'': mức đạt = mục tiêu / kết quả;
+  \item tối đa 100\%; R7 tính đạt/không đạt;
+  \item khi có cả chương mẫu và chương dựng từ tài liệu thật, lấy con số \emph{thấp hơn}.
+\end{itemize}
+
+\paragraph{Ablation trên chương mẫu.} Bảng~\ref{tab:ragyaml} cho thấy trên bộ chỉnh, hybrid kèm xếp hạng lại là tốt nhất (MRR 0,939). Trên bộ giữ riêng, chỉ dùng ngữ nghĩa lại tốt hơn (0,765 so với 0,678). Vì vậy giả thuyết ``hybrid tốt hơn từng thành phần'' \emph{không} được xác nhận trên chương mẫu.
+
+\begin{table}[H]
+\centering\small
+\caption{Ablation RAG trên chương mẫu (MRR; Hit@3 trong ngoặc)}\label{tab:ragyaml}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Cấu hình & Bộ chỉnh (57 câu) & Bộ giữ riêng (15 câu) \\
+\midrule
+Chỉ từ khóa (BM25) & 0,826 (0,91) & 0,608 (0,80) \\
+Chỉ ngữ nghĩa & 0,868 (1,00) & \textbf{0,765} (0,93) \\
+Hybrid (RRF) & 0,864 (0,98) & 0,722 (0,87) \\
+Hybrid + xếp hạng lại & \textbf{0,939} (1,00) & 0,678 (0,87) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Định tuyến về bài trước (\di{57}) trên tài liệu thật.} Khi đánh giá, chúng tôi phát hiện câu hỏi về khái niệm của tiết trước, nếu không ở dạng ``X là gì'', gần như không với tới tiết đã dạy nó. Lý do là mỗi bước trên đồ thị làm điểm giảm theo $1/(1+\text{khoảng cách})$. Tệ hơn, gia sư vẫn trả lời bằng đoạn của tiết đang học, vì đoạn đó cùng chương nên vẫn ``có căn cứ''.
+
+Chúng tôi viết bộ giữ riêng v2 (30 câu) và commit \emph{trước} khi sửa, rồi đo đúng một lần sau khi sửa (Bảng~\ref{tab:route}, Hình~\ref{fig:route}).
+
+\begin{table}[H]
+\centering\small
+\caption{RAG trên hai chương dựng từ tài liệu thật, bộ giữ riêng v2 (đóng băng trước khi sửa)}\label{tab:route}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Chỉ số (cấu hình chạy thật: hybrid + xếp hạng lại) & Trước \di{57} & Sau \di{57} \\
+\midrule
+Hit@3, câu hỏi trong chương (20 câu) & 0,45 & \textbf{0,90} \\
+Hit@3, nhóm hỏi bài trước (12 câu) & 0,08 & \textbf{0,83} \\
+MRR & 0,503 & \textbf{0,887} \\
+Câu hỏi bài sau: không dạy trước & 4/4 & 4/4 \\
+Câu lạc đề, Toán ngoài chương: gác cho giáo viên & 6/6 & 6/6 \\
+\midrule
+Ablation sau \di{57}: từ khóa / ngữ nghĩa / hybrid & \multicolumn{2}{c}{0,459 / 0,449 / 0,460} \\
+Ablation sau \di{57}: từ khóa + xếp hạng lại / hybrid + xếp hạng lại & \multicolumn{2}{c}{0,728 / \textbf{0,887}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[ybar, bar width=14pt, width=0.85\textwidth, height=5.4cm,
+  ymin=0, ymax=1.15, ylabel={Hit@3}, ytick={0,0.25,0.5,0.75,1},
+  yticklabel style={/pgf/number format/fixed,/pgf/number format/fixed zerofill,/pgf/number format/precision=2,/pgf/number format/use comma},
+  symbolic x coords={Bộ chỉnh,Giữ riêng v1,Giữ riêng v2},
+  xtick=data, enlarge x limits=0.25,
+  legend style={at={(0.5,1.04)},anchor=south,legend columns=2,font=\small,draw=none},
+  nodes near coords, nodes near coords style={font=\scriptsize},
+  every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/fixed zerofill,/pgf/number format/precision=2,/pgf/number format/use comma}]
+\addplot[fill=gray!40] coordinates {(Bộ chỉnh,0.83) (Giữ riêng v1,0.64) (Giữ riêng v2,0.45)};
+\addplot[fill=cavat!70] coordinates {(Bộ chỉnh,1.00) (Giữ riêng v1,1.00) (Giữ riêng v2,0.90)};
+\legend{Trước định tuyến, Sau định tuyến (\di{57})}
+\end{axis}
+\end{tikzpicture}
+\caption{Hit@3 của câu hỏi trong chương trên hai chương dựng từ tài liệu thật. Bộ v2 được viết và commit trước khi sửa, nên là con số báo cáo. Bộ v1 đã bị xem khi phân tích lỗi.}
+\label{fig:route}
+\end{figure}
+
+Hai điều đáng chú ý:
+\begin{itemize}
+  \item Hai tham số biên độ là giá trị đặt lần đầu, chưa chỉnh lần nào.
+  \item Sau khi có định tuyến theo đồ thị, vector ngữ nghĩa mới có đóng góp thật: hybrid kèm xếp hạng lại 0,887 so với từ khóa kèm xếp hạng lại 0,728. Trước đó, ngữ nghĩa không thêm gì so với từ khóa trên tài liệu thật. Nói cách khác, \emph{trên tài liệu ngắn, nhiều thuật ngữ trùng nhau giữa các tiết, cấu trúc đồ thị là thành phần quyết định, vector chỉ có ích khi đi cùng nó}.
+\end{itemize}
+
+\paragraph{Lời trả lời của Qwen.} Đo lại trên mã hiện tại với giám khảo nhận đầu vào dạng các dòng có nhãn (\code{eval-grounded}). Dạng JSON trước đây khiến giám khảo đọc nhầm một ô trống thành ``gia sư không nói gì'' (ca G05). Kết quả:
+\begin{itemize}
+  \item chọn đúng loại phản hồi (trả lời, bài sau, gác cho giáo viên, ``chính là câu cô đang hỏi''): 15/15;
+  \item bám nguồn: 5,00/5 cho câu trả lời và 5,00/5 cho câu nối;
+  \item giám khảo thấy bịa: 0/14; lộ đáp án: 0/14;
+  \item bộ kiểm chứng đã chặn 5 câu Qwen viết không có nguồn, trước khi học sinh nghe.
+\end{itemize}
+
+\paragraph{Mức đạt.} Bảng~\ref{tab:targets} tổng hợp. RAG đạt trung bình \textbf{85\%} (đạt trọn 5/7), tăng từ 65\% ở lần đo đầu. Phần tăng có hai nguồn, được báo cáo riêng:
+\begin{itemize}
+  \item R1 tăng nhờ một sửa thật của hệ thống (\di{57}), đo trên bộ giữ riêng đóng băng;
+  \item R5 và R6 tăng vì đo lại trên mã hiện tại với giám khảo đã sửa lỗi định dạng.
+\end{itemize}
+R7 chỉ đạt trên tài liệu thật, nên vẫn tính 0\% theo quy tắc lấy con số thấp hơn.
+
+\begin{table}[H]
+\centering\small
+\caption{Mức đạt của RAG so với 7 mục tiêu định hướng}\label{tab:targets}
+\begin{tabularx}{\textwidth}{@{}lYcc@{}}
+\toprule
+Mã & Mục tiêu (nguồn) & Lần đo đầu & Hiện tại \\
+\midrule
+R1 & Hit@3 $\ge$ 0,90 trên bộ giữ riêng (DI) & 71\% & \textbf{97\%} \\
+R2 & $\ge$ 95\% câu lạc đề không được trả lời (chiều 7) & 100\% & 100\% \\
+R3 & $\ge$ 95\% câu trong chương có căn cứ (chiều 3) & 98\% & 100\% \\
+R4 & 100\% câu bài sau không được dạy trước (chiều 6) & 100\% & 100\% \\
+R5 & Bám nguồn $\ge$ 95\% (chiều 3) & 86\% & 100\% \\
+R6 & Bịa hoặc lộ $\le$ 2\% lượt (chiều 7) & 0\% & 100\% \\
+R7 & Hybrid + xếp hạng lại tốt nhất trên bộ giữ riêng (thiết kế) & 0\% & 0\% \\
+\midrule
+ & \textbf{Trung bình} & \textbf{65\%} & \textbf{85\%} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{RQ3: So với các mô hình trên thị trường}\label{sec:market}
+
+\paragraph{So sánh tính năng.} Bảng~\ref{tab:market} so sánh theo thông tin công khai của các sản phẩm.
+
+\begin{table}[H]
+\centering\footnotesize
+\caption{So sánh tính năng với các sản phẩm học sinh có thể dùng (thông tin công khai 2025--2026)}\label{tab:market}
+\begin{tabularx}{\textwidth}{@{}p{2.3cm}YYYp{2.4cm}@{}}
+\toprule
+Sản phẩm & Cơ chế không lộ đáp án & Theo dõi hiểu bài & Vai trò giáo viên & Nội dung \\
+\midrule
+ChatGPT Study mode~\cite{studymode} & Chỉ dẫn hệ thống tùy biến; mô hình tự quyết & Nhớ hội thoại; không có mô hình kỹ năng & Không có lớp, không có báo cáo & Chung \\
+Gemini Guided Learning~\cite{guidedlearning} & Mô hình LearnLM; mô hình tự quyết & Không công bố & Không có lớp, không có báo cáo & Chung; tải tài liệu lên được \\
+Khanmigo~\cite{khanmigo} & Thiết kế không đưa đáp án (GPT-4) & Theo tiến độ trên nền tảng & Có công cụ giáo viên & Tiếng Anh, chương trình Mỹ; trả phí \\
+App giải bài bằng ảnh & Không: mục tiêu là đưa lời giải & Không & Không & Giải hộ \\
+\textbf{CAVAT} & Đáp án câu kiểm tra không có trong lời nhắc; bộ kiểm chặn trước khi gửi & 7 chiều mỗi tiết, phát lại được & Duyệt phương án dạy; bản đồ nhiệt, lỗi sai, hội thoại & Tài liệu của chính giáo viên; vi-VN; miễn phí \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Thí nghiệm đối chứng EVAL-1.} Mười ba vai học sinh khó nói cùng những câu như nhau với ba gia sư:
+\begin{itemize}
+  \item \textbf{B1:} Gemini với lời nhắc của một phụ huynh, đại diện chatbot thương mại;
+  \item \textbf{B2:} chính Qwen của CAVAT với một lời nhắc Socratic được soạn kỹ, đại diện ``chế độ học bằng lời nhắc'';
+  \item \textbf{C:} CAVAT.
+\end{itemize}
+Các vai gồm: nói ``không biết'', không hiểu đề, đòi đáp án và thử ``bỏ qua hướng dẫn'', nói chuyện ngoài bài, chán nản và tự ti, viết không dấu, nhờ làm hộ, sai mà chắc chắn, đoán bừa, đúng nhưng lý do chưa chắc, hỏi lại gợi ý, hỏi nghĩa một từ, trả lời bằng lời.
+
+Ngày thực nghiệm, hạn mức miễn phí của các mô hình Gemini mạnh đã hết. Vì vậy mốc B1 được để lại cho lần chạy sau (kết quả được lưu đệm để chạy tiếp), và bài báo này báo cáo B2 và C (Bảng~\ref{tab:evala}).
+
+\begin{table}[H]
+\centering\small
+\caption{EVAL-1, phần A: 13 vai học sinh khó (điểm giám khảo thang 1--5)}\label{tab:evala}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Chỉ số & B2: Qwen + lời nhắc Socratic & C: CAVAT \\
+\midrule
+Số lượt & 25 & 24 \\
+Nói ra đáp án (đếm bằng luật) & \textbf{1} & \textbf{0} \\
+Khen câu trả lời sai là đúng & \textbf{1} & \textbf{0} \\
+Giám khảo thấy lộ đáp án & 0/25 & 0/24 \\
+Lượt có hơn một câu hỏi & 0 & 0 \\
+Số chữ trung bình mỗi lượt & 29 & 24 \\
+Đáp đúng ý học sinh & 4,88 & 4,71 \\
+Socratic & \textbf{4,84} & 4,46 \\
+Hợp với trẻ 10 tuổi & 4,88 & 4,88 \\
+Bám bài & 4,92 & 4,71 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Phân tích.} Về \emph{giọng văn}, CAVAT không hơn một LLM có lời nhắc tốt: giám khảo cho B2 điểm Socratic cao hơn. Ba lượt CAVAT bị chấm thấp có nguyên nhân rõ:
+\begin{itemize}
+  \item một lượt xác nhận câu đúng rồi sang câu mới mà không hỏi ``vì sao'' (luật chỉ hỏi ở 30\% số câu, đã được giáo viên duyệt);
+  \item một phản ví dụ đang chờ giáo viên duyệt nội dung;
+  \item một câu nhắc lại đề còn nhạt.
+\end{itemize}
+
+Về \emph{an toàn sư phạm}, kết quả ngược lại. Với vai ``sai mà chắc chắn'', học sinh trả lời 0,09 cho câu ``viết 9/10 dưới dạng số thập phân''. B2 đáp:
+\begin{quote}\small
+``Con đã viết \textbf{đúng} số thập phân rồi, cô rất vui! Con có thể giải thích cho cô nghe vì sao 9/10 lại bằng \textbf{0,9} không?''
+\end{quote}
+Trong một câu, mô hình vừa khen một đáp án sai, vừa nói ra đáp án đúng. \textbf{Giám khảo LLM chấm câu này 5/5 Socratic và ``không lộ đáp án''}. Chỉ luật tất định phát hiện ra.
+
+Trường hợp này minh họa đúng rủi ro (R2) ở mục giới thiệu. Nó cũng cho thấy hai giới hạn: \emph{LLM tự chấm trong hội thoại có thể sai}, và \emph{LLM làm giám khảo có thể bỏ sót lỗi đó}. Ở CAVAT, mọi phán quyết đúng/sai do \code{MathChecker} đưa ra, và đáp án không có trong ngữ cảnh của LLM, nên lỗi loại này không thể xảy ra theo thiết kế.
+
+\paragraph{Chấm câu trả lời của trẻ.} Chúng tôi gán nhãn tay hai bộ câu trả lời mà học sinh lớp 5 hay viết: dấu phẩy, ``o,9'', ``không phẩy chín'', viết phân số khi đề hỏi số thập phân, dấu so sánh bằng chữ.
+\begin{itemize}
+  \item Bộ v1 chỉ ra hai lỗi của bộ chấm: chưa đọc được số viết bằng chữ, và nhận ``9/10'' khi đề hỏi số thập phân.
+  \item Hai lỗi được sửa (\di{58}), rồi đo trên bộ v2 viết và commit trước khi sửa (Bảng~\ref{tab:grading}).
+\end{itemize}
+
+\begin{table}[H]
+\centering\small
+\caption{EVAL-1, phần B: độ chính xác chấm câu trả lời của trẻ}\label{tab:grading}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Người chấm & v1 (36 câu) & v2 giữ riêng (35 câu) & Tất định \\
+\midrule
+C: CAVAT trước \di{58} & 31/36 (86\%) & 26/35 (74\%) & Có \\
+C: CAVAT sau \di{58} & --- & \textbf{35/35 (100\%)} & Có \\
+B2: Qwen chấm hàng loạt & 35/36 (97\%) & 35/35 (100\%) & Không \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Khi chấm hàng loạt với hướng dẫn rõ ràng, Qwen ngang CAVAT. Nhưng khi chấm \emph{giữa hội thoại}, Qwen đã khen một câu sai (phần A). Bộ chấm của CAVAT là cùng một đoạn mã ở mọi nơi nó được gọi.
+
+\paragraph{CAVAT giúp học sinh hơn ở điểm nào.} Tổng hợp bằng chứng:
+\begin{enumerate}
+  \item \textbf{Không bao giờ bị đưa đáp án hay bị khen sai:} 0 lần trong EVAL-1 và trong 24 lượt của bộ \code{eval-hard} (giám khảo không thấy lộ).
+  \item \textbf{Được chấm đúng theo cách viết và cách nói của trẻ Việt Nam, nhất quán:} 35/35 trên bộ giữ riêng, tất định.
+  \item \textbf{Được dạy đúng chỗ hổng:} hỏi lại bài cũ khi vào tiết mới, nhắc ý chính của bài gốc khi sai lần đầu, quay về bài nền khi có lỗi sai nghiêm trọng.
+  \item \textbf{Được theo dõi hiểu bài theo từng tiết và giáo viên nhìn thấy bằng chứng:} bản đồ nhiệt, đường tiến bộ, lỗi sai, hội thoại có nhãn ý định.
+  \item \textbf{Học đúng tài liệu của giáo viên ở lớp và đúng phạm vi bài:} không dạy trước, 100\%.
+  \item \textbf{Không mất phí:} toàn bộ chạy trên dịch vụ miễn phí và mô hình cục bộ.
+\end{enumerate}
+
+\subsection{RQ4: Độ bám sát khung đánh giá hiểu bài}
+
+Chúng tôi đối chiếu 25 mục của khung đánh giá Toán với mã nguồn. Đầy đủ tính 1 điểm, một phần tính 0,5, chưa làm tính 0. Kết quả ở Bảng~\ref{tab:fidelity}.
+
+\begin{table}[H]
+\centering\footnotesize
+\caption{Đối chiếu khung đánh giá Toán với hệ thống (25 mục)}\label{tab:fidelity}
+\begin{tabularx}{\textwidth}{@{}lYl@{}}
+\toprule
+Trạng thái & Các mục & Số mục \\
+\midrule
+Đầy đủ & Công thức $M$ và trọng số; chuẩn hóa khi thiếu chiều (\di{1}); độ độc lập H0--H7; phân loại lỗi và mức phạt; trọng số độ khó; trọng số theo hỗ trợ; 6 mức hiểu; cổng ``hiểu''; ``thành thạo tạm thời''; cổng theo chiều (\di{6}); ``chưa đủ dữ liệu''; độ tin cậy; vùng màu; hành động theo dải $M$; kiểm tra nhãn do LLM đề xuất; báo cáo giáo viên, học sinh, phụ huynh & 16 \\
+Một phần & 7 chiều (S chưa có nguồn bằng chứng); cổng ``thành thạo'' (thiếu S); các loại bằng chứng (thời gian chưa vào điểm); chất lượng lập luận (bộ chấm từ khóa \di{55}); chẩn đoán lỗi sai (nhận ra 114/280 câu) & 5 \\
+Chưa làm & Điểm từng câu (QS); trạng thái quên / có nguy cơ quên / thành thạo bền; giáo viên sửa điểm; kiểm tra trì hoãn T1--T30 & 4 \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{Độ bám sát} $=(16 + 0{,}5\times 5)/25$} & \textbf{74\%} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Bốn mục chưa làm đều xoay quanh \emph{thời gian}: ghi nhớ sau nhiều ngày và các trạng thái quên. Một buổi trình diễn không đo được những điều này, nên đây là giới hạn của phạm vi chứ không phải sai lệch thiết kế. Mọi chỗ khác khung đều có DI ghi rõ lý do. Khi thực nghiệm cho thấy một DI sai, nó được sửa và ghi lại. Ví dụ, bản đầu của \di{55} trừ điểm câu ``vì sao'' chung chung. Kết quả là mọi học sinh mô phỏng kẹt ở tiết đầu, vì câu hỏi của chương dựng từ tài liệu hiếm có lời giải mẫu. Luật được đổi thành ``không tính, không trừ''.
+
+\paragraph{Độ tin cậy của việc đánh giá.}
+\begin{itemize}
+  \item \textbf{Tất định 100\%:} kiểm thử phát lại cho cùng điểm, cùng quyết định.
+  \item \textbf{Độ nhạy bộ kiểm đáp án khi nội dung có lỗi:} đổi một chữ số của đáp án thì bộ kiểm bắt được 97,1\% (2.060 lần đổi) và 98,4\% (1.382 lần đổi).
+  \item \textbf{Đồng thuận với giáo viên ($\kappa$):} chưa đo, vì cần ít nhất 100 nhãn của giáo viên.
+\end{itemize}
+
+\subsection{Mô phỏng đầu cuối}
+Bốn học sinh mô phỏng (giỏi, hay sai, sai dạng, bí) học hết cả hai chương dựng từ tài liệu thật, chạy trong bộ nhớ, không gọi mô hình. Cả bốn qua 8/8 và 11/11 tiết.
+
+Học sinh mô phỏng ``Vương'' bắt đầu với độ hiểu thấp. Vương mắc đúng các kiểu lỗi mà tài liệu giáo viên nêu, viết teencode và emoji, hỏi lạc đề, và trả lời ``vì sao'' chung chung khi chưa hiểu. Vương học qua API thật, với Qwen. Kết quả:
+\begin{itemize}
+  \item Mức thành thạo của chương tăng từ 5,6 lên 85,6 (Số thập phân) và từ 7,7 lên 87,9 (Diện tích).
+  \item Nhớ lại đúng bài cũ ở 11/15 lần được hỏi.
+  \item Gia sư nhắc ý chính bài gốc 17 lần, và hỏi lại câu ``vì sao'' chung chung 8 lần.
+\end{itemize}
+Số liệu này kiểm tra \emph{luồng dạy}, không đo hiệu quả học tập (mục~\ref{sec:threats}).
+
+%=====================================================================
+\section{Thảo luận}\label{sec:discussion}
+%=====================================================================
+
+\paragraph{RQ1: phương pháp đánh giá.} Giao thức đóng băng bộ giữ riêng có giá trị thực tế. Con số đẹp nhất, Hit@3 = 1,00 trên bộ v1, đến từ một bộ đã bị xem trước khi sửa. Con số báo cáo, 0,90, đến từ bộ đóng băng. Tương tự, độ chính xác chấm 36/36 trên bộ v1 không được dùng; con số báo cáo là 35/35 trên v2.
+
+\paragraph{RQ2: RAG.} Phần an toàn phạm vi đạt 100\% ở mọi bộ: không dạy trước, không trả lời câu lạc đề. Điều này cho thấy thiết kế ``thà gác cho cô còn hơn trả lời sai'' hoạt động đúng. Điểm yếu lớn nhất trước đợt sửa là câu hỏi về bài trước. Lỗi này không làm học sinh học sai, nhưng làm học sinh không được giúp, và đã được \di{57} khắc phục phần lớn.
+
+\paragraph{RQ3: vị trí so với thị trường.} Kết quả của chúng tôi không ủng hộ khẳng định rằng CAVAT ``nói chuyện hay hơn'' ChatGPT hay Gemini. Một lời nhắc tốt đã đủ cho giọng văn Socratic. Giá trị của CAVAT nằm ở các \emph{bảo đảm}:
+\begin{itemize}
+  \item những điều mô hình không thể làm sai, vì nó không được quyền quyết định;
+  \item những điều giáo viên nhìn thấy được và kiểm tra được.
+\end{itemize}
+Trường hợp giám khảo LLM bỏ sót lỗi khen sai cho thấy các bảo đảm này không thể thay bằng ``thêm một LLM kiểm tra''.
+
+\paragraph{RQ4: đánh giá hiểu bài.} Độ bám sát 74\% phản ánh một hệ thống đánh giá đã có đủ cấu trúc của khung (7 chiều, công thức, mức, cổng, độ tin cậy) nhưng thiếu chiều thời gian. Bước tiếp theo tự nhiên là kiểm tra trì hoãn (T7, T30) trong thử nghiệm thật.
+
+\subsection{Các mối đe dọa đến tính hợp lệ}\label{sec:threats}
+\begin{enumerate}
+  \item \textbf{Chưa có học sinh thật.} Mọi kết luận về hiệu quả học tập (chiều 8) đều chưa được kiểm chứng. Học sinh mô phỏng trả lời bằng ý của giáo viên khi đã hiểu.
+  \item \textbf{Mẫu nhỏ, do người phát triển viết.} Bộ giữ riêng có 14--30 câu, R5 và R6 có 14 lượt. Ngưỡng 2\% của R6 chỉ thực sự kiểm chứng được với khoảng 100 lượt. Câu hỏi chưa đến từ học sinh thật.
+  \item \textbf{Một giám khảo, chưa hiệu chỉnh với nhãn người.} Giám khảo \code{gpt-oss-120b} chưa được đối chiếu với ít nhất 100 nhãn của giáo viên như bản thiết kế yêu cầu. Chính bài báo đã ghi nhận một lần giám khảo bỏ sót lỗi.
+  \item \textbf{Mốc B1 chưa đo} vì giới hạn hạn mức miễn phí. So sánh với thị trường hiện dựa trên B2 (cùng kiểu ``lời nhắc tốt'') và trên so sánh tính năng.
+  \item \textbf{Phần tăng điểm R5 và R6 một phần do đo lại.} Điều này đã được ghi rõ ở Bảng~\ref{tab:targets}.
+\end{enumerate}
+
+%=====================================================================
+\section{Kết luận}
+%=====================================================================
+Bài báo đã trình bày CAVAT, một gia sư Toán lớp~5 tiếng Việt theo hướng \emph{policy-first}, và một phương pháp đánh giá 8 chiều có giao thức chống rò rỉ dữ liệu. Với bốn câu hỏi nghiên cứu:
+\begin{enumerate}[label=(RQ\arabic*)]
+  \item Khung 8 chiều cùng các nguyên tắc đóng băng bộ giữ riêng, ablation và đối chứng cho kết quả kiểm chứng được qua lịch sử mã nguồn.
+  \item RAG đạt trung bình 85\% so với 7 mục tiêu, đạt trọn 5/7. Định tuyến theo đồ thị đưa Hit@3 trên bộ giữ riêng từ 0,45 lên 0,90.
+  \item CAVAT không hơn một LLM có lời nhắc tốt về giọng văn, nhưng loại bỏ theo thiết kế các lỗi khen sai và lộ đáp án. Một LLM chỉ có lời nhắc đã mắc lỗi này, và giám khảo LLM đã bỏ sót.
+  \item Đánh giá hiểu bài bám sát khung ban đầu 74\%; phần thiếu là chiều thời gian.
+\end{enumerate}
+
+Hướng tiếp theo:
+\begin{itemize}
+  \item thử nghiệm có nhóm đối chứng với học sinh thật, kèm kiểm tra trì hoãn;
+  \item hiệu chỉnh giám khảo và bộ chấm lập luận với nhãn của giáo viên;
+  \item hoàn thành mốc chatbot thương mại B1.
+\end{itemize}
+
+%=====================================================================
+\begin{thebibliography}{99}\small
+\bibitem{vanlehn2011} K.~VanLehn. The relative effectiveness of human tutoring, intelligent tutoring systems, and other tutoring systems. \emph{Educational Psychologist}, 46(4):197--221, 2011.
+\bibitem{kasneci2023} E.~Kasneci et al. ChatGPT for good? On opportunities and challenges of large language models for education. \emph{Learning and Individual Differences}, 103:102274, 2023.
+\bibitem{corbett1995} A.~T.~Corbett, J.~R.~Anderson. Knowledge tracing: Modeling the acquisition of procedural knowledge. \emph{User Modeling and User-Adapted Interaction}, 4(4):253--278, 1995.
+\bibitem{piech2015} C.~Piech et al. Deep knowledge tracing. In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2015.
+\bibitem{li2026} L.~Li, Z.~Wang, J.~M.~Jose, X.~Ge. LLM supporting knowledge tracing leveraging global subject and student specific knowledge graphs. \emph{Information Fusion}, 126, 2026. doi:10.1016/j.inffus.2025.103577.
+\bibitem{lewis2020} P.~Lewis et al. Retrieval-augmented generation for knowledge-intensive NLP tasks. In \emph{NeurIPS}, 2020.
+\bibitem{robertson2009} S.~Robertson, H.~Zaragoza. The probabilistic relevance framework: BM25 and beyond. \emph{Foundations and Trends in Information Retrieval}, 3(4):333--389, 2009.
+\bibitem{cormack2009} G.~V.~Cormack, C.~L.~A.~Clarke, S.~Büttcher. Reciprocal rank fusion outperforms Condorcet and individual rank learning methods. In \emph{SIGIR}, 2009.
+\bibitem{zheng2023} L.~Zheng et al. Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. In \emph{NeurIPS Datasets and Benchmarks}, 2023.
+\bibitem{studymode} OpenAI ra mắt Study mode cho ChatGPT (7/2025). Tổng hợp từ Maginative, InfoQ, PCWorld. \url{https://www.maginative.com/article/openai-launches-study-mode-for-chatgpt/}
+\bibitem{guidedlearning} Google, Guided Learning trong ứng dụng Gemini (8/2025). \url{https://9to5google.com/2025/08/06/gemini-guided-learning/}
+\bibitem{khanmigo} Khanmigo của Khan Academy, tổng hợp từ các nghiên cứu tình huống bên thứ ba. \url{https://cut-the-saas.com/ai/how-khan-academy-leveraged-ai-to-change-education}
+\end{thebibliography}
+
+\appendix
+\section{Tái lập kết quả}
+Mã nguồn và dữ liệu đánh giá nằm trong kho mã của dự án. Thứ tự ``đóng băng bộ giữ riêng trước khi sửa mã'' kiểm chứng được bằng ba tag git, giữ nguyên commit gốc cả sau khi nhánh được gộp:
+\begin{itemize}
+  \item \code{eval-freeze-rag-v2} (\code{78ff210}): đóng băng bộ giữ riêng RAG v2;
+  \item \code{eval-freeze-grading-v2} (\code{1f73649}): đóng băng bộ chấm v2;
+  \item \code{eval-fix-di57-di58} (\code{ebd5df5}): sửa mã (\di{57}, \di{58}), là con của hai commit trên.
+\end{itemize}
+
+\begin{table}[H]
+\centering\small
+\caption{Lệnh tái lập}
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}Y@{}}
+\toprule
+Kết quả & Lệnh \\
+\midrule
+Kiểm thử tự động & \code{make test} \\
+Bảng~\ref{tab:ragyaml} & \code{make eval-rag LIVE=1} \\
+Bảng~\ref{tab:route} & \code{python scripts/eval\_rag\_published.py --live}\newline\code{--holdout evals/datasets/rag-published-holdout-v2.yaml} \\
+R5, R6 & \code{make eval-grounded} \\
+Bảng~\ref{tab:evala}, \ref{tab:grading} & \code{make eval-baselines} \\
+Độ nhạy bộ kiểm đáp án & \code{make eval-items} \\
+Mô phỏng & \code{make trial}; \code{scripts/simulate\_learner.py} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\end{document}
