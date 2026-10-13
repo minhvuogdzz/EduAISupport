@@ -1,0 +1,30 @@
+# Bộ câu giữ riêng (held-out) cho RAG-3 trên hai chương đã phát hành. Viết ngày 2026-10-13 cùng lúc với
+# rag-published-v1.yaml, TRƯỚC khi sửa phạm vi truy xuất, và KHÔNG dùng để chỉnh bất kỳ tham số nào.
+# Cùng định dạng với rag-published-v1.yaml. [ASSUME] Nhãn do Claude soạn, chờ giáo viên duyệt.
+version: 1
+chapters: [math-g5-decimals, math-g5-area-triangle-trapezoid]
+status: DRAFT
+cases:
+  - {id: H01, group: cung-bai, node: STP-T04, q: "0,5 với 0,45 số nào lớn hơn ạ", relevant: ["STP-T04:*"]}
+  - {id: H02, group: cung-bai, node: STP-T07, q: "3 kg 50 g viết thành ki-lô-gam thế nào", relevant: ["STP-T07:*"]}
+  - {id: H03, group: cung-bai, node: STP-T10, q: "làm tròn 2,345 đến hàng phần trăm", relevant: ["STP-T10:*"]}
+  - {id: H04, group: cung-bai, node: DTTGHT-T05, q: "hai đáy của hình thang có song song không", relevant: ["DTTGHT-T05:*"]}
+  - {id: H05, group: cung-bai, node: DTTGHT-T03, q: "đáy và chiều cao khác đơn vị thì làm sao", relevant: ["DTTGHT-T03:*"]}
+  - {id: H06, group: cung-bai, node: DTTGHT-T08, q: "biết diện tích hình thang tìm tổng hai đáy thế nào", relevant: ["DTTGHT-T08:*"]}
+  - {id: H07, group: bai-truoc, node: STP-T06, q: "phần nguyên là phần nào", relevant: ["STP-T02:*"]}
+  - {id: H08, group: bai-truoc, node: STP-T09, q: "hàng phần trăm là chữ số thứ mấy sau dấu phẩy", relevant: ["STP-T02:*"]}
+  - {id: H09, group: bai-truoc, node: STP-T05, q: "tại sao 0,05 bé hơn 0,5", relevant: ["STP-T04:*", "STP-T02:*", "STP-T01:*"]}
+  - {id: H10, group: bai-truoc, node: DTTGHT-T06, q: "chiều cao của hình thang là gì", relevant: ["DTTGHT-T05:*"]}
+  - {id: H11, group: bai-truoc, node: DTTGHT-T04, q: "diện tích tam giác tính thế nào", relevant: ["DTTGHT-T02:*", "DTTGHT-T04:*"]}
+  - {id: H12, group: bai-truoc, node: DTTGHT-T07, q: "hình thang vuông là gì ạ", relevant: ["DTTGHT-T05:*", "DTTGHT-T07:*"]}
+  - {id: H13, group: bai-truoc, node: STP-T10, q: "chữ số 0 ở cuối phần thập phân có bỏ được không", relevant: ["STP-T03:*"]}
+  - {id: H14, group: cung-bai, node: STP-T08, q: "1 m² bằng bao nhiêu dm²", relevant: ["STP-T08:*"]}
+  - {id: H15, group: bai-sau, node: STP-T01, q: "so sánh 2,5 và 2,49", relevant: []}
+  - {id: H16, group: bai-sau, node: DTTGHT-T02, q: "diện tích hình thang bằng gì", relevant: []}
+  - {id: H17, group: bai-sau, node: STP-T03, q: "4 tấn 5 tạ bằng bao nhiêu tấn", relevant: []}
+  - {id: H18, group: lac-de-toan, node: STP-T09, q: "số nguyên tố là gì", relevant: []}
+  - {id: H19, group: lac-de-toan, node: DTTGHT-T03, q: "góc vuông bằng bao nhiêu độ", relevant: []}
+  - {id: H20, group: lac-de-toan, node: STP-T02, q: "tính 125 chia 5", relevant: []}
+  - {id: H21, group: lac-de, node: STP-T05, q: "cô ơi mai con nghỉ học được không", relevant: []}
+  - {id: H22, group: lac-de, node: DTTGHT-T07, q: "con muốn chơi game", relevant: []}
+  - {id: H23, group: lac-de, node: STP-T11, q: "con buồn ngủ quá", relevant: []}

@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-grounded
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -59,6 +59,9 @@ eval-hard: ## Ten hard students with the real Qwen and an LLM judge (uses the fr
 
 eval-rag: ## Hybrid RAG ablation on the labelled questions (offline; LIVE=1 for Gemini embeddings, cached)
 	cd services/api && .venv/bin/python scripts/eval_rag.py $(if $(LIVE),--live,)
+
+eval-rag-published: ## Hybrid RAG on the published chapters and teacher documents (reads .env DB only; LIVE=1 for Gemini)
+	cd services/api && .venv/bin/python scripts/eval_rag_published.py $(if $(LIVE),--live,)
 
 eval-grounded: ## Qwen answers the child's questions from the RAG, a second model judges (free-tier quota)
 	cd services/api && .venv/bin/python scripts/eval_grounded.py "$(ONLY)"

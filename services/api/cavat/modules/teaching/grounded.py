@@ -309,12 +309,11 @@ class GroundedSpeaker:
         # The retrieval reads the words the child means: "là j vậy" is "là gì vậy" (conductor, CTX-2). The
         # child's own words still go to the model as typed.
         query = expand_short_forms(question)
-        later = self._later_node(query, node_id)
-        if later is not None:
-            return QuestionTurn("LATER", retrieval=later[1], later_node=later[0])
-        found = self.index.retrieve(
-            query, node_id=node_id, mode="question", k=ANSWER_PASSAGES, max_chars=ANSWER_CHARS
+        later_node, found = self.index.question(
+            query, node_id, self.order, k=ANSWER_PASSAGES, max_chars=ANSWER_CHARS
         )
+        if later_node is not None:
+            return QuestionTurn("LATER", retrieval=found, later_node=later_node)
         if not found.grounded or not found.results:
             return QuestionTurn("PARKED", retrieval=found)
         passages = [(s.chunk.title, _without(s.chunk.text, hide)) for s in found.results]
@@ -344,16 +343,6 @@ class GroundedSpeaker:
             return QuestionTurn("PARKED", Spoken("", "EXTRACT", titles, rejected, flagged, refused), found)
         said = f"{self.t[:1].upper() + self.t[1:]} trả lời {self.s} nhé: {sentence}"
         return QuestionTurn("ANSWERED", Spoken(said, "EXTRACT", titles, rejected, flagged, refused), found)
-
-    def _later_node(self, question: str, node_id: str | None) -> tuple[str, Retrieval] | None:
-        """The node a question is about, when it comes after ``node_id`` and the scope cannot reach it."""
-        if node_id is None or node_id not in self.order:
-            return None
-        found = self.index.retrieve(question, mode="question", k=1)  # the whole chapter; the vector is cached
-        top = found.results[0].chunk.node_id if found.results and found.grounded else None
-        if top is None or top in self.index.distances(node_id) or top not in self.order:
-            return None
-        return (top, found) if self.order.index(top) > self.order.index(node_id) else None
 
     # ------------------------------------------------------------------ bridge
 

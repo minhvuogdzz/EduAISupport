@@ -7,7 +7,7 @@ regression test that keeps the offline numbers from falling.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from statistics import mean
 
@@ -73,6 +73,19 @@ def load_cases(path: Path) -> list[Case]:
     ]
 
 
+def expand(labels: Iterable[str], index: RagIndex) -> set[str]:
+    """Labels as chunk ids: "STP-T02:*" stands for every passage of that node (its theory, method, worked
+    examples, notes, and the teacher's document passages tied to it), whose ids are not stable."""
+    out: set[str] = set()
+    for label in labels:
+        if label.endswith(":*"):
+            node = label[:-2]
+            out |= {c.chunk_id for c in index.chunks if c.node_id == node}
+        else:
+            out.add(label)
+    return out
+
+
 def run(index: RagIndex, cases: Iterable[Case], config: str, k: int = 3) -> list[CaseResult]:
     out = []
     for case in cases:
@@ -87,8 +100,11 @@ def run(index: RagIndex, cases: Iterable[Case], config: str, k: int = 3) -> list
             **CONFIGS[config],
         )
         ranking = [s.chunk.chunk_id for s in found.ranked]
-        first = next((i for i, cid in enumerate(ranking, 1) if cid in case.relevant), None)
+        relevant = expand(case.relevant, index)
+        first = next((i for i, cid in enumerate(ranking, 1) if cid in relevant), None)
         best_cosine = max((s.cosine for s in found.results), default=0.0)
+        if relevant != set(case.relevant):  # "STP-T02:*": recall over the passages the label stands for
+            case = replace(case, relevant=tuple(sorted(relevant)))
         out.append(CaseResult(case, ranking, first, found.grounded, best_cosine, found.semantic))
     return out
 
