@@ -187,10 +187,23 @@ class Vuong:
                 return ("ANSWER", variant.reply)
             return ("ANSWER", "con nghĩ là vậy ạ")
         if t["awaiting"] == "RETELL":
-            ideas = self.chapter.node(node).explain.key_ideas
-            if u < 0.45 and self.once(node, "weak-retell", 0.8):
+            # DI-52: a recall asks about an earlier period; the child answers from what it knows of that one.
+            asked = next(
+                (
+                    x
+                    for x in reversed(state["transcript"])
+                    if x["actor"] == "tutor" and x.get("kind") == "RETELL_PROMPT"
+                ),
+                None,
+            )
+            about = (asked or {}).get("node_id") or node
+            u = self.understanding.setdefault(about, 0.12)
+            ideas = self.chapter.node(about).explain.key_ideas
+            if u < 0.45 and self.once(about, "weak-retell", 0.8):
                 return ("ANSWER", "ko nhớ lắm ạ 😅")
-            self.learn(node, 0.05)
+            if about != node and self.once(about, "half-recall", 0.3):
+                return ("ANSWER", ideas[0][0])  # remembers one idea of the earlier period
+            self.learn(about, 0.05)
             return ("ANSWER", ". ".join(phr[0] for phr in ideas))
         item = state["item"]
         item_id = item["item_id"]
