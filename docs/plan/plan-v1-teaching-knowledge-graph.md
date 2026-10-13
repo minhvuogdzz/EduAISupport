@@ -460,6 +460,11 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-51, tra nguồn chính thống khi tài liệu không trả lời (WEB-1, ADR-029, 2026-10-13):**
+  - **Nguồn:** chỉ Wikipedia tiếng Việt, qua API chính thức.
+  - **Phạm vi câu hỏi:** chỉ câu "X là gì / nghĩa là gì / là con gì", mở bài có tiêu đề X (hoặc chuyển hướng chính thức). Không tra câu về người, câu thuộc bài sau, câu không an toàn (`UNSAFE`), câu có thông tin liên lạc.
+  - **Kiểm chứng:** lời trả lời qua cùng bộ kiểm như với tài liệu. Không qua thì trích nguyên văn hoặc gác cho cô.
+  - **Ghi lại:** mỗi lần tra được ghi thành `WEB_LOOKED`.
 - **DI-50, phạm vi RAG trên chương đã phát hành (RAG-3, 2026-10-13; đánh giá `make eval-rag-published LIVE=1`):**
   - Câu hỏi định nghĩa ("X là gì", "là hàng nào", "là cạnh nào", "gồm mấy phần"…) tìm ở mọi bài tiên quyết, không giới hạn 2 bước. Bài sau vẫn ngoài phạm vi.
   - Đoạn có câu định nghĩa đúng thuật ngữ được hỏi ("X … là", "gọi là X") được nhân ×1,6 và không bị giảm điểm theo khoảng cách. Câu hỏi ("X là những cạnh nào") và giá trị ("phần nguyên là 0", "đều là 5") không phải định nghĩa.

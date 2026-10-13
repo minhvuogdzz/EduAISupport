@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     max_llm_calls_per_session: int = 15
     # "template": approved sentences only (default). "llm": Qwen phrases hints, templates as fallback.
     tutor_renderer: Literal["template", "llm"] = "template"
+    # WEB-1 (DI-51): a question the teacher's documents do not answer may be looked up in Vietnamese
+    # Wikipedia (the only allowed source); "off" keeps such questions for the teacher.
+    web_lookup: Literal["off", "wikipedia"] = "wikipedia"
     storage_dir: Path = REPO_ROOT / "var" / "storage"
     # ACC-1: "accounts": one student, one parent, one teacher log in with a PIN (`make accounts`).
     # "demo": the old X-Demo-* headers, for the offline tests and the in-memory demo only.

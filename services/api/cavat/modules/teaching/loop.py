@@ -34,6 +34,7 @@ from cavat.core.events import (
     SafetyFlagged,
     StudentMessage,
     TeachMessageSent,
+    WebLooked,
 )
 from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, Outcome, TeachAction
 from cavat.modules.assessment.math_checker import classify_intent
@@ -45,6 +46,7 @@ from cavat.modules.content.chapter_package import Chapter, TheoryVariant
 from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
 from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
+from cavat.modules.teaching.web import WEB_VERSION, web_query
 from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator
 from cavat.modules.tutor.item_loop import (
     CHOICE_HINT,
@@ -397,6 +399,17 @@ class TeachingLoop:
             if turn.retrieval is not None:
                 payload = RagRetrieved(**retrieval_payload(turn.retrieval, "QUESTION", node_id))
                 events.append(self._record(now, EventType.RAG_RETRIEVED, payload))
+            if turn.web is not None:  # WEB-1: what was looked up, and whether the child heard it
+                looked = WebLooked(
+                    node_id=node_id,
+                    query=web_query(text),
+                    source=self.speaker.web.name if self.speaker.web else "",
+                    title=turn.web.title,
+                    url=turn.web.url,
+                    answered=turn.kind == "ANSWERED",
+                    version=WEB_VERSION,
+                )
+                events.append(self._record(now, EventType.WEB_LOOKED, looked))
             if turn.kind == "ANSWERED":
                 assert turn.spoken is not None
                 self._flag(now, events, turn.spoken, ref)

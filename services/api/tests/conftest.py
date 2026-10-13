@@ -18,6 +18,8 @@ os.environ["AUTH_MODE"] = "demo"
 # Hybrid RAG uses its offline embedder. Tests that need a provider pass a fake one.
 os.environ["GROQ_API_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
+# Nor the web (WEB-1): tests that look something up pass a fake source.
+os.environ["WEB_LOOKUP"] = "off"
 
 import pytest  # noqa: E402
 from cavat.config import get_settings  # noqa: E402

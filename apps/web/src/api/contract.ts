@@ -332,7 +332,7 @@ export interface TeachAnnotation {
   rule_ids: string[];
   reason_codes: string[];
   /** RAG-2: TEMPLATE: approved text; LLM: Qwen, checked against its sources; EXTRACT: a passage word for word. */
-  source?: "TEMPLATE" | "LLM" | "EXTRACT";
+  source?: "TEMPLATE" | "LLM" | "EXTRACT" | "WEB";
   /** Titles of the passages the words rest on. */
   sources?: string[];
   /** Check codes of each model output that was refused. */
