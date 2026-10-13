@@ -257,6 +257,11 @@ function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
     <p className="flex flex-wrap gap-1">
       <Chip>{STUDENT_KIND_LABEL[kind]}</Chip>
       {annotation.safety && <Chip tone="rose">Đáng lo: cô cần đọc kỹ câu này</Chip>}
+      {annotation.voice && (
+        <Chip tone="sky" title="Lời bé nói, máy nghe thành chữ (chế độ nói chuyện)">
+          Bé nói
+        </Chip>
+      )}
       {annotation.conducted && annotation.conducted.signals.length > 0 && (
         <Chip tone="amber" title={`Bé gõ: ${annotation.conducted.raw}`}>
           Bé gõ «{annotation.conducted.raw}» ·{" "}

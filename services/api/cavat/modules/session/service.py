@@ -607,6 +607,8 @@ def build_teacher_transcript(
             if kind == EventType.STUDENT_MESSAGE and routed is not None:
                 student["conducted"] = routed  # what the child typed, and what the conductor found in it
                 routed = None
+            if kind == EventType.STUDENT_MESSAGE and p.get("modality") == "VOICE":
+                student["voice"] = True  # ADR-030: the words came from what the child said
             if kind == EventType.STUDENT_MESSAGE:
                 graded[attempt] = student
                 if str(p.get("item_id", "")).endswith((":RETELL", ":RECALL")):

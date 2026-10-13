@@ -1,7 +1,7 @@
 import type { ReactNode, Ref } from "react";
 import { Link } from "react-router";
 
-import type { CurrentItem, MicroChoice, SessionState, TeachingView } from "../../api/contract";
+import type { CurrentItem, MicroChoice, Modality, SessionState, TeachingView } from "../../api/contract";
 import { StarIcon } from "../../components/icons";
 import { capitalize, TEACHING_STEPS } from "../../components/labels";
 import { MathText } from "../../components/MathText";
@@ -13,6 +13,8 @@ import { AnswerPanel } from "./AnswerPanel";
 import { Conversation } from "./Conversation";
 import { QuestionCard } from "./QuestionCard";
 import type { DisplayTurn, TutorView } from "./tutorSession";
+import { useVoiceLive } from "./voice/useVoiceLive";
+import { VoiceBar } from "./voice/VoiceBar";
 
 interface ChapterSessionProps {
   state: SessionState;
@@ -22,7 +24,7 @@ interface ChapterSessionProps {
   notice: ReactNode;
   busy: boolean;
   scrollerRef: Ref<HTMLDivElement>;
-  onSubmit: (text: string) => Promise<boolean>;
+  onSubmit: (text: string, modality?: Modality) => Promise<boolean>;
   onHint: () => void;
   onChoose: (choice: MicroChoice) => void;
 }
@@ -55,6 +57,15 @@ export function ChapterSession({
   onChoose,
 }: ChapterSessionProps) {
   const tutorName = capitalize(state.persona.tutor_self);
+  const voice = useVoiceLive({
+    turns,
+    canSpeak:
+      state.lifecycle_state === "ACTIVE" &&
+      !busy &&
+      !state.pending_choice &&
+      (Boolean(state.item) || teaching.awaiting === "THEORY_REPLY" || teaching.awaiting === "RETELL"),
+    submit: onSubmit,
+  });
   const current = teaching.nodes.find((node) => node.node_id === teaching.current_node_id) ?? null;
   const active = state.lifecycle_state === "ACTIVE";
   const map = (
@@ -138,6 +149,7 @@ export function ChapterSession({
         </aside>
       </div>
       <footer className="shrink-0 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
+        {state.lifecycle_state !== "COMPLETED" && <VoiceBar voice={voice} />}
         {state.lifecycle_state === "COMPLETED" ? (
           <ChapterComplete teaching={teaching} />
         ) : state.item ? (

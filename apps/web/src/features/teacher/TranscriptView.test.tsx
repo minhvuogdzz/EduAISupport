@@ -125,3 +125,26 @@ describe("teacher transcript of a recall (DI-52)", () => {
     expect(screen.getByText("Nói lại: 3/3 ý")).toBeInTheDocument();
   });
 });
+
+describe("teacher transcript of voice live (ADR-030)", () => {
+  it("marks what the child said aloud", () => {
+    const said: TranscriptTurn = {
+      sequence_no: 1,
+      occurred_at: "2026-10-07T08:05:00Z",
+      actor: "student",
+      text: "ba phẩy năm",
+      tutor: null,
+      teach: null,
+      student: {
+        kind: "ANSWER",
+        outcome: null,
+        normalized_answer: null,
+        misconception: null,
+        safety: false,
+        voice: true,
+      },
+    };
+    render(<TranscriptView transcript={{ ...TRANSCRIPT, segments: [{ kind: "session", turns: [said] }] }} />);
+    expect(screen.getByText("Bé nói")).toBeInTheDocument();
+  });
+});

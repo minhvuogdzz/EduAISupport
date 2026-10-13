@@ -26,6 +26,7 @@ import type {
   TeacherDocumentDetail,
   TeacherStudentView,
   TeachingReport,
+  VoiceStatus,
 } from "./contract";
 
 /**
@@ -123,6 +124,16 @@ export interface SessionApi {
    * Real API only: the in-browser mock has no teaching loop.
    */
   getReport?: (sessionId: string) => Promise<TeachingReport>;
+
+  /**
+   * Student voice live (ADR-030, real API only): the server's speech-to-text (Groq Whisper) and the tutor's
+   * voice (VieNeu-TTS, local). Without them the browser listens and reads by itself.
+   */
+  voice?: {
+    status(): Promise<VoiceStatus>;
+    transcribe(audio: Blob): Promise<{ text: string }>;
+    speech(text: string): Promise<Blob>;
+  };
 
   /** Mock only: wipe the demo data kept in this browser and seed it again. */
   resetDemoData?: () => Promise<void>;

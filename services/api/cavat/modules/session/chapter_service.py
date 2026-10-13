@@ -231,7 +231,7 @@ def apply_command(
     *,
     text: str = "",
     kind: str = "ANSWER",  # noqa: ARG001 - the loop knows what it asked for
-    modality: str = "TEXT",  # noqa: ARG001 - text only in the demo (D-T9)
+    modality: str = "TEXT",  # VOICE: the words came from speech-to-text (ADR-030)
     choice_id: str | None = None,
     live_renderer: MessageRenderer | None = None,
     speaker: GroundedSpeaker | None = None,
@@ -259,7 +259,7 @@ def apply_command(
     elif command == "HINT_REQUEST":
         turn = loop.on_hint_request(now, seconds)
     else:
-        turn, routed = _conducted(loop, text, now, seconds)
+        turn, routed = _conducted(loop, text, now, seconds, modality)
 
     events, attempt, node_id = _convert(session, turn.events, session.state.item, act.get("node_id"))
     if routed is not None:  # what the conductor read and did, for the teacher; never replayed
@@ -285,7 +285,7 @@ def apply_command(
 
 
 def _conducted(
-    loop: TeachingLoop, text: str, now: datetime, seconds: float
+    loop: TeachingLoop, text: str, now: datetime, seconds: float, modality: str = "TEXT"
 ) -> tuple[TeachTurn, ContextRouted | None]:
     """The conductor (``teaching/conductor.py``) around one message: the loop reads the cleaned text; when
     the tutor would say again what it said a moment ago on the same question, the next hint follows."""
@@ -304,7 +304,7 @@ def _conducted(
         for e in loop.events[-6:]
         if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
     ]
-    turn = loop.on_student(cleaned.text, now, seconds)
+    turn = loop.on_student(cleaned.text, now, seconds, modality)
     loop.speaker = speaker
     said = [m.text for m in turn.messages if m.kind == MessageKind.ITEM]
     if (

@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -84,11 +84,19 @@ web: web-install ## Run the web app with the mock API at http://localhost:5173
 web-live: web-install ## Run the web app against the real API (start "make api" in another terminal first)
 	cd $(WEB) && VITE_API=http pnpm dev
 
+voice-setup: ## Install the tutor's voice (VieNeu-TTS, local, CPU) in its own environment services/voice/.venv
+	python3.11 -m venv services/voice/.venv && services/voice/.venv/bin/pip install -q -r services/voice/requirements.txt
+
+voice: ## Run the tutor's voice server on 127.0.0.1:8010 (make voice-setup first; the first start downloads the model)
+	cd services/voice && exec .venv/bin/python server.py
+
 demo: web-install ## The whole demo, saved: API on the database of services/api/.env (cavat_dev) + web app. Ctrl+C stops both
 	@echo "Buổi học và hội thoại được lưu vào database trong services/api/.env (cavat_dev). Chạy thử không lưu: make demo-memory."
 	@cd services/api && .venv/bin/python -m cavat.db --ensure-indexes
 	@echo "Mở http://localhost:$(WEB_PORT) khi thấy dòng 'Local:'. Bấm Ctrl+C để dừng cả hai server."
 	@trap 'kill 0' EXIT; \
+	if [ -x services/voice/.venv/bin/python ]; then (cd services/voice && exec .venv/bin/python server.py) & \
+	else echo "Giọng gia sư: chưa cài VieNeu (make voice-setup), trình duyệt sẽ tự đọc."; fi; \
 	(cd services/api && exec .venv/bin/uvicorn cavat.main:app --port $(API_PORT)) & \
 	cd $(WEB) && CAVAT_API_PORT=$(API_PORT) VITE_API=http pnpm dev --port $(WEB_PORT) --strictPort
 

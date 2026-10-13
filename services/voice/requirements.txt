@@ -1,0 +1,5 @@
+# ADR-030: the tutor's voice. VieNeu-TTS (github.com/pnnbao97/VieNeu-TTS, Apache-2.0), CPU via ONNX Runtime.
+# Its own virtual environment: the package brings a web stack that must not meet the API's.
+vieneu==3.8.3
+onnxruntime==1.24.4  # the version VieNeu locks; 1.31 refuses its model files kept in the Hugging Face cache
+huggingface_hub==1.13.0  # the version VieNeu locks; 2.x shards its cache and ONNX Runtime refuses the model then

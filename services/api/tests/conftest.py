@@ -20,6 +20,7 @@ os.environ["GROQ_API_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
 # Nor the web (WEB-1): tests that look something up pass a fake source.
 os.environ["WEB_LOOKUP"] = "off"
+os.environ["TTS"] = "off"  # ADR-030: tests never reach a voice server
 
 import pytest  # noqa: E402
 from cavat.config import get_settings  # noqa: E402

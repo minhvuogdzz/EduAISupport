@@ -115,6 +115,13 @@ export type CommandType = "ANSWER" | "HINT_REQUEST" | "CHOICE";
 
 export type ResponseKind = "ANSWER" | "STEP" | "EXPLANATION" | "MESSAGE";
 export type Modality = "TEXT" | "VOICE";
+
+/** GET /v1/voice/status (ADR-030): what the server can do for the voice live mode. */
+export interface VoiceStatus {
+  listen: boolean;
+  speak: boolean;
+  speech_model: string | null;
+}
 export type ActorType = "student" | "tutor" | "system" | "teacher";
 
 /** Answer types of the lesson package; tells the UI which quick-answer buttons fit the item. */
@@ -329,6 +336,8 @@ export interface StudentAnnotation {
   read?: { label: string; focus: string; source: "LLM" | "RULE" } | null;
   /** The conductor: what the child typed (teen code, emoji…) before the loop read the cleaned text. */
   conducted?: { raw: string; signals: string[]; route: "PASS" | "UNSTICK" } | null;
+  /** ADR-030: the child said it (voice live); the words are what speech-to-text heard. */
+  voice?: boolean;
 }
 
 /** The node decision behind a teaching-loop message (chapter sessions). */

@@ -2,7 +2,7 @@ import { useEffect, useReducer } from "react";
 
 import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
-import type { CommandAck, MicroChoice, ResponseKind, SessionState } from "../../api/contract";
+import type { CommandAck, MicroChoice, Modality, ResponseKind, SessionState } from "../../api/contract";
 import { newId } from "../../lib/ids";
 import { displayTurns, initialTutorView, isBusy, tutorReducer } from "./tutorSession";
 
@@ -65,7 +65,7 @@ export function useTutorSession(sessionId: string) {
     }
   }
 
-  function submitAnswer(text: string) {
+  function submitAnswer(text: string, modality: Modality = "TEXT") {
     return send(text, (state, key) =>
       api.submitResponse(
         sessionId,
@@ -73,7 +73,7 @@ export function useTutorSession(sessionId: string) {
           item_attempt_id: state.item?.item_attempt_id ?? state.teaching?.input_id ?? "",
           kind: responseKind(state),
           content: { text },
-          modality: "TEXT",
+          modality,
           expected_state_version: state.state_version,
         },
         key,

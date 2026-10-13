@@ -28,6 +28,7 @@ class ModelClass(StrEnum):
     LIGHTWEIGHT = "lightweight"
     EVAL_JUDGE = "eval_judge"
     STT_VI = "stt_vi"
+    TTS_VI = "tts_vi"  # the tutor's voice (ADR-030: VieNeu-TTS, local)
     VISION_OCR = "vision_ocr"
     EMBEDDING = "embedding"  # Hybrid RAG vectors (plan v1 5.5.2, ADR-017: Gemini)
 
@@ -72,6 +73,13 @@ class Transcription:
     model: str
     text: str
     language: str
+
+
+@dataclass(frozen=True)
+class Speech:
+    model: str
+    audio: bytes
+    content_type: str = "audio/wav"
 
 
 @dataclass(frozen=True)
@@ -121,6 +129,12 @@ class SpeechToText(Protocol):
     def transcribe(
         self, audio: bytes, *, model: str, language: str = "vi", filename: str = "audio.webm"
     ) -> Transcription: ...
+
+
+class TextToSpeech(Protocol):
+    name: str
+
+    def speak(self, text: str) -> Speech: ...
 
 
 class VisionProvider(Protocol):

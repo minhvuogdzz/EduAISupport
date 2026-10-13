@@ -34,6 +34,7 @@ import {
   type TeacherDocumentDetail,
   type TeachingReport,
   type TeacherStudentView,
+  type VoiceStatus,
 } from "../contract";
 
 export interface HttpApiOptions {
@@ -318,6 +319,27 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       },
     },
 
+    voice: {
+      status() {
+        return request<VoiceStatus>("GET", "/v1/voice/status", studentHeaders());
+      },
+      async transcribe(audio) {
+        const form = new FormData();
+        const ext = audio.type.includes("ogg") ? "ogg" : audio.type.includes("mp4") ? "m4a" : "webm";
+        form.append("audio", audio, `turn.${ext}`);
+        const response = await send("POST", "/v1/voice/transcribe", studentHeaders(), form);
+        return (await response.json()) as { text: string };
+      },
+      async speech(text) {
+        const response = await doFetch(`${baseUrl}/v1/voice/speech`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...studentHeaders() },
+          body: JSON.stringify({ text }),
+        });
+        if (!response.ok) throw await toError(response);
+        return response.blob();
+      },
+    },
     library: {
       list() {
         return request<TeacherDocument[]>("GET", "/v1/teachers/documents", teacher());

@@ -461,6 +461,12 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-53, nhắc bài gốc khi làm bài sai (TEACH-2, `teaching-templates/0.5.0`, 2026-10-13):** phần [OPEN] của DI-52.
+  - **Khi nào:** lần đầu bé trả lời sai (WRONG) một câu của tiết đang học.
+  - **Nhắc tiết nào:** tiết gốc của lỗi sai nếu lỗi đó thuộc một tiết trước; không thì tiết tiên quyết gần nhất. Tiết không có tiết tiên quyết thì không nhắc.
+  - **Gia sư nói gì:** sau lời nhận xét của câu, nói thêm "Gợi ý từ bài cũ: ở bài X, mình đã học: …" (ý chính của tiết X).
+  - **Giới hạn:** mỗi câu chỉ nhắc một lần; không nhắc ở câu ôn nền hay câu ôn xen kẽ.
+  - **Không đổi:** bậc gợi ý và nước đi vẫn do Hint Engine quyết định; không đổi điểm. Lời nhắc được ghi là `TEACH_MESSAGE_SENT` (`ref: RECALL_HINT`).
 - **DI-52, hỏi lại bài đã học (N-RECALL, `node-policy/0.3.0`, `teaching-templates/0.4.0`, 2026-10-13):** chủ dự án định hướng: gia sư hỏi lại kiến thức của bài có liên quan tới bài đang học.
   - **Khi nào:**
     - vào một tiết mà không có câu ôn nền (N-WARMUP chỉ chạy khi tiết tiên quyết chưa có bằng chứng trong buổi);
