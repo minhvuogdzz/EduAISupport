@@ -282,6 +282,7 @@ def run(
             vuong.notice([x["text"] for x in state["transcript"][seen:] if x["actor"] == "tutor"], node)
             seen = len(state["transcript"])
             command, text = vuong.reply(state)
+            began = time.monotonic()
             v = state["state_version"]
             key = {"Idempotency-Key": f"sim-{sid}-{v}"}
             if command == "CHOICE":
@@ -307,6 +308,10 @@ def run(
                 break
             state = _retrying(client.get, f"/v1/sessions/{sid}/state").json()
             turns += 1
+            if "--debug" in sys.argv:
+                print(
+                    f"    lượt {turns} {command} {text[:40]!r}: {time.monotonic() - began:.1f}s", flush=True
+                )
         if state["lifecycle_state"] != "COMPLETED" and "--debug" in sys.argv:
             for x in state["transcript"][-40:]:
                 print(f"    {x['actor'][:5]}: {x['text'][:150]}")

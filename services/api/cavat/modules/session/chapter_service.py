@@ -115,7 +115,7 @@ def chapter_sources() -> dict[str, tuple[Chapter, Path]]:
 # session replays with the version it started with (``chapter_for``); new sessions take the current one.
 _published: dict[str, dict[str, Chapter]] = {}
 _current: dict[str, str] = {}
-_loaded: set[int] = set()
+_loaded: set[tuple[int, str] | int] = set()
 
 
 def build_chapter(package: dict, lessons: dict) -> Chapter:
@@ -145,16 +145,25 @@ def register_published(
 
 async def load_published(database: Any, school_id: str) -> None:
     """Read the published plans of this database once (the first request that needs a chapter)."""
-    if id(database) in _loaded:
+    key = _database_key(database)
+    if key in _loaded:
         return
     from cavat.modules.ingest.repository import TeachingPlanRepository
 
-    _loaded.add(id(database))
+    _loaded.add(key)
     for plan in await TeachingPlanRepository(database, school_id).list_published():
         for version, snap in plan.published.items():
             register_published(
                 plan.chapter_id, version, snap["package"], snap["lessons"], current=version == plan.current
             )
+
+
+def _database_key(database: Any) -> tuple[int, str] | int:
+    """The same database across requests. ``get_db()`` makes a new Database object for every request, so
+    ``id(database)`` almost never matched and every request read all published plans again (2,78 MB, half
+    a minute each on a slow line); the client and the name are what stay the same."""
+    client, name = getattr(database, "client", None), getattr(database, "name", None)
+    return (id(client), name) if client is not None and isinstance(name, str) else id(database)
 
 
 def chapters() -> dict[str, Chapter]:
