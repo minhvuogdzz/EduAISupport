@@ -120,12 +120,16 @@ _loaded: set[int] = set()
 
 def build_chapter(package: dict, lessons: dict) -> Chapter:
     """A chapter from a stored teaching plan (validated like a chapter file)."""
+    from cavat.modules.assessment.misconception_rules import enrich_chapter
     from cavat.modules.content.chapter_package import ChapterPackage
     from cavat.modules.content.lesson_package import LessonPackage
 
     built = {k: LessonPackage.model_validate(v) for k, v in lessons.items()}
     items = {it.id: (it, lesson) for lesson in built.values() for it in lesson.items}
-    return Chapter(package=ChapterPackage.model_validate(package), lessons=built, _items=items)
+    # MISC-1 (DI-54): the misconceptions the teacher's documents name become recognisable in answers.
+    return enrich_chapter(
+        Chapter(package=ChapterPackage.model_validate(package), lessons=built, _items=items)
+    )
 
 
 def register_published(

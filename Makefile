@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -83,6 +83,9 @@ web: web-install ## Run the web app with the mock API at http://localhost:5173
 
 web-live: web-install ## Run the web app against the real API (start "make api" in another terminal first)
 	cd $(WEB) && VITE_API=http pnpm dev
+
+misconception-coverage: ## Which misconceptions of the published chapters the tutor recognises (reads the database, writes none)
+	cd services/api && .venv/bin/python scripts/misconception_coverage.py
 
 voice-setup: ## Install the tutor's voice (VieNeu-TTS, local, CPU) in its own environment services/voice/.venv
 	python3.11 -m venv services/voice/.venv && services/voice/.venv/bin/pip install -q -r services/voice/requirements.txt
