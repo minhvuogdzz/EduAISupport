@@ -87,7 +87,7 @@ def node(events, node_id=FRAC, policy=None):
 
 def test_nothing_is_learned_before_any_evidence():
     projection = project_chapter([], CHAPTER)
-    assert projection.policy_version == "node-mastery/0.1.0" and projection.evidence == []
+    assert projection.policy_version == "node-mastery/0.2.0" and projection.evidence == []
     for state in projection.nodes.values():
         assert (state.mastery, state.state, state.level, state.confidence) == (None, "NOT_LEARNED", 0, 0.0)
         assert state.prior == 0.5 and not state.pass_now and state.passed_at is None

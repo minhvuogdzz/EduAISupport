@@ -461,6 +461,19 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-55, chấm bước "vì sao" (WHY-1, `reason-rubric/0.1.0`, `hint-policy/0.7.0`, `template-renderer.v5`, `node-mastery/0.2.0`, 2026-10-13):** trước đây mọi câu trả lời "vì sao" không phải "không biết" đều được nhận.
+  - **Ba dấu hiệu:** câu trả lời nói về câu đang làm khi có
+    - **SỐ**: một số của câu (trong đề, đáp án, lời giải);
+    - **THUẬT NGỮ**: thuật ngữ Toán lớp 5 hoặc tên KC của bài. Cụm nhiều chữ được so cả khi bỏ dấu; từ một chữ phải đúng dấu ("nhân" khác "nhận");
+    - **LỜI GIẢI**: trùng ít nhất 2 từ nội dung với lời giải của câu.
+  - **Điểm:** không có dấu hiệu nào là câu chung chung, 0,2; một dấu hiệu 0,6; từ hai dấu hiệu 1,0. Ghi vào `EXPLANATION_SUBMITTED` với `label_source: RUBRIC_RULE`.
+  - **Gia sư:** gặp câu chung chung thì hỏi lại một lần, với lời dẫn "Cô muốn nghe rõ hơn bước con đã làm và những số con đã dùng." Lần thứ hai vẫn chung chung thì cho qua câu.
+  - **Mastery:**
+    - câu chung chung không được tính là bằng chứng, cũng không bị trừ, vì bé có thể hiểu mà chưa nói ra được;
+    - câu có dấu hiệu là bằng chứng R với trọng số 0,5 (luật từ khóa, không phải người chấm). Trước đây câu chưa chấm có trọng số 0,3 với điểm 1,0.
+  - **`make trial`:**
+    - Bản đầu trừ điểm câu chung chung. Học sinh mẫu nói "Vì con làm theo quy tắc cô dạy" (câu của chương phát hành ít có lời giải mẫu) thì không qua nổi tiết đầu, nên em bỏ phần trừ điểm.
+    - Bản hiện tại: mọi học sinh mẫu qua hết hai chương, số lượt tăng khoảng 15–20% vì gia sư hỏi lại.
 - **DI-54, nhận ra lỗi sai của chương phát hành (MISC-1, `misconception-rules/0.1.0`, 2026-10-13):** phương án dựng từ tài liệu đã nêu các lỗi sai điển hình của từng tiết, nhưng chưa có đáp án sai nào trỏ tới chúng, nên gia sư không nhận ra lỗi nào.
   - **Họ lỗi:** mỗi lỗi sai được xếp vào một họ, đọc từ từ khóa và ví dụ trong lời của giáo viên (`families`). Có 14 họ:
     - số thập phân: mất số 0 giữ chỗ, quên dấu phẩy, đổi đơn vị sai bước, đổi đơn vị diện tích như độ dài, làm tròn dây chuyền, làm tròn quên nhớ, nhìn sai chữ số khi làm tròn;

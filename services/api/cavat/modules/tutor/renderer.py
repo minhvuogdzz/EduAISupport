@@ -22,7 +22,7 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-TEMPLATE_VERSION = "template-renderer.v4"
+TEMPLATE_VERSION = "template-renderer.v5"  # v5: DI-55, the lead of a vague "vì sao" asked again
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -58,6 +58,11 @@ LEADS: dict[str, tuple[str, ...]] = {
         "{S} đã cố gắng nhiều rồi đấy. Mình đi chậm lại một chút nhé.",
     ),
     "CLARIFY": ("{T} nói rõ hơn nhé.", "{T} nói theo cách khác nhé."),
+    # DI-55 (drafted for the owner's review): a "vì sao" that says nothing of this item.
+    "VAGUE": (
+        "{T} muốn nghe rõ hơn bước {s} đã làm và những số {s} đã dùng.",
+        "{S} kể cụ thể hơn một chút nhé, với những số trong bài.",
+    ),
     "ASKED_HINT": ("{T} gợi ý nhé.", "{T} gợi ý thêm nhé."),
     "HELP_REQUEST": ("Không sao đâu, mình cùng nghĩ từng bước nhé.", "Mình thử thêm một bước nữa nhé."),
     "OFF_TOPIC": (
@@ -70,11 +75,20 @@ _LEAD_COUNTER = {
     "ANSWER_DEMAND": "help_requests",
     "NEGATIVE_AFFECT": "affect_signals",
     "CLARIFY": "clarify_requests",
+    "VAGUE": "clarify_requests",
     "ASKED_HINT": "help_requests",
     "HELP_REQUEST": "help_requests",
     "OFF_TOPIC": "off_topic_turns",
 }
-_LEAD_ORDER = ("ANSWER_DEMAND", "NEGATIVE_AFFECT", "CLARIFY", "ASKED_HINT", "HELP_REQUEST", "OFF_TOPIC")
+_LEAD_ORDER = (
+    "ANSWER_DEMAND",
+    "NEGATIVE_AFFECT",
+    "CLARIFY",
+    "VAGUE",
+    "ASKED_HINT",
+    "HELP_REQUEST",
+    "OFF_TOPIC",
+)
 _LEAD_MOVES = frozenset(
     {
         Move.HINT,

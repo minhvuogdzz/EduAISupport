@@ -57,6 +57,7 @@ class ItemState:
     explanations: int = 0  # EXPLAIN moves on the item (CTX-1): asked again past the limit, the next hint
     choice_offered: bool = False  # "gợi ý thêm hay tự thử lại?" is asked once per item (DI-35)
     explanation_asked_again: bool = False  # "vì sao" asked once more after "là sao?" or off-topic talk
+    last_explanation_vague: bool = False  # DI-55: the last "vì sao" reply said nothing of this item
     probes_sent: int = 0  # "con làm thế nào?" asked after the first wrong answer (R-FIRST-WRONG asks once)
     misconception_counts: dict[str, int] = field(default_factory=dict)
     verified: bool = False  # a "why" question was asked and answered
