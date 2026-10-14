@@ -65,7 +65,9 @@ _ONE_COLUMN = {
 
 def write(name: str, text: str) -> None:
     if name in _ONE_COLUMN:
-        text = text.replace(r"\begin{tabular}{@{}l", r"\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.4cm}", 1)
+        text = text.replace(
+            r"\begin{tabular}{@{}l", r"\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.4cm}", 1
+        )
     (GEN / name).write_text(text.rstrip() + "\n", encoding="utf-8")
 
 
