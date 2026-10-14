@@ -4,7 +4,13 @@ Dạy kèm từng học sinh là một trong những can thiệp giáo dục hi�
 
 Các nhà cung cấp lớn đã đáp bằng những ``chế độ học''. Study mode của ChatGPT được mô tả là một bộ chỉ dẫn hệ thống tùy biến chứ không phải một mô hình riêng~\cite{studymode}; Guided Learning của Gemini dựa trên họ mô hình LearnLM~\cite{guidedlearning,jurenka2024}; Khanmigo gắn GPT-4 với kho bài của Khan Academy~\cite{khanmigo}. Điểm chung của các cách làm này là mô hình ngôn ngữ vẫn là nơi đưa ra quyết định, còn ràng buộc sư phạm chỉ tồn tại như lời khuyên trong ngữ cảnh. Khi lời khuyên bị bỏ qua, chẳng hạn khi trẻ khăng khăng một đáp án sai, nhờ làm hộ, hoặc ra lệnh ``bỏ qua mọi hướng dẫn trước đó''~\cite{perez2022}, không có cơ chế nào bảo đảm hành vi đúng. Mục~\ref{sec:market} đo điều này một cách cụ thể.
 
-Bài báo này nghiên cứu một hướng thiết kế khác: xây \emph{hệ thống học tập} trước, rồi đặt mô hình ngôn ngữ vào bên trong với vai trò hẹp. Chúng tôi hiện thực hướng này trong CAVAT, một gia sư Toán lớp~5 tiếng Việt cho hai chương ``Số thập phân'' và ``Diện tích hình tam giác, hình thang''. Bốn quyết định thiết kế xuyên suốt. Thứ nhất, một chính sách tất định, có phiên bản, chọn từng nước đi sư phạm (hỏi gì, gợi ý ở bậc nào, khi nào dừng, khi nào chuyển tiết); mô hình ngôn ngữ chỉ chuyển nước đi đó thành lời, và lời của nó phải qua một bộ kiểm chứng trước khi đến học sinh. Thứ hai, đúng--sai của đáp án do một bộ chấm tất định quyết định theo chuẩn viết số của Việt Nam (dấu phẩy thập phân, số đọc bằng chữ, cách viết của trẻ), và đáp án của câu kiểm tra không bao giờ có trong ngữ cảnh gửi cho mô hình. Thứ ba, mức hiểu bài là một phép chiếu tất định, có phiên bản, phát lại được từ sổ sự kiện chỉ ghi thêm; mô hình ngôn ngữ không bao giờ ghi điểm. Thứ tư, kiến thức của gia sư là tài liệu của chính giáo viên, được đọc, kiểm đáp án và dựng thành đồ thị tri thức, và các câu hỏi của học sinh được trả lời bằng truy xuất lai có ràng buộc theo đồ thị đó.
+Bài báo này nghiên cứu một hướng thiết kế khác: xây \emph{hệ thống học tập} trước, rồi đặt mô hình ngôn ngữ vào bên trong với vai trò hẹp. Chúng tôi hiện thực hướng này trong CAVAT, một gia sư Toán lớp~5 tiếng Việt cho hai chương ``Số thập phân'' và ``Diện tích hình tam giác, hình thang''. Bốn quyết định thiết kế xuyên suốt:
+\begin{enumerate}
+  \item Một chính sách tất định, có phiên bản, chọn từng nước đi sư phạm (hỏi gì, gợi ý ở bậc nào, khi nào dừng, khi nào chuyển tiết); mô hình ngôn ngữ chỉ chuyển nước đi đó thành lời, và lời của nó phải qua một bộ kiểm chứng trước khi đến học sinh.
+  \item Đúng--sai của đáp án do một bộ chấm tất định quyết định theo chuẩn viết số của Việt Nam (dấu phẩy thập phân, số đọc bằng chữ, cách viết của trẻ), và đáp án của câu kiểm tra không bao giờ có trong ngữ cảnh gửi cho mô hình.
+  \item Mức hiểu bài là một phép chiếu tất định, có phiên bản, phát lại được từ sổ sự kiện chỉ ghi thêm; mô hình ngôn ngữ không bao giờ ghi điểm.
+  \item Kiến thức của gia sư là tài liệu của chính giáo viên, được đọc, kiểm đáp án và dựng thành đồ thị tri thức, và các câu hỏi của học sinh được trả lời bằng truy xuất lai có ràng buộc theo đồ thị đó.
+\end{enumerate}
 
 \begin{figure}[tbp]
 \centering
@@ -50,12 +56,22 @@ Bài báo này nghiên cứu một hướng thiết kế khác: xây \emph{hệ 
 \end{figure}
 
 Để đánh giá hướng thiết kế này một cách nghiêm túc, chúng tôi đặt bốn câu hỏi nghiên cứu.
-\textbf{RQ1}~(phương pháp): nên đánh giá một gia sư như vậy theo những chiều nào, bằng giao thức nào để kết quả đáng tin?
-\textbf{RQ2}~(truy xuất): thành phần truy xuất đạt bao nhiêu phần trăm so với các định hướng đã đặt ra lúc thiết kế, và đồ thị tri thức đóng góp gì so với một hệ RAG phẳng?
-\textbf{RQ3}~(so với thị trường): so với các mô hình học sinh đang dùng được, hệ thống mang lại lợi ích gì cho học sinh và còn kém ở đâu?
-\textbf{RQ4}~(đánh giá hiểu bài): cách ước lượng mức hiểu bài bám sát khung đánh giá được đề ra ban đầu đến mức nào, và kết luận nhạy với những diễn giải nào?
+\begin{description}[leftmargin=3.2em,font=\normalfont]
+  \item[\textbf{RQ1}] \emph{Phương pháp.} Nên đánh giá một gia sư như vậy theo những chiều nào, bằng giao thức nào để kết quả đáng tin?
+  \item[\textbf{RQ2}] \emph{Truy xuất.} Thành phần truy xuất đạt bao nhiêu phần trăm so với các định hướng đã đặt ra lúc thiết kế, và đồ thị tri thức đóng góp gì so với một hệ RAG phẳng?
+  \item[\textbf{RQ3}] \emph{So với thị trường.} So với các mô hình học sinh đang dùng được, hệ thống mang lại lợi ích gì cho học sinh và còn kém ở đâu?
+  \item[\textbf{RQ4}] \emph{Đánh giá hiểu bài.} Cách ước lượng mức hiểu bài bám sát khung đánh giá được đề ra ban đầu đến mức nào, và kết luận nhạy với những diễn giải nào?
+\end{description}
 
-Các đóng góp của bài báo gồm sáu phần. (i)~Một kiến trúc gia sư trong đó quyết định sư phạm tách khỏi mô hình ngôn ngữ, với sáu bất biến thực thi và kiểm chứng được (Mục~\ref{sec:problem}). (ii)~Một quy trình dựng kho tri thức từ tài liệu thật của giáo viên, trong đó mỗi đáp án được kiểm chính xác không dùng mô hình và mọi chỗ mô hình tham gia đều được ghi lại cùng kết quả kiểm (Mục~\ref{sec:corpus}). (iii)~Một thiết kế truy xuất lai có ràng buộc theo đồ thị tri thức cùng cơ chế định tuyến chủ đề, với so sánh có kiểm định thống kê với RAG phẳng cho thấy cả cái giá lẫn cái lợi của ràng buộc (Mục~\ref{sec:rag}, \ref{sec:res-rag}). (iv)~Một giao thức đánh giá tám chiều có đóng băng tập kiểm tra và quy tắc tính mức đạt định hướng (Mục~\ref{sec:setup}). (v)~Bằng chứng thực nghiệm so với chatbot thương mại và với chính mô hình của hệ chỉ có lời nhắc, trong đó có một ca giám khảo mô hình ngôn ngữ bỏ sót lỗi của hệ được chấm (Mục~\ref{sec:market}). (vi)~Một bộ kiểm tra độ sát khung của mô hình người học gồm đối chiếu từng mục, kiểm tương đương công thức, đường đáp ứng, nhóm đã biết và phân tích độ nhạy với các diễn giải (Mục~\ref{sec:res-assess}).
+Các đóng góp của bài báo gồm sáu phần.
+\begin{enumerate}[label=(\roman*)]
+  \item Một kiến trúc gia sư trong đó quyết định sư phạm tách khỏi mô hình ngôn ngữ, với sáu bất biến thực thi và kiểm chứng được (Mục~\ref{sec:problem}).
+  \item Một quy trình dựng kho tri thức từ tài liệu thật của giáo viên, trong đó mỗi đáp án được kiểm chính xác không dùng mô hình và mọi chỗ mô hình tham gia đều được ghi lại cùng kết quả kiểm (Mục~\ref{sec:corpus}).
+  \item Một thiết kế truy xuất lai có ràng buộc theo đồ thị tri thức cùng cơ chế định tuyến chủ đề, với so sánh có kiểm định thống kê với RAG phẳng cho thấy cả cái giá lẫn cái lợi của ràng buộc (Mục~\ref{sec:rag}, \ref{sec:res-rag}).
+  \item Một giao thức đánh giá tám chiều có đóng băng tập kiểm tra và quy tắc tính mức đạt định hướng (Mục~\ref{sec:setup}).
+  \item Bằng chứng thực nghiệm so với chatbot thương mại và với chính mô hình của hệ chỉ có lời nhắc, trong đó có một ca giám khảo mô hình ngôn ngữ bỏ sót lỗi của hệ được chấm (Mục~\ref{sec:market}).
+  \item Một bộ kiểm tra độ sát khung của mô hình người học gồm đối chiếu từng mục, kiểm tương đương công thức, đường đáp ứng, nhóm đã biết và phân tích độ nhạy với các diễn giải (Mục~\ref{sec:res-assess}).
+\end{enumerate}
 
 Về kết quả, trên hai chương dựng từ \NDocs{} tệp tài liệu thật, truy xuất của CAVAT đạt trung bình \TargetMean{} so với bảy định hướng thiết kế. Ràng buộc phạm vi theo đồ thị không miễn phí: bản đầu làm Hit@3 trên tập giữ riêng tụt xuống $0{,}45$, và chỉ khi thêm định tuyến chủ đề mới trở lại $0{,}90$, ngang một RAG phẳng về độ chính xác; cái ràng buộc mua được là an toàn phạm vi (không đưa đoạn của bài sau vào câu trả lời), không phải độ chính xác. Về hành vi sư phạm, chatbot dùng lời nhắc thường nói ra đáp án ở $60\%$ số lượt thử thách; thêm một lời nhắc Socratic soạn kỹ đưa con số này xuống $4\%$, và hệ có chính sách tất định xuống $0\%$; nhưng giám khảo mô hình ngôn ngữ chấm giọng điệu của hệ lời nhắc cao hơn, và không phát hiện lỗi khen một đáp án sai của nó. Về đánh giá hiểu bài, phép chiếu khớp công thức đóng của khung và các kết luận đã qua của học sinh giả lập bền với hầu hết diễn giải, trừ ngưỡng giải thích.
 

@@ -20,7 +20,13 @@ Mỗi chương gồm chín tệp PDF: một giáo án chia theo tiết, một b�
 \end{table}
 
 \subsection{Đọc từng trang}\label{sec:reading}
-Lớp chữ của PDF không đủ: trong tài liệu của chương ``Số thập phân'', các phân số là ảnh nhỏ (``Các phân số thập phân , , viết là $0{,}1$; $0{,}01$'' khi lấy lớp chữ), và trong chương hình học, các nhãn điểm và số đo của hình vẽ chỉ còn là chuỗi rời (``H A B C 7 cm 12 cm''). Vì vậy mỗi trang được đọc bằng lớp chữ trước; một trang được đọc lại bằng mô hình ảnh (Gemini) khi nó (a)~có dưới 40 ký tự (trang quét), (b)~còn dấu vết của hình vẽ như ba chữ cái hoa liên tiếp hoặc các số đo nằm riêng một dòng, hoặc (c)~chứa ảnh nhúng. Mô hình được yêu cầu chép nguyên văn, viết phân số dạng $a/b$, số thập phân dùng dấu phẩy, bảng mỗi hàng một dòng và mô tả hình trong ngoặc vuông.
+Lớp chữ của PDF không đủ: trong tài liệu của chương ``Số thập phân'', các phân số là ảnh nhỏ (``Các phân số thập phân , , viết là $0{,}1$; $0{,}01$'' khi lấy lớp chữ), và trong chương hình học, các nhãn điểm và số đo của hình vẽ chỉ còn là chuỗi rời (``H A B C 7 cm 12 cm''). Vì vậy mỗi trang được đọc bằng lớp chữ trước; một trang được đọc lại bằng mô hình ảnh (Gemini) khi nó:
+\begin{enumerate}[label=(\alph*)]
+  \item Có dưới 40 ký tự (trang quét);
+  \item Còn dấu vết của hình vẽ như ba chữ cái hoa liên tiếp hoặc các số đo nằm riêng một dòng, hoặc;
+  \item Chứa ảnh nhúng.
+\end{enumerate}
+Mô hình được yêu cầu chép nguyên văn, viết phân số dạng $a/b$, số thập phân dùng dấu phẩy, bảng mỗi hàng một dòng và mô tả hình trong ngoặc vuông.
 
 Một bản đọc lại chỉ thay lớp chữ khi qua phép kiểm bảo toàn số (DI-43): \emph{mọi số có trong lớp chữ phải có trong bản của mô hình}. Trang không qua giữ lớp chữ và được đánh dấu cho giáo viên. Các số chỉ mô hình đọc được (thường là phân số trong ảnh hoặc số đo trên hình) được liệt kê, và được một mô hình thứ hai, khác với mô hình đã đọc, đọc lại cùng trang để xác nhận; hai tập số lệch nhau thì trang được đánh dấu \textsc{disagree} và các số tranh chấp được báo cho giáo viên. Bảng~\ref{tab:reading} cho thấy phép kiểm này không phải hình thức: \NPagesOcr{} trong \NPages{} trang phải đọc lại, mô hình bổ sung \NNumbersAdded{} số mà lớp chữ không có, \NConfirmedPages{} trang được mô hình thứ hai xác nhận, và \NDisputedNumbers{} số bị tranh chấp được chuyển cho giáo viên.
 
