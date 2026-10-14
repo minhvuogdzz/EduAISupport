@@ -166,6 +166,8 @@ def macros() -> dict[str, str]:
     put("NCritical", sum(p[c]["misconceptions"]["critical"] for c in p))
     put("NDrafts", sum(p[c]["drafts"]["n"] for c in p))
     put("NDraftsOk", sum(p[c]["drafts"]["ok"] for c in p))
+    put("NDraftsQwen", sum(p[c]["drafts"]["by_model"].get("qwen/qwen3.8-27b", 0) for c in p))
+    put("NDraftsFallback", sum(p[c]["drafts"]["by_model"].get("openai/gpt-oss-120b", 0) for c in p))
     put("NDecisions", sum(p[c]["decisions"]["n"] for c in p))
     put("NApprove", sum(p[c]["decisions"]["by_action"].get("approve", 0) for c in p))
     put("NEdit", sum(p[c]["decisions"]["by_action"].get("edit", 0) for c in p))
