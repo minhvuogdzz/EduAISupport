@@ -1,0 +1,2860 @@
+{
+ "policy": {
+  "version": "node-mastery/0.2.0",
+  "weights": {
+   "C": 0.2,
+   "R": 0.2,
+   "A": 0.15,
+   "T": 0.15,
+   "I": 0.1,
+   "S": 0.1,
+   "D": 0.1
+  },
+  "independence": [
+   1.0,
+   0.85,
+   0.7,
+   0.6,
+   0.5,
+   0.35,
+   0.2,
+   0.0
+  ],
+  "bands": [
+   20,
+   40,
+   60,
+   75,
+   90
+  ]
+ },
+ "conformance": {
+  "scaffolded_items": [
+   "TP-CP-01"
+  ],
+  "mixed": {
+   "streams": 500,
+   "events": 11062,
+   "levels": {
+    "1": 16,
+    "2": 482,
+    "3": 2
+   },
+   "max_dev_mastery": 0.049905025412328996,
+   "mean_dev_mastery": 0.024522338317188315,
+   "max_dev_confidence": 0.0499848142269812,
+   "level_mismatch": 0,
+   "explanation_mismatch": 0,
+   "application_mismatch": 0,
+   "order_violations": 0,
+   "replay_violations": 0,
+   "bounds_violations": 0,
+   "gate_violations": 0,
+   "more_help_checked": 500,
+   "more_help_violations": 0,
+   "more_help_max_jump": 0.0,
+   "better_outcome_checked": 492,
+   "better_outcome_violations": 1,
+   "better_outcome_max_jump": 0.2
+  },
+  "strong": {
+   "streams": 500,
+   "events": 13116,
+   "levels": {
+    "2": 95,
+    "3": 80,
+    "4": 325
+   },
+   "max_dev_mastery": 0.049810765636905785,
+   "mean_dev_mastery": 0.02491375411616184,
+   "max_dev_confidence": 0.0499912760814496,
+   "level_mismatch": 0,
+   "explanation_mismatch": 0,
+   "application_mismatch": 0,
+   "order_violations": 0,
+   "replay_violations": 0,
+   "bounds_violations": 0,
+   "gate_violations": 0,
+   "more_help_checked": 500,
+   "more_help_violations": 6,
+   "more_help_max_jump": 6.5,
+   "better_outcome_checked": 351,
+   "better_outcome_violations": 1,
+   "better_outcome_max_jump": 2.9
+  }
+ },
+ "curves": {
+  "independence": {
+   "0": [
+    66.7,
+    73.6,
+    78.7,
+    82.1,
+    84.6,
+    86.4,
+    87.9,
+    89.1,
+    90.1,
+    90.9,
+    91.6,
+    92.2,
+    92.7,
+    93.1,
+    93.5
+   ],
+   "1": [
+    61.7,
+    69.8,
+    74.3,
+    77.5,
+    79.8,
+    81.6,
+    83.0,
+    84.1,
+    85.0,
+    85.8,
+    86.5,
+    87.1,
+    87.6,
+    88.0,
+    88.4
+   ],
+   "2": [
+    56.7,
+    65.8,
+    69.7,
+    72.6,
+    74.7,
+    76.4,
+    77.7,
+    78.8,
+    79.7,
+    80.5,
+    81.2,
+    81.8,
+    82.3,
+    82.7,
+    83.1
+   ],
+   "3": [
+    53.3,
+    62.9,
+    66.4,
+    69.1,
+    71.1,
+    72.7,
+    74.0,
+    75.0,
+    75.9,
+    76.7,
+    77.4,
+    78.0,
+    78.5,
+    79.0,
+    79.4
+   ],
+   "4": [
+    50.0,
+    50.0,
+    63.0,
+    65.3,
+    67.2,
+    68.7,
+    69.9,
+    71.0,
+    71.9,
+    72.7,
+    73.3,
+    73.9,
+    74.5,
+    74.9,
+    75.4
+   ],
+   "5": [
+    45.0,
+    42.5,
+    41.0,
+    59.1,
+    60.6,
+    62.0,
+    63.1,
+    64.1,
+    65.0,
+    65.8,
+    66.5,
+    67.1,
+    67.6,
+    68.1,
+    68.6
+   ],
+   "6": [
+    40.0,
+    35.0,
+    32.0,
+    54.6,
+    55.8,
+    56.9,
+    57.9,
+    58.8,
+    59.6,
+    60.3,
+    61.0,
+    61.6,
+    62.1,
+    62.6,
+    63.1
+   ],
+   "7": [
+    33.3,
+    25.0,
+    20.0,
+    50.1,
+    51.1,
+    51.9,
+    52.8,
+    53.5,
+    54.2,
+    54.8,
+    55.4,
+    55.9,
+    56.3,
+    56.8,
+    57.2
+   ]
+  },
+  "independence_dims": {
+   "0": {
+    "C": {
+     "mean": 85.9,
+     "n_eff": 5.1
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 87.5,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "1": {
+    "C": {
+     "mean": 84.2,
+     "n_eff": 4.33
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 76.2,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "2": {
+    "C": {
+     "mean": 82.0,
+     "n_eff": 3.57
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 65.0,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "3": {
+    "C": {
+     "mean": 80.2,
+     "n_eff": 3.06
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 57.5,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "4": {
+    "C": {
+     "mean": 78.0,
+     "n_eff": 2.55
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 50.0,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "5": {
+    "C": {
+     "mean": 73.6,
+     "n_eff": 1.78
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 38.8,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "6": {
+    "C": {
+     "mean": 71.7,
+     "n_eff": 1.53
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 27.5,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "7": {
+    "C": {
+     "mean": 71.7,
+     "n_eff": 1.53
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 12.5,
+     "n_eff": 6.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   }
+  },
+  "difficulty": {
+   "0.2": {
+    "correct": [
+     66.7,
+     72.1,
+     77.1,
+     80.6,
+     83.1,
+     85.1,
+     86.6,
+     87.9
+    ],
+    "wrong_after_4_correct": 73.4
+   },
+   "0.5": {
+    "correct": [
+     66.7,
+     75.0,
+     80.0,
+     83.3,
+     85.7,
+     87.5,
+     88.9,
+     90.0
+    ],
+    "wrong_after_4_correct": 75.4
+   },
+   "0.8": {
+    "correct": [
+     68.7,
+     77.2,
+     82.0,
+     85.2,
+     87.4,
+     89.0,
+     90.3,
+     91.3
+    ],
+    "wrong_after_4_correct": 77.5
+   }
+  },
+  "error_class": {
+   "before": 83.3,
+   "before_R": {
+    "mean": 50.0,
+    "n_eff": 0.0
+   },
+   "CALCULATION": {
+    "mastery": 80.2,
+    "C": 78.6,
+    "R": 50.0
+   },
+   "FORMAT": {
+    "mastery": 82.1,
+    "C": 81.4,
+    "R": 50.0
+   },
+   "CONCEPTUAL": {
+    "mastery": 58.6,
+    "C": 71.4,
+    "R": 33.3
+   },
+   "PROCEDURAL": {
+    "mastery": 75.4,
+    "C": 71.4,
+    "R": 50.0
+   },
+   "REASONING": {
+    "mastery": 75.4,
+    "C": 71.4,
+    "R": 50.0
+   },
+   "UNKNOWN": {
+    "mastery": 75.4,
+    "C": 71.4,
+    "R": 50.0
+   }
+  },
+  "scaffold": {
+   "alone": 86.4,
+   "together": 78.7
+  },
+  "guess": {
+   "honest": 87.5,
+   "guessed": 54.5
+  },
+  "patterns": {
+   "đều, không gợi ý": {
+    "trace": [
+     66.7,
+     75.0,
+     80.0,
+     83.3,
+     85.7,
+     87.5,
+     88.9,
+     90.0,
+     90.9,
+     91.7,
+     92.3,
+     92.9,
+     93.3,
+     93.7
+    ],
+    "final": {
+     "mastery": 93.7,
+     "confidence": 34.8,
+     "level": 2,
+     "state": "PROCEDURAL",
+     "items": 14,
+     "successes": 14,
+     "levels": [
+      "B"
+     ],
+     "forms": [
+      "numeric"
+     ],
+     "has_explanation": false,
+     "has_application": false,
+     "understood": false,
+     "pass_now": false,
+     "missing": [
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ],
+     "dims": {
+      "C": {
+       "mean": 93.8,
+       "n_eff": 14.0
+      },
+      "R": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "A": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "T": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "I": {
+       "mean": 93.8,
+       "n_eff": 14.0
+      },
+      "S": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "D": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      }
+     }
+    }
+   },
+   "sai rồi học dần": {
+    "trace": [
+     33.3,
+     25.0,
+     31.4,
+     35.5,
+     39.4,
+     43.2,
+     46.9,
+     49.6,
+     51.8,
+     53.6,
+     55.0,
+     56.2,
+     57.3,
+     58.2
+    ],
+    "final": {
+     "mastery": 58.2,
+     "confidence": 35.1,
+     "level": 2,
+     "state": "PROCEDURAL",
+     "items": 14,
+     "successes": 11,
+     "levels": [
+      "B"
+     ],
+     "forms": [
+      "numeric"
+     ],
+     "has_explanation": false,
+     "has_application": false,
+     "understood": false,
+     "pass_now": false,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ],
+     "dims": {
+      "C": {
+       "mean": 79.3,
+       "n_eff": 12.5
+      },
+      "R": {
+       "mean": 25.0,
+       "n_eff": 2.0
+      },
+      "A": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "T": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "I": {
+       "mean": 82.1,
+       "n_eff": 12.0
+      },
+      "S": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "D": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      }
+     }
+    }
+   },
+   "luôn cần gợi ý H6": {
+    "trace": [
+     40.0,
+     35.0,
+     32.0,
+     55.8,
+     57.1,
+     58.3,
+     59.3,
+     60.2,
+     61.0,
+     61.7,
+     62.3,
+     62.9,
+     63.4,
+     63.8
+    ],
+    "final": {
+     "mastery": 63.8,
+     "confidence": 19.4,
+     "level": 2,
+     "state": "PROCEDURAL",
+     "items": 14,
+     "successes": 0,
+     "levels": [],
+     "forms": [],
+     "has_explanation": false,
+     "has_application": false,
+     "understood": false,
+     "pass_now": false,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ],
+     "dims": {
+      "C": {
+       "mean": 83.9,
+       "n_eff": 4.2
+      },
+      "R": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "A": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "T": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "I": {
+       "mean": 23.8,
+       "n_eff": 14.0
+      },
+      "S": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "D": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      }
+     }
+    }
+   },
+   "đoán": {
+    "trace": [
+     44.4,
+     51.7,
+     52.6,
+     53.3,
+     54.0,
+     54.5,
+     54.9,
+     55.3,
+     55.7,
+     56.0,
+     56.2,
+     56.4,
+     56.6,
+     56.8
+    ],
+    "final": {
+     "mastery": 56.8,
+     "confidence": 18.7,
+     "level": 2,
+     "state": "PROCEDURAL",
+     "items": 14,
+     "successes": 0,
+     "levels": [],
+     "forms": [],
+     "has_explanation": false,
+     "has_application": false,
+     "understood": false,
+     "pass_now": false,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ],
+     "dims": {
+      "C": {
+       "mean": 88.9,
+       "n_eff": 7.0
+      },
+      "R": {
+       "mean": 6.2,
+       "n_eff": 14.0
+      },
+      "A": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "T": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "I": {
+       "mean": 93.8,
+       "n_eff": 14.0
+      },
+      "S": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "D": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      }
+     }
+    }
+   },
+   "đúng sai xen kẽ": {
+    "trace": [
+     66.7,
+     55.6,
+     65.0,
+     58.3,
+     64.8,
+     60.0,
+     64.8,
+     61.1,
+     64.9,
+     61.9,
+     65.1,
+     62.5,
+     65.2,
+     63.0
+    ],
+    "final": {
+     "mastery": 63.0,
+     "confidence": 17.4,
+     "level": 2,
+     "state": "PROCEDURAL",
+     "items": 14,
+     "successes": 7,
+     "levels": [
+      "B"
+     ],
+     "forms": [
+      "numeric"
+     ],
+     "has_explanation": false,
+     "has_application": false,
+     "understood": false,
+     "pass_now": false,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ],
+     "dims": {
+      "C": {
+       "mean": 50.0,
+       "n_eff": 14.0
+      },
+      "R": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "A": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "T": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "I": {
+       "mean": 88.9,
+       "n_eff": 7.0
+      },
+      "S": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "D": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      }
+     }
+    }
+   },
+   "toàn sai": {
+    "trace": [
+     33.3,
+     25.0,
+     20.0,
+     16.7,
+     14.3,
+     12.5,
+     11.1,
+     10.0,
+     9.1,
+     8.3,
+     7.7,
+     7.1,
+     6.7,
+     6.2
+    ],
+    "final": {
+     "mastery": 6.2,
+     "confidence": 38.1,
+     "level": 0,
+     "state": "LEARNING",
+     "items": 14,
+     "successes": 0,
+     "levels": [],
+     "forms": [],
+     "has_explanation": false,
+     "has_application": false,
+     "understood": false,
+     "pass_now": false,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ],
+     "dims": {
+      "C": {
+       "mean": 6.2,
+       "n_eff": 14.0
+      },
+      "R": {
+       "mean": 6.2,
+       "n_eff": 14.0
+      },
+      "A": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "T": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "I": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "S": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      },
+      "D": {
+       "mean": 50.0,
+       "n_eff": 0.0
+      }
+     }
+    }
+   }
+  }
+ },
+ "gates": [
+  {
+   "mastery": null,
+   "confidence": 0.0,
+   "level": 0,
+   "state": "NOT_LEARNED",
+   "items": 0,
+   "successes": 0,
+   "levels": [],
+   "forms": [],
+   "has_explanation": false,
+   "has_application": false,
+   "understood": false,
+   "pass_now": false,
+   "missing": [
+    "MASTERY",
+    "UNDERSTOOD",
+    "EXPLANATION",
+    "APPLICATION"
+   ],
+   "dims": {
+    "C": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "Chưa có bằng chứng",
+   "events": 0
+  },
+  {
+   "mastery": 79.0,
+   "confidence": 13.7,
+   "level": 2,
+   "state": "PROCEDURAL",
+   "items": 3,
+   "successes": 3,
+   "levels": [
+    "B"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": false,
+   "has_application": false,
+   "understood": false,
+   "pass_now": false,
+   "missing": [
+    "UNDERSTOOD",
+    "EXPLANATION",
+    "APPLICATION"
+   ],
+   "dims": {
+    "C": {
+     "mean": 78.5,
+     "n_eff": 2.65
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 80.0,
+     "n_eff": 3.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "3 câu đúng, không gợi ý (mức B)",
+   "events": 3
+  },
+  {
+   "mastery": 92.2,
+   "confidence": 40.2,
+   "level": 2,
+   "state": "PROCEDURAL",
+   "items": 12,
+   "successes": 12,
+   "levels": [
+    "A",
+    "B"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": false,
+   "has_application": false,
+   "understood": true,
+   "pass_now": false,
+   "missing": [
+    "EXPLANATION",
+    "APPLICATION"
+   ],
+   "dims": {
+    "C": {
+     "mean": 91.9,
+     "n_eff": 10.3
+    },
+    "R": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 92.9,
+     "n_eff": 12.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "12 câu đúng (mức A–B), chưa hỏi “vì sao”",
+   "events": 12
+  },
+  {
+   "mastery": 83.9,
+   "confidence": 42.1,
+   "level": 3,
+   "state": "CONCEPTUAL",
+   "items": 12,
+   "successes": 12,
+   "levels": [
+    "A",
+    "B"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": false,
+   "understood": true,
+   "pass_now": false,
+   "missing": [
+    "APPLICATION"
+   ],
+   "dims": {
+    "C": {
+     "mean": 91.9,
+     "n_eff": 10.3
+    },
+    "R": {
+     "mean": 71.4,
+     "n_eff": 1.5
+    },
+    "A": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 92.9,
+     "n_eff": 12.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ 3 lần giải thích đúng (chiều R)",
+   "events": 15
+  },
+  {
+   "mastery": 83.9,
+   "confidence": 55.1,
+   "level": 4,
+   "state": "APPLIED",
+   "items": 16,
+   "successes": 16,
+   "levels": [
+    "A",
+    "B",
+    "D"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": true,
+   "understood": true,
+   "pass_now": true,
+   "missing": [],
+   "dims": {
+    "C": {
+     "mean": 91.9,
+     "n_eff": 10.3
+    },
+    "R": {
+     "mean": 71.4,
+     "n_eff": 1.5
+    },
+    "A": {
+     "mean": 82.8,
+     "n_eff": 3.8
+    },
+    "T": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "I": {
+     "mean": 94.4,
+     "n_eff": 16.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ 4 câu vận dụng đúng (mức D)",
+   "events": 19
+  },
+  {
+   "mastery": 86.0,
+   "confidence": 67.8,
+   "level": 4,
+   "state": "APPLIED",
+   "items": 21,
+   "successes": 21,
+   "levels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": true,
+   "understood": true,
+   "pass_now": true,
+   "missing": [],
+   "dims": {
+    "C": {
+     "mean": 91.9,
+     "n_eff": 10.3
+    },
+    "R": {
+     "mean": 82.1,
+     "n_eff": 3.6
+    },
+    "A": {
+     "mean": 82.8,
+     "n_eff": 3.8
+    },
+    "T": {
+     "mean": 80.0,
+     "n_eff": 3.0
+    },
+    "I": {
+     "mean": 95.7,
+     "n_eff": 21.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ 3 câu chuyển giao (E) và 2 câu mức C, cùng buổi",
+   "events": 24
+  },
+  {
+   "mastery": 88.9,
+   "confidence": 99.2,
+   "level": 4,
+   "state": "APPLIED",
+   "items": 27,
+   "successes": 27,
+   "levels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": true,
+   "understood": true,
+   "pass_now": true,
+   "missing": [],
+   "dims": {
+    "C": {
+     "mean": 93.7,
+     "n_eff": 13.9
+    },
+    "R": {
+     "mean": 88.4,
+     "n_eff": 6.6
+    },
+    "A": {
+     "mean": 86.8,
+     "n_eff": 5.6
+    },
+    "T": {
+     "mean": 80.0,
+     "n_eff": 3.0
+    },
+    "I": {
+     "mean": 96.5,
+     "n_eff": 27.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ buổi 2 sau 4 ngày: 6 câu đúng, 6 lần giải thích đúng",
+   "events": 36
+  },
+  {
+   "mastery": 91.3,
+   "confidence": 99.8,
+   "level": 5,
+   "state": "PROVISIONALLY_MASTERED",
+   "items": 33,
+   "successes": 33,
+   "levels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": true,
+   "understood": true,
+   "pass_now": true,
+   "missing": [],
+   "dims": {
+    "C": {
+     "mean": 94.4,
+     "n_eff": 15.9
+    },
+    "R": {
+     "mean": 90.6,
+     "n_eff": 8.6
+    },
+    "A": {
+     "mean": 89.6,
+     "n_eff": 7.6
+    },
+    "T": {
+     "mean": 85.7,
+     "n_eff": 5.0
+    },
+    "I": {
+     "mean": 97.1,
+     "n_eff": 33.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ buổi 3 sau 8 ngày: 6 câu đúng (B, D, E), 4 lần giải thích đúng",
+   "events": 46
+  },
+  {
+   "mastery": 87.8,
+   "confidence": 49.9,
+   "level": 4,
+   "state": "APPLIED",
+   "items": 34,
+   "successes": 33,
+   "levels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": true,
+   "understood": true,
+   "pass_now": false,
+   "missing": [
+    "MISCONCEPTION"
+   ],
+   "dims": {
+    "C": {
+     "mean": 88.9,
+     "n_eff": 17.0
+    },
+    "R": {
+     "mean": 82.0,
+     "n_eff": 9.7
+    },
+    "A": {
+     "mean": 89.6,
+     "n_eff": 7.6
+    },
+    "T": {
+     "mean": 85.7,
+     "n_eff": 5.0
+    },
+    "I": {
+     "mean": 97.1,
+     "n_eff": 33.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ phát hiện 1 lỗi quan niệm NGHIÊM TRỌNG",
+   "events": 47
+  },
+  {
+   "mastery": 88.0,
+   "confidence": 49.9,
+   "level": 4,
+   "state": "APPLIED",
+   "items": 36,
+   "successes": 35,
+   "levels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": true,
+   "understood": true,
+   "pass_now": true,
+   "missing": [],
+   "dims": {
+    "C": {
+     "mean": 89.8,
+     "n_eff": 18.6
+    },
+    "R": {
+     "mean": 82.0,
+     "n_eff": 9.7
+    },
+    "A": {
+     "mean": 89.6,
+     "n_eff": 7.6
+    },
+    "T": {
+     "mean": 85.7,
+     "n_eff": 5.0
+    },
+    "I": {
+     "mean": 97.3,
+     "n_eff": 35.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ 2 câu đúng nơi lỗi có thể lộ: lỗi được coi là đã giải quyết",
+   "events": 49
+  },
+  {
+   "mastery": 88.7,
+   "confidence": 100.0,
+   "level": 4,
+   "state": "APPLIED",
+   "items": 44,
+   "successes": 43,
+   "levels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "forms": [
+    "choice",
+    "numeric"
+   ],
+   "has_explanation": true,
+   "has_application": true,
+   "understood": true,
+   "pass_now": true,
+   "missing": [],
+   "dims": {
+    "C": {
+     "mean": 92.5,
+     "n_eff": 25.8
+    },
+    "R": {
+     "mean": 82.0,
+     "n_eff": 9.7
+    },
+    "A": {
+     "mean": 89.6,
+     "n_eff": 7.6
+    },
+    "T": {
+     "mean": 85.7,
+     "n_eff": 5.0
+    },
+    "I": {
+     "mean": 97.8,
+     "n_eff": 43.0
+    },
+    "S": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    },
+    "D": {
+     "mean": 50.0,
+     "n_eff": 0.0
+    }
+   },
+   "step": "+ 8 câu đúng tiếp theo",
+   "events": 57
+  }
+ ],
+ "known_groups": {
+  "math-g5-area-triangle-trapezoid": {
+   "gioi": {
+    "turns": 108,
+    "passed": 8,
+    "nodes": 8,
+    "hints": 0,
+    "outcomes": {
+     "CORRECT": 52
+    },
+    "mastery_mean": 94.8,
+    "mastery_min": 84.3,
+    "mastery_max": 98.9,
+    "level_mean": 3.5,
+    "confidence_mean": 38.2,
+    "dims": {
+     "C": 96.3,
+     "R": 92.6,
+     "I": 96.7,
+     "A": 96.1
+    },
+    "per_node": [
+     {
+      "id": "DTTGHT-T01",
+      "M": 84.3,
+      "level": 3,
+      "I": 90.9
+     },
+     {
+      "id": "DTTGHT-T02",
+      "M": 93.6,
+      "level": 3,
+      "I": 94.1
+     },
+     {
+      "id": "DTTGHT-T03",
+      "M": 94.7,
+      "level": 4,
+      "I": 97.7
+     },
+     {
+      "id": "DTTGHT-T04",
+      "M": 93.5,
+      "level": 4,
+      "I": 96.5
+     },
+     {
+      "id": "DTTGHT-T05",
+      "M": 96.4,
+      "level": 3,
+      "I": 96.8
+     },
+     {
+      "id": "DTTGHT-T06",
+      "M": 98.5,
+      "level": 3,
+      "I": 98.6
+     },
+     {
+      "id": "DTTGHT-T07",
+      "M": 98.7,
+      "level": 4,
+      "I": 99.3
+     },
+     {
+      "id": "DTTGHT-T08",
+      "M": 98.9,
+      "level": 4,
+      "I": 99.5
+     }
+    ]
+   },
+   "sai-dang": {
+    "turns": 116,
+    "passed": 8,
+    "nodes": 8,
+    "hints": 0,
+    "outcomes": {
+     "CORRECT": 52
+    },
+    "mastery_mean": 94.8,
+    "mastery_min": 84.3,
+    "mastery_max": 98.9,
+    "level_mean": 3.5,
+    "confidence_mean": 38.2,
+    "dims": {
+     "C": 96.3,
+     "R": 92.6,
+     "I": 96.7,
+     "A": 96.1
+    },
+    "per_node": [
+     {
+      "id": "DTTGHT-T01",
+      "M": 84.3,
+      "level": 3,
+      "I": 90.9
+     },
+     {
+      "id": "DTTGHT-T02",
+      "M": 93.6,
+      "level": 3,
+      "I": 94.1
+     },
+     {
+      "id": "DTTGHT-T03",
+      "M": 94.7,
+      "level": 4,
+      "I": 97.7
+     },
+     {
+      "id": "DTTGHT-T04",
+      "M": 93.5,
+      "level": 4,
+      "I": 96.5
+     },
+     {
+      "id": "DTTGHT-T05",
+      "M": 96.4,
+      "level": 3,
+      "I": 96.8
+     },
+     {
+      "id": "DTTGHT-T06",
+      "M": 98.5,
+      "level": 3,
+      "I": 98.6
+     },
+     {
+      "id": "DTTGHT-T07",
+      "M": 98.7,
+      "level": 4,
+      "I": 99.3
+     },
+     {
+      "id": "DTTGHT-T08",
+      "M": 98.9,
+      "level": 4,
+      "I": 99.5
+     }
+    ]
+   },
+   "bi": {
+    "turns": 160,
+    "passed": 8,
+    "nodes": 8,
+    "hints": 0,
+    "outcomes": {
+     "HELP_REQUEST": 52,
+     "CORRECT": 52
+    },
+    "mastery_mean": 94.8,
+    "mastery_min": 84.3,
+    "mastery_max": 98.9,
+    "level_mean": 3.5,
+    "confidence_mean": 38.2,
+    "dims": {
+     "C": 96.3,
+     "R": 92.6,
+     "I": 96.7,
+     "A": 96.1
+    },
+    "per_node": [
+     {
+      "id": "DTTGHT-T01",
+      "M": 84.3,
+      "level": 3,
+      "I": 90.9
+     },
+     {
+      "id": "DTTGHT-T02",
+      "M": 93.6,
+      "level": 3,
+      "I": 94.1
+     },
+     {
+      "id": "DTTGHT-T03",
+      "M": 94.7,
+      "level": 4,
+      "I": 97.7
+     },
+     {
+      "id": "DTTGHT-T04",
+      "M": 93.5,
+      "level": 4,
+      "I": 96.5
+     },
+     {
+      "id": "DTTGHT-T05",
+      "M": 96.4,
+      "level": 3,
+      "I": 96.8
+     },
+     {
+      "id": "DTTGHT-T06",
+      "M": 98.5,
+      "level": 3,
+      "I": 98.6
+     },
+     {
+      "id": "DTTGHT-T07",
+      "M": 98.7,
+      "level": 4,
+      "I": 99.3
+     },
+     {
+      "id": "DTTGHT-T08",
+      "M": 98.9,
+      "level": 4,
+      "I": 99.5
+     }
+    ]
+   },
+   "hay-sai": {
+    "turns": 220,
+    "passed": 8,
+    "nodes": 8,
+    "hints": 52,
+    "outcomes": {
+     "WRONG": 41,
+     "CORRECT": 54,
+     "UNPARSEABLE": 13
+    },
+    "mastery_mean": 91.8,
+    "mastery_min": 81.3,
+    "mastery_max": 95.5,
+    "level_mean": 3.5,
+    "confidence_mean": 36.7,
+    "dims": {
+     "C": 95.3,
+     "R": 91.5,
+     "I": 85.2,
+     "A": 93.2
+    },
+    "per_node": [
+     {
+      "id": "DTTGHT-T01",
+      "M": 81.3,
+      "level": 3,
+      "I": 78.6
+     },
+     {
+      "id": "DTTGHT-T02",
+      "M": 91.0,
+      "level": 3,
+      "I": 83.4
+     },
+     {
+      "id": "DTTGHT-T03",
+      "M": 91.4,
+      "level": 4,
+      "I": 84.9
+     },
+     {
+      "id": "DTTGHT-T04",
+      "M": 91.0,
+      "level": 4,
+      "I": 85.0
+     },
+     {
+      "id": "DTTGHT-T05",
+      "M": 93.4,
+      "level": 3,
+      "I": 86.9
+     },
+     {
+      "id": "DTTGHT-T06",
+      "M": 95.4,
+      "level": 3,
+      "I": 88.4
+     },
+     {
+      "id": "DTTGHT-T07",
+      "M": 95.1,
+      "level": 4,
+      "I": 87.5
+     },
+     {
+      "id": "DTTGHT-T08",
+      "M": 95.5,
+      "level": 4,
+      "I": 86.8
+     }
+    ]
+   },
+   "phu-thuoc": {
+    "turns": 70,
+    "passed": 0,
+    "nodes": 8,
+    "hints": 32,
+    "outcomes": {
+     "HELP_REQUEST": 44,
+     "CORRECT": 11
+    },
+    "mastery_mean": 70.7,
+    "mastery_min": 70.7,
+    "mastery_max": 70.7,
+    "level_mean": 0.38,
+    "confidence_mean": 4.7,
+    "dims": {
+     "C": 74.2,
+     "R": 75.0,
+     "I": 55.4
+    },
+    "per_node": [
+     {
+      "id": "DTTGHT-T01",
+      "M": 70.7,
+      "level": 3,
+      "I": 55.4
+     },
+     {
+      "id": "DTTGHT-T02",
+      "M": null,
+      "level": 0,
+      "I": 70.8
+     },
+     {
+      "id": "DTTGHT-T03",
+      "M": null,
+      "level": 0,
+      "I": 70.8
+     },
+     {
+      "id": "DTTGHT-T04",
+      "M": null,
+      "level": 0,
+      "I": 70.8
+     },
+     {
+      "id": "DTTGHT-T05",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "DTTGHT-T06",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "DTTGHT-T07",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "DTTGHT-T08",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     }
+    ]
+   }
+  },
+  "math-g5-decimals": {
+   "gioi": {
+    "turns": 136,
+    "passed": 11,
+    "nodes": 11,
+    "hints": 0,
+    "outcomes": {
+     "CORRECT": 61
+    },
+    "mastery_mean": 97.3,
+    "mastery_min": 84.3,
+    "mastery_max": 100.0,
+    "level_mean": 3.36,
+    "confidence_mean": 34.2,
+    "dims": {
+     "C": 98.2,
+     "R": 96.0,
+     "I": 98.4,
+     "A": 99.0
+    },
+    "per_node": [
+     {
+      "id": "STP-T01",
+      "M": 84.3,
+      "level": 3,
+      "I": 90.9
+     },
+     {
+      "id": "STP-T02",
+      "M": 93.5,
+      "level": 3,
+      "I": 96.3
+     },
+     {
+      "id": "STP-T03",
+      "M": 97.6,
+      "level": 3,
+      "I": 98.5
+     },
+     {
+      "id": "STP-T04",
+      "M": 98.9,
+      "level": 3,
+      "I": 99.0
+     },
+     {
+      "id": "STP-T05",
+      "M": 99.4,
+      "level": 4,
+      "I": 99.6
+     },
+     {
+      "id": "STP-T06",
+      "M": 99.5,
+      "level": 3,
+      "I": 99.6
+     },
+     {
+      "id": "STP-T07",
+      "M": 99.8,
+      "level": 3,
+      "I": 99.8
+     },
+     {
+      "id": "STP-T08",
+      "M": 99.8,
+      "level": 4,
+      "I": 99.9
+     },
+     {
+      "id": "STP-T09",
+      "M": 99.9,
+      "level": 3,
+      "I": 99.9
+     },
+     {
+      "id": "STP-T10",
+      "M": 100.0,
+      "level": 4,
+      "I": 100.0
+     },
+     {
+      "id": "STP-T11",
+      "M": 98.0,
+      "level": 4,
+      "I": 98.7
+     }
+    ]
+   },
+   "sai-dang": {
+    "turns": 169,
+    "passed": 11,
+    "nodes": 11,
+    "hints": 11,
+    "outcomes": {
+     "WRONG": 11,
+     "CORRECT": 61
+    },
+    "mastery_mean": 97.4,
+    "mastery_min": 85.3,
+    "mastery_max": 100.0,
+    "level_mean": 3.36,
+    "confidence_mean": 34.5,
+    "dims": {
+     "C": 98.1,
+     "R": 96.9,
+     "I": 97.1,
+     "A": 99.0
+    },
+    "per_node": [
+     {
+      "id": "STP-T01",
+      "M": 85.3,
+      "level": 3,
+      "I": 78.6
+     },
+     {
+      "id": "STP-T02",
+      "M": 93.4,
+      "level": 3,
+      "I": 96.2
+     },
+     {
+      "id": "STP-T03",
+      "M": 97.4,
+      "level": 3,
+      "I": 97.6
+     },
+     {
+      "id": "STP-T04",
+      "M": 98.9,
+      "level": 3,
+      "I": 99.0
+     },
+     {
+      "id": "STP-T05",
+      "M": 99.2,
+      "level": 4,
+      "I": 98.5
+     },
+     {
+      "id": "STP-T06",
+      "M": 99.5,
+      "level": 3,
+      "I": 99.6
+     },
+     {
+      "id": "STP-T07",
+      "M": 99.8,
+      "level": 3,
+      "I": 99.8
+     },
+     {
+      "id": "STP-T08",
+      "M": 99.8,
+      "level": 4,
+      "I": 99.9
+     },
+     {
+      "id": "STP-T09",
+      "M": 99.9,
+      "level": 3,
+      "I": 99.9
+     },
+     {
+      "id": "STP-T10",
+      "M": 100.0,
+      "level": 4,
+      "I": 100.0
+     },
+     {
+      "id": "STP-T11",
+      "M": 98.0,
+      "level": 4,
+      "I": 98.8
+     }
+    ]
+   },
+   "bi": {
+    "turns": 197,
+    "passed": 11,
+    "nodes": 11,
+    "hints": 0,
+    "outcomes": {
+     "HELP_REQUEST": 61,
+     "CORRECT": 61
+    },
+    "mastery_mean": 97.3,
+    "mastery_min": 84.3,
+    "mastery_max": 100.0,
+    "level_mean": 3.36,
+    "confidence_mean": 34.2,
+    "dims": {
+     "C": 98.2,
+     "R": 96.0,
+     "I": 98.4,
+     "A": 99.0
+    },
+    "per_node": [
+     {
+      "id": "STP-T01",
+      "M": 84.3,
+      "level": 3,
+      "I": 90.9
+     },
+     {
+      "id": "STP-T02",
+      "M": 93.5,
+      "level": 3,
+      "I": 96.3
+     },
+     {
+      "id": "STP-T03",
+      "M": 97.6,
+      "level": 3,
+      "I": 98.5
+     },
+     {
+      "id": "STP-T04",
+      "M": 98.9,
+      "level": 3,
+      "I": 99.0
+     },
+     {
+      "id": "STP-T05",
+      "M": 99.4,
+      "level": 4,
+      "I": 99.6
+     },
+     {
+      "id": "STP-T06",
+      "M": 99.5,
+      "level": 3,
+      "I": 99.6
+     },
+     {
+      "id": "STP-T07",
+      "M": 99.8,
+      "level": 3,
+      "I": 99.8
+     },
+     {
+      "id": "STP-T08",
+      "M": 99.8,
+      "level": 4,
+      "I": 99.9
+     },
+     {
+      "id": "STP-T09",
+      "M": 99.9,
+      "level": 3,
+      "I": 99.9
+     },
+     {
+      "id": "STP-T10",
+      "M": 100.0,
+      "level": 4,
+      "I": 100.0
+     },
+     {
+      "id": "STP-T11",
+      "M": 98.0,
+      "level": 4,
+      "I": 98.7
+     }
+    ]
+   },
+   "hay-sai": {
+    "turns": 266,
+    "passed": 11,
+    "nodes": 11,
+    "hints": 60,
+    "outcomes": {
+     "WRONG": 52,
+     "CORRECT": 63,
+     "UNPARSEABLE": 11
+    },
+    "mastery_mean": 94.1,
+    "mastery_min": 81.3,
+    "mastery_max": 96.7,
+    "level_mean": 3.36,
+    "confidence_mean": 32.4,
+    "dims": {
+     "C": 96.9,
+     "R": 94.5,
+     "I": 87.0,
+     "A": 96.7
+    },
+    "per_node": [
+     {
+      "id": "STP-T01",
+      "M": 81.3,
+      "level": 3,
+      "I": 78.6
+     },
+     {
+      "id": "STP-T02",
+      "M": 90.8,
+      "level": 3,
+      "I": 84.0
+     },
+     {
+      "id": "STP-T03",
+      "M": 94.3,
+      "level": 3,
+      "I": 85.9
+     },
+     {
+      "id": "STP-T04",
+      "M": 95.7,
+      "level": 3,
+      "I": 88.3
+     },
+     {
+      "id": "STP-T05",
+      "M": 95.9,
+      "level": 4,
+      "I": 88.2
+     },
+     {
+      "id": "STP-T06",
+      "M": 96.2,
+      "level": 3,
+      "I": 88.9
+     },
+     {
+      "id": "STP-T07",
+      "M": 96.5,
+      "level": 3,
+      "I": 89.1
+     },
+     {
+      "id": "STP-T08",
+      "M": 96.1,
+      "level": 4,
+      "I": 88.5
+     },
+     {
+      "id": "STP-T09",
+      "M": 96.7,
+      "level": 3,
+      "I": 89.2
+     },
+     {
+      "id": "STP-T10",
+      "M": 96.5,
+      "level": 4,
+      "I": 88.5
+     },
+     {
+      "id": "STP-T11",
+      "M": 94.6,
+      "level": 4,
+      "I": 87.7
+     }
+    ]
+   },
+   "phu-thuoc": {
+    "turns": 83,
+    "passed": 0,
+    "nodes": 11,
+    "hints": 36,
+    "outcomes": {
+     "HELP_REQUEST": 48,
+     "CORRECT": 8
+    },
+    "mastery_mean": 68.7,
+    "mastery_min": 68.7,
+    "mastery_max": 68.7,
+    "level_mean": 0.27,
+    "confidence_mean": 2.8,
+    "dims": {
+     "C": 83.3,
+     "R": 75.0,
+     "I": 27.1
+    },
+    "per_node": [
+     {
+      "id": "STP-T01",
+      "M": 68.7,
+      "level": 3,
+      "I": 27.1
+     },
+     {
+      "id": "STP-T02",
+      "M": null,
+      "level": 0,
+      "I": 68.7
+     },
+     {
+      "id": "STP-T03",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T04",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T05",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T06",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T07",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T08",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T09",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T10",
+      "M": null,
+      "level": 0,
+      "I": 50.0
+     },
+     {
+      "id": "STP-T11",
+      "M": null,
+      "level": 0,
+      "I": 68.7
+     }
+    ]
+   }
+  }
+ },
+ "sensitivity": {
+  "math-g5-decimals": {
+   "base": {
+    "STP-T01": {
+     "M": 74.6,
+     "level": 2,
+     "passed": true
+    },
+    "STP-T02": {
+     "M": 83.0,
+     "level": 3,
+     "passed": true
+    },
+    "STP-T03": {
+     "M": 82.5,
+     "level": 3,
+     "passed": true
+    },
+    "STP-T04": {
+     "M": 83.2,
+     "level": 3,
+     "passed": true
+    },
+    "STP-T05": {
+     "M": 81.0,
+     "level": 4,
+     "passed": true
+    },
+    "STP-T06": {
+     "M": 88.8,
+     "level": 3,
+     "passed": true
+    },
+    "STP-T07": {
+     "M": 90.7,
+     "level": 3,
+     "passed": true
+    },
+    "STP-T08": {
+     "M": 83.8,
+     "level": 4,
+     "passed": true
+    },
+    "STP-T09": {
+     "M": 90.4,
+     "level": 3,
+     "passed": true
+    },
+    "STP-T10": {
+     "M": 92.8,
+     "level": 4,
+     "passed": true
+    },
+    "STP-T11": {
+     "M": 91.0,
+     "level": 4,
+     "passed": true
+    }
+   },
+   "rows": [
+    {
+     "di": "DI-2",
+     "change": "H3 0,60 → 0,50",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-2",
+     "change": "H3 0,60 → 0,70",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-2",
+     "change": "H5 0,35 → 0,25",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-2",
+     "change": "H5 0,35 → 0,45",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-5",
+     "change": "sàn hỗ trợ 0,3 → 0,1",
+     "mean_abs_dM": 0.05,
+     "max_abs_dM": 0.3,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-5",
+     "change": "sàn hỗ trợ 0,3 → 0,5",
+     "mean_abs_dM": 0.02,
+     "max_abs_dM": 0.2,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-12",
+     "change": "khối lượng tiên nghiệm 2 → 1",
+     "mean_abs_dM": 0.88,
+     "max_abs_dM": 2.6,
+     "level_changes": 1,
+     "pass_changes": 1,
+     "nodes": 11
+    },
+    {
+     "di": "DI-12",
+     "change": "khối lượng tiên nghiệm 2 → 4",
+     "mean_abs_dM": 1.48,
+     "max_abs_dM": 3.2,
+     "level_changes": 0,
+     "pass_changes": 1,
+     "nodes": 11
+    },
+    {
+     "di": "DI-3",
+     "change": "hệ số đoán 0,5 → 0,25",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-3",
+     "change": "hệ số đoán 0,5 → 0,75",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-6",
+     "change": "ngưỡng giải thích 0,6 → 0,5",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 1,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-6",
+     "change": "ngưỡng giải thích 0,6 → 0,7",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 3,
+     "pass_changes": 3,
+     "nodes": 11
+    },
+    {
+     "di": "DI",
+     "change": "thành công khi gợi ý ≤ H3 → ≤ H2",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI",
+     "change": "thành công khi gợi ý ≤ H3 → ≤ H4",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-55",
+     "change": "trọng số “vì sao” 0,5 → 0,3",
+     "mean_abs_dM": 0.64,
+     "max_abs_dM": 1.7,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-55",
+     "change": "trọng số “vì sao” 0,5 → 0,8",
+     "mean_abs_dM": 0.73,
+     "max_abs_dM": 2.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "§4–§8",
+     "change": "các dải −5 điểm",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "§4–§8",
+     "change": "các dải +5 điểm",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "§20",
+     "change": "trọng số 7 chiều bằng nhau",
+     "mean_abs_dM": 0.99,
+     "max_abs_dM": 2.7,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 11
+    },
+    {
+     "di": "DI-1",
+     "change": "ngưỡng bằng chứng tối thiểu 1,0 → 2,0",
+     "mean_abs_dM": 0.39,
+     "max_abs_dM": 3.0,
+     "level_changes": 1,
+     "pass_changes": 1,
+     "nodes": 11
+    }
+   ]
+  },
+  "math-g5-area-triangle-trapezoid": {
+   "base": {
+    "DTTGHT-T01": {
+     "M": 78.7,
+     "level": 3,
+     "passed": true
+    },
+    "DTTGHT-T02": {
+     "M": 86.5,
+     "level": 3,
+     "passed": true
+    },
+    "DTTGHT-T03": {
+     "M": 88.9,
+     "level": 4,
+     "passed": true
+    },
+    "DTTGHT-T04": {
+     "M": 86.5,
+     "level": 4,
+     "passed": true
+    },
+    "DTTGHT-T05": {
+     "M": 91.6,
+     "level": 3,
+     "passed": true
+    },
+    "DTTGHT-T06": {
+     "M": 91.5,
+     "level": 3,
+     "passed": true
+    },
+    "DTTGHT-T07": {
+     "M": 93.0,
+     "level": 4,
+     "passed": true
+    },
+    "DTTGHT-T08": {
+     "M": 86.6,
+     "level": 4,
+     "passed": true
+    }
+   },
+   "rows": [
+    {
+     "di": "DI-2",
+     "change": "H3 0,60 → 0,50",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-2",
+     "change": "H3 0,60 → 0,70",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-2",
+     "change": "H5 0,35 → 0,25",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-2",
+     "change": "H5 0,35 → 0,45",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-5",
+     "change": "sàn hỗ trợ 0,3 → 0,1",
+     "mean_abs_dM": 0.01,
+     "max_abs_dM": 0.1,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-5",
+     "change": "sàn hỗ trợ 0,3 → 0,5",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-12",
+     "change": "khối lượng tiên nghiệm 2 → 1",
+     "mean_abs_dM": 1.46,
+     "max_abs_dM": 3.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-12",
+     "change": "khối lượng tiên nghiệm 2 → 4",
+     "mean_abs_dM": 2.79,
+     "max_abs_dM": 4.5,
+     "level_changes": 1,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-3",
+     "change": "hệ số đoán 0,5 → 0,25",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-3",
+     "change": "hệ số đoán 0,5 → 0,75",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-6",
+     "change": "ngưỡng giải thích 0,6 → 0,5",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-6",
+     "change": "ngưỡng giải thích 0,6 → 0,7",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 2,
+     "pass_changes": 2,
+     "nodes": 8
+    },
+    {
+     "di": "DI",
+     "change": "thành công khi gợi ý ≤ H3 → ≤ H2",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI",
+     "change": "thành công khi gợi ý ≤ H3 → ≤ H4",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-55",
+     "change": "trọng số “vì sao” 0,5 → 0,3",
+     "mean_abs_dM": 0.78,
+     "max_abs_dM": 1.3,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-55",
+     "change": "trọng số “vì sao” 0,5 → 0,8",
+     "mean_abs_dM": 0.93,
+     "max_abs_dM": 1.4,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "§4–§8",
+     "change": "các dải −5 điểm",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "§4–§8",
+     "change": "các dải +5 điểm",
+     "mean_abs_dM": 0.0,
+     "max_abs_dM": 0.0,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "§20",
+     "change": "trọng số 7 chiều bằng nhau",
+     "mean_abs_dM": 1.06,
+     "max_abs_dM": 1.9,
+     "level_changes": 0,
+     "pass_changes": 0,
+     "nodes": 8
+    },
+    {
+     "di": "DI-1",
+     "change": "ngưỡng bằng chứng tối thiểu 1,0 → 2,0",
+     "mean_abs_dM": 0.65,
+     "max_abs_dM": 2.4,
+     "level_changes": 1,
+     "pass_changes": 1,
+     "nodes": 8
+    }
+   ]
+  }
+ }
+}

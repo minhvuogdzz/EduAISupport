@@ -1,0 +1,142 @@
+\section{Dựng kho tri thức từ tài liệu của giáo viên}\label{sec:corpus}
+
+Kho tri thức của CAVAT không được viết tay cho hệ thống; nó được đọc ra từ tài liệu mà một giáo viên dùng để dạy hai chương. Mục này mô tả quy trình đó (Hình~\ref{fig:pipeline}) cùng dữ liệu thu được ở từng bước, vì chất lượng của gia sư và của truy xuất ở các mục sau phụ thuộc trực tiếp vào chất lượng của bước này. Toàn bộ số liệu trong mục lấy từ cơ sở dữ liệu của hệ thống ở chế độ chỉ đọc; chúng tôi không công bố nguyên văn tài liệu, chỉ công bố thống kê tổng hợp.
+
+\begin{figure}[tbp]
+\centering
+\resizebox{\linewidth}{!}{\input{gen/fig-pipeline}}
+\caption{Quy trình dựng kho tri thức từ tài liệu của giáo viên và số liệu thu được ở từng bước (hai chương gộp). Màu cam đánh dấu các bước có gọi mô hình ngôn ngữ; kết quả của chúng luôn đi qua một phép kiểm tất định hoặc sự duyệt của con người.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Tài liệu nguồn}
+Mỗi chương gồm chín tệp PDF: một giáo án chia theo tiết, một bài giảng, một sách bài tập, một phiếu bài tập, một đề kiểm tra cuối chương, ba tệp đáp án và một tệp ``lỗi sai thường gặp'' kèm phản ví dụ (Bảng~\ref{tab:docs}). Tài liệu do giáo viên biên soạn và hiệu đính với sự hỗ trợ của công cụ AI; chúng không sao chép từ sách của nhà xuất bản. Tổng cộng có \NDocs{} tệp, \NPages{} trang và khoảng \NSyll{} âm tiết (đếm theo khoảng trắng). Đây là kích thước của một bộ tài liệu dạy thật cho hai chương, không phải một kho văn bản lớn.
+
+\begin{table}[tbp]
+\centering
+\caption{Tài liệu nguồn của hai chương theo loại, số tệp, số trang và số âm tiết.}
+\label{tab:docs}
+\input{gen/tab-docs}
+\end{table}
+
+\subsection{Đọc từng trang}\label{sec:reading}
+Lớp chữ của PDF không đủ: trong tài liệu của chương ``Số thập phân'', các phân số là ảnh nhỏ (``Các phân số thập phân , , viết là $0{,}1$; $0{,}01$'' khi lấy lớp chữ), và trong chương hình học, các nhãn điểm và số đo của hình vẽ chỉ còn là chuỗi rời (``H A B C 7 cm 12 cm''). Vì vậy mỗi trang được đọc bằng lớp chữ trước; một trang được đọc lại bằng mô hình ảnh (Gemini) khi nó (a)~có dưới 40 ký tự (trang quét), (b)~còn dấu vết của hình vẽ như ba chữ cái hoa liên tiếp hoặc các số đo nằm riêng một dòng, hoặc (c)~chứa ảnh nhúng. Mô hình được yêu cầu chép nguyên văn, viết phân số dạng $a/b$, số thập phân dùng dấu phẩy, bảng mỗi hàng một dòng và mô tả hình trong ngoặc vuông.
+
+Một bản đọc lại chỉ thay lớp chữ khi qua phép kiểm bảo toàn số (DI-43): \emph{mọi số có trong lớp chữ phải có trong bản của mô hình}. Trang không qua giữ lớp chữ và được đánh dấu cho giáo viên. Các số chỉ mô hình đọc được (thường là phân số trong ảnh hoặc số đo trên hình) được liệt kê, và được một mô hình thứ hai, khác với mô hình đã đọc, đọc lại cùng trang để xác nhận; hai tập số lệch nhau thì trang được đánh dấu \textsc{disagree} và các số tranh chấp được báo cho giáo viên. Bảng~\ref{tab:reading} cho thấy phép kiểm này không phải hình thức: \NPagesOcr{} trong \NPages{} trang phải đọc lại, mô hình bổ sung \NNumbersAdded{} số mà lớp chữ không có, \NConfirmedPages{} trang được mô hình thứ hai xác nhận, và \NDisputedNumbers{} số bị tranh chấp được chuyển cho giáo viên.
+
+\begin{table}[tbp]
+\centering
+\caption{Kết quả đọc \NPages{} trang tài liệu. ``Số chỉ OCR đọc được'' là các số mô hình ảnh đọc được mà lớp chữ không có.}
+\label{tab:reading}
+\input{gen/tab-reading}
+\end{table}
+
+\subsection{Phân tích tất định và kiểm đáp án}\label{sec:bank}
+Từ văn bản đã đọc, một bộ phân tích \emph{không dùng mô hình} tách các câu hỏi của sách bài tập, phiếu và đề, ghép chúng với đáp án trong các tệp đáp án, và gắn mỗi câu vào tiết của giáo án có luyện nó. Đáp án đọc ra từ tài liệu có thể sai theo ba cách: tài liệu sai, việc đọc sai (một phân số trong ảnh bị đọc thành phân số khác) hoặc đáp án bị ghép nhầm câu. Mỗi đáp án vì thế được kiểm \emph{chính xác} bằng cách tính lại từ đề, không dùng mô hình: các quan hệ viết trong đáp án (``$12\times 7:2=42$''), phép đổi đơn vị và đổi giữa phân số--số thập phân, làm tròn theo hàng được hỏi, dấu so sánh và thứ tự, các số tự nhiên $x$ thỏa khoảng, hàng và giá trị theo hàng, diện tích hoặc chiều cao của tam giác, hình thang, và việc đáp án trắc nghiệm gọi đúng một phương án. Phép kiểm không áp dụng được thì im lặng; câu mà không phép kiểm nào áp dụng được giữ trạng thái chưa kiểm cho giáo viên.
+
+Trong \NItems{} câu, \NVerified{} câu ($90\%$) được kiểm đúng; \NConflict{} câu mâu thuẫn, \NDisputedItems{} câu có hai nguồn đáp án lệch nhau, \NReviewItems{} câu cần xem lại và \NUnchecked{} câu chưa kiểm được (Bảng~\ref{tab:bank}). Số câu chưa kiểm được tập trung ở chương hình học, nơi nhiều câu phụ thuộc vào hình vẽ. Tổng cộng đã chạy 567 phép kiểm, trong đó 560 khớp (Bảng~\ref{tab:checks}); bảy phép lệch (ba phép đổi đơn vị và bốn câu có số không có trong đề) chính là các câu được đưa cho giáo viên xem. Câu mâu thuẫn hoặc có hai nguồn đáp án lệch nhau không được dạy cho đến khi giáo viên quyết định. Ở bản phát hành có tám câu nằm ngoài phương án: bốn câu bị loại khi duyệt (chương Số thập phân) và bốn câu mà không tiết nào của giáo án luyện (chương hình học).
+
+\begin{table}[tbp]
+\centering
+\caption{Ngân hàng câu hỏi và kết quả kiểm đáp án.}
+\label{tab:bank}
+\input{gen/tab-bank}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Các phép kiểm chính xác đã chạy trên đáp án (``lệch'': kết quả của phép kiểm không khớp với đáp án của tài liệu).}
+\label{tab:checks}
+\input{gen/tab-checks}
+\end{table}
+
+\subsection{Đồ thị tri thức và phương án dạy}\label{sec:plan}
+Mỗi tiết của giáo án trở thành một đỉnh của đồ thị. Tầng của đỉnh được suy từ tiêu đề tiết: tiết hình thành khái niệm là tầng \emph{cơ bản}, tiết luyện tập, ứng dụng, hình ghép hay công thức ngược là tầng \emph{thực hành}. Quan hệ được dựng tất định: mỗi tiết cơ bản là \textsc{prerequisite} của tiết cơ bản kế sau; mỗi tiết thực hành \textsc{application} các tiết cơ bản của cùng bài (với tiết ôn chung là mọi tiết cơ bản đứng trước nó). Kết quả là hai đồ thị có chiều sâu 8 và 5 (Hình~\ref{fig:graph}, Bảng~\ref{tab:plan-nodes}).
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-graph}
+\caption{Đồ thị tri thức của hai chương, dựng tự động từ giáo án. Mỗi đỉnh là một tiết; tên các tiết ở Bảng~\ref{tab:plan-nodes}.}
+\label{fig:graph}
+\end{figure}
+
+Nội dung của mỗi đỉnh lấy từ \emph{lời của giáo viên}, không phải từ mô hình: các cách giảng lý thuyết, phương pháp (quy tắc và các bước), ví dụ mẫu và câu hỏi kiểm tra hiểu đều là văn bản của giáo án và bài giảng. Lỗi sai gồm hai nguồn: dòng ``lỗi hay mắc'' của từng tiết (mức thường) và tệp lỗi sai của giáo viên, trong đó mỗi lỗi có dấu hiệu, nguyên nhân và phản ví dụ, được gán vào tiết có nhiều từ chung nhất và có mức \emph{nghiêm trọng}. Mức nhận thức và độ khó của một câu được suy từ \emph{mục của tài liệu} chứa nó: câu ``Kiểm tra hiểu'' là mức A, độ khó $0{,}2$; câu ``Cùng làm'' (đã có một phần lời giải) là mức B, $0{,}35$; ``Luyện tập'' mức B, $0{,}5$; ``Vận dụng'' mức D, $0{,}7$ và chuyển giao gần. Đây là một diễn giải khai báo của dự án (DI), chưa phải độ khó đo từ dữ liệu làm bài; Mục~\ref{sec:limits} nêu hệ quả.
+
+\begin{table}[tbp]
+\centering
+\caption{Các tiết của hai chương và nội dung của từng tiết (số đơn vị). ``Sau'': các tiết phải học trước; ``Dạng, G/Đ'': số dạng câu cần thành công để qua tiết, \textbf{G} yêu cầu giải thích, \textbf{Đ} yêu cầu có bằng chứng vận dụng.}
+\label{tab:plan-nodes}
+\input{gen/tab-plan-nodes}
+\end{table}
+
+Phần mà tài liệu của giáo viên không có, các bậc gợi ý H1--H3 của từng câu luyện tập, cách nói được chấp nhận cho câu đáp án mở, cách diễn đạt các ý chính của bài kể lại, được một mô hình ngôn ngữ soạn \emph{nháp}. Mô hình nhận quy tắc, các bước và lỗi sai của chính tiết đó (lô $6$ câu, lời nhắc dưới $3\,000$ token); câu kiểm tra cuối chương không bao giờ được gửi. Mỗi đoạn nháp phải qua chính bộ kiểm chứng của gia sư (không lộ đáp án, một câu hỏi ở cuối, chỉ dùng số của đề, tiếng Việt, gọi trẻ là ``con'') và chỉ được dùng thuật ngữ Toán có trong đề hoặc quy tắc; gợi ý không qua bị bỏ chứ không bị thay thế bằng gợi ý khác. Bảng~\ref{tab:drafts} cho thấy \NDraftsOk{} trong \NDrafts{} đoạn ($70\%$) qua kiểm; các mã lỗi cho thấy mô hình hay dùng thuật ngữ ngoài bài, hay quên câu hỏi kết thúc, và đôi khi đưa số lạ vào gợi ý.
+
+\begin{table}[tbp]
+\centering
+\caption{Các đoạn do mô hình soạn và tỉ lệ qua kiểm.}
+\label{tab:drafts}
+\input{gen/tab-drafts}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Lý do đoạn nháp bị bỏ (một đoạn có thể bị bỏ vì nhiều lý do).}
+\label{tab:draftcodes}
+\input{gen/tab-draft-codes}
+\end{table}
+
+Phương án dạy ở trạng thái \emph{nháp} cho đến khi được duyệt; mỗi quyết định duyệt (chấp nhận, sửa, loại) được lưu kèm đối tượng, lý do và người duyệt. Có \NDecisions{} quyết định: \NApprove{} chấp nhận, \NEdit{} sửa và \NReject{} loại (Bảng~\ref{tab:decisions}). Chúng tôi nói rõ về chất lượng của khâu này: chỉ hai quyết định do chính giáo viên thực hiện trên giao diện; \NDecisions{} trừ hai quyết định còn lại do một trợ lý AI thực hiện theo ủy quyền của giáo viên và được ghi tên là như vậy. Đó là một mối đe dọa đến tính hợp lệ của nội dung (Mục~\ref{sec:limits}), không phải một sự kiểm duyệt độc lập.
+
+\begin{table}[tbp]
+\centering
+\caption{Các quyết định duyệt phương án dạy theo đối tượng.}
+\label{tab:decisions}
+\input{gen/tab-decisions}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\caption{Thống kê phương án dạy của hai chương.}
+\label{tab:plan-stats}
+\input{gen/tab-plan-stats}
+\end{table}
+
+\subsection{Chỉ mục truy xuất}\label{sec:index}
+Phương án đã phát hành và các tệp tài liệu được cắt thành \NChunks{} đoạn truy xuất (Bảng~\ref{tab:chunks}, Hình~\ref{fig:chunks}). Các đoạn của phương án theo \emph{đơn vị dạy học}: mỗi cách giảng, mỗi phương pháp, mỗi ví dụ mẫu và mỗi ghi chú lỗi sai là một đoạn, kèm tiết mà nó thuộc về. Tệp tài liệu được cắt theo đoạn văn thành các đoạn $150$--$300$ âm tiết, chồng một câu, không cắt trong dòng (công thức và hàng bảng giữ nguyên), mỗi đoạn mang số trang đầu. \NPassages{} đoạn tài liệu được gắn vào tiết bằng BM25 so với các đoạn của phương án: tiết điểm cao nhất được chọn khi điểm gấp ít nhất $1{,}5$ lần tiết thứ hai (DI-17), nếu không đoạn ở \emph{mức chương}; một đoạn có ba tiết trở lên đạt từ một nửa điểm tốt nhất được coi là đoạn của nhiều tiết, và chỉ chạm tới câu hỏi khi mọi tiết của nó nằm trong phạm vi (DI-50). Kết quả: \NPassagesTied{} đoạn gắn được vào một tiết, \NPassagesSpread{} đoạn thuộc nhiều tiết, không đoạn nào không có tiết ứng viên.
+
+\begin{table}[tbp]
+\centering
+\caption{Các đoạn truy xuất theo loại: số lượng và độ dài (âm tiết).}
+\label{tab:chunks}
+\input{gen/tab-chunks}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-chunks}
+\caption{(a) Độ dài đoạn theo loại: hộp từ tứ phân vị thứ nhất đến thứ ba, vạch đậm là trung vị, râu từ P10 đến P90; đường đứt nét là giới hạn cắt $150$ và $300$ âm tiết của đoạn tài liệu. (b) Số đoạn của từng tiết theo loại (S: chương Số thập phân, D: chương Diện tích).}
+\label{fig:chunks}
+\end{figure}
+
+\begin{table}[tbp]
+\centering
+\caption{Cấu trúc của một đoạn truy xuất. Đoạn không mang tên tệp của giáo viên, chỉ mã tài liệu và trang.}
+\label{tab:chunk-fields}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\ttfamily\small}p{3.2cm}Y@{}}
+\toprule
+Trường & Ý nghĩa \\
+\midrule
+chunk\_id, text & mã ổn định của đoạn; văn bản dùng để lập chỉ mục \\
+kind & \emph{theory}, \emph{method}, \emph{worked\_example}, \emph{misconception\_note} hoặc \emph{source\_passage} \\
+chapter\_id, node\_id & chương và tiết mà đoạn thuộc về; \emph{null} nếu đoạn tài liệu chưa gắn được vào một tiết \\
+candidates & với đoạn tài liệu thuộc nhiều tiết: các tiết ứng viên (chỉ chạm câu hỏi khi mọi tiết nằm trong phạm vi) \\
+source, title & \emph{chapter} hay \emph{document}; tên cho giáo viên đọc (``cách giảng T1'', ``trang 3'') \\
+approved & phương án đã duyệt hay còn nháp (nháp bị nhân $0{,}9$) \\
+document\_id, page & mã tài liệu và trang đầu, để nói được nguồn \\
+misconception\_id & với ghi chú lỗi sai: mã lỗi, để ưu tiên khi vừa phát hiện lỗi đó \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Mỗi đoạn có một vector $768$ chiều từ mô hình \code{gemini-embedding-001}, lưu đệm trên đĩa theo băm nội dung để chạy lại không tốn hạn mức; câu hỏi dùng kiểu tác vụ truy vấn, đoạn dùng kiểu tài liệu. Chương mẫu viết tay bằng tệp YAML (\NChunksSample{} đoạn) được dùng làm tập đối chiếu ở các thực nghiệm sau.

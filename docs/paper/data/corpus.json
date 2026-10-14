@@ -1,0 +1,1120 @@
+{
+ "documents": {
+  "math-g5-decimals": {
+   "n": 9,
+   "by_kind": {
+    "BAI_GIANG": {
+     "n": 1,
+     "pages": 6,
+     "syllables": 2302
+    },
+    "BAI_TAP": {
+     "n": 1,
+     "pages": 5,
+     "syllables": 1334
+    },
+    "DAP_AN": {
+     "n": 3,
+     "pages": 9,
+     "syllables": 2349
+    },
+    "DE_KIEM_TRA": {
+     "n": 1,
+     "pages": 4,
+     "syllables": 922
+    },
+    "GIAO_AN": {
+     "n": 1,
+     "pages": 7,
+     "syllables": 2917
+    },
+    "LOI_SAI": {
+     "n": 1,
+     "pages": 3,
+     "syllables": 1273
+    },
+    "PHIEU": {
+     "n": 1,
+     "pages": 4,
+     "syllables": 1128
+    }
+   },
+   "pages": 38,
+   "syllables": 12225,
+   "reads": {
+    "pages": 38,
+    "text_layer": 24,
+    "ocr": 14,
+    "reason": {
+     "IMAGES": 12,
+     "NONE": 24,
+     "FIGURE": 2
+    },
+    "needs_review": 2,
+    "numbers_added": 27,
+    "confirmed_pages": 6,
+    "disputed_numbers": 5,
+    "missing_numbers": 0
+   },
+   "status": {
+    "READ": 7,
+    "NEEDS_REVIEW": 2
+   }
+  },
+  "math-g5-area-triangle-trapezoid": {
+   "n": 9,
+   "by_kind": {
+    "BAI_GIANG": {
+     "n": 1,
+     "pages": 5,
+     "syllables": 2040
+    },
+    "BAI_TAP": {
+     "n": 1,
+     "pages": 9,
+     "syllables": 2186
+    },
+    "DAP_AN": {
+     "n": 3,
+     "pages": 6,
+     "syllables": 2243
+    },
+    "DE_KIEM_TRA": {
+     "n": 1,
+     "pages": 6,
+     "syllables": 1321
+    },
+    "GIAO_AN": {
+     "n": 1,
+     "pages": 6,
+     "syllables": 2277
+    },
+    "LOI_SAI": {
+     "n": 1,
+     "pages": 3,
+     "syllables": 1354
+    },
+    "PHIEU": {
+     "n": 1,
+     "pages": 4,
+     "syllables": 1274
+    }
+   },
+   "pages": 39,
+   "syllables": 12695,
+   "reads": {
+    "pages": 39,
+    "text_layer": 22,
+    "ocr": 17,
+    "reason": {
+     "FIGURE": 17,
+     "NONE": 22
+    },
+    "needs_review": 0,
+    "numbers_added": 0,
+    "confirmed_pages": 0,
+    "disputed_numbers": 0,
+    "missing_numbers": 0
+   },
+   "status": {
+    "READ": 9
+   }
+  }
+ },
+ "banks": {
+  "math-g5-decimals": {
+   "items": 234,
+   "status": {
+    "VERIFIED": 224,
+    "CONFLICT": 2,
+    "DISPUTED": 1,
+    "REVIEW": 3,
+    "UNCHECKED": 4
+   },
+   "source": {
+    "PHIEU": 96,
+    "DE_KIEM_TRA": 46,
+    "BAI_TAP": 92
+   },
+   "stage": {
+    "TIET": 96,
+    "TRAC_NGHIEM": 12,
+    "TU_LUAN": 34,
+    "KIEM_TRA_HIEU": 38,
+    "CUNG_LAM": 27,
+    "LUYEN_TAP": 21,
+    "VAN_DUNG": 6
+   },
+   "assessment": 46,
+   "figure": 1,
+   "with_findings": 230,
+   "checks": {
+    "CHOICE": {
+     "n": 23,
+     "ok": 23
+    },
+    "COMPARE": {
+     "n": 41,
+     "ok": 41
+    },
+    "COMPOSE": {
+     "n": 10,
+     "ok": 10
+    },
+    "CONVERSION": {
+     "n": 97,
+     "ok": 94
+    },
+    "DIGIT": {
+     "n": 3,
+     "ok": 3
+    },
+    "EQUAL": {
+     "n": 2,
+     "ok": 2
+    },
+    "EXTREME": {
+     "n": 4,
+     "ok": 4
+    },
+    "GROUNDED": {
+     "n": 3,
+     "ok": 0
+    },
+    "ORDER": {
+     "n": 17,
+     "ok": 17
+    },
+    "PLACE": {
+     "n": 24,
+     "ok": 24
+    },
+    "RANGE": {
+     "n": 6,
+     "ok": 6
+    },
+    "RELATION": {
+     "n": 87,
+     "ok": 87
+    },
+    "ROUNDING": {
+     "n": 41,
+     "ok": 41
+    },
+    "TRUE_FALSE": {
+     "n": 7,
+     "ok": 7
+    },
+    "WORDS": {
+     "n": 13,
+     "ok": 13
+    }
+   },
+   "unplaced": 0,
+   "per_period": {
+    "1": 17,
+    "2": 25,
+    "3": 20,
+    "4": 20,
+    "5": 14,
+    "6": 21,
+    "7": 21,
+    "8": 20,
+    "9": 17,
+    "10": 14,
+    "11": 12,
+    "12": 54
+   },
+   "sources": 9
+  },
+  "math-g5-area-triangle-trapezoid": {
+   "items": 155,
+   "status": {
+    "UNCHECKED": 29,
+    "VERIFIED": 125,
+    "REVIEW": 1
+   },
+   "source": {
+    "PHIEU": 64,
+    "DE_KIEM_TRA": 33,
+    "BAI_TAP": 58
+   },
+   "stage": {
+    "TIET": 64,
+    "TRAC_NGHIEM": 12,
+    "TU_LUAN": 21,
+    "KIEM_TRA_HIEU": 21,
+    "CUNG_LAM": 17,
+    "LUYEN_TAP": 13,
+    "VAN_DUNG": 7
+   },
+   "assessment": 33,
+   "figure": 18,
+   "with_findings": 126,
+   "checks": {
+    "AREA": {
+     "n": 83,
+     "ok": 83
+    },
+    "CHOICE": {
+     "n": 16,
+     "ok": 16
+    },
+    "GROUNDED": {
+     "n": 1,
+     "ok": 0
+    },
+    "RELATION": {
+     "n": 89,
+     "ok": 89
+    }
+   },
+   "unplaced": 4,
+   "per_period": {
+    "1": 13,
+    "2": 14,
+    "3": 16,
+    "4": 16,
+    "5": 13,
+    "6": 14,
+    "7": 18,
+    "8": 18,
+    "9": 33
+   },
+   "sources": 9
+  }
+ },
+ "plans": {
+  "math-g5-decimals": {
+   "version": "tl-20261012142023",
+   "nodes": 11,
+   "relations": {
+    "PREREQUISITE": 6,
+    "APPLICATION": 11
+   },
+   "depth": 8,
+   "node_list": [
+    {
+     "id": "STP-T01",
+     "name": "Từ phân số thập phân đến số thập phân",
+     "layer": "BASIC",
+     "depth": 0,
+     "theory": 2,
+     "examples": 1,
+     "checks": 8,
+     "completion": 0,
+     "practice": 8,
+     "transfer": 0,
+     "key_ideas": 2,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 1,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": []
+    },
+    {
+     "id": "STP-T02",
+     "name": "Cấu tạo số thập phân – đọc, viết số",
+     "layer": "BASIC",
+     "depth": 1,
+     "theory": 2,
+     "examples": 1,
+     "checks": 17,
+     "completion": 0,
+     "practice": 8,
+     "transfer": 0,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T01"
+     ]
+    },
+    {
+     "id": "STP-T03",
+     "name": "Tính chất; số thập phân ↔ phân số",
+     "layer": "BASIC",
+     "depth": 2,
+     "theory": 2,
+     "examples": 1,
+     "checks": 4,
+     "completion": 3,
+     "practice": 13,
+     "transfer": 0,
+     "key_ideas": 2,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T02"
+     ]
+    },
+    {
+     "id": "STP-T04",
+     "name": "So sánh hai số thập phân",
+     "layer": "BASIC",
+     "depth": 3,
+     "theory": 2,
+     "examples": 2,
+     "checks": 4,
+     "completion": 2,
+     "practice": 13,
+     "transfer": 0,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T03"
+     ]
+    },
+    {
+     "id": "STP-T05",
+     "name": "Sắp xếp thứ tự, tìm x, bài toán thực tế",
+     "layer": "IMPLEMENT",
+     "depth": 4,
+     "theory": 2,
+     "examples": 2,
+     "checks": 1,
+     "completion": 1,
+     "practice": 8,
+     "transfer": 3,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T04"
+     ]
+    },
+    {
+     "id": "STP-T06",
+     "name": "Viết số đo độ dài dưới dạng số thập phân",
+     "layer": "BASIC",
+     "depth": 4,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 4,
+     "practice": 15,
+     "transfer": 1,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T04"
+     ]
+    },
+    {
+     "id": "STP-T07",
+     "name": "Viết số đo khối lượng dưới dạng số thập phân",
+     "layer": "BASIC",
+     "depth": 5,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 4,
+     "practice": 7,
+     "transfer": 0,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 1,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T06"
+     ]
+    },
+    {
+     "id": "STP-T08",
+     "name": "Viết số đo diện tích – luyện tập",
+     "layer": "IMPLEMENT",
+     "depth": 6,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 4,
+     "practice": 6,
+     "transfer": 1,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 1,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T06",
+      "STP-T07"
+     ]
+    },
+    {
+     "id": "STP-T09",
+     "name": "Làm tròn đến hàng đơn vị và phần mười",
+     "layer": "BASIC",
+     "depth": 6,
+     "theory": 2,
+     "examples": 1,
+     "checks": 4,
+     "completion": 4,
+     "practice": 8,
+     "transfer": 0,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 1,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T07"
+     ]
+    },
+    {
+     "id": "STP-T10",
+     "name": "Làm tròn đến hàng phần trăm và ứng dụng",
+     "layer": "IMPLEMENT",
+     "depth": 7,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 4,
+     "practice": 7,
+     "transfer": 1,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T09"
+     ]
+    },
+    {
+     "id": "STP-T11",
+     "name": "Luyện tập chung",
+     "layer": "IMPLEMENT",
+     "depth": 7,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 0,
+     "practice": 7,
+     "transfer": 1,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "STP-T01",
+      "STP-T02",
+      "STP-T03",
+      "STP-T04",
+      "STP-T06",
+      "STP-T07",
+      "STP-T09"
+     ]
+    }
+   ],
+   "edges": [
+    {
+     "source": "STP-T01",
+     "target": "STP-T02",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "STP-T02",
+     "target": "STP-T03",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "STP-T03",
+     "target": "STP-T04",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "STP-T04",
+     "target": "STP-T05",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T04",
+     "target": "STP-T06",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "STP-T06",
+     "target": "STP-T07",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "STP-T06",
+     "target": "STP-T08",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T07",
+     "target": "STP-T08",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T07",
+     "target": "STP-T09",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "STP-T09",
+     "target": "STP-T10",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T01",
+     "target": "STP-T11",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T02",
+     "target": "STP-T11",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T03",
+     "target": "STP-T11",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T04",
+     "target": "STP-T11",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T06",
+     "target": "STP-T11",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T07",
+     "target": "STP-T11",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "STP-T09",
+     "target": "STP-T11",
+     "type": "APPLICATION"
+    }
+   ],
+   "items": {
+    "n": 230,
+    "by_type": {
+     "numeric": 144,
+     "open": 42,
+     "boolean": 7,
+     "choice": 15,
+     "compare": 14,
+     "order": 8
+    },
+    "by_level": {
+     "A": 43,
+     "B": 146,
+     "C": 34,
+     "D": 7
+    },
+    "by_purpose": {
+     "PRACTICE": 133,
+     "CONCEPT_CHECK": 43,
+     "EXIT": 46,
+     "REVIEW": 8
+    },
+    "difficulty_mean": 0.416,
+    "with_hints": 172,
+    "hints": 400,
+    "wrong_answers_declared": 0
+   },
+   "assessment_items": 46,
+   "misconceptions": {
+    "n": 30,
+    "critical": 8,
+    "with_bug_rule": 0
+   },
+   "drafts": {
+    "n": 861,
+    "ok": 568,
+    "by_kind": {
+     "ACCEPT": {
+      "n": 56,
+      "ok": 49
+     },
+     "ASK": {
+      "n": 1,
+      "ok": 1
+     },
+     "HINT": {
+      "n": 734,
+      "ok": 450
+     },
+     "KEY_IDEA": {
+      "n": 52,
+      "ok": 52
+     },
+     "REPLY": {
+      "n": 18,
+      "ok": 16
+     }
+    },
+    "by_model": {
+     "qwen/qwen3.8-27b": 450,
+     "openai/gpt-oss-120b": 411
+    },
+    "codes": {
+     "NEW_MATH_TERM": 140,
+     "UNGROUNDED_NUMBER": 82,
+     "MISSING_QUESTION": 60,
+     "MULTIPLE_QUESTIONS": 25,
+     "EMPTY": 20
+    }
+   },
+   "decisions": {
+    "n": 780,
+    "by_action": {
+     "approve": 651,
+     "edit": 75,
+     "reject": 54
+    },
+    "by_target": {
+     "hint": 460,
+     "item": 258,
+     "node/theory": 26,
+     "node/worked_examples": 17,
+     "node": 11,
+     "node/pass_rule": 4,
+     "node/explain": 2,
+     "node/method": 2
+    },
+    "by_reviewer": {
+     "teacher": 2,
+     "assistant": 778
+    }
+   },
+   "left_out": 4,
+   "problems": 0,
+   "published_versions": 4
+  },
+  "math-g5-area-triangle-trapezoid": {
+   "version": "tl-20261012142023",
+   "nodes": 8,
+   "relations": {
+    "PREREQUISITE": 3,
+    "APPLICATION": 8
+   },
+   "depth": 5,
+   "node_list": [
+    {
+     "id": "DTTGHT-T01",
+     "name": "Đáy và đường cao của tam giác",
+     "layer": "BASIC",
+     "depth": 0,
+     "theory": 2,
+     "examples": 1,
+     "checks": 5,
+     "completion": 0,
+     "practice": 8,
+     "transfer": 0,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": []
+    },
+    {
+     "id": "DTTGHT-T02",
+     "name": "Khám phá công thức diện tích tam giác",
+     "layer": "BASIC",
+     "depth": 1,
+     "theory": 2,
+     "examples": 1,
+     "checks": 6,
+     "completion": 0,
+     "practice": 8,
+     "transfer": 0,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "DTTGHT-T01"
+     ]
+    },
+    {
+     "id": "DTTGHT-T03",
+     "name": "Luyện tập tính diện tích tam giác",
+     "layer": "IMPLEMENT",
+     "depth": 2,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 6,
+     "practice": 8,
+     "transfer": 1,
+     "key_ideas": 5,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "DTTGHT-T01",
+      "DTTGHT-T02"
+     ]
+    },
+    {
+     "id": "DTTGHT-T04",
+     "name": "Luyện tập chung, công thức ngược",
+     "layer": "IMPLEMENT",
+     "depth": 2,
+     "theory": 2,
+     "examples": 5,
+     "checks": 1,
+     "completion": 3,
+     "practice": 11,
+     "transfer": 1,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "DTTGHT-T01",
+      "DTTGHT-T02"
+     ]
+    },
+    {
+     "id": "DTTGHT-T05",
+     "name": "Nhận biết hình thang, đường cao",
+     "layer": "BASIC",
+     "depth": 2,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 0,
+     "practice": 8,
+     "transfer": 0,
+     "key_ideas": 2,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "DTTGHT-T02"
+     ]
+    },
+    {
+     "id": "DTTGHT-T06",
+     "name": "Khám phá công thức diện tích hình thang",
+     "layer": "BASIC",
+     "depth": 3,
+     "theory": 2,
+     "examples": 1,
+     "checks": 6,
+     "completion": 0,
+     "practice": 8,
+     "transfer": 0,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": false,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "DTTGHT-T05"
+     ]
+    },
+    {
+     "id": "DTTGHT-T07",
+     "name": "Luyện tập tính diện tích hình thang",
+     "layer": "IMPLEMENT",
+     "depth": 4,
+     "theory": 2,
+     "examples": 1,
+     "checks": 1,
+     "completion": 5,
+     "practice": 11,
+     "transfer": 1,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "DTTGHT-T05",
+      "DTTGHT-T06"
+     ]
+    },
+    {
+     "id": "DTTGHT-T08",
+     "name": "Hình ghép, công thức ngược",
+     "layer": "IMPLEMENT",
+     "depth": 4,
+     "theory": 2,
+     "examples": 3,
+     "checks": 1,
+     "completion": 2,
+     "practice": 9,
+     "transfer": 6,
+     "key_ideas": 3,
+     "pass_rule": {
+      "min_mastery": 0.75,
+      "min_successes": 3,
+      "min_levels": 2,
+      "min_forms": 2,
+      "require_explanation": true,
+      "require_application": true,
+      "max_items": 12
+     },
+     "prerequisites": [
+      "DTTGHT-T05",
+      "DTTGHT-T06"
+     ]
+    }
+   ],
+   "edges": [
+    {
+     "source": "DTTGHT-T01",
+     "target": "DTTGHT-T02",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "DTTGHT-T01",
+     "target": "DTTGHT-T03",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "DTTGHT-T02",
+     "target": "DTTGHT-T03",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "DTTGHT-T01",
+     "target": "DTTGHT-T04",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "DTTGHT-T02",
+     "target": "DTTGHT-T04",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "DTTGHT-T02",
+     "target": "DTTGHT-T05",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "DTTGHT-T05",
+     "target": "DTTGHT-T06",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "DTTGHT-T05",
+     "target": "DTTGHT-T07",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "DTTGHT-T06",
+     "target": "DTTGHT-T07",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "DTTGHT-T05",
+     "target": "DTTGHT-T08",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "DTTGHT-T06",
+     "target": "DTTGHT-T08",
+     "type": "APPLICATION"
+    }
+   ],
+   "items": {
+    "n": 151,
+    "by_type": {
+     "boolean": 20,
+     "numeric": 105,
+     "open": 10,
+     "choice": 16
+    },
+    "by_level": {
+     "A": 22,
+     "B": 99,
+     "C": 21,
+     "D": 9
+    },
+    "by_purpose": {
+     "PRACTICE": 96,
+     "CONCEPT_CHECK": 22,
+     "EXIT": 33
+    },
+    "difficulty_mean": 0.43,
+    "with_hints": 115,
+    "hints": 298,
+    "wrong_answers_declared": 0
+   },
+   "assessment_items": 33,
+   "misconceptions": {
+    "n": 24,
+    "critical": 8,
+    "with_bug_rule": 0
+   },
+   "drafts": {
+    "n": 518,
+    "ok": 401,
+    "by_kind": {
+     "ACCEPT": {
+      "n": 42,
+      "ok": 38
+     },
+     "HINT": {
+      "n": 433,
+      "ok": 329
+     },
+     "KEY_IDEA": {
+      "n": 29,
+      "ok": 22
+     },
+     "REPLY": {
+      "n": 14,
+      "ok": 12
+     }
+    },
+    "by_model": {
+     "qwen/qwen3.8-27b": 321,
+     "openai/gpt-oss-120b": 197
+    },
+    "codes": {
+     "MISSING_QUESTION": 63,
+     "NEW_MATH_TERM": 44,
+     "NOT_IN_THE_RULE": 6,
+     "UNGROUNDED_NUMBER": 4,
+     "ANSWER_LEAK": 2,
+     "TOO_LONG": 1,
+     "EMPTY": 1
+    }
+   },
+   "decisions": {
+    "n": 546,
+    "by_action": {
+     "edit": 54,
+     "reject": 31,
+     "approve": 461
+    },
+    "by_target": {
+     "hint": 333,
+     "item": 159,
+     "node/theory": 19,
+     "node/worked_examples": 18,
+     "node": 8,
+     "node/method": 6,
+     "node/explain": 3
+    },
+    "by_reviewer": {
+     "assistant": 546
+    }
+   },
+   "left_out": 4,
+   "problems": 0,
+   "published_versions": 4
+  }
+ }
+}

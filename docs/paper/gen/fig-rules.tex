@@ -1,0 +1,8 @@
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1,horizontal sep=1.6cm},cavat,width=6.6cm,xmajorgrids,xmin=0]
+\nextgroupplot[title={(a) Luật của vòng một câu hỏi (R-*)},xbar,bar width=5pt,height=5.5cm,symbolic y coords={R-FULL,R-CLARIFY,R-ESCALATE,R-REDIRECT,R-EXPLAIN,R-AFFECT,R-FRUSTRATION,R-MISC-HIGH,R-OFF-TOPIC,R-HELP-REQUEST,R-TEACH-BACK,R-FIRST-WRONG,R-LADDER,R-CORRECT,R-VERIFY,R-PRESENT},ytick=data,y tick label style={font=\scriptsize\sffamily},enlarge y limits=0.06,nodes near coords,nodes near coords style={font=\tiny},xmax=167]
+\addplot[fill=cavat!70,draw=none] coordinates {(4,R-FULL) (5,R-CLARIFY) (5,R-ESCALATE) (5,R-REDIRECT) (8,R-EXPLAIN) (10,R-AFFECT) (11,R-FRUSTRATION) (13,R-MISC-HIGH) (13,R-OFF-TOPIC) (17,R-HELP-REQUEST) (18,R-TEACH-BACK) (18,R-FIRST-WRONG) (22,R-LADDER) (86,R-CORRECT) (99,R-VERIFY) (142,R-PRESENT)};
+\nextgroupplot[title={(b) Luật của chính sách dạy (N-*)},xbar,bar width=5pt,height=4.6cm,symbolic y coords={N-BUDGET,N-WARMUP,N-FINISH,N-TRANSFER,N-RETEACH,N-REVIEW,N-PASS,N-RECALL,N-NEXT,N-TEACH,N-METHOD,N-CHECK,N-PRACTICE},ytick=data,y tick label style={font=\scriptsize\sffamily},enlarge y limits=0.06,nodes near coords,nodes near coords style={font=\tiny},xmax=89]
+\addplot[fill=llm!70,draw=none] coordinates {(2,N-BUDGET) (2,N-WARMUP) (3,N-FINISH) (10,N-TRANSFER) (11,N-RETEACH) (16,N-REVIEW) (19,N-PASS) (20,N-RECALL) (21,N-NEXT) (21,N-TEACH) (30,N-METHOD) (59,N-CHECK) (76,N-PRACTICE)};
+\end{groupplot}
+\end{tikzpicture}

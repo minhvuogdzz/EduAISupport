@@ -1,395 +1,51 @@
-% CAVAT — bài báo khoa học (tiếng Việt). Biên dịch: make paper (Tectonic).
+% CAVAT: bài báo khoa học (tiếng Việt). Biên dịch: make paper (Tectonic, XeLaTeX).
+% Số liệu và biểu đồ trong gen/ được sinh từ data/*.json bởi services/api/scripts/paper_figures.py.
 \documentclass[11pt,a4paper]{article}
+\input{preamble}
+\input{gen/numbers}
 
-\usepackage{fontspec}
-% TeX Gyre: có đủ dấu tiếng Việt, đi kèm bản phân phối TeX nên bài dựng giống nhau trên mọi máy
-\setmainfont{texgyretermes}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
-\setsansfont{texgyreheros}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
-\setmonofont{texgyrecursor}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic,Scale=0.95]
-\usepackage{amsmath,amssymb}
-\usepackage[a4paper,margin=2.4cm]{geometry}
-\usepackage{booktabs,tabularx,array}
-\usepackage{xcolor}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,calc}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
-\usepackage{caption}
-\usepackage{float}
-\usepackage{microtype}
-\usepackage[hidelinks]{hyperref}
-
-\captionsetup{font=small,labelfont=bf}
-\renewcommand{\abstractname}{Tóm tắt}
-\renewcommand{\refname}{Tài liệu tham khảo}
-\renewcommand{\figurename}{Hình}
-\renewcommand{\tablename}{Bảng}
-\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
-\definecolor{cavat}{HTML}{1F6F78}
-\definecolor{soft}{HTML}{E8F3F4}
-\sloppy
-\hbadness=10000
-
-\title{\textbf{Tách quyết định sư phạm khỏi mô hình ngôn ngữ:\\
-gia sư Toán lớp~5 theo phương pháp Socratic\\
-trên đồ thị tri thức và phương pháp đánh giá đa chiều}}
+\title{\textbf{Tách quyết định sư phạm khỏi mô hình ngôn ngữ:\\[2pt]
+gia sư Toán lớp~5 theo phương pháp Socratic với truy xuất lai\\
+trên đồ thị tri thức và mô hình người học tái lập được}\\[8pt]
+\large\textit{Decoupling Pedagogical Decisions from the Language Model: a Socratic Grade-5 Mathematics\\
+Tutor with Graph-Constrained Hybrid Retrieval and a Replayable Learner Model}}
 \author{[Họ và tên tác giả]\\[2pt]
 \small [Khoa / Trường]\\
 \small \texttt{[email]}}
 \date{}
 
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[C]{\small\thepage}
+\fancyhead[L]{\footnotesize\color{mute}CAVAT: gia sư Toán lớp 5 theo phương pháp Socratic}
+
 \begin{document}
 \maketitle
+\thispagestyle{fancy}
 
-\begin{abstract}
-\noindent
-Các chế độ học tập của chatbot thương mại hiện nay chủ yếu được xây bằng lời nhắc hệ thống, nghĩa là mô hình ngôn ngữ vẫn tự quyết định khi nào gợi ý, khi nào đưa đáp án và khi nào coi một câu trả lời là đúng. Bài báo này trình bày CAVAT, một gia sư Toán lớp~5 tiếng Việt được thiết kế theo nguyên tắc ngược lại: mọi quyết định sư phạm và mọi phán quyết đúng sai do các thành phần tất định đưa ra, còn mô hình ngôn ngữ chỉ diễn đạt và lời của nó phải qua bộ kiểm chứng trước khi đến học sinh. Hệ thống dạy theo một chu trình bảy bước trên đồ thị tri thức, ước lượng mức hiểu bài bằng một mô hình người học bảy chiều được tính lại hoàn toàn từ sổ sự kiện, và trả lời câu hỏi của học sinh bằng truy xuất lai có ràng buộc theo chương trình học, trong đó đồ thị tri thức tham gia trực tiếp vào việc xếp hạng. Chúng tôi đề xuất một phương pháp đánh giá tám chiều với giao thức đóng băng tập kiểm tra trước mọi thay đổi mã nguồn. Trên hai chương được dựng từ tài liệu thật của giáo viên, thành phần truy xuất đạt trung bình 85\% so với bảy mục tiêu thiết kế; cơ chế định tuyến theo đồ thị nâng Hit@3 trên tập giữ riêng từ 0,45 lên 0,90. Trong thí nghiệm đối chứng với cùng mô hình ngôn ngữ nhưng chỉ dùng một lời nhắc Socratic được soạn kỹ, hệ đối chứng được giám khảo mô hình ngôn ngữ chấm cao hơn về giọng văn (4,84 so với 4,46 trên thang 5) nhưng đã khen một đáp án sai là đúng rồi nói ra đáp án, một lỗi mà chính giám khảo không phát hiện; CAVAT không mắc lỗi này trong toàn bộ thí nghiệm. Cách đánh giá mức hiểu bài của hệ thống bám sát khung đánh giá gốc ở mức 74\%, phần còn thiếu đều cần dữ liệu theo thời gian. Kết quả cho thấy giá trị của một gia sư AI không nằm ở việc nói hay hơn, mà ở những bảo đảm sư phạm mà một lời nhắc không thể cung cấp.
+\input{sections/00-abstract}
 
-\vspace{6pt}
-\noindent\textbf{Từ khóa:} gia sư thông minh; phương pháp Socratic; đồ thị tri thức; truy xuất tăng cường; mô hình người học; đánh giá mô hình ngôn ngữ.
-\end{abstract}
+\input{sections/01-intro}
+\input{sections/02-related}
+\input{sections/03-problem}
+\input{sections/04-corpus}
+\input{sections/05-socratic}
+\input{sections/06-rag}
+\input{sections/07-learner}
+\input{sections/08-setup}
+\input{sections/09-results-rag}
+\input{sections/10-results-socratic}
+\input{sections/11-results-market}
+\input{sections/12-results-assessment}
+\input{sections/13-discussion}
+\input{sections/14-limits}
+\input{sections/15-ethics}
+\input{sections/16-conclusion}
 
-%=====================================================================
-\section{Giới thiệu}
-%=====================================================================
+\input{refs}
 
-Các hệ thống gia sư thông minh từ lâu đã được chứng minh có thể cải thiện kết quả học tập ở mức tiệm cận gia sư người, với điều kiện chúng hỗ trợ học sinh theo từng bước và phản hồi đúng lúc~\cite{vanlehn2011}. Sự xuất hiện của các mô hình ngôn ngữ lớn (LLM) làm chi phí xây dựng một gia sư biết trò chuyện giảm đáng kể, nhưng cũng kéo theo những rủi ro sư phạm đã được ghi nhận rộng rãi: mô hình có xu hướng đưa ngay đáp án hoặc làm hộ bài, có thể đánh giá sai câu trả lời của học sinh, và không có khái niệm rõ ràng về việc học sinh đang ở đâu trong chương trình cũng như đã thật sự hiểu bài hay chưa~\cite{kasneci2023}.
-
-Các nhà cung cấp lớn đã phản hồi bằng những chế độ học tập riêng. Study mode của ChatGPT được mô tả là một tập chỉ dẫn hệ thống tùy biến chứ không phải một mô hình riêng~\cite{studymode}; Guided Learning của Gemini dựa trên họ mô hình LearnLM~\cite{guidedlearning}; Khanmigo của Khan Academy gắn mô hình GPT-4 với kho bài tập của nền tảng~\cite{khanmigo}. Điểm chung của các cách tiếp cận này là mô hình ngôn ngữ vẫn là nơi đưa ra quyết định, còn các ràng buộc sư phạm chỉ tồn tại dưới dạng lời khuyên trong ngữ cảnh. Khi lời khuyên ấy bị bỏ qua, chẳng hạn khi học sinh khăng khăng một đáp án sai hoặc yêu cầu ``bỏ qua mọi hướng dẫn'', không có cơ chế nào bảo đảm hành vi đúng.
-
-Bài báo này nghiên cứu một hướng thiết kế khác, trong đó hệ thống học tập được xây trước và mô hình ngôn ngữ được đặt vào bên trong với vai trò hẹp. Chúng tôi hiện thực hướng thiết kế này trong CAVAT, một gia sư Toán lớp~5 tiếng Việt cho hai chương ``Số thập phân'' và ``Diện tích hình tam giác, hình thang''. Trong CAVAT, một chính sách dạy tất định trên đồ thị tri thức quyết định mỗi nước đi sư phạm, một bộ chấm tất định theo chuẩn viết số của Việt Nam quyết định đúng sai, và mức hiểu bài là một phép chiếu tất định từ sổ sự kiện. Mô hình ngôn ngữ chỉ chuyển các quyết định ấy thành lời nói tự nhiên.
-
-Để đánh giá hướng thiết kế này một cách nghiêm túc, chúng tôi đặt ra bốn câu hỏi nghiên cứu. Câu hỏi thứ nhất là nên đánh giá một gia sư như vậy theo những chiều nào và bằng giao thức nào để kết quả đáng tin cậy. Câu hỏi thứ hai là thành phần truy xuất tăng cường đạt được bao nhiêu so với các mục tiêu đã đặt khi thiết kế. Câu hỏi thứ ba, cũng là câu hỏi quan trọng nhất về mặt thực tiễn, là so với những gì học sinh đang dùng được trên thị trường thì hệ thống mang lại lợi ích gì và còn kém ở đâu. Câu hỏi thứ tư là cách hệ thống đánh giá mức hiểu bài bám sát khung đánh giá được đề ra ban đầu đến mức nào.
-
-Đóng góp của bài báo gồm bốn phần. Thứ nhất, chúng tôi mô tả một kiến trúc gia sư trong đó quyết định sư phạm được tách hẳn khỏi mô hình ngôn ngữ. Thứ hai, chúng tôi đề xuất một cơ chế truy xuất có ràng buộc chương trình học, trong đó đồ thị tri thức vừa ngăn hệ thống dạy trước nội dung của bài sau, vừa định tuyến các câu hỏi về bài cũ về đúng tiết đã dạy nội dung đó. Thứ ba, chúng tôi đưa ra một phương pháp đánh giá tám chiều với giao thức đóng băng tập kiểm tra có thể kiểm chứng qua lịch sử mã nguồn. Thứ tư, chúng tôi báo cáo bằng chứng thực nghiệm cho cả bốn câu hỏi, trong đó có một trường hợp cho thấy giám khảo dựa trên mô hình ngôn ngữ bỏ sót một lỗi chấm nghiêm trọng của chính một gia sư dựa trên mô hình ngôn ngữ.
-
-%=====================================================================
-\section{Công trình liên quan}
-%=====================================================================
-
-\paragraph{Mô hình người học và truy vết tri thức.}
-Truy vết tri thức Bayes~\cite{corbett1995} và các biến thể học sâu như DKT~\cite{piech2015} ước lượng xác suất học sinh làm đúng câu tiếp theo dựa trên lịch sử làm bài. Gần đây, mô hình 2T-KT~\cite{li2026} kết hợp mô hình ngôn ngữ với hai đồ thị tri thức, một đồ thị chung của môn học và một đồ thị riêng của từng học sinh, nhằm mô phỏng cách giáo viên suy luận về học sinh khi dữ liệu còn ít. Chúng tôi kế thừa từ 2T-KT ý tưởng đồ thị tri thức có kiểm chứng, ngưỡng tin cậy cho các quan hệ do mô hình ngôn ngữ đề xuất và cách trình bày thí nghiệm loại bỏ từng thành phần. Điểm khác biệt là CAVAT không dừng ở bài toán dự đoán; trạng thái ước lượng được dùng trực tiếp để ra quyết định dạy, chẳng hạn giảng lại, kiểm tra hiểu hay quay về bài nền.
-
-\paragraph{Truy xuất tăng cường.}
-Truy xuất tăng cường~\cite{lewis2020} gắn lời sinh của mô hình ngôn ngữ với các đoạn văn bản truy xuất được. Truy xuất lai thường kết hợp chỉ mục từ khóa BM25~\cite{robertson2009} với vector ngữ nghĩa và hợp nhất các danh sách xếp hạng bằng Reciprocal Rank Fusion~\cite{cormack2009}. Trong bối cảnh giáo dục, truy xuất còn phải tôn trọng phạm vi chương trình: không trả lời trước nội dung của bài chưa học và không trả lời bằng kiến thức ngoài chương khi không có căn cứ. Các hệ truy xuất tổng quát ít khi xét đến loại ràng buộc này, và đó là khoảng trống mà phần truy xuất của CAVAT hướng tới.
-
-\paragraph{Đánh giá hệ thống dùng mô hình ngôn ngữ.}
-Dùng một mô hình ngôn ngữ làm giám khảo~\cite{zheng2023} là cách phổ biến để chấm các đầu ra mở, với độ tương quan khá cao so với người chấm nhưng kèm những thiên lệch đã biết. Các khuyến nghị thường gặp là dùng giám khảo khác họ mô hình với hệ được chấm, hiệu chỉnh với nhãn của người và ưu tiên chỉ số tất định khi có thể. Kết quả của chúng tôi bổ sung một bằng chứng cụ thể cho khuyến nghị cuối cùng.
-
-%=====================================================================
-\section{Hệ thống CAVAT}\label{sec:system}
-%=====================================================================
-
-\subsection{Kiến trúc tổng quát}
-Hình~\ref{fig:arch} trình bày kiến trúc của CAVAT. Tin nhắn của học sinh, dù được gõ hay nói, trước hết đi qua một bộ điều phối làm sạch các dạng viết thường gặp ở trẻ như emoji, chữ kéo dài, chữ ``o'' thay cho số 0 và các từ viết tắt. Văn bản đã làm sạch được chuyển cho vòng dạy, nơi chính sách dạy quyết định nước đi tiếp theo. Khi nước đi là một câu hỏi, vòng xử lý câu hỏi điều phối các mức gợi ý và chuyển câu trả lời của học sinh cho bộ chấm tất định. Mô hình ngôn ngữ, cụ thể là Qwen chạy trên hạ tầng miễn phí, chỉ được gọi để diễn đạt nước đi đã chọn; lời của nó phải qua bộ kiểm chứng về việc lộ đáp án, số câu hỏi trong một lượt, độ dài và mức bám nguồn trước khi đến học sinh. Mọi bằng chứng được ghi vào một sổ sự kiện chỉ cho phép ghi thêm, từ đó trạng thái dạy và mức hiểu bài được tính lại bằng cách phát lại sự kiện.
-
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}[x=1cm,y=1cm,
-  box/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\small,minimum height=10mm,text width=27mm},
-  llm/.style={box,fill=orange!14,draw=orange!70!black},
-  data/.style={box,fill=gray!10,draw=gray!60},
-  arr/.style={-{Latex[length=2mm]},thick,draw=cavat},
-  lab/.style={font=\scriptsize,fill=white,inner sep=1pt}]
-\node[draw=none,font=\small,align=center] (kid) at (0,0) {\textbf{Học sinh}\\\scriptsize gõ hoặc nói};
-\node[box] (cond) at (3.8,0) {Bộ điều phối\\\scriptsize làm sạch, gỡ bế tắc};
-\node[box] (loop) at (7.6,0) {Vòng dạy 7 bước\\\scriptsize trên đồ thị tri thức};
-\node[box] (policy) at (11.4,0) {Chính sách dạy\\\scriptsize luật tất định};
-\node[box] (check) at (0,-1.9) {Bộ chấm\\\scriptsize tất định, vi-VN};
-\node[box] (item) at (3.8,-1.9) {Vòng một câu hỏi\\\scriptsize gợi ý H0--H7};
-\node[box] (valid) at (7.6,-1.9) {Bộ kiểm chứng\\\scriptsize lộ, câu hỏi, nguồn};
-\node[llm] (llm) at (11.4,-1.9) {Mô hình ngôn ngữ\\\scriptsize chỉ diễn đạt};
-\node[data] (ledger) at (0,-3.8) {Sổ sự kiện\\\scriptsize chỉ ghi thêm};
-\node[box] (proj) at (3.8,-3.8) {Mô hình người học\\\scriptsize 7 chiều, $M$};
-\node[box] (rag) at (7.6,-3.8) {Truy xuất lai\\\scriptsize BM25, vector, đồ thị};
-\node[data] (docs) at (11.4,-3.8) {Tài liệu giáo viên\\\scriptsize đã duyệt};
-\node[box] (teacher) at (0,-5.7) {Giao diện giáo viên\\\scriptsize bằng chứng học tập};
-\draw[arr] (kid) -- (cond);
-\draw[arr] (cond) -- (loop);
-\draw[arr] (loop) -- (policy);
-\draw[arr] (policy) -- node[lab,right]{nước đi} (llm);
-\draw[arr] (llm) -- (valid);
-\draw[arr] (valid) -- (item);
-\draw[arr] (loop) -- (item);
-\draw[arr] (item) -- (check);
-\draw[arr] (check) -- node[lab,right]{bằng chứng} (ledger);
-\draw[arr] (ledger) -- (proj);
-\draw[arr] (docs) -- (rag);
-\draw[arr] (rag) -- node[lab,right]{đoạn nguồn} (valid);
-\draw[arr] (ledger) -- (teacher);
-\draw[arr] (proj) -- (teacher);
-\draw[arr] (proj.south) -- ++(0,-0.75) -- ++(9.6,0) node[lab,below,pos=0.5]{trạng thái từng tiết} |- (policy.east);
-\end{tikzpicture}
-\caption{Kiến trúc của CAVAT. Mô hình ngôn ngữ (ô màu cam) là thành phần duy nhất không tất định và chỉ tham gia ở khâu diễn đạt; mọi quyết định sư phạm và mọi điểm số đi qua các thành phần tất định. Sổ sự kiện là nguồn sự thật duy nhất của hệ thống.}
-\label{fig:arch}
-\end{figure}
-
-Thiết kế này dựa trên ba bất biến. Đáp án của các câu kiểm tra không bao giờ xuất hiện trong ngữ cảnh gửi cho mô hình ngôn ngữ, nên mô hình không thể làm lộ thứ nó không biết. Phán quyết đúng sai luôn do bộ chấm tất định đưa ra, nên mô hình không thể khen một câu trả lời sai. Mô hình ngôn ngữ không bao giờ ghi trực tiếp vào trạng thái hiểu bài, nên mọi điểm số đều có thể truy ngược về bằng chứng cụ thể. Mọi công thức hoặc ngưỡng không có trong khung đánh giá gốc đều được khai báo tường minh như một diễn giải của dự án, và đến thời điểm viết bài có 58 diễn giải như vậy.
-
-\subsection{Đồ thị tri thức và chính sách dạy}
-Mỗi chương được biểu diễn bằng một đồ thị có hướng $G=(V,E)$, trong đó mỗi đỉnh là một tiết học và mỗi cạnh $(u,v)$ cho biết tiết $u$ phải được học trước tiết $v$. Chương ``Số thập phân'' có 11 tiết và chương ``Diện tích hình tam giác, hình thang'' có 8 tiết. Đồ thị, nội dung lý thuyết, ví dụ mẫu và ngân hàng câu hỏi (lần lượt 234 và 155 câu) được dựng tự động từ tài liệu của giáo viên rồi được giáo viên duyệt.
-
-Ở mỗi tiết, hệ thống đi theo một chu trình gồm ôn bài nền, giảng lý thuyết, kiểm tra hiểu, làm mẫu, luyện tập, vận dụng và quyết định qua tiết. Chính sách dạy là một danh sách có thứ tự gồm mười bốn luật tất định. Tại mỗi bước, luật đầu tiên có điều kiện thỏa mãn quyết định nước đi, và quyết định được ghi lại cùng tên luật và lý do. Nhờ vậy mỗi hành vi của gia sư đều giải thích được và kiểm thử được theo từng luật. Hai luật minh họa vai trò của đồ thị: khi học sinh mắc một lỗi sai nghiêm trọng thuộc một tiết tiên quyết, hoặc hai lần không vượt qua bước kiểm tra hiểu trong khi tiết tiên quyết còn yếu, gia sư tạm dừng tiết hiện tại để dạy lại tiết tiên quyết; khi vào một tiết mới, gia sư hỏi lại ý chính của tiết tiên quyết gần nhất để nối kiến thức cũ với kiến thức mới.
-
-\subsection{Mô hình người học}
-Với mỗi tiết $v$ và mỗi chiều $d$ thuộc bảy chiều của khung đánh giá Toán (đúng $C$, lập luận $R$, vận dụng $A$, chuyển giao $T$, độc lập $I$, ghi nhớ $S$ và chẩn đoán lỗi $D$), hệ thống duy trì một phân phối Beta$(\alpha_{v,d},\beta_{v,d})$. Một bằng chứng có điểm $s\in[0,1]$ và trọng số $w$ cập nhật phân phối theo
-\begin{equation}
-\alpha_{v,d} \leftarrow \alpha_{v,d} + w s, \qquad \beta_{v,d} \leftarrow \beta_{v,d} + w(1-s).
-\end{equation}
-Trọng số phản ánh độ khó của câu hỏi, với $w=0{,}5+\delta$ khi trả lời đúng và $w=1{,}5-\delta$ khi trả lời sai đối với câu có độ khó $\delta$, đồng thời được nhân với hệ số độc lập giảm dần theo mức gợi ý mà học sinh đã nhận. Mức thành thạo của tiết là trung bình có trọng số của kỳ vọng các chiều có đủ bằng chứng,
-\begin{equation}
-M_v = \frac{\sum_{d\in\mathcal{A}_v} \omega_d\,\mu_{v,d}}{\sum_{d\in\mathcal{A}_v}\omega_d},\qquad \mu_{v,d}=\frac{\alpha_{v,d}}{\alpha_{v,d}+\beta_{v,d}},
-\end{equation}
-với các trọng số $\omega$ lấy nguyên từ khung đánh giá ($0{,}20$ cho $C$ và $R$; $0{,}15$ cho $A$ và $T$; $0{,}10$ cho $I$, $S$ và $D$) và $\mathcal{A}_v$ là tập các chiều đã có đủ bằng chứng hiệu dụng. Giá trị $M_v$ được ánh xạ sang sáu mức hiểu bài theo các ngưỡng 20, 40, 60, 75 và 90 của khung. Để một tiết được coi là đã hiểu, học sinh còn phải có ít nhất ba lần làm đúng trên ít nhất hai mức nhận thức và hai dạng câu hỏi, và mức cao hơn chỉ được công nhận khi có bằng chứng ở chiều tương ứng. Vì toàn bộ trạng thái được tính lại từ sổ sự kiện, cùng một chuỗi sự kiện luôn cho cùng một kết quả.
-
-\subsection{Truy xuất có ràng buộc chương trình học}\label{sec:rag}
-Kho tri thức của hai chương gồm 221 đoạn, trong đó 83 đoạn lấy từ tài liệu của giáo viên; mỗi đoạn $c$ được gắn với tiết $\nu(c)$ mà nó thuộc về. Với câu hỏi $q$ của học sinh khi đang học tiết $v$, mỗi đoạn trong phạm vi nhận một điểm hợp nhất dạng Reciprocal Rank Fusion có điều chỉnh theo khoảng cách trên đồ thị,
-\begin{equation}
-\mathrm{score}(c) = \frac{1}{1+\mathrm{dist}_G(v,\nu(c))}\sum_{r\in\{\text{BM25},\,\text{vector}\}} \frac{1}{60+\mathrm{rank}_r(c)},
-\end{equation}
-sau đó được xếp hạng lại theo các tiêu chí sư phạm như ưu tiên câu định nghĩa và ưu tiên đoạn chưa dùng trong buổi học. Phạm vi chỉ gồm tiết đang học và các tiết đứng trước nó trên đồ thị. Nếu câu hỏi khớp rõ hơn với một tiết đứng sau, gia sư không trả lời mà cho học sinh biết nội dung đó sẽ được học ở bài sau. Một câu hỏi chỉ được coi là có căn cứ khi độ tương đồng cosine của đoạn tốt nhất vượt một ngưỡng đã hiệu chỉnh. Khi không có căn cứ, câu hỏi được ghi lại để giáo viên giải đáp.
-
-Hệ số khoảng cách trong phương trình trên phản ánh giả định rằng nội dung càng xa tiết hiện tại càng ít liên quan. Giả định này hợp lý với câu hỏi về bài đang học, nhưng sai với câu hỏi về một khái niệm đã học trước đó, chẳng hạn ``1 mét bằng bao nhiêu xăng-ti-mét'' khi đang học đổi đơn vị diện tích. Để khắc phục, chúng tôi bổ sung bước định tuyến chủ đề. Với mỗi tiết $u$ trong tập $P(v)$ gồm $v$ và mọi tiết tiên quyết của nó, ký hiệu $m(u)=\max_{c:\nu(c)=u}\cos(q,c)$ là độ khớp của đoạn tốt nhất thuộc tiết đó. Tiết chủ đề của câu hỏi được xác định bởi
-\begin{equation}
-u^\ast = \operatorname*{arg\,max}_{u\in P(v)\setminus\{v\}} m(u), \qquad \text{định tuyến về } u^\ast \text{ khi } m(u^\ast)-m(v)\ge\varepsilon,
-\end{equation}
-với $\varepsilon=0{,}02$; khi đó các đoạn của $u^\ast$ được coi như có khoảng cách bằng không. Vì $P(v)$ chỉ chứa các tiết đứng trước, cơ chế định tuyến không bao giờ đưa nội dung của bài sau vào câu trả lời. Khi không có vector ngữ nghĩa, độ phủ từ khóa được dùng thay cho cosine.
-
-Lời trả lời do mô hình ngôn ngữ viết từ các đoạn đã chọn và phải qua bộ kiểm chứng về số liệu, thuật ngữ và độ phủ so với nguồn. Nếu không qua, gia sư trích nguyên văn đoạn nguồn hoặc ghi câu hỏi lại cho giáo viên. Ngoài các thành phần trên, hệ thống còn có bộ chấm câu giải thích ``vì sao'', bộ nhận diện các họ lỗi sai được suy ra từ mô tả của giáo viên, chế độ trò chuyện bằng giọng nói và giao diện cho giáo viên theo dõi bằng chứng học tập.
-
-%=====================================================================
-\section{Thiết kế thực nghiệm}\label{sec:method}
-%=====================================================================
-
-\subsection{Khung đánh giá tám chiều}
-Chúng tôi đánh giá hệ thống theo tám chiều được tóm tắt trong Bảng~\ref{tab:dims}. Bảy chiều đầu tiên cùng các ngưỡng của chúng được xác định trong tài liệu thiết kế trước khi xây dựng hệ thống, nên không thể bị điều chỉnh theo kết quả. Chiều thứ tám, kết quả học tập thực tế, được đưa vào khung để nêu rõ điều mà nghiên cứu hiện tại chưa đo được.
-
-\begin{table}[H]
-\centering\small
-\caption{Khung đánh giá tám chiều và ngưỡng được đặt từ giai đoạn thiết kế}\label{tab:dims}
-\begin{tabularx}{\textwidth}{@{}p{3.4cm}Yp{3.5cm}@{}}
-\toprule
-Chiều & Chỉ số chính & Ngưỡng \\
-\midrule
-Tuân thủ Socratic & Tỉ lệ lộ đáp án, số câu hỏi mỗi lượt, điểm giám khảo & Lộ $\le 1\%$ khi luyện tập \\
-Chất lượng gợi ý & Mức độ đáp đúng ý học sinh & $\ge 4/5$ \\
-Bám nguồn & Hit@$k$, MRR, tỉ lệ có căn cứ, điểm bám nguồn & $\ge 95\%$ \\
-Chất lượng sư phạm & Mức phù hợp với trẻ, duyệt của giáo viên & $\ge 80\%$ chấp nhận \\
-Độ tin cậy đánh giá & Tính tất định, độ chính xác chấm, độ nhạy kiểm đáp án & Tất định $100\%$ \\
-Tuân thủ phạm vi & Dạy trước bài sau, mô hình ghi điểm & Không vi phạm \\
-Bịa đặt & Câu không có nguồn, lỗi toán học & $\le 2\%$ lượt \\
-Kết quả học tập & Kiểm tra trước--sau, ghi nhớ dài hạn & Chưa đo \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsection{Giao thức chống rò rỉ dữ liệu kiểm tra}
-Một rủi ro thường gặp khi phát triển các hệ thống học máy là tối ưu hóa ngầm trên chính tập dùng để báo cáo. Chúng tôi áp dụng một giao thức đơn giản nhưng kiểm chứng được. Mỗi tập câu hỏi dùng để điều chỉnh tham số đi kèm một tập giữ riêng không dùng cho bất kỳ điều chỉnh nào. Khi một tập giữ riêng đã bị xem trong quá trình phân tích lỗi, nó mất tư cách giữ riêng; một tập mới phải được viết và đưa vào kho mã nguồn trước khi có thay đổi mã liên quan, rồi được đo đúng một lần sau thay đổi. Thứ tự này được ghi lại bằng các nhãn trong lịch sử phiên bản, nên người đọc có thể tự kiểm tra rằng tập kiểm tra không được viết sau khi đã biết kết quả.
-
-Ngoài ra, mọi chỉ số đo được bằng luật đều được đo bằng luật, còn giám khảo dựa trên mô hình ngôn ngữ chỉ được dùng cho chất lượng ngôn ngữ và sư phạm. Giám khảo được chọn khác họ với mô hình của gia sư; cụ thể, gia sư dùng Qwen còn giám khảo dùng \texttt{gpt-oss-120b}.
-
-\subsection{Dữ liệu}
-Thành phần truy xuất được đánh giá trên hai nguồn nội dung. Nguồn thứ nhất là một chương mẫu do nhóm phát triển soạn, với 67 câu hỏi dùng để điều chỉnh và 30 câu giữ riêng. Nguồn thứ hai là hai chương được dựng từ tài liệu thật của giáo viên, với 30 câu điều chỉnh và hai tập giữ riêng gồm 23 và 30 câu, trong đó tập thứ hai được đóng băng trước khi bổ sung cơ chế định tuyến. Các câu hỏi được chia thành các nhóm: hỏi về bài đang học, hỏi về bài trước, hỏi về bài sau, toán ngoài chương và lạc đề. Chất lượng lời trả lời của mô hình ngôn ngữ được đo trên 15 câu hỏi và 6 câu nối do học sinh đặt. Độ chính xác của bộ chấm được đo trên hai tập câu trả lời được gán nhãn thủ công theo cách một giáo viên lớp~5 chấm, gồm 36 và 35 câu, với các dạng thường gặp ở trẻ như dấu phẩy thập phân, chữ ``o'' thay cho số 0, số đọc bằng lời và phân số khi đề hỏi số thập phân.
-
-\subsection{Hệ đối chứng}
-Để tách giá trị của hệ thống khỏi giá trị của mô hình ngôn ngữ, chúng tôi so sánh CAVAT với một hệ đối chứng dùng chính mô hình Qwen của CAVAT nhưng chỉ kèm một lời nhắc Socratic được soạn kỹ, yêu cầu không nói đáp án, không làm hộ, chỉ hỏi một câu gợi mở mỗi lượt, trả lời ngắn và ấm áp, nhẹ nhàng kéo học sinh về bài khi lạc đề. Hệ đối chứng này là xấp xỉ gần nhất mà chúng tôi đo được của các chế độ học tập dựa trên lời nhắc trên thị trường. Một hệ đối chứng thứ hai dùng mô hình Gemini với lời nhắc mà một phụ huynh thường đặt đã được chuẩn bị, nhưng chưa thể hoàn thành trong đợt thực nghiệm này do giới hạn hạn mức miễn phí. Cả hai hệ được thử với mười ba vai học sinh khó, mỗi vai nói hai câu, bao gồm nói ``không biết'', không hiểu đề, đòi đáp án và yêu cầu bỏ qua hướng dẫn, nói chuyện ngoài bài, chán nản và tự ti, viết không dấu, nhờ làm hộ, sai nhưng chắc chắn, đoán bừa và đúng nhưng lý do chưa chắc.
-
-\subsection{Chỉ số mức đạt mục tiêu}
-Để trả lời câu hỏi thành phần truy xuất đạt bao nhiêu so với định hướng, chúng tôi lấy bảy mục tiêu $R_1,\dots,R_7$ từ tài liệu thiết kế và tính mức đạt của từng mục tiêu $i$ với kết quả đo $x_i$ và ngưỡng $\tau_i$ theo
-\begin{equation}
-a_i = \begin{cases} \min\!\left(1,\; x_i/\tau_i\right) & \text{nếu mục tiêu có dạng } x_i \ge \tau_i,\\[2pt] \min\!\left(1,\; \tau_i/x_i\right) & \text{nếu mục tiêu có dạng } x_i \le \tau_i,\end{cases}
-\qquad \bar a = \frac{1}{7}\sum_{i=1}^{7} a_i,
-\end{equation}
-riêng mục tiêu về thí nghiệm loại bỏ thành phần được tính theo đạt hoặc không đạt. Khi một chỉ số có cả kết quả trên chương mẫu và trên chương dựng từ tài liệu thật, chúng tôi lấy giá trị thấp hơn. Quy tắc này được cố định trước khi đo lại.
-
-%=====================================================================
-\section{Kết quả}\label{sec:results}
-%=====================================================================
-
-\subsection{Thành phần truy xuất}
-Bảng~\ref{tab:ragyaml} trình bày kết quả loại bỏ từng thành phần trên chương mẫu. Trên tập điều chỉnh, cấu hình đầy đủ gồm truy xuất lai và xếp hạng lại cho kết quả tốt nhất với MRR 0,939. Tuy nhiên trên tập giữ riêng, cấu hình chỉ dùng vector ngữ nghĩa lại vượt lên (0,765 so với 0,678), cho thấy lợi thế của cấu hình đầy đủ trên tập điều chỉnh có một phần là do điều chỉnh tham số. Giả thuyết rằng truy xuất lai luôn tốt hơn từng thành phần của nó vì vậy không được xác nhận trên chương mẫu.
-
-\begin{table}[H]
-\centering\small
-\caption{Loại bỏ từng thành phần truy xuất trên chương mẫu (MRR, Hit@3 trong ngoặc)}\label{tab:ragyaml}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Cấu hình & Tập điều chỉnh (57 câu) & Tập giữ riêng (15 câu) \\
-\midrule
-Chỉ từ khóa (BM25) & 0,826 (0,91) & 0,608 (0,80) \\
-Chỉ vector ngữ nghĩa & 0,868 (1,00) & \textbf{0,765} (0,93) \\
-Truy xuất lai & 0,864 (0,98) & 0,722 (0,87) \\
-Truy xuất lai và xếp hạng lại & \textbf{0,939} (1,00) & 0,678 (0,87) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Trên hai chương dựng từ tài liệu thật, phân tích lỗi cho thấy một điểm yếu nghiêm trọng hơn. Với các câu hỏi về khái niệm của bài trước, hệ số khoảng cách trong điểm hợp nhất đẩy đoạn đúng ra khỏi nhóm đầu, đồng thời các đoạn của tiết hiện tại vẫn đủ tương đồng để được coi là có căn cứ. Hệ quả là gia sư trả lời bằng nội dung không liên quan thay vì nội dung học sinh hỏi. Bảng~\ref{tab:route} và Hình~\ref{fig:route} trình bày kết quả trước và sau khi bổ sung cơ chế định tuyến, đo trên tập giữ riêng được đóng băng trước thay đổi. Hit@3 của các câu hỏi trong chương tăng từ 0,45 lên 0,90, trong đó nhóm câu hỏi về bài trước tăng từ 0,08 lên 0,83, và MRR tăng từ 0,503 lên 0,887. Các hành vi an toàn được giữ nguyên: không câu hỏi nào về bài sau được trả lời trước và mọi câu lạc đề đều được chuyển cho giáo viên. Tham số biên $\varepsilon$ được đặt một lần và không điều chỉnh.
-
-\begin{table}[H]
-\centering\small
-\caption{Truy xuất trên hai chương dựng từ tài liệu thật, tập giữ riêng được đóng băng trước khi bổ sung định tuyến}\label{tab:route}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Chỉ số & Trước định tuyến & Sau định tuyến \\
-\midrule
-Hit@3, câu hỏi trong chương (20 câu) & 0,45 & \textbf{0,90} \\
-Hit@3, câu hỏi về bài trước (12 câu) & 0,08 & \textbf{0,83} \\
-MRR & 0,503 & \textbf{0,887} \\
-Câu hỏi về bài sau không bị trả lời trước & 4/4 & 4/4 \\
-Câu lạc đề được chuyển cho giáo viên & 6/6 & 6/6 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\begin{axis}[ybar, bar width=14pt, width=0.8\textwidth, height=5.2cm,
-  ymin=0, ymax=1.15, ylabel={Hit@3}, ytick={0,0.25,0.5,0.75,1},
-  yticklabel style={/pgf/number format/fixed,/pgf/number format/fixed zerofill,/pgf/number format/precision=2,/pgf/number format/use comma},
-  symbolic x coords={Tập điều chỉnh,Giữ riêng thứ nhất,Giữ riêng thứ hai},
-  xtick=data, enlarge x limits=0.25,
-  legend style={at={(0.5,1.04)},anchor=south,legend columns=2,font=\small,draw=none},
-  nodes near coords, nodes near coords style={font=\scriptsize},
-  every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/fixed zerofill,/pgf/number format/precision=2,/pgf/number format/use comma}]
-\addplot[fill=gray!40] coordinates {(Tập điều chỉnh,0.83) (Giữ riêng thứ nhất,0.64) (Giữ riêng thứ hai,0.45)};
-\addplot[fill=cavat!70] coordinates {(Tập điều chỉnh,1.00) (Giữ riêng thứ nhất,1.00) (Giữ riêng thứ hai,0.90)};
-\legend{Trước định tuyến, Sau định tuyến}
-\end{axis}
-\end{tikzpicture}
-\caption{Hit@3 của câu hỏi trong chương trên hai chương dựng từ tài liệu thật. Tập giữ riêng thứ nhất đã được xem khi phân tích lỗi nên không còn là thước đo khách quan; con số được báo cáo là của tập giữ riêng thứ hai.}
-\label{fig:route}
-\end{figure}
-
-Một kết quả đáng chú ý là vai trò của vector ngữ nghĩa thay đổi sau khi có định tuyến. Trước khi định tuyến, trên tài liệu thật, vector ngữ nghĩa gần như không thêm gì so với chỉ mục từ khóa (MRR 0,449 so với 0,459). Sau khi định tuyến, cấu hình đầy đủ đạt 0,887 trong khi cấu hình chỉ dùng từ khóa kèm định tuyến đạt 0,728. Có thể hiểu rằng trên các đoạn văn ngắn với nhiều thuật ngữ trùng nhau giữa các tiết, cấu trúc đồ thị là yếu tố quyết định, và tín hiệu ngữ nghĩa chỉ phát huy tác dụng khi được đặt trong cấu trúc ấy.
-
-Về chất lượng lời trả lời, trên 15 câu hỏi của học sinh, hệ thống chọn đúng loại phản hồi (trả lời, báo bài sau, chuyển giáo viên hoặc nhắc rằng đó chính là câu đang được hỏi) trong mọi trường hợp. Giám khảo chấm mức bám nguồn 5,00 trên 5 cho cả câu trả lời và câu nối, không phát hiện câu bịa đặt hay lộ đáp án nào trong 14 lượt có lời của mô hình ngôn ngữ. Trước đó, bộ kiểm chứng đã chặn năm câu do mô hình viết mà không có căn cứ.
-
-Bảng~\ref{tab:targets} tổng hợp mức đạt của bảy mục tiêu. Mức đạt trung bình là 85\%, với năm mục tiêu đạt trọn vẹn, tăng từ 65\% ở lần đo đầu tiên. Cần nói rõ rằng phần tăng này có hai nguồn khác nhau. Mức đạt của mục tiêu truy xuất tăng nhờ một thay đổi thật của hệ thống, đo trên tập được đóng băng. Mức đạt của hai mục tiêu về bám nguồn và bịa đặt tăng do được đo lại trên phiên bản mã hiện tại, sau khi khắc phục một lỗi định dạng đầu vào khiến giám khảo đọc nhầm một ô trống thành ``gia sư không nói gì''. Mục tiêu về loại bỏ thành phần chỉ đạt trên tài liệu thật và không đạt trên chương mẫu, nên theo quy tắc lấy giá trị thấp hơn, nó được tính là không đạt.
-
-\begin{table}[H]
-\centering\small
-\caption{Mức đạt của thành phần truy xuất so với bảy mục tiêu thiết kế}\label{tab:targets}
-\begin{tabularx}{\textwidth}{@{}lYcc@{}}
-\toprule
- & Mục tiêu & Lần đo đầu & Hiện tại \\
-\midrule
-$R_1$ & Hit@3 trên tập giữ riêng $\ge 0{,}90$ & 71\% & 97\% \\
-$R_2$ & Ít nhất 95\% câu lạc đề không được trả lời & 100\% & 100\% \\
-$R_3$ & Ít nhất 95\% câu trong chương có căn cứ & 98\% & 100\% \\
-$R_4$ & Không câu hỏi nào về bài sau được trả lời trước & 100\% & 100\% \\
-$R_5$ & Mức bám nguồn $\ge 95\%$ & 86\% & 100\% \\
-$R_6$ & Bịa đặt hoặc lộ đáp án $\le 2\%$ số lượt & 0\% & 100\% \\
-$R_7$ & Cấu hình đầy đủ tốt nhất trên tập giữ riêng & 0\% & 0\% \\
-\midrule
- & \textbf{Trung bình} & \textbf{65\%} & \textbf{85\%} \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsection{So sánh với gia sư chỉ dựa trên lời nhắc}\label{sec:market}
-Bảng~\ref{tab:market} đặt CAVAT bên cạnh các sản phẩm học sinh hiện có thể sử dụng, dựa trên thông tin được công bố. Khác biệt căn bản nằm ở nơi ra quyết định: ở các chế độ học tập của chatbot, việc không đưa đáp án là một chỉ dẫn mà mô hình có thể tuân theo hoặc không, còn ở CAVAT đó là một tính chất của kiến trúc.
-
-\begin{table}[H]
-\centering\footnotesize
-\caption{Đặc điểm của các hệ thống học sinh có thể sử dụng, theo thông tin công bố năm 2025--2026}\label{tab:market}
-\begin{tabularx}{\textwidth}{@{}p{2.5cm}YYY@{}}
-\toprule
-Hệ thống & Cơ chế không đưa đáp án & Theo dõi mức hiểu & Vai trò giáo viên \\
-\midrule
-ChatGPT Study mode & Chỉ dẫn hệ thống; mô hình tự quyết & Ghi nhớ hội thoại & Không có \\
-Gemini Guided Learning & Mô hình LearnLM; mô hình tự quyết & Không công bố & Không có \\
-Khanmigo & Thiết kế Socratic trên GPT-4 & Theo tiến độ trên nền tảng & Có công cụ cho giáo viên \\
-Ứng dụng giải bài bằng ảnh & Không, mục tiêu là đưa lời giải & Không & Không có \\
-CAVAT & Đáp án không có trong ngữ cảnh mô hình; bộ kiểm chứng chặn trước khi gửi & Bảy chiều cho từng tiết, tính lại được & Duyệt nội dung, xem bằng chứng học tập \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-Bảng~\ref{tab:evala} trình bày kết quả thí nghiệm đối chứng. Về chất lượng ngôn ngữ, hệ đối chứng được giám khảo đánh giá cao hơn ở chiều Socratic (4,84 so với 4,46) và ngang bằng ở mức phù hợp với trẻ (4,88). Ba lượt khiến CAVAT bị chấm thấp đều có nguyên nhân xác định: một lượt hệ thống xác nhận câu đúng rồi chuyển câu mà không hỏi lý do, theo một quy tắc lấy mẫu đã được giáo viên duyệt; một lượt dùng phản ví dụ đang chờ giáo viên duyệt nội dung; và một lượt nhắc lại đề còn đơn điệu. Như vậy, về giọng văn, một lời nhắc tốt đã đủ để mô hình nói theo phong cách Socratic, và chúng tôi không thấy bằng chứng nào cho thấy CAVAT nói hay hơn.
-
-\begin{table}[H]
-\centering\small
-\caption{Thí nghiệm đối chứng với mười ba vai học sinh khó (điểm giám khảo trên thang 5)}\label{tab:evala}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Chỉ số & Qwen với lời nhắc Socratic & CAVAT \\
-\midrule
-Số lượt hội thoại & 25 & 24 \\
-Nói ra đáp án (đo bằng luật) & 1 & 0 \\
-Khen câu trả lời sai là đúng & 1 & 0 \\
-Giám khảo phát hiện lộ đáp án & 0 & 0 \\
-Lượt có hơn một câu hỏi & 0 & 0 \\
-Đáp đúng ý học sinh & 4,88 & 4,71 \\
-Tuân thủ Socratic & \textbf{4,84} & 4,46 \\
-Phù hợp với trẻ 10 tuổi & 4,88 & 4,88 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Tuy nhiên, về an toàn sư phạm, kết quả lại theo chiều ngược lại. Ở vai học sinh sai nhưng chắc chắn, học sinh trả lời 0,09 cho yêu cầu viết $9/10$ dưới dạng số thập phân. Hệ đối chứng đáp: ``Con đã viết \emph{đúng} số thập phân rồi, cô rất vui! Con có thể giải thích cho cô nghe vì sao 9/10 lại bằng \emph{0,9} không?''. Trong một câu, mô hình vừa khẳng định một đáp án sai là đúng vừa nói ra đáp án đúng. Điều đáng chú ý hơn là giám khảo chấm lượt này 5/5 về Socratic và ghi nhận không có lộ đáp án; chỉ phép kiểm tra bằng luật phát hiện ra lỗi. Trường hợp này cho thấy hai giới hạn chồng lên nhau: mô hình ngôn ngữ tự chấm trong hội thoại có thể sai, và mô hình ngôn ngữ làm giám khảo có thể bỏ sót chính lỗi đó. Với kiến trúc của CAVAT, loại lỗi này không thể xảy ra, vì đáp án không có trong ngữ cảnh của mô hình và phán quyết đúng sai đến từ bộ chấm tất định.
-
-Để kiểm tra riêng năng lực chấm, chúng tôi so sánh bộ chấm của CAVAT với việc yêu cầu mô hình chấm hàng loạt có hướng dẫn rõ ràng (Bảng~\ref{tab:grading}). Tập đầu tiên làm lộ ra hai điểm yếu của bộ chấm: chưa đọc được số viết bằng lời có từ ``phẩy'' và chấp nhận phân số khi đề yêu cầu số thập phân. Sau khi khắc phục, đo trên tập thứ hai được đóng băng từ trước, bộ chấm đạt 35/35, ngang với mô hình chấm hàng loạt. Khác biệt nằm ở tính nhất quán: bộ chấm của CAVAT cho cùng một kết quả ở mọi nơi nó được gọi, trong khi cùng mô hình ấy, khi chấm giữa cuộc hội thoại, đã mắc lỗi khen sai.
-
-\begin{table}[H]
-\centering\small
-\caption{Độ chính xác chấm câu trả lời của học sinh}\label{tab:grading}
-\begin{tabular}{@{}lccc@{}}
-\toprule
-Người chấm & Tập thứ nhất (36 câu) & Tập thứ hai, giữ riêng (35 câu) & Tất định \\
-\midrule
-CAVAT, trước khi khắc phục & 31/36 & 26/35 & Có \\
-CAVAT, sau khi khắc phục & --- & \textbf{35/35} & Có \\
-Qwen chấm hàng loạt & 35/36 & 35/35 & Không \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Mức bám sát khung đánh giá hiểu bài}
-Chúng tôi đối chiếu 25 thành phần của khung đánh giá Toán với hiện thực của hệ thống, tính một điểm cho thành phần được hiện thực đầy đủ và nửa điểm cho thành phần được hiện thực một phần. Mười sáu thành phần được hiện thực đầy đủ, bao gồm công thức mức thành thạo và các trọng số, cách chuẩn hóa khi thiếu chiều, ánh xạ mức độc lập theo mức gợi ý, phân loại lỗi và mức phạt, trọng số theo độ khó, sáu mức hiểu bài, các điều kiện công nhận mức hiểu, độ tin cậy, trạng thái thiếu dữ liệu và các báo cáo cho giáo viên, học sinh, phụ huynh. Năm thành phần được hiện thực một phần, chủ yếu do chiều ghi nhớ chưa có nguồn bằng chứng, thời gian làm bài chưa được đưa vào điểm, chất lượng lập luận mới được chấm bằng luật từ khóa và bộ nhận diện lỗi sai mới bao phủ 114 trên 280 câu hỏi. Bốn thành phần chưa được hiện thực là điểm từng câu, các trạng thái quên và có nguy cơ quên, cơ chế giáo viên điều chỉnh điểm và các bài kiểm tra trì hoãn sau một đến ba mươi ngày. Mức bám sát vì vậy là $(16+0{,}5\times5)/25 = 74\%$.
-
-Đáng chú ý là các thành phần còn thiếu đều xoay quanh trục thời gian, tức là những gì chỉ đo được khi học sinh học qua nhiều ngày. Đây là giới hạn của phạm vi nghiên cứu hơn là sai lệch thiết kế. Các điểm khác với khung gốc đều được khai báo kèm lý do, và một số đã được điều chỉnh nhờ thực nghiệm. Chẳng hạn, phiên bản đầu của bộ chấm câu giải thích trừ điểm các câu chung chung như ``vì con làm theo quy tắc cô dạy''; mô phỏng cho thấy quy tắc này khiến mọi học sinh mô phỏng không qua được tiết đầu tiên, vì câu hỏi trong tài liệu thật hiếm khi có lời giải mẫu, nên quy tắc được sửa thành không tính và không trừ.
-
-Về độ tin cậy, mọi phép đo đều tất định, và kiểm thử phát lại cho cùng điểm số và cùng quyết định. Khi một chữ số trong đáp án của ngân hàng câu hỏi bị thay đổi, bộ kiểm tra đáp án phát hiện 97,1\% và 98,4\% trường hợp trên hai chương (tổng cộng 3.442 lần thay đổi). Mức đồng thuận với giáo viên chưa được đo, do cần ít nhất một trăm nhãn của giáo viên.
-
-\subsection{Mô phỏng toàn trình}
-Bốn hồ sơ học sinh mô phỏng, gồm học sinh giỏi, học sinh hay sai, học sinh sai dạng và học sinh hay bí, đều hoàn thành cả hai chương. Một hồ sơ mô phỏng chi tiết hơn bắt đầu với mức hiểu thấp, mắc đúng các kiểu lỗi được giáo viên mô tả, viết tắt và dùng biểu tượng cảm xúc, hỏi ngoài lề và giải thích chung chung khi chưa hiểu. Khi học qua giao diện lập trình thật với mô hình ngôn ngữ, mức thành thạo của hồ sơ này tăng từ 5,6 lên 85,6 ở chương Số thập phân và từ 7,7 lên 87,9 ở chương Diện tích; học sinh nhớ lại đúng ý chính của bài cũ ở 11 trên 15 lần được hỏi. Các con số này kiểm chứng rằng chu trình dạy vận hành đúng thiết kế, nhưng không đo được hiệu quả học tập, vì học sinh mô phỏng trả lời bằng chính ý của giáo viên khi đã hiểu.
-
-%=====================================================================
-\section{Thảo luận}\label{sec:discussion}
-%=====================================================================
-
-Kết quả của chúng tôi gợi ý rằng câu hỏi ``gia sư AI có tốt hơn chatbot không'' cần được tách thành hai câu hỏi khác nhau. Nếu tiêu chí là chất lượng lời nói, một mô hình ngôn ngữ hiện đại với lời nhắc phù hợp đã đạt mức rất cao, và kiến trúc của CAVAT không tạo thêm khác biệt; thậm chí các câu mẫu đã duyệt đôi khi kém tự nhiên hơn lời do mô hình viết. Nếu tiêu chí là các bảo đảm sư phạm, tức những điều không được phép xảy ra như khen sai, lộ đáp án hay dạy trước chương trình, thì lời nhắc không đủ, và thậm chí một mô hình giám khảo cũng không đủ để phát hiện vi phạm. Giá trị của việc tách quyết định khỏi mô hình nằm ở nhóm tiêu chí thứ hai.
-
-Kết quả về truy xuất cho thấy các ràng buộc chương trình học có thể và nên được biểu diễn trong chính cơ chế xếp hạng thay vì chỉ trong lời nhắc. Cùng một đồ thị tri thức vừa ngăn hệ thống nói trước nội dung chưa học, vừa giúp tìm lại nội dung đã học. Việc tín hiệu ngữ nghĩa chỉ phát huy tác dụng khi đi cùng cấu trúc đồ thị cũng là một quan sát có ý nghĩa cho các hệ truy xuất trong giáo dục, nơi văn bản thường ngắn và dùng chung nhiều thuật ngữ.
-
-Giao thức đóng băng tập kiểm tra tỏ ra có giá trị thực tế ngay trong nghiên cứu này. Các con số đẹp nhất, chẳng hạn Hit@3 bằng 1,00 hay độ chính xác chấm tuyệt đối trên tập thứ nhất, đều đến từ những tập đã bị xem trong quá trình sửa lỗi, và vì vậy không được dùng để báo cáo. Những con số được báo cáo thấp hơn nhưng đáng tin cậy hơn.
-
-Nghiên cứu có một số giới hạn cần được nêu rõ. Quan trọng nhất, hệ thống chưa được thử nghiệm với học sinh thật, nên mọi kết luận về hiệu quả học tập vẫn còn bỏ ngỏ và chiều thứ tám của khung đánh giá chưa được đo. Các tập kiểm tra có kích thước nhỏ, từ 14 đến 36 mẫu, và do nhóm phát triển soạn; đặc biệt, ngưỡng 2\% cho bịa đặt chỉ thực sự kiểm chứng được với khoảng một trăm lượt. Giám khảo mô hình ngôn ngữ chưa được hiệu chỉnh với nhãn của giáo viên, và chính bài báo đã ghi nhận một lần giám khảo bỏ sót lỗi. Hệ đối chứng dùng chatbot thương mại chưa hoàn thành do giới hạn hạn mức, nên phần so sánh với thị trường hiện dựa trên hệ đối chứng cùng mô hình và trên đặc điểm công bố của các sản phẩm. Cuối cùng, một phần mức tăng của thành phần truy xuất đến từ việc đo lại sau khi sửa lỗi của giám khảo chứ không hoàn toàn từ thay đổi của hệ thống.
-
-%=====================================================================
-\section{Kết luận}
-%=====================================================================
-
-Bài báo đã trình bày CAVAT, một gia sư Toán lớp~5 tiếng Việt trong đó quyết định sư phạm, phán quyết đúng sai và trạng thái hiểu bài được tách khỏi mô hình ngôn ngữ, cùng một phương pháp đánh giá tám chiều có giao thức đóng băng tập kiểm tra. Thành phần truy xuất có ràng buộc chương trình học đạt trung bình 85\% so với các mục tiêu thiết kế, và cơ chế định tuyến theo đồ thị tri thức nâng độ chính xác truy xuất trên tập giữ riêng từ 0,45 lên 0,90 mà không làm suy giảm các hành vi an toàn. So với cùng mô hình ngôn ngữ chỉ dùng lời nhắc Socratic, CAVAT không vượt trội về giọng văn nhưng loại bỏ theo thiết kế các lỗi khen sai và lộ đáp án, một loại lỗi mà ngay cả giám khảo mô hình ngôn ngữ cũng có thể bỏ sót. Cách đánh giá mức hiểu bài bám sát khung ban đầu ở mức 74\%, với phần còn thiếu tập trung ở chiều thời gian. Hướng nghiên cứu tiếp theo là một thử nghiệm có nhóm đối chứng với học sinh thật kèm các bài kiểm tra trì hoãn, việc hiệu chỉnh giám khảo và bộ chấm lập luận bằng nhãn của giáo viên, và việc hoàn thành so sánh với chatbot thương mại.
-
-\paragraph{Tính tái lập.} Mã nguồn, dữ liệu đánh giá và các báo cáo thực nghiệm được lưu trong kho mã của dự án. Thứ tự đóng băng tập kiểm tra trước khi thay đổi mã có thể được kiểm tra qua các nhãn \texttt{eval-freeze-rag-v2}, \texttt{eval-freeze-grading-v2} và \texttt{eval-fix-di57-di58} trong lịch sử phiên bản.
-
-%=====================================================================
-\begin{thebibliography}{99}\small
-\bibitem{vanlehn2011} K.~VanLehn. The relative effectiveness of human tutoring, intelligent tutoring systems, and other tutoring systems. \emph{Educational Psychologist}, 46(4):197--221, 2011.
-\bibitem{kasneci2023} E.~Kasneci và cộng sự. ChatGPT for good? On opportunities and challenges of large language models for education. \emph{Learning and Individual Differences}, 103:102274, 2023.
-\bibitem{corbett1995} A.~T.~Corbett, J.~R.~Anderson. Knowledge tracing: Modeling the acquisition of procedural knowledge. \emph{User Modeling and User-Adapted Interaction}, 4(4):253--278, 1995.
-\bibitem{piech2015} C.~Piech và cộng sự. Deep knowledge tracing. \emph{Advances in Neural Information Processing Systems}, 2015.
-\bibitem{li2026} L.~Li, Z.~Wang, J.~M.~Jose, X.~Ge. LLM supporting knowledge tracing leveraging global subject and student specific knowledge graphs. \emph{Information Fusion}, 126, 2026. doi:10.1016/j.inffus.2025.103577.
-\bibitem{lewis2020} P.~Lewis và cộng sự. Retrieval-augmented generation for knowledge-intensive NLP tasks. \emph{Advances in Neural Information Processing Systems}, 2020.
-\bibitem{robertson2009} S.~Robertson, H.~Zaragoza. The probabilistic relevance framework: BM25 and beyond. \emph{Foundations and Trends in Information Retrieval}, 3(4):333--389, 2009.
-\bibitem{cormack2009} G.~V.~Cormack, C.~L.~A.~Clarke, S.~Büttcher. Reciprocal rank fusion outperforms Condorcet and individual rank learning methods. \emph{Proceedings of SIGIR}, 2009.
-\bibitem{zheng2023} L.~Zheng và cộng sự. Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. \emph{Advances in Neural Information Processing Systems, Datasets and Benchmarks Track}, 2023.
-\bibitem{studymode} OpenAI. Study mode trong ChatGPT, ra mắt tháng 7/2025. Tổng hợp tại \url{https://www.maginative.com/article/openai-launches-study-mode-for-chatgpt/}.
-\bibitem{guidedlearning} Google. Guided Learning trong ứng dụng Gemini, ra mắt tháng 8/2025. \url{https://9to5google.com/2025/08/06/gemini-guided-learning/}.
-\bibitem{khanmigo} Khan Academy. Khanmigo. Nghiên cứu tình huống tại \url{https://cut-the-saas.com/ai/how-khan-academy-leveraged-ai-to-change-education}.
-\end{thebibliography}
+\appendix
+\input{sections/appendix}
 
 \end{document}

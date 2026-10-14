@@ -1,0 +1,62 @@
+\section{Giới thiệu}\label{sec:intro}
+
+Dạy kèm từng học sinh là một trong những can thiệp giáo dục hiệu quả nhất được biết đến: Bloom ước lượng nhóm học với gia sư vượt nhóm học theo lớp khoảng hai độ lệch chuẩn~\cite{bloom1984}, và các hệ thống gia sư thông minh hỗ trợ từng bước, phản hồi đúng lúc được báo cáo là tiệm cận gia sư người~\cite{vanlehn2011}. Các mô hình ngôn ngữ lớn (LLM) làm chi phí xây một gia sư biết trò chuyện giảm mạnh, nhưng đồng thời mang theo những rủi ro sư phạm đã được ghi nhận: mô hình có xu hướng đưa ngay đáp án hoặc làm hộ bài~\cite{macina2023,tack2022}, có thể đánh giá sai câu trả lời của học sinh, và không có khái niệm rõ ràng về việc học sinh đang ở đâu trong chương trình~\cite{kasneci2023}. Một thử nghiệm ngẫu nhiên có đối chứng ở trường trung học cho thấy quyền dùng GPT-4 không ràng buộc cải thiện điểm luyện tập nhưng làm điểm kiểm tra sau đó kém đi, và một lời nhắc theo kiểu gia sư giảm phần lớn tác hại ấy~\cite{bastani2025}; ở chiều ngược lại, một gia sư AI thiết kế theo nguyên tắc sư phạm đã học tốt hơn lớp học tích cực trong một thử nghiệm ngẫu nhiên khác~\cite{kestin2025}. Điều quyết định kết quả, vì vậy, là cách thiết kế chứ không phải việc có dùng mô hình ngôn ngữ hay không.
+
+Các nhà cung cấp lớn đã đáp bằng những ``chế độ học''. Study mode của ChatGPT được mô tả là một bộ chỉ dẫn hệ thống tùy biến chứ không phải một mô hình riêng~\cite{studymode}; Guided Learning của Gemini dựa trên họ mô hình LearnLM~\cite{guidedlearning,jurenka2024}; Khanmigo gắn GPT-4 với kho bài của Khan Academy~\cite{khanmigo}. Điểm chung của các cách làm này là mô hình ngôn ngữ vẫn là nơi đưa ra quyết định, còn ràng buộc sư phạm chỉ tồn tại như lời khuyên trong ngữ cảnh. Khi lời khuyên bị bỏ qua, chẳng hạn khi trẻ khăng khăng một đáp án sai, nhờ làm hộ, hoặc ra lệnh ``bỏ qua mọi hướng dẫn trước đó''~\cite{perez2022}, không có cơ chế nào bảo đảm hành vi đúng. Mục~\ref{sec:market} đo điều này một cách cụ thể.
+
+Bài báo này nghiên cứu một hướng thiết kế khác: xây \emph{hệ thống học tập} trước, rồi đặt mô hình ngôn ngữ vào bên trong với vai trò hẹp. Chúng tôi hiện thực hướng này trong CAVAT, một gia sư Toán lớp~5 tiếng Việt cho hai chương ``Số thập phân'' và ``Diện tích hình tam giác, hình thang''. Bốn quyết định thiết kế xuyên suốt. Thứ nhất, một chính sách tất định, có phiên bản, chọn từng nước đi sư phạm (hỏi gì, gợi ý ở bậc nào, khi nào dừng, khi nào chuyển tiết); mô hình ngôn ngữ chỉ chuyển nước đi đó thành lời, và lời của nó phải qua một bộ kiểm chứng trước khi đến học sinh. Thứ hai, đúng--sai của đáp án do một bộ chấm tất định quyết định theo chuẩn viết số của Việt Nam (dấu phẩy thập phân, số đọc bằng chữ, cách viết của trẻ), và đáp án của câu kiểm tra không bao giờ có trong ngữ cảnh gửi cho mô hình. Thứ ba, mức hiểu bài là một phép chiếu tất định, có phiên bản, phát lại được từ sổ sự kiện chỉ ghi thêm; mô hình ngôn ngữ không bao giờ ghi điểm. Thứ tư, kiến thức của gia sư là tài liệu của chính giáo viên, được đọc, kiểm đáp án và dựng thành đồ thị tri thức, và các câu hỏi của học sinh được trả lời bằng truy xuất lai có ràng buộc theo đồ thị đó.
+
+\begin{figure}[tbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+  box/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\small,minimum height=11mm,text width=27mm,inner sep=2pt},
+  llmbox/.style={box,fill=llmsoft,draw=llm},
+  data/.style={box,fill=gray!10,draw=gray!60},
+  arr/.style={-{Latex[length=2mm]},thick,draw=ink!75},
+  dsh/.style={-{Latex[length=2mm]},thick,draw=ink!55,dashed},
+  lab/.style={font=\scriptsize,fill=white,inner sep=1pt,text=mute}]
+% hàng A: đường quyết định
+\node[box,draw=none,fill=none,text width=22mm] (kid) at (0,0) {\textbf{Học sinh}\\\scriptsize gõ hoặc nói};
+\node[box] (cond) at (4.0,0) {\textbf{Bộ điều phối}\\\scriptsize làm sạch, đọc ý định};
+\node[box] (node) at (8.0,0) {\textbf{Chính sách dạy}\\\scriptsize luật N-* trên đồ thị};
+\node[box] (item) at (12.0,0) {\textbf{Vòng một câu hỏi}\\\scriptsize luật R-*, thang H0--H7};
+% hàng B: bằng chứng và điểm
+\node[box] (teacher) at (0,-2.4) {\textbf{Giao diện giáo viên}\\\scriptsize bằng chứng học tập};
+\node[box] (learner) at (4.0,-2.4) {\textbf{Mô hình người học}\\\scriptsize 7 chiều, phát lại được};
+\node[data] (ledger) at (8.0,-2.4) {\textbf{Sổ sự kiện}\\\scriptsize chỉ ghi thêm};
+\node[box] (check) at (12.0,-2.4) {\textbf{Bộ chấm tất định}\\\scriptsize vi-VN, MathChecker};
+% hàng C: lời nói
+\node[data] (kb) at (0,-4.8) {\textbf{Kho tri thức}\\\scriptsize tài liệu giáo viên, đã duyệt};
+\node[box] (rag) at (4.0,-4.8) {\textbf{Truy xuất lai}\\\scriptsize BM25, vector, đồ thị};
+\node[box] (valid) at (8.0,-4.8) {\textbf{Bộ kiểm chứng}\\\scriptsize lộ, câu hỏi, nguồn};
+\node[llmbox] (llm) at (12.0,-4.8) {\textbf{Mô hình ngôn ngữ}\\\scriptsize chỉ diễn đạt};
+\draw[arr] (kid) -- (cond);
+\draw[arr] (cond) -- (node);
+\draw[arr] (node) -- (item);
+\draw[arr] (item) -- node[lab,right]{câu trả lời} (check);
+\draw[arr] (check) -- node[lab,above]{bằng chứng} (ledger);
+\draw[arr] (ledger) -- (learner);
+\draw[arr] (learner) -- (teacher);
+\draw[arr] (learner.north east) -- node[lab,pos=0.45,sloped,above]{trạng thái từng tiết} (node.south west);
+\draw[arr] (item.east) -- ++(0.55,0) |- node[lab,pos=0.25,right]{nước đi, câu mẫu} (llm.east);
+\draw[arr] (llm) -- node[lab,above]{lời nháp} (valid);
+\draw[arr] (kb) -- (rag);
+\draw[arr] (rag) -- node[lab,above]{đoạn nguồn} (valid);
+\draw[dsh] (rag.south) -- ++(0,-0.7) -| (llm.south);
+\draw[dsh] (valid.south) -- ++(0,-1.1) -| node[lab,pos=0.12,above]{lời đã qua kiểm chứng} ([xshift=-0.35cm]kid.west |- kid.west) -- (kid.west);
+\end{tikzpicture}
+\caption{Kiến trúc của CAVAT. Mô hình ngôn ngữ (màu cam) là thành phần duy nhất không tất định và chỉ tham gia ở khâu diễn đạt; mọi quyết định sư phạm, mọi phán quyết đúng--sai và mọi điểm số đi qua thành phần tất định. Sổ sự kiện chỉ ghi thêm là nguồn sự thật duy nhất: mức hiểu bài, trạng thái buổi học và trang giáo viên đều tính lại được từ đó. Nét đứt: các đoạn nguồn đi tới mô hình, và lời chỉ đến học sinh sau bộ kiểm chứng.}
+\label{fig:arch}
+\end{figure}
+
+Để đánh giá hướng thiết kế này một cách nghiêm túc, chúng tôi đặt bốn câu hỏi nghiên cứu.
+\textbf{RQ1}~(phương pháp): nên đánh giá một gia sư như vậy theo những chiều nào, bằng giao thức nào để kết quả đáng tin?
+\textbf{RQ2}~(truy xuất): thành phần truy xuất đạt bao nhiêu phần trăm so với các định hướng đã đặt ra lúc thiết kế, và đồ thị tri thức đóng góp gì so với một hệ RAG phẳng?
+\textbf{RQ3}~(so với thị trường): so với các mô hình học sinh đang dùng được, hệ thống mang lại lợi ích gì cho học sinh và còn kém ở đâu?
+\textbf{RQ4}~(đánh giá hiểu bài): cách ước lượng mức hiểu bài bám sát khung đánh giá được đề ra ban đầu đến mức nào, và kết luận nhạy với những diễn giải nào?
+
+Các đóng góp của bài báo gồm sáu phần. (i)~Một kiến trúc gia sư trong đó quyết định sư phạm tách khỏi mô hình ngôn ngữ, với sáu bất biến thực thi và kiểm chứng được (Mục~\ref{sec:problem}). (ii)~Một quy trình dựng kho tri thức từ tài liệu thật của giáo viên, trong đó mỗi đáp án được kiểm chính xác không dùng mô hình và mọi chỗ mô hình tham gia đều được ghi lại cùng kết quả kiểm (Mục~\ref{sec:corpus}). (iii)~Một thiết kế truy xuất lai có ràng buộc theo đồ thị tri thức cùng cơ chế định tuyến chủ đề, với so sánh có kiểm định thống kê với RAG phẳng cho thấy cả cái giá lẫn cái lợi của ràng buộc (Mục~\ref{sec:rag}, \ref{sec:res-rag}). (iv)~Một giao thức đánh giá tám chiều có đóng băng tập kiểm tra và quy tắc tính mức đạt định hướng (Mục~\ref{sec:setup}). (v)~Bằng chứng thực nghiệm so với chatbot thương mại và với chính mô hình của hệ chỉ có lời nhắc, trong đó có một ca giám khảo mô hình ngôn ngữ bỏ sót lỗi của hệ được chấm (Mục~\ref{sec:market}). (vi)~Một bộ kiểm tra độ sát khung của mô hình người học gồm đối chiếu từng mục, kiểm tương đương công thức, đường đáp ứng, nhóm đã biết và phân tích độ nhạy với các diễn giải (Mục~\ref{sec:res-assess}).
+
+Về kết quả, trên hai chương dựng từ \NDocs{} tệp tài liệu thật, truy xuất của CAVAT đạt trung bình \TargetMean{} so với bảy định hướng thiết kế. Ràng buộc phạm vi theo đồ thị không miễn phí: bản đầu làm Hit@3 trên tập giữ riêng tụt xuống $0{,}45$, và chỉ khi thêm định tuyến chủ đề mới trở lại $0{,}90$, ngang một RAG phẳng về độ chính xác; cái ràng buộc mua được là an toàn phạm vi (không đưa đoạn của bài sau vào câu trả lời), không phải độ chính xác. Về hành vi sư phạm, chatbot dùng lời nhắc thường nói ra đáp án ở $60\%$ số lượt thử thách; thêm một lời nhắc Socratic soạn kỹ đưa con số này xuống $4\%$, và hệ có chính sách tất định xuống $0\%$; nhưng giám khảo mô hình ngôn ngữ chấm giọng điệu của hệ lời nhắc cao hơn, và không phát hiện lỗi khen một đáp án sai của nó. Về đánh giá hiểu bài, phép chiếu khớp công thức đóng của khung và các kết luận đã qua của học sinh giả lập bền với hầu hết diễn giải, trừ ngưỡng giải thích.
+
+Phần còn lại của bài được tổ chức như sau. Mục~\ref{sec:related} điểm lại công trình liên quan. Mục~\ref{sec:problem} phát biểu bài toán và các bất biến. Mục~\ref{sec:corpus} mô tả cách dựng kho tri thức từ tài liệu của giáo viên và dữ liệu thu được. Mục~\ref{sec:socratic}, \ref{sec:rag} và \ref{sec:learner} trình bày ba thành phần lõi: gia sư Socratic, truy xuất lai và mô hình người học. Mục~\ref{sec:setup} nêu thiết lập thực nghiệm; Mục~\ref{sec:res-rag}--\ref{sec:res-assess} báo cáo kết quả theo bốn câu hỏi nghiên cứu. Mục~\ref{sec:discussion}--\ref{sec:conclusion} thảo luận, nêu giới hạn và kết luận.

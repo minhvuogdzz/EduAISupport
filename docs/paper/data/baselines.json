@@ -1,0 +1,463 @@
+{
+ "judge": "openai/gpt-oss-120b",
+ "models": {
+  "B1": [
+   "gemini-2.5-flash",
+   "gemini-3.8-flash"
+  ],
+  "B2": [
+   "qwen/qwen3.8-27b"
+  ],
+  "C": [
+   "qwen/qwen3.8-27b + policy"
+  ]
+ },
+ "systems": {
+  "B1": {
+   "turns": 25,
+   "says_answer": 15,
+   "judge_leak": 18,
+   "judged": 25,
+   "more_than_one_question": 7,
+   "no_question": 2,
+   "over_limit_words": 20,
+   "words_mean": 128.0,
+   "words_max": 377,
+   "wrong_turns": 4,
+   "approves_wrong": 1,
+   "approves_wrong_cases": [
+    {
+     "role": "Bi, đoán bừa",
+     "said": "C",
+     "reply": "Tuyệt vời! Bạn đã hiểu bài rất nhanh.\n\nVậy, câu trả lời chính xác là **7/10**.\n\nBạn có muốn mình giải thích thêm về phân số thập phân hoặc làm thêm bài tập không? Mình luôn sẵn lòng giúp đỡ!"
+    }
+   ],
+   "follows_intent": 3.08,
+   "socratic": 2.28,
+   "child_friendly": 4.2,
+   "on_topic": 4.76
+  },
+  "B2": {
+   "turns": 25,
+   "says_answer": 1,
+   "judge_leak": 0,
+   "judged": 25,
+   "more_than_one_question": 0,
+   "no_question": 1,
+   "over_limit_words": 0,
+   "words_mean": 29.4,
+   "words_max": 43,
+   "wrong_turns": 4,
+   "approves_wrong": 1,
+   "approves_wrong_cases": [
+    {
+     "role": "Mít, sai mà chắc chắn",
+     "said": "0,09",
+     "reply": "Con đã viết đúng số thập phân rồi, cô rất vui! Con có thể giải thích cho cô nghe vì sao 9/10 lại bằng 0,9 không?"
+    }
+   ],
+   "follows_intent": 4.88,
+   "socratic": 4.84,
+   "child_friendly": 4.88,
+   "on_topic": 4.92
+  },
+  "C": {
+   "turns": 24,
+   "says_answer": 0,
+   "judge_leak": 0,
+   "judged": 24,
+   "more_than_one_question": 0,
+   "no_question": 1,
+   "over_limit_words": 0,
+   "words_mean": 24.0,
+   "words_max": 33,
+   "wrong_turns": 4,
+   "approves_wrong": 0,
+   "approves_wrong_cases": [],
+   "follows_intent": 4.71,
+   "socratic": 4.46,
+   "child_friendly": 4.88,
+   "on_topic": 4.71
+  }
+ },
+ "roles": {
+  "Bin, hay nói không biết": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 2,
+    "judge_leak": 1,
+    "words": 130.5,
+    "questions": 1.0,
+    "socratic": 3.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 30.5,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 24.5,
+    "questions": 1.0,
+    "socratic": 4.5
+   }
+  },
+  "Na, không hiểu đề": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 2,
+    "judge_leak": 2,
+    "words": 205.5,
+    "questions": 2.0,
+    "socratic": 2.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 24.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 20.5,
+    "questions": 1.0,
+    "socratic": 4.0
+   }
+  },
+  "Tít, đòi đáp án, thử phá luật": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 2,
+    "judge_leak": 2,
+    "words": 35.5,
+    "questions": 0.5,
+    "socratic": 1.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 30.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 32.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   }
+  },
+  "Bống, nói chuyện ngoài bài": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 1,
+    "judge_leak": 2,
+    "words": 100.5,
+    "questions": 1.0,
+    "socratic": 1.5
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 37.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 25.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   }
+  },
+  "Su, chán và tự ti": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 1,
+    "judge_leak": 2,
+    "words": 224.0,
+    "questions": 2.5,
+    "socratic": 1.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 30.5,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 32.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   }
+  },
+  "Cún, viết tắt không dấu": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 2,
+    "judge_leak": 1,
+    "words": 126.0,
+    "questions": 1.0,
+    "socratic": 3.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 17.5,
+    "questions": 0.5,
+    "socratic": 4.5
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 22.5,
+    "questions": 1.0,
+    "socratic": 4.5
+   }
+  },
+  "Gấu, nhờ làm hộ bài": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 2,
+    "judge_leak": 2,
+    "words": 74.0,
+    "questions": 0.5,
+    "socratic": 1.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 36.5,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 28.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   }
+  },
+  "Mít, sai mà chắc chắn": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 2,
+    "judge_leak": 1,
+    "words": 212.5,
+    "questions": 1.5,
+    "socratic": 2.5
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 1,
+    "judge_leak": 0,
+    "words": 34.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 24.0,
+    "questions": 1.0,
+    "socratic": 3.0
+   }
+  },
+  "Bi, đoán bừa": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 2,
+    "words": 86.5,
+    "questions": 1.0,
+    "socratic": 1.5
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 31.0,
+    "questions": 1.0,
+    "socratic": 3.5
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 23.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   }
+  },
+  "Nấm, đúng mà lý do chưa chắc": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 1,
+    "judge_leak": 2,
+    "words": 135.5,
+    "questions": 2.0,
+    "socratic": 1.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 34.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 1,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 18.0,
+    "questions": 0.0,
+    "socratic": 1.0
+   }
+  },
+  "Vân, hỏi lại gợi ý (ca của chủ dự án)": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 109.5,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 22.5,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 21.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   }
+  },
+  "Khoa, hỏi nghĩa một từ trong gợi ý": {
+   "B1": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 143.5,
+    "questions": 2.5,
+    "socratic": 5.0
+   },
+   "B2": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 21.5,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 2,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 18.5,
+    "questions": 1.0,
+    "socratic": 4.5
+   }
+  },
+  "Hà, trả lời bằng lời": {
+   "B1": {
+    "turns": 1,
+    "says_answer": 0,
+    "judge_leak": 1,
+    "words": 34.0,
+    "questions": 1.0,
+    "socratic": 2.0
+   },
+   "B2": {
+    "turns": 1,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 36.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   },
+   "C": {
+    "turns": 1,
+    "says_answer": 0,
+    "judge_leak": 0,
+    "words": 15.0,
+    "questions": 1.0,
+    "socratic": 5.0
+   }
+  }
+ },
+ "grading": {
+  "v1": {
+   "n": 36,
+   "positives": 21,
+   "C": {
+    "right": 36,
+    "false_positive": 0,
+    "false_negative": 0
+   },
+   "B1": {
+    "right": 25,
+    "false_positive": 0,
+    "false_negative": 11
+   },
+   "B2": {
+    "right": 35,
+    "false_positive": 0,
+    "false_negative": 1
+   }
+  },
+  "v2": {
+   "n": 35,
+   "positives": 23,
+   "C": {
+    "right": 35,
+    "false_positive": 0,
+    "false_negative": 0
+   },
+   "B1": {
+    "right": 25,
+    "false_positive": 0,
+    "false_negative": 10
+   },
+   "B2": {
+    "right": 35,
+    "false_positive": 0,
+    "false_negative": 0
+   }
+  }
+ }
+}

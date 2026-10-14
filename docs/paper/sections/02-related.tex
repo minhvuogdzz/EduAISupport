@@ -1,0 +1,32 @@
+\section{Công trình liên quan}\label{sec:related}
+
+\paragraph{Gia sư thông minh và gia sư dùng mô hình ngôn ngữ.}
+Gia sư thông minh có truyền thống dài trong việc điều khiển \emph{mức hỗ trợ}: giàn giáo của Wood, Bruner và Ross~\cite{wood1976} mô tả việc giảm dần trợ giúp khi người học làm chủ, các nghiên cứu về ``nghịch lý hỗ trợ'' bàn xem khi nào nên giúp và khi nào nên để học sinh tự gỡ~\cite{koedinger2007,aleven2016}, và hiệu ứng đảo ngược chuyên môn cho thấy trợ giúp có thể phản tác dụng với người đã vững~\cite{kalyuga2003}. Việc học từ gia sư người được Chi và cộng sự phân tích như một quá trình trong đó học sinh tự xây dựng chứ không phải tiếp nhận~\cite{chi2001}. AutoTutor~\cite{graesser2005} cho thấy hội thoại có cấu trúc, với các nước đi gợi ý và thúc đẩy, có thể tự động hóa. Làn sóng LLM đem lại hai hướng. Hướng thứ nhất huấn luyện hoặc nhắc mô hình theo nguyên tắc sư phạm, như LearnLM-Tutor~\cite{jurenka2024}, SocraticLM~\cite{liu2024socratic} hoặc các bộ dữ liệu hội thoại dạy toán như MathDial~\cite{macina2023}; các phép đo cho thấy mô hình nền vẫn dễ đưa đáp án hoặc nhận lỗi sai~\cite{macina2023,tack2022}. Hướng thứ hai đặt LLM vào một khung chiến lược sư phạm có sẵn với các ``hàng rào'', như hệ AutoTutor kết hợp LLM của Pal~Chowdhury và cộng sự~\cite{chowdhury2024}. CAVAT thuộc hướng thứ hai, và khác ở chỗ mức hỗ trợ là một thang tám bậc có trọng số độc lập được dùng chung giữa gia sư và bộ chấm, mọi nước đi mang mã luật, và mọi lời của mô hình đi qua một bộ kiểm chứng tất định.
+
+\paragraph{Mô hình người học và truy vết tri thức.}
+Truy vết tri thức Bayes~\cite{corbett1995}, mô hình hồi quy yếu tố hiệu năng~\cite{pavlik2009} và các biến thể học sâu như DKT~\cite{piech2015} ước lượng xác suất làm đúng câu tiếp theo từ lịch sử làm bài; tổng quan của Pelánek~\cite{pelanek2017} bàn về sự đánh đổi giữa độ chính xác dự đoán và khả năng diễn giải. Mô hình 2T-KT~\cite{li2026} kết hợp LLM với hai đồ thị tri thức, một đồ thị chung của môn học và một đồ thị riêng của từng học sinh, để mô phỏng cách giáo viên suy luận khi dữ liệu còn ít; chúng tôi kế thừa ý tưởng đồ thị có kiểm chứng, ngưỡng tin cậy cho nhãn do mô hình đề xuất và cách trình bày thí nghiệm loại bỏ từng thành phần. Khác với các mô hình dự đoán, mô hình người học của CAVAT ưu tiên khả năng \emph{giải thích và phát lại}: điểm là tổng có trọng số của bằng chứng cụ thể, mỗi bằng chứng truy ngược được về một sự kiện, và trạng thái ước lượng được dùng trực tiếp để ra quyết định dạy.
+
+\paragraph{Truy xuất tăng cường, đồ thị tri thức và độ bám nguồn.}
+Truy xuất tăng cường sinh văn bản~\cite{lewis2020} gắn lời sinh với các đoạn truy xuất được; truy xuất lai thường kết hợp chỉ mục từ khóa BM25~\cite{robertson2009} với truy xuất vector~\cite{karpukhin2020} và hợp nhất bằng Reciprocal Rank Fusion~\cite{cormack2009}. Tổng quan~\cite{gao2023survey} và bộ kiểm chuẩn BEIR~\cite{thakur2021} cho thấy không có hệ truy xuất nào thắng ở mọi miền, và từ khóa thường rất mạnh trên văn bản chuyên ngành. Các hướng dùng đồ thị~\cite{edge2024} khai thác cấu trúc để tổng hợp hoặc suy luận nhiều bước. Về độ bám nguồn, hiện tượng bịa~\cite{ji2023}, các thước đo quy gán~\cite{rashkin2023}, bộ chỉ số RAGAs~\cite{es2024} và việc sinh kèm trích dẫn~\cite{gao2023alce} đặt chuẩn cho việc kiểm chứng. Trong giáo dục, truy xuất còn phải tôn trọng \emph{phạm vi chương trình}: không trả lời trước nội dung của bài chưa học, và không trả lời bằng kiến thức ngoài chương khi không có căn cứ. Các hệ truy xuất tổng quát ít khi xét ràng buộc này; Mục~\ref{sec:rag} và \ref{sec:res-rag} đo nó trực tiếp, kể cả cái giá của nó.
+
+\paragraph{Đánh giá hệ dùng mô hình ngôn ngữ.}
+Dùng một LLM làm giám khảo~\cite{zheng2023} là cách phổ biến để chấm đầu ra mở; độ tương quan với người chấm khá cao nhưng kèm các thiên lệch đã biết, vì vậy khuyến nghị là dùng giám khảo khác họ mô hình với hệ được chấm và ưu tiên chỉ số tất định khi có thể. Về thống kê, chúng tôi theo các khuyến nghị cho xử lý ngôn ngữ~\cite{dror2018}: khoảng Wilson~\cite{wilson1927} cho tỉ lệ, bootstrap~\cite{efron1993} cho chênh lệch theo cặp và kiểm định McNemar~\cite{mcnemar1947} cho các cặp bất đồng. Về an toàn, các tấn công chèn lời nhắc~\cite{perez2022,greshake2023} là bối cảnh của ca ``bỏ qua mọi hướng dẫn'' mà chúng tôi dùng làm một trong các vai thử thách.
+
+\begin{table}[tbp]
+\centering
+\caption{CAVAT đặt cạnh các hệ gia sư dùng mô hình ngôn ngữ theo mô tả công khai (2025--2026). Mô tả của sản phẩm thương mại lấy từ các bài tổng hợp và thông báo công khai, chưa được kiểm chứng độc lập; dòng cuối là hệ của bài báo này.}
+\label{tab:positioning}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}YYYY@{}}
+\toprule
+ & Ràng buộc không lộ đáp án & Theo dõi hiểu bài & Dùng tài liệu của giáo viên & Giáo viên \\
+\midrule
+ChatGPT, Study mode~\cite{studymode} & lời nhắc hệ thống tùy biến & trí nhớ hội thoại & không & không có lớp, báo cáo \\
+Gemini, Guided Learning~\cite{guidedlearning} & lời nhắc trên họ LearnLM & không công bố mô hình kỹ năng & tải tài liệu lên được & không có lớp, báo cáo \\
+Khanmigo~\cite{khanmigo} & thiết kế không đưa đáp án; GPT-4 & theo tiến độ trên nền tảng & kho bài của nền tảng & công cụ và tổng hợp lớp \\
+LearnLM-Tutor~\cite{jurenka2024} & tinh chỉnh sư phạm; đánh giá theo nguyên tắc & --- (nghiên cứu) & --- & --- \\
+AutoTutor + LLM~\cite{chowdhury2024} & chiến lược sư phạm có sẵn, hàng rào & --- (nghiên cứu) & --- & --- \\
+\textbf{CAVAT} & luật tất định, bộ kiểm chứng, đáp án kiểm tra không vào ngữ cảnh & 7 chiều, tái lập từ sổ sự kiện & đọc, kiểm đáp án, dựng đồ thị & duyệt phương án, bản đồ nhiệt, hội thoại \\
+\bottomrule
+\end{tabularx}
+\end{table}

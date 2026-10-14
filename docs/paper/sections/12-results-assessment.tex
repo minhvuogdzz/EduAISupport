@@ -1,0 +1,131 @@
+\section{Kết quả IV: độ sát của đánh giá hiểu bài so với khung gốc}\label{sec:res-assess}
+
+Mục này trả lời RQ4. ``Sát khung'' có ít nhất bốn nghĩa, và chúng tôi đo cả bốn thay vì chọn một: (i)~\emph{về nội dung}, hệ thống làm được bao nhiêu mục mà khung đòi (Mục~\ref{sec:fidelity}); (ii)~\emph{về tính toán}, mã có thực sự tính đúng công thức của khung hay không (Mục~\ref{sec:conformance}); (iii)~\emph{về hành vi}, điểm và mức hiểu có đáp ứng đúng chiều với những thứ khung nói nên có ảnh hưởng, như gợi ý, độ khó, loại lỗi, giải thích, vận dụng, và các nhóm học sinh đã biết trước ra sao (Mục~\ref{sec:curves}--\ref{sec:known-groups}); và (iv)~\emph{về độ bền}, kết luận về một học sinh có đổi khi một diễn giải khai báo đổi sang giá trị lân cận không (Mục~\ref{sec:sensitivity}). Mục~\ref{sec:visual} đưa các hiển thị mà giáo viên thấy, để người đọc tự đánh giá.
+
+\subsection{Đối chiếu từng mục của khung}\label{sec:fidelity}
+Bảng~\ref{tab:fidelity} đối chiếu $25$ mục của khung đánh giá Toán của dự án với mã. \textbf{Có $16$ mục được làm đầy đủ, $5$ mục một phần và $4$ mục chưa làm}; nếu mục một phần tính một nửa, độ sát là $(16+0{,}5\times5)/25=74\%$, và chỉ tính mục đầy đủ là $64\%$. Cần đọc con số này cùng với \emph{chỗ hổng nằm ở đâu}. Hai mục chưa làm (\#14, \#25) và hai mục một phần (\#1, \#11) đều xoay quanh \emph{thời gian}, tức ghi nhớ sau nhiều ngày (chiều $S$ và các trạng thái ``có nguy cơ quên'', ``đã quên'', ``thành thạo ổn định'' dựa vào nó); một buổi demo không đo được các thứ này, nên đó là giới hạn của phạm vi chứ không phải một sai lệch thiết kế. Hai mục chưa làm còn lại là điểm từng câu và việc giáo viên sửa điểm, đều là giao diện; ba mục một phần còn lại (\#19--\#21) nói về độ giàu của bằng chứng và của chẩn đoán. Mọi chỗ khác khung được khai báo: có \NDIs{} diễn giải (DI-1 đến DI-58) trong tài liệu thiết kế, mỗi diễn giải nói rõ ngưỡng nào do dự án tự đặt và vì sao.
+
+{\footnotesize
+\setlength{\LTpre}{6pt}\setlength{\LTpost}{6pt}
+\begin{longtable}{@{}r>{\raggedright\arraybackslash}p{5.3cm}>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{4.9cm}@{}}
+\caption{Đối chiếu $25$ mục của khung đánh giá Toán với hệ thống. \textcolor{zoneA}{\textbf{Đầy đủ}}: $1$ điểm; \textcolor{llm}{\textbf{Một phần}}: $0{,}5$; \textcolor{zoneE}{\textbf{Chưa}}: $0$.}\label{tab:fidelity}\\
+\toprule
+\# & Mục của khung & Gốc & Trạng thái & Ghi chú \\
+\midrule
+\endfirsthead
+\toprule
+\# & Mục của khung & Gốc & Trạng thái & Ghi chú \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+1 & Bảy chiều $C,R,A,T,I,S,D$ & §20 & \textcolor{llm}{\textbf{Một phần}} & sáu chiều có nguồn bằng chứng; $S$ để trống vì chưa có bài kiểm tra trì hoãn \\
+2 & Công thức $M$ và các trọng số & §20 & \textcolor{zoneA}{\textbf{Đầy đủ}} & $0{,}20/0{,}20/0{,}15/0{,}15/0{,}10/0{,}10/0{,}10$ \\
+3 & Thiếu chiều thì chuẩn hóa lại trọng số & DI-1 & \textcolor{zoneA}{\textbf{Đầy đủ}} & tập $\mathcal{A}_v$ \\
+4 & Điểm từng câu (QS) & §35 & \textcolor{zoneE}{\textbf{Chưa}} & chưa có màn hình điểm từng câu \\
+5 & Độ độc lập theo bậc gợi ý H0--H7 & §11, DI-2 & \textcolor{zoneA}{\textbf{Đầy đủ}} & Bảng~\ref{tab:ladder}; H3, H5 là DI \\
+6 & Phân loại lỗi và mức phạt & §34, DI-3 & \textcolor{zoneA}{\textbf{Đầy đủ}} & điểm $0{,}5/0{,}7/0$ theo loại; đoán nhân $0{,}5$ \\
+7 & Trọng số theo độ khó & §31, DI-4 & \textcolor{zoneA}{\textbf{Đầy đủ}} & $0{,}5+\delta$ khi đúng, $1{,}5-\delta$ khi sai \\
+8 & Trọng số theo mức hỗ trợ & DI-5 & \textcolor{zoneA}{\textbf{Đầy đủ}} & sàn $0{,}3$ \\
+9 & Sáu mức hiểu và các dải & §4--§8 & \textcolor{zoneA}{\textbf{Đầy đủ}} & $20/40/60/75/90$ \\
+10 & Cổng ``hiểu'' (nhiều thành công, nhiều mức, nhiều dạng) & §52 & \textcolor{zoneA}{\textbf{Đầy đủ}} & DI-49, DI-56 bù dạng câu còn thiếu \\
+11 & Cổng ``thành thạo'' ($M$, tin cậy, $A$, $S$, hết lỗi nghiêm trọng) & §53 & \textcolor{llm}{\textbf{Một phần}} & đủ trừ $S$: chỉ có ``thành thạo tạm thời'' \\
+12 & Thành thạo tạm thời & §53 & \textcolor{zoneA}{\textbf{Đầy đủ}} & $M\ge85$, tin cậy $\ge75$, $\mu_A\ge0{,}8$ \\
+13 & Cổng theo chiều & DI-6 & \textcolor{zoneA}{\textbf{Đầy đủ}} & mức 3 cần $R$, mức 4 cần $A$ \\
+14 & Trạng thái cuối: nguy cơ quên, đã quên, ổn định & §54 & \textcolor{zoneE}{\textbf{Chưa}} & cần chiều $S$ \\
+15 & ``Chưa đủ dữ liệu'' & DI-7 & \textcolor{zoneA}{\textbf{Đầy đủ}} & tin cậy $<30$; hiện trên trang giáo viên \\
+16 & Độ tin cậy & §21, §33, DI-11 & \textcolor{zoneA}{\textbf{Đầy đủ}} & $f_n f_{\text{div}} f_{\text{span}} f_{\text{cons}}$ \\
+17 & Vùng màu & §25 & \textcolor{zoneA}{\textbf{Đầy đủ}} & cùng bảng màu ở giao diện \\
+18 & Hành động theo dải $M$ & §50, DI-8 & \textcolor{zoneA}{\textbf{Đầy đủ}} & mức hỗ trợ của chính sách dạy \\
+19 & Các loại bằng chứng & §9--§15 & \textcolor{llm}{\textbf{Một phần}} & số lần thử và thời gian có trong sổ nhưng chưa vào công thức \\
+20 & Chất lượng lập luận & §10, §16 & \textcolor{llm}{\textbf{Một phần}} & thang từ khóa tất định (DI-55); chưa chấm tính nhất quán logic \\
+21 & Chẩn đoán lỗi sai theo danh mục & §15 & \textcolor{llm}{\textbf{Một phần}} & 14 họ luật (DI-54); chưa nhận ra hết \\
+22 & Kiểm tra nhãn do mô hình đề xuất & 26.5 & \textcolor{zoneA}{\textbf{Đầy đủ}} & nhãn độ tin cậy $<0{,}6$ nhân $0{,}3$ \\
+23 & Giáo viên sửa điểm & 26.6 & \textcolor{zoneE}{\textbf{Chưa}} & mới có kiểu sự kiện, chưa có giao diện \\
+24 & Báo cáo cho giáo viên, học sinh, phụ huynh & §23, §43, §44 & \textcolor{zoneA}{\textbf{Đầy đủ}} & ba trang \\
+25 & Kiểm tra trì hoãn T1/T3/T7/T30 & §19 & \textcolor{zoneE}{\textbf{Chưa}} & ngoài phạm vi demo \\
+\end{longtable}
+}
+
+\subsection{Tương đương với công thức đóng}\label{sec:conformance}
+Một hệ có thể đúng nội dung mà sai tính toán. Để kiểm, chúng tôi viết một \emph{bộ so sánh độc lập} cho phép chiếu: từ các công thức của Mục~\ref{sec:learner}, nó tính $M$, độ tin cậy, mức hiểu và các cổng bằng \emph{dạng đóng} (tổng các tham số Beta rồi tỉ lệ), không phải bằng phép gấp từng sự kiện. Cả hai được chạy trên $1\,000$ chuỗi sự kiện ngẫu nhiên: $500$ chuỗi của học sinh bất kỳ (xác suất đúng $0{,}7$, bậc gợi ý phân phối mũ, có đoán và lỗi các loại) và $500$ chuỗi của học sinh khá, hai buổi cách nhau tới sáu ngày, có các lần giải thích, để các cổng phía trên được thử đủ. Bộ so sánh được viết từ công thức chứ không từ mã, nhưng cùng một tác giả; vì thế phép kiểm này bắt lỗi \emph{cài đặt}, không bắt lỗi \emph{diễn giải}. Bảng~\ref{tab:conformance} cho thấy chênh lệch lớn nhất của $M$ và của độ tin cậy là $0{,}05$, tức sai số làm tròn một chữ số thập phân của đầu ra; không chuỗi nào có mức hiểu hay cổng khác công thức; đổi thứ tự sự kiện không đổi $M$ (vì các tổng Beta giao hoán), phát lại luôn cho kết quả giống hệt, và không chuỗi nào vượt một cổng.
+
+\begin{table}[tbp]
+\centering
+\caption{Kiểm tương đương giữa phép chiếu và công thức đóng, và các tính chất của đặc tả, trên $1\,000$ chuỗi sự kiện ngẫu nhiên (chương mẫu, tiết không có tiên quyết nên điểm khởi đầu là $0{,}5$).}
+\label{tab:conformance}
+\input{gen/tab-conformance}
+\end{table}
+
+Hai dòng cuối của Bảng~\ref{tab:conformance} là những \emph{vi phạm đơn điệu} có thật, và chúng nói điều đáng biết về đặc tả chứ không phải về lỗi mã. Có $6$ trong $500$ chuỗi của học sinh khá mà thêm một bậc gợi ý vào một câu đúng làm $M$ \emph{tăng} (tối đa $6{,}5$ điểm), và $2$ trong $843$ phép thay một câu sai bằng câu đúng độc lập làm $M$ giảm (tối đa $2{,}9$ điểm). Cả hai đều do ngưỡng bằng chứng tối thiểu của DI-1: một chiều chỉ được tính vào $M$ khi lượng bằng chứng hiệu dụng đạt $1{,}0$; giảm trọng số của một câu có thể đưa một chiều dưới ngưỡng, và nếu chiều đó đang thấp hơn các chiều khác thì $M$ tăng vì chiều đó rời tổng. Một nhược điểm rõ của việc ``chuẩn hóa lại theo các chiều có mặt'' là $M$ đơn điệu \emph{chỉ trong một tập chiều cố định}. Hệ quả thực tế nhỏ (trang giáo viên hiện kèm độ tin cậy), nhưng nên biết khi diễn giải các bước nhảy ở hiển thị.
+
+\subsection{Đường đáp ứng}\label{sec:curves}
+Hình~\ref{fig:curves} cho thấy phép chiếu đáp ứng thế nào với các biến mà khung nói nên có ảnh hưởng, trên các học sinh dựng sẵn. Theo \emph{độc lập} (a): mỗi bậc gợi ý thêm làm đường $M$ đi thấp hơn; để $M$ đạt $75$, học sinh cần $3$ câu đúng độc lập, $4$ câu ở H1, $6$ ở H2, $8$ ở H3, $15$ ở H4, và \emph{không bao giờ} trong $15$ câu nếu luôn cần từ H5; để đạt $90$ cần $9$ câu độc lập. Các đường H5--H7 có một chỗ lõm ở những câu đầu (từ $40$ xuống $32$ rồi lên $55$ với H6), một hệ quả của quy tắc chuẩn hóa: lúc đầu chỉ chiều $I$ (thấp) đủ bằng chứng nên $M$ chỉ phản ánh nó, sau đó chiều $C$ vào và kéo $M$ lên.
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-curves}
+\caption{Đường đáp ứng của $M$ (chương mẫu, một tiết không tiên quyết). (a)~$n$ câu đúng liên tiếp với bậc gợi ý cao nhất $h$. (b)~Sáu kiểu học sinh dựng sẵn trong $14$ câu. Dải màu là vùng màu của khung.}
+\label{fig:curves}
+\end{figure}
+
+Về \emph{độ khó}, một câu đúng khó hơn ($\delta=0{,}8$) cho $M$ cao hơn một câu dễ ($\delta=0{,}2$) sau cùng số câu ($91{,}3$ so với $87{,}9$ sau $8$ câu), và một câu \emph{sai} ở câu dễ bị trừ nặng hơn ở câu khó (sau $4$ câu đúng, một câu sai cho $73{,}4$ nếu $\delta=0{,}2$ và $77{,}5$ nếu $\delta=0{,}8$), đúng như $0{,}5+\delta$ và $1{,}5-\delta$ của đặc tả. Về \emph{loại lỗi}, từ $M=83{,}3$ sau bốn câu đúng, một lỗi cách viết đưa xuống $82{,}1$, lỗi tính toán $80{,}2$, lỗi quy trình, lập luận hoặc chưa rõ $75{,}4$, và lỗi quan niệm $58{,}6$ (vì kéo theo bằng chứng âm cho chiều $R$, nên chiều lập luận về $0{,}33$). Về \emph{đoán}, sáu câu đúng liên tiếp cho $87{,}5$ nếu thật và $54{,}5$ nếu bị coi là đoán. Câu ``cùng làm'' ($\sigma=0{,}5$) cho $78{,}7$ so với $86{,}4$ của câu làm một mình. Mọi hướng đều như đặc tả.
+
+\subsection{Bậc thang của các cổng}\label{sec:staircase}
+Bảng~\ref{tab:staircase} dựng một học sinh qua từng cổng và cho thấy điểm, mức và điều còn thiếu thay đổi thế nào. Điểm đáng chú ý nằm ở hai dòng đầu: $12$ câu đúng không gợi ý cho $M=92{,}2$, ở vùng xanh đậm của khung, nhưng mức hiểu vẫn chỉ là \emph{quy trình} (mức $2$) và tiết \emph{chưa qua}, vì chưa có bằng chứng giải thích. Khi bằng chứng giải thích đến, $M$ lại \emph{giảm} (xuống $83{,}9$), vì chiều $R$ mới vào có điểm thấp hơn chiều $C$ đang cao; và mức lên $3$. Chỉ khi có câu vận dụng thì tiết qua, và mức $5$ (``thành thạo tạm thời'') cần thêm một buổi sau bốn ngày rồi một buổi sau tám ngày để độ tin cậy lên gần $100$; một lỗi quan niệm nghiêm trọng làm tiết ``chưa qua'' trở lại cho đến khi hai câu đúng đưa nó về \emph{đã giải quyết}. Nghĩa là phép chiếu không cho điểm cao đi tắt: điểm cao một mình không đủ.
+
+\begin{table}[tbp]
+\centering
+\caption{Một học sinh dựng sẵn đi qua các cổng, từng bước thêm bằng chứng (chương mẫu). ``Qua'': luật qua tiết đã thỏa.}
+\label{tab:staircase}
+\input{gen/tab-staircase}
+\end{table}
+
+\subsection{Nhóm đã biết}\label{sec:known-groups}
+Năm học sinh mẫu có hành vi biết trước chạy hết hai chương đã phát hành, trong bộ nhớ, bằng gia sư dùng câu mẫu (Bảng~\ref{tab:known-groups}). Ba học sinh giỏi, sai dạng rồi sửa, và ``con không biết'' rồi tự làm cho gần như cùng kết quả ($M$ trung bình $97{,}3$, $97{,}4$ và $97{,}3$ ở chương Số thập phân, $94{,}8$ ở chương hình học) và qua mọi tiết. Phép chiếu \emph{không phân biệt} chúng, đúng như thiết kế: học sinh sai dạng chỉ cần một nhắc nhẹ ở H1 rồi tự đúng, lời ``con không biết'' chỉ khiến gia sư mời chọn ``gợi ý thêm hay tự thử lại'', và số lần thử hay lời ``không biết'' không phải bằng chứng nếu học sinh không nhận trợ giúp nặng. Học sinh hay sai, xin gợi ý, rồi đúng thấp hơn khoảng ba điểm ($94{,}1$ và $91{,}8$) và có chiều độc lập $I$ thấp hơn $11$--$12$ điểm. Học sinh phụ thuộc, bốn lần ``không biết'' ở mỗi câu, \emph{không qua tiết nào} ($0/11$ và $0/8$), vì mọi câu đều cần từ H4 trở lên và không thành công nào được tính; chiều $I$ về $27{,}1$ và $55{,}4$. Đó là thứ tự theo đúng độc lập đã biết trước ($\text{giỏi}\approx\text{sai dạng}\approx\text{bí}>\text{hay sai}>\text{phụ thuộc}$). Chú ý: $\bar M$ của học sinh phụ thuộc ($68{,}7$) chỉ tính một tiết có điểm, vì chương dừng ở tiết đầu khi ngân sách câu hết; một con số ``điểm không quá thấp'' không có nghĩa là học sinh hiểu.
+
+\begin{table}[tbp]
+\centering
+\caption{Năm học sinh mẫu học hết hai chương đã phát hành, trong bộ nhớ, không gọi mô hình. ``Qua'': số tiết qua; ``Gợi ý'': số gợi ý đã nhận; $\bar M$ trung bình điểm các tiết có điểm (số tiết trong ngoặc); $\bar I$: trung bình chiều độc lập.}
+\label{tab:known-groups}
+\input{gen/tab-known-groups}
+\end{table}
+
+\subsection{Độ bền với các diễn giải khai báo}\label{sec:sensitivity}
+Chúng tôi tính lại phép chiếu của S1 với từng diễn giải khai báo đổi sang một giá trị lân cận hợp lý (Bảng~\ref{tab:sensitivity}) và đếm số tiết đổi mức hiểu hoặc đổi kết luận ``qua tiết''. Hai nhóm kết quả cần tách. \emph{Không bị chạm}: DI-2 (H3, H5), hệ số đoán, ngưỡng thành công và các dải $\pm5$ cho $|\Delta M|=0$ và không đổi gì, nhưng \emph{vì S1 hầu như không dùng H3--H5, không đoán và không ở sát dải}, không phải vì chúng bền; một học sinh phụ thuộc (Mục~\ref{sec:known-groups}) sẽ bị chúng chạm tới. \emph{Bị chạm}: khối lượng tiên nghiệm của DI-12, trọng số bảy chiều, ngưỡng bằng chứng DI-1 và trọng số ``vì sao'' của DI-55 làm $M$ đổi trung bình $0{,}4$--$2{,}8$ điểm và nhiều nhất một tiết đổi mức hay kết luận. Chỉ một diễn giải đổi được kết luận của nhiều tiết: \emph{ngưỡng giải thích} của DI-6; nâng nó từ $0{,}6$ lên $0{,}7$ làm $3$ trong $11$ tiết (chương Số thập phân) và $2$ trong $8$ tiết (chương hình học) đổi mức và không còn ``qua''. Ngưỡng này nên là đối tượng ưu tiên khi hiệu chỉnh bằng dữ liệu thật hoặc bằng nhãn của giáo viên.
+
+\begin{table}[tbp]
+\centering
+\caption{Độ nhạy của phép chiếu của S1 với từng diễn giải khai báo. $|\Delta M|$ TB: thay đổi tuyệt đối trung bình của $M$ trên các tiết; ``Đổi mức/qua'': số tiết đổi mức hiểu / đổi kết luận đã qua. $0$ trên cột là ``không bị chạm'', không phải ``bền''.}
+\label{tab:sensitivity}
+\input{gen/tab-sensitivity}
+\end{table}
+
+\subsection{Dữ liệu đánh giá trực quan của một học sinh}\label{sec:visual}
+Hình~\ref{fig:heat}--\ref{fig:traj} và Bảng~\ref{tab:nodes-s1} là đúng những gì giáo viên thấy về S1 sau ba buổi. Bản đồ nhiệt cho thấy ba điều. Một: chiều \emph{lập luận} $R$ thấp hơn hẳn chiều \emph{đúng} $C$ ở hầu mọi tiết ($58$--$92$ so với $75$--$97$): đây là hình ảnh của một học sinh làm đúng nhiều hơn là giải thích được, và là lý do cổng DI-6 cần giải thích. Hai: các chiều $T$, $S$, $D$ trống (``--''), vì không tiết nào có câu chuyển giao đã thành công, chưa có kiểm tra trì hoãn, và chưa có câu chẩn đoán; chiều vận dụng $A$ có mặt ở sáu trong tám tiết thực hành. Ba: \emph{độ tin cậy} thấp ở mọi tiết ($19$--$46$; dưới $30$ ở $13$ trong $19$ tiết nên hiện kèm cảnh báo), vì toàn bộ bằng chứng đến trong cùng một ngày: $f_{\text{span}}=0{,}7$. Hệ thống nói đúng điều nó biết: nhiều bằng chứng nhưng chưa trải đủ thời gian.
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-heat}
+\caption{Bản đồ nhiệt của S1 sau ba buổi (giao diện giáo viên): hàng là tiết, cột là bảy chiều của khung; màu là vùng của khung đánh giá, số là phần nguyên của điểm ($\times100$); ``--'' là chưa đủ bằng chứng. Hai cột bên phải: điểm tổng hợp $M$ và độ tin cậy (xám khi $<30$), cùng mức hiểu cuối.}
+\label{fig:heat}
+\end{figure}
+
+Hình~\ref{fig:traj} cho thấy đường tiến bộ theo từng lần có bằng chứng. Nhiều tiết có dạng quen thuộc: điểm đầu thấp hoặc trung bình, một bước nhảy khi bắt đầu có câu đúng độc lập, rồi phẳng ở vùng xanh; một vài tiết đi xuống rồi lên (T05 chương Số thập phân, T08 chương hình học) khi một lỗi quan niệm lộ ra giữa chừng. Đường nét đứt đánh dấu lần đầu luật qua tiết thỏa. Một chi tiết trung thực: tiết T01 của chương Số thập phân có điểm cuối $74{,}6$ (mức $2$) dù đã ``qua'' sớm hơn, vì sáu lần phát hiện lỗi ``quên dấu phẩy'' về sau kéo $M$ xuống dưới ngưỡng $75$; đã qua là một sự kiện đã xảy ra, không phải một trạng thái bất biến. Điều này là có chủ đích (qua tiết mở khóa tiết sau, không bị thu hồi), và là điều giáo viên cần thấy.
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-traj}
+\caption{Đường tiến bộ $M$ của từng tiết theo thứ tự các bằng chứng làm đổi nó (chương Số thập phân phía trên, chương hình học phía dưới). Nền: vùng màu của khung; đường nét đứt: lần đầu luật qua tiết thỏa.}
+\label{fig:traj}
+\end{figure}
+
+\begin{table}[tbp]
+\centering
+\caption{Trạng thái cuối của từng tiết với S1: $M$, độ tin cậy, mức hiểu ($0$--$5$), điểm trung bình các chiều có đủ bằng chứng, số thành công và các lỗi quan niệm đã phát hiện (số lần).}
+\label{tab:nodes-s1}
+\input{gen/tab-nodes-s1}
+\end{table}
+
+\subsection{Tổng hợp cho RQ4}
+Cách đánh giá hiểu bài của CAVAT sát khung ở \emph{bốn} nghĩa với bốn mức khác nhau. Về nội dung, $16$ trong $25$ mục đầy đủ và $5$ một phần ($74\%$), phần thiếu tập trung ở thời gian. Về tính toán, khớp công thức đóng trong sai số làm tròn trên $1\,000$ chuỗi. Về hành vi, đáp ứng đúng chiều với gợi ý, độ khó, loại lỗi, đoán, giải thích và vận dụng, xếp đúng thứ tự năm nhóm học sinh đã biết; với hai vi phạm đơn điệu có nguyên nhân rõ trong đặc tả. Về độ bền, kết luận về S1 chủ yếu nhạy với một diễn giải, ngưỡng giải thích, và còn lại bền ở cỡ $\pm3$ điểm. Bốn điều này không chứng minh rằng \emph{khung đúng} (nó chưa được hiệu chỉnh bằng nhãn của giáo viên hay kết quả của học sinh thật); chúng chứng minh rằng \emph{hệ tính đúng khung} và cho thấy chỗ khung đang được diễn giải.
