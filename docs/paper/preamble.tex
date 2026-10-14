@@ -24,7 +24,7 @@
 \usepackage{microtype}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
-\definecolor{linkblue}{HTML}{1B4F8A}
+\definecolor{linkblue}{HTML}{000000}
 \usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
 
 % --- màu
@@ -138,9 +138,9 @@
 % khối tiêu đề và tóm tắt trải hai cột: hộp tóm tắt nền nhạt
 \newsavebox{\absbox}
 \renewenvironment{abstract}{%
-  \begin{lrbox}{\absbox}\begin{minipage}{0.91\textwidth}\vspace{4pt}\small\noindent\textbf{\color{cavat}Tóm tắt.}\ }{%
+  \begin{lrbox}{\absbox}\begin{minipage}{0.91\textwidth}\vspace{4pt}\small\noindent\textbf{Tóm tắt.}\ }{%
   \vspace{3pt}\end{minipage}\end{lrbox}%
-  \begin{center}\fcolorbox{rule}{soft!35}{\usebox{\absbox}}\end{center}\vspace{-2pt}}
+  \begin{center}\usebox{\absbox}\end{center}\vspace{-2pt}}
 
 % URL dài trong tài liệu tham khảo được phép ngắt ở bất kỳ chữ nào
 \makeatletter
