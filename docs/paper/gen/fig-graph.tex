@@ -1,0 +1,61 @@
+\begin{tikzpicture}[x=1cm,y=1cm,
+  basic/.style={circle,draw=cavat,fill=soft,line width=0.8pt,minimum size=8.6mm,inner sep=0pt,font=\scriptsize\bfseries},
+  impl/.style={rounded corners=2.5pt,draw=llm,fill=llmsoft,line width=0.8pt,minimum width=9.6mm,minimum height=7.2mm,inner sep=0pt,font=\scriptsize\bfseries},
+  pre/.style={-{Latex[length=1.8mm]},draw=cavat,line width=0.9pt},
+  app/.style={-{Latex[length=1.5mm]},draw=llm!80!black,dash pattern=on 2.2pt off 1.6pt,line width=0.5pt}]
+  \node[anchor=west,font=\small\bfseries] at (-0.5,1.50) {(a) Số thập phân: 11 tiết, 8 tầng};
+  \node[basic] (alsT01) at (0.00,0.00) {T01};
+  \node[basic] (alsT02) at (1.62,0.00) {T02};
+  \node[basic] (alsT03) at (3.24,0.00) {T03};
+  \node[basic] (alsT04) at (4.86,0.00) {T04};
+  \node[impl] (alsT05) at (6.48,0.57) {T05};
+  \node[basic] (alsT06) at (6.48,-0.57) {T06};
+  \node[basic] (alsT07) at (8.10,0.00) {T07};
+  \node[impl] (alsT08) at (9.72,0.57) {T08};
+  \node[basic] (alsT09) at (9.72,-0.57) {T09};
+  \node[impl] (alsT10) at (11.34,0.57) {T10};
+  \node[impl] (alsT11) at (11.34,-0.57) {T11};
+  \draw[app] (alsT04) to[bend left=17] (alsT05);
+  \draw[app] (alsT06) to[bend left=22] (alsT08);
+  \draw[app] (alsT07) to[bend left=17] (alsT08);
+  \draw[app] (alsT09) to[bend left=17] (alsT10);
+  \draw[app] (alsT01) to[bend right=42] (alsT11);
+  \draw[app] (alsT02) to[bend right=42] (alsT11);
+  \draw[app] (alsT03) to[bend right=37] (alsT11);
+  \draw[app] (alsT04) to[bend right=32] (alsT11);
+  \draw[app] (alsT06) to[bend right=27] (alsT11);
+  \draw[app] (alsT07) to[bend right=22] (alsT11);
+  \draw[app] (alsT09) -- (alsT11);
+  \draw[pre] (alsT01) -- (alsT02);
+  \draw[pre] (alsT02) -- (alsT03);
+  \draw[pre] (alsT03) -- (alsT04);
+  \draw[pre] (alsT04) -- (alsT06);
+  \draw[pre] (alsT06) -- (alsT07);
+  \draw[pre] (alsT07) -- (alsT09);
+  \node[anchor=west,font=\small\bfseries] at (-0.5,-4.10) {(b) Diện tích tam giác, hình thang: 8 tiết, 5 tầng};
+  \node[basic] (oidT01) at (0.00,-6.30) {T01};
+  \node[basic] (oidT02) at (1.62,-6.30) {T02};
+  \node[impl] (oidT03) at (3.24,-5.15) {T03};
+  \node[impl] (oidT04) at (3.24,-6.30) {T04};
+  \node[basic] (oidT05) at (3.24,-7.45) {T05};
+  \node[basic] (oidT06) at (4.86,-6.30) {T06};
+  \node[impl] (oidT07) at (6.48,-5.72) {T07};
+  \node[impl] (oidT08) at (6.48,-6.88) {T08};
+  \draw[app] (oidT01) to[bend left=22] (oidT03);
+  \draw[app] (oidT02) to[bend left=17] (oidT03);
+  \draw[app] (oidT01) to[bend right=22] (oidT04);
+  \draw[app] (oidT02) -- (oidT04);
+  \draw[app] (oidT05) to[bend left=22] (oidT07);
+  \draw[app] (oidT06) to[bend left=17] (oidT07);
+  \draw[app] (oidT05) to[bend left=22] (oidT08);
+  \draw[app] (oidT06) to[bend right=17] (oidT08);
+  \draw[pre] (oidT01) -- (oidT02);
+  \draw[pre] (oidT02) -- (oidT05);
+  \draw[pre] (oidT05) -- (oidT06);
+  \begin{scope}[shift={(0.0,-9.9)}]
+    \node[basic] at (0,0) {};\node[anchor=west,font=\scriptsize] at (0.4,0) {tiết hình thành khái niệm (lớp cơ bản)};
+    \node[impl] at (6.3,0) {};\node[anchor=west,font=\scriptsize] at (6.8,0) {tiết thực hành, vận dụng};
+    \draw[pre] (0,-0.75) -- (0.9,-0.75);\node[anchor=west,font=\scriptsize] at (1.0,-0.75) {\textsc{prerequisite}: học tiết trước mới học tiết sau};
+    \draw[app] (7.6,-0.75) -- (8.5,-0.75);\node[anchor=west,font=\scriptsize] at (8.6,-0.75) {\textsc{application}};
+  \end{scope}
+\end{tikzpicture}

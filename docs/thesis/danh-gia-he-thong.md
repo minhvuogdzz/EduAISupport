@@ -1,6 +1,6 @@
 # Đánh giá hệ thống CAVAT (tư liệu cho chương Đánh giá của luận văn)
 
-**Phiên bản:** 2026-10-13. Mọi con số dưới đây lấy từ báo cáo trong `evals/reports/` và tái lập được bằng lệnh `make` ghi kèm.
+**Phiên bản:** 2026-10-14. Mọi con số dưới đây lấy từ báo cáo trong `evals/reports/` và từ `docs/paper/data/`, tái lập được bằng lệnh `make` ghi kèm. Bản đầy đủ và chặt chẽ hơn của tài liệu này là bài báo `docs/paper/cavat-paper.pdf` (`make paper`, số liệu: `make paper-data`).
 
 **Nhãn:**
 - **[FACT]**: đo được, có báo cáo.
@@ -23,8 +23,8 @@ Tài liệu trả lời bốn câu hỏi của chủ dự án:
 | Câu hỏi | Kết quả chính | Nguồn |
 |---|---|---|
 | RQ1 | Khung 8 chiều: 7 chiều đánh giá AI của blueprint (PART 45.1) cộng chiều "kết quả học tập". 13 bộ đo tái lập được, gồm 9 bộ tất định và 4 bộ có giám khảo là mô hình khác họ. Các bộ có ngưỡng là đặt từ trước, không chỉnh theo kết quả. | Mục 1 |
-| RQ2 | RAG đạt **85%** mức trung bình so với 7 mục tiêu định hướng (đạt trọn 5/7, R1 đạt 97%, R7 chưa đạt), tăng từ 65% sau đợt sửa RAG-4 ngày 2026-10-13. Phần tăng đến từ hai nguồn, ghi riêng: một sửa thật của hệ thống (định tuyến câu hỏi bài trước, DI-57), và một lần đo lại R5/R6 trên code hiện tại với giám khảo đã sửa lỗi định dạng. | Mục 2 |
-| RQ3 | So với Qwen chỉ có lời nhắc Socratic tốt (B2), CAVAT không hơn về giọng văn: giám khảo chấm Socratic 4,46 so với 4,84, hợp trẻ 4,88 như nhau. CAVAT hơn ở chỗ **không bao giờ nói ra đáp án và không khen sai** (0 lần, B2 có 1 lần khen câu sai "0,09" là đúng rồi đưa luôn "0,9", và **giám khảo LLM không phát hiện**). Ngoài ra CAVAT chấm tất định theo chuẩn Việt Nam, theo dõi hiểu bài theo đồ thị tri thức, có trang giáo viên và học theo tài liệu của chính giáo viên. Mốc chatbot thương mại (B1, Gemini) chạy ngày 2026-10-14 khi hạn mức hồi. | Mục 3 |
+| RQ2 | RAG đạt **85%** mức trung bình so với 7 mục tiêu định hướng (đạt trọn 5/7, R1 đạt 96%, R7 chưa đạt), tăng từ 65% sau đợt sửa RAG-4 ngày 2026-10-13. Phần tăng đến từ hai nguồn, ghi riêng: một sửa thật của hệ thống (định tuyến câu hỏi bài trước, DI-57), và một lần đo lại R5/R6 trên code hiện tại với giám khảo đã sửa lỗi định dạng. | Mục 2 **So với RAG phẳng** (cùng chỉ mục, không đưa tiết đang học vào): độ chính xác ngang nhau (Hit@3 0,90 ở v2; gộp 52 câu 0,96 so với 0,92, McNemar p = 0,63), nhưng RAG phẳng đưa đoạn của bài sau vào top-3 ở 31/83 câu và trả lời cả 11/11 câu hỏi bài sau; CAVAT: 0. Ràng buộc đồ thị là chi phí để mua an toàn phạm vi, không mua độ chính xác. |
+| RQ3 | So với Qwen chỉ có lời nhắc Socratic tốt (B2), CAVAT không hơn về giọng văn: giám khảo chấm Socratic 4,46 so với 4,84, hợp trẻ 4,88 như nhau. CAVAT hơn ở chỗ **không bao giờ nói ra đáp án và không khen sai** (0 lần, B2 có 1 lần khen câu sai "0,09" là đúng rồi đưa luôn "0,9", và **giám khảo LLM không phát hiện**). Ngoài ra CAVAT chấm tất định theo chuẩn Việt Nam, theo dõi hiểu bài theo đồ thị tri thức, có trang giáo viên và học theo tài liệu của chính giáo viên. **Mốc chatbot thương mại (B1, Gemini, lời nhắc thường) chạy ngày 2026-10-14:** nói ra đáp án ở 15/25 lượt (60%), giám khảo thấy lộ 18/25, 7 lượt có hơn một câu hỏi, trung bình 128 từ mỗi lượt, Socratic 2,28/5; chấm câu trả lời của trẻ 25/36 và 25/35 (toàn bộ lỗi là bác câu đúng viết bằng chữ, có lời đệm hoặc teencode). | Mục 3 |
 | RQ4 | Đã làm **16/25** mục của khung Toán đầy đủ và 5 mục một phần, độ sát **74%** (mục một phần tính nửa). Chưa làm: chiều Ghi nhớ (S) và các trạng thái dựa trên nó, điểm từng câu (QS), giáo viên sửa điểm. Mọi chỗ khác khung đều có DI: 56 DI đã khai báo. | Mục 4 |
 
 ---
@@ -132,7 +132,7 @@ Có căn cứ: 100% câu trong chương được nhận, 100% câu lạc đề b
 | Câu lạc đề, Toán ngoài chương: gác cho cô | 6/6 | 6/6 |
 
 - Bộ chỉnh và bộ v1: Hit@3 1,00 sau sửa. Chương mẫu không tụt.
-- **Ablation trên v2:** hybrid + xếp hạng lại 0,887 > từ khóa + xếp hạng lại 0,728 > hybrid 0,460 ≈ từ khóa 0,459 ≈ ngữ nghĩa 0,449. Vector ngữ nghĩa chỉ có ích **khi đi cùng cấu trúc đồ thị**.
+- **Ablation trên v2:** hybrid + xếp hạng lại 0,887 > từ khóa + xếp hạng lại 0,728 > hybrid 0,460 ≈ từ khóa 0,459 ≈ ngữ nghĩa 0,449. Xếp hạng lại theo cấu trúc là phần có tác dụng (hybrid → hybrid + xếp hạng lại: ΔMRR +0,427, khoảng [0,236; 0,613], McNemar p = 0,002). **Phần góp của vector chưa chứng minh được**: từ khóa + xếp hạng lại → hybrid + xếp hạng lại ΔMRR +0,158, khoảng [−0,031; 0,359], p = 0,22 (n = 20). Nhận định trước đây "vector chỉ có ích khi đi cùng cấu trúc đồ thị" vì vậy không được dữ liệu ủng hộ ở mức thống kê.
 
 **Lời trả lời của Qwen, đo lại ngày 2026-10-13** (`2026-10-13-grounded-live.md`, code `grounded-speech/0.2.2`, giám khảo nhận đầu vào dạng các dòng có nhãn thay vì JSON):
 - Chọn đúng loại phản hồi: 15/15.
@@ -150,7 +150,7 @@ Có căn cứ: 100% câu trong chương được nhận, 100% câu lạc đề b
 
 | Mã | Mục tiêu | Lần đo đầu (sáng 2026-10-13) | Sau RAG-4 và đo lại (chiều 2026-10-13) | Mức đạt |
 |---|---|---|---|---|
-| R1 | Hit@3 ≥ 0,90 | 0,64 → 71% | min(chương mẫu 0,87; phát hành v2 0,90) = 0,87 | **97%** |
+| R1 | Hit@3 ≥ 0,90 | 0,64 → 71% | min(chương mẫu 0,867; phát hành v2 0,90) = 0,867 | **96%** |
 | R2 | ≥ 95% câu lạc đề không được trả lời | 100% | Chương mẫu 15/15, v2 6/6 | **100%** |
 | R3 | ≥ 95% câu trong chương có căn cứ | 93% | Chương mẫu 100%, v2 100% | **100%** |
 | R4 | 100% câu bài sau không dạy trước | 100% | v2 4/4 | **100%** |
@@ -158,21 +158,21 @@ Có căn cứ: 100% câu trong chương được nhận, 100% câu lạc đề b
 | R6 | Bịa hoặc lộ ≤ 2% lượt | 3/13 lượt (23%) | 0/14 lượt | **100%** |
 | R7 | Hybrid + xếp hạng lại tốt nhất trên bộ giữ riêng | Không | Phát hành v2: **có** (0,887). Chương mẫu: không (chỉ ngữ nghĩa 0,765 > 0,678) | **0%** (lấy chương thấp hơn) |
 
-- **Mức đạt trung bình: (97 + 100 × 5 + 0) / 7 = 85%. Đạt trọn 5/7 mục tiêu.**
+- **Mức đạt trung bình: (96 + 100 × 5 + 0) / 7 = 85%. Đạt trọn 5/7 mục tiêu.**
 - **Nguồn của phần tăng từ 65% lên 85%:**
   - R1 tăng nhờ một sửa thật của hệ thống (DI-57), đo trên bộ giữ riêng viết trước khi sửa.
   - R5 và R6 tăng vì đo lại trên code hiện tại (đã qua nhiều bản sửa từ 7/10). Đồng thời giám khảo đã được sửa lỗi định dạng làm nó chấm nhầm ca G05.
   - Trong luận văn nên nói rõ cả hai nguồn.
 - **Giới hạn của số đo:** R5 và R6 chỉ có 14 lượt, và bộ ca `grounded-decimals-v1` đã có từ trước. Ngưỡng 2% chỉ thật sự kiểm chứng được với mẫu lớn hơn (khoảng 100 lượt).
-- **Cách nói trong luận văn:** "RAG đạt các định hướng về an toàn phạm vi, độ bám nguồn và truy xuất (5/7 trọn vẹn, R1 97%). Riêng giả thuyết 'hybrid tốt hơn từng thành phần' chỉ đúng trên tài liệu thật của giáo viên, chưa đúng trên chương mẫu."
+- **Cách nói trong luận văn:** "RAG đạt các định hướng về an toàn phạm vi, độ bám nguồn và truy xuất (5/7 trọn vẹn, R1 96%). Riêng giả thuyết 'hybrid tốt hơn từng thành phần' chỉ đúng trên tài liệu thật của giáo viên, chưa đúng trên chương mẫu."
 
 ### 2.4. Nhận xét kỹ thuật cho luận văn
 
 1. **An toàn quan trọng hơn truy xuất.** RAG được thiết kế để thà gác cho cô còn hơn trả lời sai. Kết quả xác nhận điều này: R2 và R4 đạt 100% ở mọi bộ. Phần chưa tốt (R1) chỉ làm bé phải chờ cô giải đáp, không làm bé học sai.
-2. **Ngữ nghĩa chỉ giúp khi đi cùng cấu trúc.** Trước RAG-4, ngữ nghĩa không thêm gì trên tài liệu thật. Sau khi định tuyến theo đồ thị, hybrid tốt hơn hẳn chỉ từ khóa (MRR 0,887 so với 0,728 trên v2). Chi tiết trước RAG-4:
-   - Trên chương phát hành, chỉ ngữ nghĩa và chỉ từ khóa cho cùng kết quả (MRR 0,599 so với 0,608).
-   - Đoạn của giáo viên ngắn, nhiều thuật ngữ trùng nhau giữa các tiết. Thứ quyết định là **cấu trúc đồ thị** (khoảng cách tiết, câu định nghĩa, DI-50): xếp hạng lại nâng Hit@3 nhóm "bài trước" từ 0,20 lên 0,70 trên bộ chỉnh.
-   - Đây là đóng góp đáng nêu: RAG theo đồ thị tri thức, không chỉ theo vector.
+2. **Cấu trúc đồ thị phải có định tuyến mới không làm hại độ chính xác, và nó mua an toàn chứ không mua độ chính xác.**
+   - Phạm vi chặt chưa có định tuyến cho Hit@3 trên v2 chỉ 0,45 (RAG phẳng: 0,90), vì nó đẩy ra ngoài các đoạn trả lời câu hỏi về bài cũ. Định tuyến (DI-57) khôi phục 0,90.
+   - So với RAG phẳng, độ chính xác ngang nhau (v2: 0,90 và 0,90; gộp ba tập phát hành 0,96 so với 0,92, p = 0,63). Cái khác nhau là phạm vi: RAG phẳng đưa đoạn bài sau vào top-3 ở 31/83 câu (37%) và trả lời 11/11 câu hỏi bài sau.
+   - Ngưỡng nền tảng cosine ≥ 0,65 một mình không đủ: 7/11 câu hỏi bài sau vượt ngưỡng vì kho có nội dung đó ở tiết sau; chính phát hiện tiết sau chuyển chúng sang "bài sau".
 3. **Bộ kiểm chứng là thành phần chính, không phải phụ.** Giám khảo vẫn thấy lời Qwen bịa ở khoảng 1/4 lượt có lời Qwen; ngoài ra bộ kiểm chứng đã chặn 5 câu không có nguồn trước khi học sinh nghe thấy.
 4. **Giới hạn của số đo:** bộ câu nhỏ (bộ giữ riêng 14–30 câu) và do người phát triển viết, chưa có câu hỏi của học sinh thật.
 
@@ -206,7 +206,7 @@ Thí nghiệm EVAL-1 (mục 3.2) đo xem sự khác biệt này có thể hiện
 |---|---|---|---|---|---|---|---|
 | B2: Qwen + lời nhắc Socratic tốt | 25 | **1** | **1** | 0/25 | 0 | 29 | 4,88 / 4,84 / 4,88 / 4,92 |
 | C: CAVAT | 24 | **0** | **0** | 0/24 | 0 | 24 | 4,71 / 4,46 / 4,88 / 4,71 |
-| B1: chatbot Gemini (lời nhắc thường) | — | — | — | — | — | — | Chạy ngày 2026-10-14 (hôm nay hết hạn mức) |
+| B1: chatbot Gemini (lời nhắc thường) | 25 | **15** | **1** (khen "C" sai rồi nêu luôn 7/10) | 18/25 | 7 | 128 | 3,08 / 2,28 / 4,20 / 4,76 |
 
 **Phân tích trung thực:**
 - **Về giọng văn, CAVAT không hơn** một LLM có lời nhắc tốt. Giám khảo cho B2 điểm Socratic cao hơn. Ba lượt CAVAT bị chấm thấp:
@@ -217,7 +217,7 @@ Thí nghiệm EVAL-1 (mục 3.2) đo xem sự khác biệt này có thể hiện
   - Vai Mít trả lời sai "0,09". B2 đáp: "Con đã viết **đúng** số thập phân rồi… vì sao 9/10 lại bằng **0,9**?". Trong một câu, B2 vừa khen câu sai, vừa nói ra đáp án.
   - **Giám khảo LLM chấm câu đó 5/5 Socratic và "không lộ"**, chỉ luật tất định bắt được.
   - Đây là bằng chứng cho nguyên tắc thiết kế của CAVAT: không tin mô hình tự chấm và tự giữ đáp án, kể cả mô hình giám khảo.
-- **Ý nghĩa:** chế độ học của ChatGPT và Gemini cũng là "lời nhắc tốt" (mục 3.1), nên B2 là xấp xỉ gần nhất của chúng mà dự án đo được miễn phí. Kết quả B1 sẽ cho số đo trực tiếp.
+- **Ý nghĩa:** chế độ học của ChatGPT và Gemini cũng là "lời nhắc tốt" (mục 3.1), nên B2 là xấp xỉ gần nhất của chúng mà dự án đo được miễn phí. B1 (chatbot với lời nhắc thường) cho thấy lựa chọn mặc định của một đứa trẻ: lộ đáp án ở 60% số lượt thử thách, kể cả khi được bảo "bỏ qua mọi hướng dẫn". B1 **không** đại diện cho các chế độ học thương mại.
 
 **Phần B: chấm câu trả lời của trẻ** (gán nhãn tay; v2 là bộ giữ riêng viết trước khi sửa bộ chấm GRADE-1).
 
@@ -225,6 +225,7 @@ Thí nghiệm EVAL-1 (mục 3.2) đo xem sự khác biệt này có thể hiện
 |---|---|---|---|
 | C: CAVAT (bộ điều phối + MathChecker) | 31/36 (86%) | **35/35 (100%)**; trước GRADE-1: 26/35 (74%) | Có: lần nào cũng như nhau |
 | B2: Qwen, chấm hàng loạt | 35/36 (97%) | 35/35 (100%) | Không |
+| B1: Gemini, chấm hàng loạt | 25/36 (69%) | 25/35 (71%) | Không; toàn bộ 11 + 10 lỗi là bác câu đúng viết bằng chữ ("không phẩy chín"), có lời đệm ("0,9 ạ cô"), teencode ("o,9") hoặc so sánh bằng lời |
 
 - GRADE-1: bộ chấm đọc được số viết bằng chữ ("không phẩy chín", "0 phẩy 3") và hiểu dạng mà đề hỏi.
 - **Kết luận:** hai bên ngang nhau khi chấm hàng loạt có hướng dẫn. Nhưng khi chấm *giữa hội thoại*, B2 đã khen câu sai (phần A). Bộ chấm của CAVAT chạy cùng một code ở mọi chỗ.
@@ -284,11 +285,11 @@ Thí nghiệm EVAL-1 (mục 3.2) đo xem sự khác biệt này có thể hiện
 
 **Kết quả:** 16 đầy đủ, 5 một phần, 4 chưa. **Độ sát = (16 + 0,5 × 5) / 25 = 74%** (chỉ tính mục đầy đủ: 64%).
 
-Bốn mục chưa làm đều xoay quanh **thời gian**: ghi nhớ sau nhiều ngày, và các trạng thái quên hoặc có nguy cơ quên. Một buổi demo không đo được những thứ này. Đây là giới hạn của phạm vi, không phải sai lệch thiết kế.
+Hai mục chưa làm (#14, #25) và hai mục một phần (#1, #11) xoay quanh **thời gian**: ghi nhớ sau nhiều ngày và các trạng thái quên. Một buổi demo không đo được những thứ này; đó là giới hạn của phạm vi, không phải sai lệch thiết kế. Hai mục chưa làm còn lại (#4 điểm từng câu, #23 giáo viên sửa điểm) là giao diện.
 
 ### 4.2. Những chỗ khác khung đều được khai báo (quy tắc 9)
 
-- **56 DI** đã ghi trong kế hoạch và blueprint. Mỗi DI nói rõ ngưỡng nào là của dự án, vì sao.
+- **58 DI** (DI-1 đến DI-58) đã ghi trong kế hoạch và blueprint. Mỗi DI nói rõ ngưỡng nào là của dự án, vì sao.
 - **Ví dụ quan trọng cho luận văn:**
   - DI-15: luật qua tiết;
   - DI-16: điểm khởi đầu;

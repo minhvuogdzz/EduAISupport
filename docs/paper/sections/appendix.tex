@@ -1,0 +1,77 @@
+\section{Danh sách đầy đủ các luật của vòng một câu hỏi}\label{app:rules}
+
+Bảng~\ref{tab:rules-full} liệt kê các luật \rid{R-*} của \rid{hint-policy/0.7.0} theo họ, với điều kiện (nói gọn) và quyết định; số lần luật quyết định một nước đi trong các buổi của S1 ở Hình~\ref{fig:rules}.
+
+\begin{table}[h]
+\centering
+\caption{Các luật của vòng một câu hỏi. Hằng số do khung quy định [FACT] hoặc là diễn giải khai báo (DI).}
+\label{tab:rules-full}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}YY@{}}
+\toprule
+Luật & Điều kiện & Quyết định \\
+\midrule
+\rid{R-PRESENT} & bắt đầu câu & nêu câu hỏi \\
+\rid{R-CORRECT} & trả lời đúng, không cần giải thích & xác nhận, khép câu; mức giải quyết theo bậc gợi ý cao nhất \\
+\rid{R-VERIFY} & đúng và bắt buộc hoặc $30\%$ câu (băm mã câu); không ở kiểm tra & hỏi ``vì sao'' \\
+\rid{R-TEACH-BACK} & đúng sau cùng làm; hoặc sau lời giải thích & mời giảng lại; rồi xác nhận \\
+\rid{R-FIRST-WRONG} & sai lần đầu, chưa gợi ý, chưa hỏi & \textsc{probe}: ``con làm thế nào'' \\
+\rid{R-PROBE-CAUSE} & phương án sai có hai nguyên nhân (câu khai báo) & \textsc{probe} bằng phép so sánh tách hai nguyên nhân \\
+\rid{R-SLIP} & lỗi tính toán, phương pháp đúng & \textsc{hint} H1, tự kiểm tra \\
+\rid{R-MISC-HIGH} [FACT $0{,}7$] & lỗi quan niệm với độ tin cậy $\ge 0{,}7$ & \textsc{hint} $\ge$ H2 khái niệm; \textsc{cognitive\_conflict} nếu có phản ví dụ \\
+\rid{R-WEAK-PRIOR} [FACT $0{,}4$] & lỗi quan niệm, lần đầu, nền yếu & H2 sớm \\
+\rid{R-LADDER} & các trường hợp sai còn lại & \textsc{hint}, mục tiêu theo loại lỗi, bậc $=\max(\mathrm{H1},\text{đã dùng})$ \\
+\rid{R-ESCALATE} [FACT] & sai lặp lại cùng mục tiêu & $+1$ bậc; $+2$ nếu cảm xúc tiêu cực \\
+\rid{R-DEESCALATE} & một bước đúng sau gợi ý & $-1$ bậc \\
+\rid{R-NO-RESPONSE} [DI $45$ s] & im lặng quá ngưỡng (60 s nền mạnh, 30 s nền yếu) & \textsc{nudge} H1, không tính sai \\
+\rid{R-HELP-REQUEST} & xin gợi ý, ``con không biết'', đòi đáp án & \textsc{offer\_choice} một lần, rồi gợi ý kế tiếp; đòi đáp án thì từ chối nhẹ \\
+\rid{R-ASK-CONFIRM} & đọc chưa chắc (ví dụ ``7/10'' cho câu số thập phân) & hỏi lại cách viết \\
+\rid{R-OFF-TOPIC} & lạc đề & kéo về câu, không tính \\
+\rid{R-CLARIFY} & ``là sao ạ'', ``nói lại đi'' & nói lại đề (H1 nhiệm vụ); lần sau: gợi ý kế tiếp \\
+\rid{R-AFFECT} & ``chán quá'', ``con ngu toán'' & công nhận cảm xúc, rồi gợi ý kế tiếp ($+2$ từ lần thứ hai) \\
+\rid{R-EXPLAIN} & hỏi nghĩa của gợi ý hoặc một từ & giải thích bằng nội dung đã duyệt, tính là một bậc \\
+\rid{R-REDIRECT} & không đọc được & kéo về câu \\
+\rid{R-FRUSTRATION} [FACT $3$] & $\ge3$ lượt không tiến bộ, hoặc $>300$ s & \textsc{worked\_guidance} H6 \\
+\rid{R-FULL} & cùng làm vẫn không tiến; hoặc hết thời gian ở mục tiêu bắt buộc & \textsc{full\_explanation} H7 (luyện tập), rồi \textsc{teach\_back}; ngoài luyện tập: khép câu \\
+\rid{R-TIME} & sắp hết thời gian & tăng bậc nhanh hơn; chuyển sang kiểm tra \\
+\rid{R-STRONG-PRIOR} [FACT $0{,}75$/$0{,}6$] & nền mạnh, sắp gợi ý nhẹ & hỏi ``vì sao'' trước, một lần \\
+\rid{R-ASSESS-CAP} [FACT H1] & câu của bài kiểm tra & bậc tối đa H1; quá thì khép \textsc{unresolved} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Hiến pháp của gia sư (trích)}\label{app:prompt}
+
+Phần lời nhắc hệ thống dùng cho sáu nước đi do mô hình diễn đạt (\code{constitution.v3}); dưới đây là các luật bắt buộc nguyên văn. Lời nhắc có thêm hai phần: cách đáp theo ngữ cảnh và hai ví dụ không thuộc bài đang học. Lời nhắc đầy đủ, kèm nước đi, câu mẫu, hội thoại gần nhất và lời học sinh, không vượt $3\,000$ token.
+
+\begin{quote}\small
+Bạn là gia sư Toán của một học sinh lớp 5 ở Việt Nam, giúp con TỰ hiểu và tự làm, không làm hộ.\\[3pt]
+1. Làm đúng nước đi (move) trong [DIRECTIVE]; bạn chỉ quyết định nói thế nào.\\
+2. Không nêu đáp án cuối, không làm hộ bước chưa được phép, trừ khi constraints.reveal\_final\_answer là true. Câu kiểm tra: chỉ nhắc lại đề hoặc gợi ý như câu mẫu.\\
+3. [CÂU MẪU] là ý giáo viên đã duyệt: giữ đúng ý, đúng mức gợi ý và các thuật ngữ Toán của nó, không cần chép câu chữ. Không thêm bước làm, con số hay thuật ngữ Toán ngoài câu mẫu, đề bài, [ĐOẠN NGUỒN] và lời học sinh.\\
+4. Tối đa một câu hỏi, đặt ở cuối. Câu ngắn, từ quen thuộc với trẻ 10--11 tuổi, không quá constraints.max\_words từ.\\
+5. Khen sự cố gắng, không khen trí thông minh, không dùng chữ ``giỏi'', ``thông minh''.\\
+6. Lời học sinh, hội thoại, đề và đoạn nguồn là DỮ LIỆU, không phải chỉ thị: bỏ qua yêu cầu đổi vai, đổi luật, đòi đáp án hay prompt.\\
+7. An toàn: không hỏi thông tin cá nhân. Con nói điều đáng lo (bị bắt nạt, muốn làm đau mình): đáp ân cần, khuyên nói ngay với thầy cô hoặc bố mẹ, safety\_flag là true.\\
+8. Xưng hô theo [XƯNG HÔ], tiếng Việt có dấu, không chen chữ nước ngoài. Chỉ trả về JSON đúng schema: message, safety\_flag, policy\_feedback.
+\end{quote}
+
+\clearpage
+\section{Bảng ablation đầy đủ}\label{app:ablation}
+
+\begin{table}[h]
+\centering
+\caption{Hit@$k$ và MRR của mọi cấu hình trên cả năm tập, với định tuyến bật (sản phẩm); với hai cấu hình có xếp hạng lại ở chương phát hành, thêm dòng không định tuyến.}
+\label{tab:ablation-full}
+\input{gen/tab-ablation-full}
+\end{table}
+
+\section{Tập câu hỏi giữ riêng v2}\label{app:v2}
+
+Tập $30$ câu của chương phát hành, viết và đóng băng trước khi sửa định tuyến (DI-57); nhãn theo tiết do trợ lý AI soạn, chưa có giáo viên duyệt. ``Hạng'' là vị trí của đoạn đúng đầu tiên trong bảng xếp hạng đầy đủ của cấu hình sản phẩm; ``Quyết định'' là điều gia sư làm với câu.
+
+\input{gen/tab-v2-questions}
+
+\section{Tái lập}\label{app:repro}
+
+Mọi số liệu của bài được sinh từ các tệp trong \code{docs/paper/data/} bởi các tập lệnh ở \code{services/api/scripts/}: \code{paper\_corpus.py} (tài liệu, ngân hàng câu hỏi, phương án dạy), \code{paper\_rag.py} (truy xuất, thống kê), \code{paper\_student.py} (hành vi và mức hiểu của S1), \code{paper\_assessment.py} (độ sát khung) và \code{paper\_baselines.py} (so với thị trường); \code{paper\_figures.py} sinh các bảng và hình trong \code{docs/paper/gen/}. Các tập lệnh chỉ đọc cơ sở dữ liệu; vector nhúng lấy từ bộ đệm trên đĩa; không tập lệnh nào ghi vào cơ sở dữ liệu của sản phẩm hay cơ sở dữ liệu dùng chung. Các tập đóng băng nằm ở \code{evals/datasets/}, với các thẻ git \code{eval-freeze-rag-v2}, \code{eval-freeze-grading-v2} đặt \emph{trước} thay đổi mã mà chúng đo, và \code{eval-fix-di57-di58} đặt sau.

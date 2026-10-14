@@ -1,0 +1,30 @@
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1,horizontal sep=1.7cm},cavat,width=6.8cm,height=5cm,ymajorgrids]
+\nextgroupplot[title={(a) Gợi ý đã đưa theo bậc},ybar stacked,bar width=12pt,ylabel={số gợi ý},symbolic x coords={H1,H2,H3,H6},xtick=data,ymin=0,enlarge x limits=0.2]
+\addplot+[fill=cavat!70,draw=none] coordinates {(H1,27) (H2,12) (H3,1) (H6,5)};
+\addplot+[fill=llm!70,draw=none] coordinates {(H1,17) (H2,5) (H3,0) (H6,4)};
+\nextgroupplot[title={(b) Câu theo bậc gợi ý cao nhất},ybar stacked,bar width=12pt,ylabel={số câu},symbolic x coords={H0,H1,H2,H6,H7},xtick=data,ymin=0,enlarge x limits=0.15]
+\addplot+[fill=zoneA,draw=none] coordinates {(H0,93) (H1,0) (H2,0) (H6,0) (H7,0)};
+\addplot+[fill=zoneB,draw=none] coordinates {(H0,0) (H1,29) (H2,9) (H6,0) (H7,0)};
+\addplot+[fill=zoneD,draw=none] coordinates {(H0,0) (H1,0) (H2,0) (H6,7) (H7,1)};
+\addplot+[fill=zoneE,draw=none] coordinates {(H0,0) (H1,0) (H2,0) (H6,3) (H7,0)};
+\end{groupplot}
+\end{tikzpicture}
+\\[4pt]
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[draw=none,fill=cavat!70,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (0.00,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (0.28,0) {Số thập phân};
+\node[draw=none,fill=llm!70,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (2.23,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (2.51,0) {Diện tích};
+\end{tikzpicture}
+\hspace{1.2cm}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[draw=none,fill=zoneA,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (0.00,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (0.28,0) {độc lập};
+\node[draw=none,fill=zoneB,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (1.60,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (1.89,0) {có hỗ trợ};
+\node[draw=none,fill=zoneD,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (3.46,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (3.74,0) {cùng làm};
+\node[draw=none,fill=zoneE,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (5.19,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (5.47,0) {chưa giải được};
+\end{tikzpicture}

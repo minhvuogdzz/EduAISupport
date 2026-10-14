@@ -1,0 +1,7 @@
+\begin{tikzpicture}
+\begin{axis}[cavat,xbar,width=0.82\linewidth,height=6.9cm,bar width=6pt,xmin=0,xmax=70,xmajorgrids,xlabel={số từ trung bình của lượt gia sư},ymin=0.4,ymax=13.6,ytick={1,2,3,4,5,6,7,8,9,10,11,12,13},yticklabels={{Khép câu},{Giải thích đầy đủ},{Mời giảng lại},{Cùng làm từng bước},{Xác nhận, sang câu sau},{Hỏi vì sao},{Kéo về câu đang làm},{Mời chọn: thêm gợi ý hay tự thử},{Giải thích điều con hỏi},{Phản ví dụ},{Gợi ý},{Hỏi con đã làm thế nào},{Nêu câu hỏi}},y tick label style={font=\scriptsize},nodes near coords,nodes near coords style={font=\tiny}]
+\addplot[fill=cavat!70,draw=none] coordinates {(14.8,13) (18.8,12) (21.5,11) (18.0,10) (23.8,9) (24.0,8) (32.5,7) (17.2,6) (18.0,5) (22.0,4) (20.3,3) (18.0,2) (16.0,1)};
+\draw[dashed,color=red!70!black] (axis cs:60,0.4) -- (axis cs:60,13.6);
+\node[font=\tiny,color=red!70!black,anchor=south east] at (axis cs:60,12.4) {trần 60 từ};
+\end{axis}
+\end{tikzpicture}

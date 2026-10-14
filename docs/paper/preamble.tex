@@ -1,0 +1,124 @@
+% Phần mở đầu dùng chung của bài báo CAVAT (biên dịch bằng Tectonic / XeLaTeX).
+\usepackage{fontspec}
+% TeX Gyre: đủ dấu tiếng Việt, đi kèm bản phân phối TeX nên bài dựng giống nhau trên mọi máy
+\setmainfont{texgyretermes}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\setsansfont{texgyreheros}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\setmonofont{texgyrecursor}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic,Scale=0.92]
+\usepackage{amsmath,amssymb}
+\usepackage[a4paper,top=2.3cm,bottom=2.3cm,left=2.2cm,right=2.2cm]{geometry}
+\usepackage{booktabs,tabularx,array,multirow,makecell,longtable}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric,matrix,decorations.pathreplacing,patterns}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots,statistics}
+\pgfplotsset{compat=1.18}
+\usepackage[labelfont=bf,labelsep=period,font=small,justification=justified,singlelinecheck=false]{caption}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{needspace}
+\usepackage{microtype}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[colorlinks=true,linkcolor=cavat,citecolor=cavat,urlcolor=cavat]{hyperref}
+
+% --- màu
+\definecolor{cavat}{HTML}{1F6F78}
+\definecolor{soft}{HTML}{E8F3F4}
+\definecolor{llm}{HTML}{D9822B}
+\definecolor{llmsoft}{HTML}{FBEBD9}
+\definecolor{ink}{HTML}{2B2B2B}
+\definecolor{mute}{HTML}{6B6B6B}
+\definecolor{rule}{HTML}{BFC7C9}
+% vùng màu của khung đánh giá Toán (§25), trùng giao diện giáo viên
+\definecolor{zoneE}{HTML}{DC2626}  % 0-39
+\definecolor{zoneD}{HTML}{FB923C}  % 40-59
+\definecolor{zoneC}{HTML}{FDE047}  % 60-74
+\definecolor{zoneB}{HTML}{6EE7B7}  % 75-89
+\definecolor{zoneA}{HTML}{047857}  % 90-100
+
+% --- tiếng Việt
+\renewcommand{\abstractname}{Tóm tắt}
+\renewcommand{\refname}{Tài liệu tham khảo}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\contentsname}{Mục lục}
+\floatname{algorithm}{Thuật toán}
+\renewcommand{\appendixname}{Phụ lục}
+\algrenewcommand\algorithmicrequire{\textbf{Đầu vào:}}
+\algrenewcommand\algorithmicensure{\textbf{Đầu ra:}}
+\algrenewcommand\algorithmicif{\textbf{nếu}}
+\algrenewcommand\algorithmicthen{\textbf{thì}}
+\algrenewcommand\algorithmicelse{\textbf{ngược lại}}
+\algrenewcommand\algorithmicfor{\textbf{với}}
+\algrenewcommand\algorithmicforall{\textbf{với mọi}}
+\algrenewcommand\algorithmicdo{\textbf{thực hiện}}
+\algrenewcommand\algorithmicreturn{\textbf{trả về}}
+\algrenewcommand\algorithmicwhile{\textbf{khi}}
+\algrenewcommand\algorithmicend{\textbf{hết}}
+\algrenewcommand\algorithmicuntil{\textbf{cho đến khi}}
+\algrenewcommand\algorithmicrepeat{\textbf{lặp}}
+\renewcommand{\algorithmiccomment}[1]{\hfill{\small\color{mute}\(\triangleright\) #1}}
+\algnewcommand{\algorithmicinput}{\textbf{Đầu vào:}}
+
+% --- bố cục
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0pt}
+\linespread{1.05}
+\setlength{\emergencystretch}{3em}
+\sloppy
+\hbadness=10000
+\titleformat{\section}{\Large\bfseries\color{ink}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\itshape\color{ink}}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{2.0ex plus 0.5ex minus 0.3ex}{1.0ex plus 0.2ex}
+\titlespacing*{\subsection}{0pt}{1.6ex plus 0.4ex minus 0.2ex}{0.7ex plus 0.2ex}
+\titlespacing*{\subsubsection}{0pt}{1.2ex plus 0.3ex minus 0.2ex}{0.5ex plus 0.1ex}
+\setlist{nosep,leftmargin=1.6em,itemsep=2pt}
+\captionsetup[table]{skip=5pt}
+\captionsetup[figure]{skip=5pt}
+\renewcommand{\arraystretch}{1.12}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcommand{\vn}[1]{\textit{#1}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\rid}[1]{\textsf{\small #1}}   % mã luật: R-..., N-...
+\newcommand{\DI}[1]{\textsf{DI-#1}}
+\newcommand{\tick}{\textcolor{cavat}{\(\bullet\)}}
+\newcommand{\best}[1]{\textbf{#1}}
+
+% --- số thập phân dùng dấu phẩy trong biểu đồ
+\pgfplotsset{
+  cavat/.style={
+    /pgf/number format/use comma,
+    /pgf/number format/precision=2,
+    /pgf/number format/fixed,
+    /pgf/number format/fixed zerofill=false,
+    tick label style={font=\scriptsize},
+    label style={font=\small},
+    legend style={font=\scriptsize,draw=none,fill=none},
+    title style={font=\small\bfseries},
+    axis line style={color=ink},
+    grid style={color=rule,line width=0.3pt},
+    every axis plot/.append style={line width=0.9pt},
+  }
+}
+
+% --- thả nổi: giữ bảng và hình trong mục của nó
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.72}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+
+\let\OldSection\section
+\renewcommand{\section}{\Needspace*{7\baselineskip}\OldSection}
+\let\OldSubsection\subsection
+\renewcommand{\subsection}{\Needspace*{5\baselineskip}\OldSubsection}

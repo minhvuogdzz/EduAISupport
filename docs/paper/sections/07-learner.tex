@@ -1,0 +1,71 @@
+\section{Mô hình người học và đánh giá mức hiểu bài}\label{sec:learner}
+
+Mức hiểu bài của CAVAT là một \emph{phép chiếu}: một hàm thuần túy từ sổ sự kiện đến trạng thái của mọi tiết, cùng một sổ luôn cho cùng một kết quả và mô hình ngôn ngữ không bao giờ ghi điểm. Công thức, trọng số và ngưỡng lấy từ khung đánh giá Toán của dự án (các mục §4--§35 và các diễn giải DI-1\ldots DI-12 của nó); những chỗ khung không nêu được khai báo là DI. Mục này mô tả mô hình; Mục~\ref{sec:res-assess} đo độ sát của nó với khung.
+
+\subsection{Bằng chứng}
+Mỗi tiết $v$ có bảy chiều: đúng ($C$), lập luận ($R$), vận dụng ($A$), chuyển giao ($T$), độc lập ($I$), ghi nhớ ($S$) và chẩn đoán lỗi ($D$). Một \emph{bằng chứng} là bộ ba (chiều, điểm $s\in[0,1]$, trọng số $w\ge0$). Ba kiểu sự kiện sinh bằng chứng (Bảng~\ref{tab:evidence}). Chiều mà đáp án của một câu cung cấp bằng chứng được suy từ mức nhận thức và tính chuyển giao của câu: mức A, B cho $C$; mức C cho $R$; mức D cho $A$; mức E hoặc câu chuyển giao cho $T$; câu chẩn đoán cho $D$. Chiều ghi nhớ $S$ chỉ có thể đến từ bài kiểm tra trì hoãn (T1/T3/T7/T30) mà phiên bản demo chưa có; Mục~\ref{sec:res-assess} nêu hệ quả.
+
+\begin{table}[tbp]
+\centering
+\caption{Bằng chứng mà các sự kiện sinh ra (\rid{node-mastery/0.2.0}). $\delta$: độ khó; $\iota_h$: trọng số độc lập của bậc gợi ý cao nhất $h$ (Bảng~\ref{tab:ladder}); $\sigma=0{,}5$ cho câu ``cùng làm'' (đã có một phần lời giải), nếu không thì $1$; $g=0{,}5$ nếu bị coi là đoán, nếu không thì $1$.}
+\label{tab:evidence}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{3.4cm}Y@{}}
+\toprule
+Sự kiện & Chiều & Điểm $s$ & Trọng số $w$ \\
+\midrule
+câu được giải (độc lập, có hỗ trợ, cùng làm) & chiều của câu & $1$ & $(0{,}5+\delta)\cdot\max(\iota_h,0{,}3)\cdot\sigma\cdot g$ \\
+ & $I$ & $\iota_h$ & $\sigma$ \\
+câu chưa giải được & chiều của câu & $e\in\{0{,}5\ (\text{tính}),\ 0{,}7\ (\text{cách viết}),\ 0\}$ & $(1{,}5-\delta)\cdot\sigma$ \\
+ & $R$ (nếu lỗi quan niệm) & $0$ & $(1{,}5-\delta)\cdot\sigma$ \\
+được hỏi ``vì sao'' mà không giải thích; hoặc đoán & $R$ & $0$ & $1$ \\
+lời giải thích ``vì sao'' & $R$ & chất lượng $q$ (thang $0{,}2/0{,}6/1$) & $0{,}5$; không tính khi $q\le0{,}2$ \\
+bài kể lại của tiết & $R$ & phần ý chính tìm thấy & $1$; $0{,}3$ nếu nhãn của mô hình có độ tin cậy $<0{,}6$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Hai chi tiết cho thấy tinh thần của bảng. Một câu đúng \emph{sau khi được giải thích đầy đủ} (H7) vẫn có một trọng số nhỏ ($\max(\iota_7,0{,}3)=0{,}3$) chứ không bị bỏ, vì học sinh đã làm được điều gì đó; nhưng nó không bao giờ được tính là thành công của tiết (xem luật qua tiết). Và một câu sai do \emph{cách viết} hoặc \emph{tính toán} vẫn mang điểm một phần, vì học sinh hiểu phương pháp.
+
+\subsection{Cập nhật Beta và mức thành thạo tổng hợp}
+Với mỗi tiết $v$ và chiều $d$ ta giữ một phân phối $\mathrm{Beta}(\alpha_{v,d},\beta_{v,d})$; bằng chứng $(s,w)$ cập nhật
+\begin{equation}
+\alpha_{v,d}\leftarrow\alpha_{v,d}+w\,s,\qquad \beta_{v,d}\leftarrow\beta_{v,d}+w\,(1-s),
+\end{equation}
+từ giá trị khởi đầu $\alpha^0=m\,p_v$, $\beta^0=m(1-p_v)$ với khối lượng tiên nghiệm $m=2$ (DI-12) và điểm khởi đầu $p_v$ là trung bình mức thành thạo của các tiết tiên quyết đã có điểm, hoặc $0{,}5$ nếu chưa có (DI-16, theo ý tưởng khởi động nguội của 2T-KT). Kỳ vọng của chiều là $\mu_{v,d}=\alpha_{v,d}/(\alpha_{v,d}+\beta_{v,d})$ và $n_{v,d}=\sum w$ là lượng bằng chứng hiệu dụng. Mức thành thạo tổng hợp lấy các chiều đã có đủ bằng chứng $\mathcal{A}_v=\{d:n_{v,d}\ge1\}$ và chuẩn hóa lại trọng số của khung (DI-1):
+\begin{equation}
+M_v=100\cdot\frac{\sum_{d\in\mathcal{A}_v}\omega_d\,\mu_{v,d}}{\sum_{d\in\mathcal{A}_v}\omega_d},\qquad
+\omega=(C\!:\!0{,}20,\ R\!:\!0{,}20,\ A\!:\!0{,}15,\ T\!:\!0{,}15,\ I\!:\!0{,}10,\ S\!:\!0{,}10,\ D\!:\!0{,}10).
+\end{equation}
+Khi chưa chiều nào có đủ bằng chứng, $M_v$ chưa xác định và trang giáo viên hiện ``chưa học'' thay vì một con số.
+
+\subsection{Mức hiểu, các cổng và độ tin cậy}
+Mức hiểu (0--5) đếm số ngưỡng $(20,40,60,75,90)$ mà $M_v$ đạt, rồi bị chặn bởi các cổng theo chiều (DI-6): mức $\ge3$ (``khái niệm'') cần chiều $R$ có đủ bằng chứng với $\mu_R\ge0{,}6$, mức $\ge4$ (``vận dụng'') cần bằng chứng vận dụng từ một câu thành công ở mức D, E hoặc câu chuyển giao, và mức $5$ (``thành thạo tạm thời'', vì chưa có $S$) cần, ngoài $M_v\ge90$ theo ngưỡng, độ tin cậy $\ge75$, $\mu_A\ge0{,}8$ và không còn lỗi quan niệm nghiêm trọng. Tên mức, theo thứ tự, là học, nhận ra, quy trình, khái niệm, vận dụng, thành thạo tạm thời. \emph{Độ tin cậy} cho biết con số đáng tin đến đâu (DI-11):
+\begin{equation}
+\mathrm{conf}_v=100\cdot\underbrace{\bigl(1-e^{-n_v/6}\bigr)}_{f_n}\cdot\underbrace{\bigl(0{,}4+0{,}6\min(1,|\Lambda_v|/4)\bigr)}_{f_{\text{div}}}\cdot f_{\text{span}}\cdot f_{\text{cons}},
+\end{equation}
+với $n_v$ là bằng chứng ngoài chiều $I$, $\Lambda_v$ là các mức nhận thức đã gặp, $f_{\text{span}}=0{,}7$ nếu chỉ một buổi, $0{,}85$ nếu nhiều buổi trong dưới ba ngày và $1$ nếu từ ba ngày; $f_{\text{cons}}=\min(1,\max(0{,}5,1-2\sigma))$ với $\sigma$ là độ lệch chuẩn của tám điểm gần nhất. Dưới $30$, trang giáo viên vẫn hiện số nhưng kèm cảnh báo ``chưa đủ dữ liệu'' (DI-7).
+
+\subsection{Lỗi quan niệm và luật qua tiết}
+Một lỗi quan niệm nhận ra được chuyển \textsc{active}; sau hai câu thành công ở nơi nó có thể xuất hiện thì \textsc{resolving} rồi \textsc{resolved}. Một tiết \emph{qua} (DI-15) khi $M_v\ge100\,p_{\min}$ ($0{,}75$), có ít nhất $3$ \emph{thành công} ở ít nhất $2$ mức nhận thức và $f_{\min}$ dạng câu, có giải thích ($\mu_R\ge0{,}6$) và bằng chứng vận dụng nếu tiết yêu cầu, và không còn lỗi nghiêm trọng \textsc{active}. Một \emph{thành công} là câu được giải với bậc gợi ý không quá H3, không bị coi là đoán và không phải câu ``cùng làm''. Luật này là chính sách của tầng chọn tiết (\rid{N-PASS}): qua tiết mở khóa các tiết sau, nên điểm tổng hợp không đủ, và một học sinh cần gợi ý mạnh ở mọi câu sẽ không qua được dù điểm tổng không thấp (Mục~\ref{sec:res-assess}).
+
+\begin{algorithm}[tbp]
+\caption{Phép chiếu mức hiểu từ sổ sự kiện}\label{alg:project}
+\begin{algorithmic}[1]
+\Require sổ sự kiện $L=(e_1,\dots,e_T)$, chương $G$, bộ tham số $\theta$
+\State khởi tạo $\{n,\alpha,\beta\}$ của mọi $(v,d)$; $p_v \gets$ chưa xác định
+\For{$t=1,\dots,T$}
+  \If{$e_t$ là \textsc{item\_resolved}} \State sinh bằng chứng theo Bảng~\ref{tab:evidence}; cập nhật lỗi quan niệm; ghi thành công
+  \ElsIf{$e_t$ là \textsc{explanation\_submitted} \textbf{hoặc} \textsc{retell\_judged}} \State sinh bằng chứng $R$
+  \EndIf
+  \ForAll{tiết $v$ vừa đổi}
+    \State \textbf{nếu} $p_v$ chưa đóng băng \textbf{thì} $p_v \gets$ trung bình $M_u$, $u\in\mathrm{pre}(v)$, hoặc $0{,}5$
+    \State cập nhật $\alpha,\beta,n$; ghi điểm $M_v$ vào vết; \textbf{nếu} luật qua tiết lần đầu thỏa \textbf{thì} đóng dấu $t$
+  \EndFor
+\EndFor
+\State \Return với mỗi tiết: $M_v$, $\mathrm{conf}_v$, mức hiểu, các cổng, lỗi quan niệm, luật qua tiết, vết
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Giao diện giáo viên}
+Mọi con số mà giáo viên thấy là đầu ra của chính phép chiếu trên: bản đồ nhiệt tiết $\times$ chiều tô theo vùng màu của khung ($0$--$39$ đỏ, $40$--$59$ cam, $60$--$74$ vàng, $75$--$89$ xanh, $90$--$100$ xanh đậm; màu không bao giờ là tín hiệu duy nhất, mỗi ô mang cả con số); đường tiến bộ của $M_v$ theo từng lần bằng chứng; hành trình từng câu (độc lập, có hỗ trợ, cùng làm, chưa giải được) cùng số lần thử và gợi ý; nội dung hội thoại có gán nhãn ý định; và danh sách chú ý (lỗi quan niệm đang mở, tiết dưới ngưỡng, độ tin cậy thấp). Hình~\ref{fig:heat} và \ref{fig:traj} là các hiển thị đó cho học sinh giả lập S1.

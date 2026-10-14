@@ -1,0 +1,21 @@
+\begin{tikzpicture}
+\begin{axis}[cavat,width=0.8\linewidth,height=5.2cm,ymin=0.4,ymax=1.0,ymajorgrids,xmin=-0.4,xmax=9.4,xlabel={lề định tuyến $\varepsilon$ (cosine)},ylabel={MRR},xtick={0,1,2,3,4,5,6,7,8,9},xticklabels={{0},{0,005},{0,01},{0,02},{0,03},{0,05},{0,08},{0,12},{0,2},{tắt}},x tick label style={font=\scriptsize}]
+\addplot[color=ink!60,mark=square*,mark size=1.6pt] coordinates {(0,0.944) (1,0.944) (2,0.944) (3,0.944) (4,0.944) (5,0.944) (6,0.893) (7,0.804) (8,0.804) (9,0.804)};
+\addplot[color=llm,mark=triangle*,mark size=1.6pt] coordinates {(0,0.899) (1,0.899) (2,0.899) (3,0.952) (4,0.881) (5,0.810) (6,0.731) (7,0.674) (8,0.674) (9,0.674)};
+\addplot[color=cavat,mark=*,mark size=1.6pt] coordinates {(0,0.929) (1,0.929) (2,0.929) (3,0.887) (4,0.842) (5,0.736) (6,0.599) (7,0.503) (8,0.503) (9,0.503)};
+\draw[dashed,color=ink!60] (axis cs:3,0.4) -- (axis cs:3,1.0);
+\node[font=\scriptsize,color=ink!70,anchor=south west] at (axis cs:3.1,0.41) {sản phẩm $\varepsilon=0{,}02$};
+\end{axis}
+\end{tikzpicture}
+\\[4pt]
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[color=ink!60,line width=0.9pt] (-0.15,0) -- (0.45,0);
+\node[circle,fill=none,inner sep=0pt] at (0.15,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (0.62,0) {bộ chỉnh};
+\draw[color=llm,line width=0.9pt] (2.00,0) -- (2.60,0);
+\node[circle,fill=none,inner sep=0pt] at (2.30,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (2.77,0) {giữ riêng v1};
+\draw[color=cavat,line width=0.9pt] (4.69,0) -- (5.29,0);
+\node[circle,fill=none,inner sep=0pt] at (4.99,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (5.46,0) {giữ riêng v2 (đóng băng)};
+\end{tikzpicture}

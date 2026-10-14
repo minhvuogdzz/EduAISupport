@@ -1,0 +1,85 @@
+\section{Thiết lập thực nghiệm}\label{sec:setup}
+
+\subsection{Phương pháp đánh giá: tám chiều (RQ1)}
+Đánh giá một gia sư chỉ bằng một con số sẽ che đi chính những thứ quan trọng: một hệ có thể nói rất hay mà vẫn lộ đáp án, hoặc truy xuất rất chính xác mà vẫn dạy trước. Vì vậy chúng tôi đánh giá theo tám chiều (Bảng~\ref{tab:dims}): bảy chiều đánh giá hệ AI của thiết kế gốc của dự án và một chiều kết quả học tập do chúng tôi bổ sung. Mỗi chiều có một chỉ số, một cách đo, một ngưỡng đặt \emph{trước khi đo} và một trạng thái. Hình~\ref{fig:protocol} tóm tắt giao thức. Ba nguyên tắc chi phối cả tám chiều. \emph{Tất định trước, mô hình chấm sau}: chỉ số nào đo được bằng luật (lộ đáp án, số câu hỏi, đúng--sai Toán, phạm vi) thì đo bằng luật; giám khảo là mô hình chỉ dùng cho chất lượng ngôn ngữ và sư phạm, và luôn khác họ với mô hình gia sư (gia sư là Qwen, giám khảo là \code{gpt-oss-120b}). \emph{Tách bộ chỉnh và bộ giữ riêng}: mọi bộ dùng để chỉnh tham số có một bộ giữ riêng viết sau, không dùng để chỉnh gì; con số của bộ giữ riêng mới được báo cáo. \emph{Bỏ từng phần và đối chứng}: mỗi thành phần có thí nghiệm bỏ đi, và hệ được so với hai mốc, một chatbot thương mại và chính mô hình của hệ chỉ có lời nhắc.
+
+\begin{table}[tbp]
+\centering
+\caption{Khung đánh giá tám chiều. Chiều 8 chưa đo được vì chưa có học sinh thật; các chiều còn lại được đo trong bài này, ở mục ghi ở cột cuối.}
+\label{tab:dims}
+\small
+\begin{tabularx}{\linewidth}{@{}c>{\raggedright\arraybackslash}p{2.7cm}YYl@{}}
+\toprule
+\# & Chiều & Chỉ số và cách đo & Ngưỡng & Mục \\
+\midrule
+1 & Tuân thủ Socratic & lộ đáp án và số câu hỏi mỗi lượt (luật); giám khảo chấm Socratic & lộ $\le1\%$ luyện tập, $0\%$ kiểm tra & \ref{sec:res-soc}, \ref{sec:market} \\
+2 & Chất lượng gợi ý & giám khảo: đáp đúng ý của con; tiến bộ sau gợi ý & $\ge 4/5$ & \ref{sec:res-soc} \\
+3 & Bám nguồn (RAG) & Hit@$k$, MRR, tỉ lệ có căn cứ; giám khảo chấm bám nguồn & bám nguồn $\ge95\%$ & \ref{sec:res-rag} \\
+4 & Chất lượng sư phạm & giám khảo: hợp trẻ; giáo viên duyệt nội dung & $\ge 80\%$ chấp nhận & \ref{sec:corpus}, \ref{sec:market} \\
+5 & Độ tin cậy đánh giá & chấm đáp án trên bộ gán nhãn tay; tương đương công thức; phát lại & tất định $100\%$ & \ref{sec:market}, \ref{sec:res-assess} \\
+6 & Tuân thủ phạm vi & dạy trước bài sau; trả lời ngoài chương & $0$ vi phạm & \ref{sec:res-rag} \\
+7 & Bịa đặt & câu không có nguồn; lỗi Toán & $\le2\%$ lượt, $0$ lỗi Toán & \ref{sec:res-rag} \\
+8 & Kết quả học tập & điểm trước/sau so với đối chứng; ghi nhớ sau 7 và 30 ngày & --- & \textit{chưa đo} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+  st/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\scriptsize,text width=2.5cm,minimum height=12mm,inner sep=2pt},
+  frz/.style={st,fill=llmsoft,draw=llm},
+  arr/.style={-{Latex[length=1.8mm]},thick,draw=ink!70},
+  lab/.style={font=\tiny,text=mute,fill=white,inner sep=1pt}]
+\node[st] (design) at (0,0) {\textbf{1. Thiết kế}\\ đặt mục tiêu và ngưỡng \emph{trước} khi đo (DI)};
+\node[st] (tune) at (3.3,0) {\textbf{2. Bộ chỉnh}\\ chỉnh tham số, đọc lỗi};
+\node[frz] (freeze) at (6.6,0) {\textbf{3. Đóng băng}\\ viết bộ giữ riêng, cam kết, đặt thẻ git};
+\node[st] (fix) at (9.9,0) {\textbf{4. Sửa mã}\\ thay đổi chỉ sau thẻ; bộ giữ riêng không được dùng để chỉnh};
+\node[st] (measure) at (13.2,0) {\textbf{5. Đo một lần}\\ trước--sau trên cùng bộ giữ riêng};
+\node[st] (stat) at (13.2,-2.1) {\textbf{6. Thống kê}\\ khoảng Wilson, bootstrap theo cặp, McNemar};
+\node[st] (report) at (9.9,-2.1) {\textbf{7. Báo cáo}\\ cả phần không thuận; câu trượt liệt kê từng câu};
+\node[st] (judge) at (6.6,-2.1) {\textbf{8. Giám khảo}\\ chỉ chất lượng ngôn ngữ; khác họ mô hình gia sư};
+\node[st] (rule) at (3.3,-2.1) {\textbf{9. Luật trước}\\ lộ đáp án, số câu hỏi, đúng--sai, phạm vi đo bằng luật};
+\draw[arr] (design) -- (tune); \draw[arr] (tune) -- (freeze); \draw[arr] (freeze) -- (fix); \draw[arr] (fix) -- (measure);
+\draw[arr] (measure) -- (stat); \draw[arr] (stat) -- (report); \draw[arr,dashed] (report) -- (judge); \draw[arr,dashed] (judge) -- (rule);
+\end{tikzpicture}
+\caption{Giao thức đánh giá: thứ tự thời gian của một vòng đo. Thẻ git ở bước 3 làm cho việc bộ giữ riêng được viết \emph{trước} khi sửa mã kiểm tra được từ lịch sử kho mã; các bước 8--9 cho biết loại chỉ số nào được tin trước (luật) và loại nào chỉ bổ sung (giám khảo).}
+\label{fig:protocol}
+\end{figure}
+
+\subsection{Dữ liệu}
+Bảng~\ref{tab:sets} liệt kê các tập dùng trong bài. Các tập truy xuất gồm các câu hỏi do người phát triển và một trợ lý AI soạn theo bốn kiểu: hỏi trong bài đang học, hỏi một khái niệm của bài trước, hỏi bài sau (phải nói ``bài sau mình học'') và câu ngoài chương (Toán chương khác, hoặc trò chuyện) phải được giữ cho giáo viên. Nhãn liên quan của một câu là mọi đoạn của một hoặc vài tiết mà nội dung tiết đó trả lời câu hỏi (cùng các đoạn tài liệu gắn tiết ấy); nhãn do trợ lý AI soạn theo tên và nội dung tiết và chưa có giáo viên duyệt. Một câu được tính đúng ở mức $k$ khi có ít nhất một đoạn như vậy trong $k$ đoạn đầu của toàn bộ bảng xếp hạng. Đây là nhãn chặt, theo tiết chứ không theo ý: một câu hỏi về dấu phẩy có thể được trả lời đúng bằng một đoạn của tiết khác mà nhãn không tính. Các tập hạn chế ở $14$--$57$ câu; chúng tôi báo cáo khoảng tin cậy để cỡ mẫu hiện ra trong con số.
+
+\begin{table}[tbp]
+\centering
+\caption{Các tập dữ liệu của thực nghiệm. ``Đóng băng'' là được cam kết vào kho mã (kèm thẻ git) \emph{trước} khi sửa mã mà nó dùng để đo.}
+\label{tab:sets}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}rr>{\raggedright\arraybackslash}Y>{\raggedright\arraybackslash}p{3.3cm}@{}}
+\toprule
+Tập & Câu & Trong phạm vi & Thành phần và vai trò & Trạng thái \\
+\midrule
+Phát hành, bộ chỉnh & 30 & 18 & trong bài 8, bài trước 10, bài sau 4, Toán ngoài chương 4, lạc đề 4; dùng để thiết kế phạm vi, định tuyến & đã dùng để chỉnh \\
+Phát hành, giữ riêng v1 & 23 & 14 & 7, 7, 3, 3, 3; viết sau bộ chỉnh & các câu trượt đã được đọc khi thiết kế \\
+Phát hành, giữ riêng v2 & 30 & 20 & 8, 12, 4, 3, 3 & đóng băng trước DI-57 (thẻ \code{eval-freeze-rag-v2}) \\
+Chương mẫu, bộ chỉnh & 67 & 57 & có dấu, không dấu, sai chính tả, diễn đạt khác, theo luật dạy, định nghĩa, lạc đề & đã dùng để chỉnh ngưỡng $0{,}65$ \\
+Chương mẫu, giữ riêng & 30 & 15 & 15 trong chương, 15 ngoài chương & giữ riêng \\
+Lời nói có căn cứ & 21 & --- & 15 câu hỏi của con, 6 câu nối & chạy thật, chưa chỉnh \\
+Chấm đáp án v1 & 36 & --- & 21 đúng, 15 sai, gán nhãn tay & đã xem trước GRADE-1 \\
+Chấm đáp án v2 & 35 & --- & 23 đúng, 12 sai; số đọc bằng chữ, dạng khác nhau & đóng băng trước GRADE-1 (\code{eval-freeze-grading-v2}) \\
+13 vai học sinh khó & 25 lượt & --- & không biết, không hiểu đề, đòi đáp án và ``bỏ qua hướng dẫn'', lạc đề, chán, viết tắt, nhờ làm hộ, sai mà chắc, đoán, đúng mà đoán, hỏi lại gợi ý, hỏi nghĩa từ, trả lời bằng lời & chạy thật \\
+Học sinh giả lập S1 & 3 buổi & --- & học hai chương từ chưa hiểu đến hiểu: \NEvents{} sự kiện, \NStudentMsg{} lời của học sinh & kịch bản \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Học sinh giả lập.} S1 là một học sinh giả lập được viết kịch bản, không phải dữ liệu của trẻ thật: nó đi từ chưa hiểu đến hiểu qua các buổi học (có lỗi quan niệm lặp lại, hỏi lạc đề, cảm xúc tiêu cực, tin nhắn viết tắt và emoji), trả lời đúng bằng \emph{ý chính của giáo viên} khi đã hiểu. Vì vậy nó kiểm tra luồng dạy, bộ chấm và phép chiếu; nó \emph{không} đo hiệu quả học tập. Dữ liệu được ẩn danh thành ``S1''. Bốn học sinh mẫu của lệnh \code{trial} (giỏi, hay sai, sai dạng, bí) cộng một học sinh phụ thuộc được dùng làm nhóm đã biết ở Mục~\ref{sec:known-groups}.
+
+\subsection{Chỉ số và thống kê}
+Với một câu có đoạn liên quan đầu tiên ở hạng $r$: Hit@$k=\mathbb{1}[r\le k]$ và $\mathrm{RR}=1/r$ ($0$ nếu không có), MRR là trung bình của RR. Mọi tỉ lệ có khoảng Wilson $95\%$~\cite{wilson1927}. Khoảng $95\%$ của MRR và của chênh lệch theo cặp lấy bằng bootstrap~\cite{efron1993} theo câu hỏi ($10\,000$ lần lấy mẫu, hạt giống $20261013$); so sánh Hit@3 giữa hai cấu hình trên cùng tập dùng kiểm định McNemar chính xác~\cite{mcnemar1947} trên các cặp bất đồng. Chúng tôi không hiệu chỉnh cho nhiều phép so sánh và coi mọi $p$ là mô tả thăm dò, không phải bằng chứng xác nhận. Mức đạt định hướng (Bảng~\ref{tab:targets}) tính theo quy tắc được khai báo trước khi đo lại: với mục tiêu ``$\ge\tau$'' mức đạt là $\min(1,x/\tau)$, với ``$\le\tau$'' là $\min(1,\tau/x)$, tối đa $100\%$, mục có/không là $0$ hoặc $1$, và khi một chỉ số có cả bộ giữ riêng của chương mẫu lẫn của chương phát hành thì lấy \emph{con số thấp hơn}.
+
+\subsection{Hệ so sánh và giám khảo}
+Ba hệ trả lời cùng một chuỗi lời nói của $13$ vai (cùng câu hỏi, cùng lời): \textbf{B1} là một chatbot dùng lời nhắc thường mà một phụ huynh sẽ viết (``Bạn là trợ lý học tập thân thiện, giúp học sinh lớp 5 học Toán''), chạy bằng mô hình Gemini nhóm Flash; \textbf{B2} là \emph{chính mô hình của CAVAT} (Qwen) với một lời nhắc Socratic soạn kỹ (không nói đáp án cuối, mỗi lượt đúng một câu hỏi, tối đa ba câu, kéo về bài khi lạc đề, từ chối nhẹ khi bị đòi đáp án hoặc bị bảo bỏ qua hướng dẫn) và không có gì khác; \textbf{C} là vòng một câu hỏi của sản phẩm. So B2 với C tách được cái mà hệ thống \emph{bao quanh} mô hình đóng góp; B1 với C cho thấy lựa chọn khác của một đứa trẻ. B1 \emph{không} đại diện cho các chế độ học thương mại, vốn có lời nhắc riêng mà chúng tôi không có; B2 là xấp xỉ gần nhất mà dự án đo được miễn phí. Mỗi lượt được đo bằng luật (nói ra đáp án ở đúng dạng đề hỏi khi đề và học sinh chưa nói, số câu hỏi, số từ, trần $60$ từ là một diễn giải của dự án) và chấm bởi giám khảo \code{gpt-oss-120b} theo bốn tiêu chí thang $1$--$5$ (đáp đúng ý của con, theo phương pháp Socratic, hợp trẻ $10$ tuổi, bám bài đang làm) cùng một nhãn có/không về việc lộ đáp án.
+
+\subsection{Môi trường và tái lập}
+Hệ thống chạy cục bộ với cơ sở dữ liệu MongoDB Atlas gói miễn phí; gia sư dùng Qwen (\code{qwen3.8-27b}) trên Groq, tắt suy luận mở rộng, lời nhắc không quá $3\,000$ token; Gemini chỉ dùng cho ảnh/OCR và vector nhúng. Số liệu của bài được sinh bởi các tập lệnh ở chế độ chỉ đọc trên cơ sở dữ liệu (\code{make paper-data}); vector nhúng lấy từ bộ đệm trên đĩa nên chạy lại không tốn hạn mức; mọi bảng và hình ở bài này được sinh lại từ các tệp JSON công bố kèm. Mọi phép kiểm tương đương và phát lại ở Mục~\ref{sec:res-assess} chạy không cần mạng.

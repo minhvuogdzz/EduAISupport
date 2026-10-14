@@ -1,0 +1,28 @@
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=3 by 1,horizontal sep=1.0cm,y descriptions at=edge left},cavat,width=5.6cm,height=5.0cm,ymin=0.3,ymax=1.03,xmin=1,xmax=10,xtick={1,3,5,7,10},ymajorgrids,xlabel={$k$},]
+\nextgroupplot[title={(a) bộ chỉnh},ylabel={Hit@$k$}]
+\addplot[color=ink!70,dashed,mark=*,mark size=1.3pt] coordinates {(1,0.722) (2,0.833) (3,0.833) (4,0.833) (5,0.944) (6,0.944) (7,0.944) (8,0.944) (9,0.944) (10,0.944)};
+\addplot[color=cavat,solid,mark=*,mark size=1.3pt] coordinates {(1,0.889) (2,1.000) (3,1.000) (4,1.000) (5,1.000) (6,1.000) (7,1.000) (8,1.000) (9,1.000) (10,1.000)};
+\addplot[color=llm,dotted,mark=*,mark size=1.3pt] coordinates {(1,0.833) (2,0.944) (3,1.000) (4,1.000) (5,1.000) (6,1.000) (7,1.000) (8,1.000) (9,1.000) (10,1.000)};
+\nextgroupplot[title={(b) giữ riêng v1}]
+\addplot[color=ink!70,dashed,mark=*,mark size=1.3pt] coordinates {(1,0.643) (2,0.643) (3,0.643) (4,0.643) (5,0.714) (6,0.714) (7,0.714) (8,0.786) (9,0.857) (10,0.857)};
+\addplot[color=cavat,solid,mark=*,mark size=1.3pt] coordinates {(1,0.929) (2,0.929) (3,1.000) (4,1.000) (5,1.000) (6,1.000) (7,1.000) (8,1.000) (9,1.000) (10,1.000)};
+\addplot[color=llm,dotted,mark=*,mark size=1.3pt] coordinates {(1,0.714) (2,0.857) (3,0.857) (4,0.857) (5,0.857) (6,0.929) (7,0.929) (8,0.929) (9,1.000) (10,1.000)};
+\nextgroupplot[title={(c) giữ riêng v2}]
+\addplot[color=ink!70,dashed,mark=*,mark size=1.3pt] coordinates {(1,0.450) (2,0.450) (3,0.450) (4,0.450) (5,0.450) (6,0.600) (7,0.650) (8,0.700) (9,0.750) (10,0.800)};
+\addplot[color=cavat,solid,mark=*,mark size=1.3pt] coordinates {(1,0.850) (2,0.900) (3,0.900) (4,0.900) (5,0.900) (6,0.950) (7,0.950) (8,0.950) (9,0.950) (10,0.950)};
+\addplot[color=llm,dotted,mark=*,mark size=1.3pt] coordinates {(1,0.800) (2,0.900) (3,0.900) (4,0.950) (5,1.000) (6,1.000) (7,1.000) (8,1.000) (9,1.000) (10,1.000)};
+\end{groupplot}
+\end{tikzpicture}
+\\[4pt]
+\begin{tikzpicture}[x=1cm,y=1cm]
+\draw[color=ink!70,dashed,line width=0.9pt] (-0.15,0) -- (0.45,0);
+\node[circle,fill=none,inner sep=0pt] at (0.15,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (0.62,0) {không định tuyến (trước RAG-4)};
+\draw[color=cavat,line width=0.9pt] (4.97,0) -- (5.57,0);
+\node[circle,fill=none,inner sep=0pt] at (5.27,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (5.74,0) {có định tuyến (sản phẩm)};
+\draw[color=llm,dotted,line width=0.9pt] (9.28,0) -- (9.88,0);
+\node[circle,fill=none,inner sep=0pt] at (9.58,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (10.05,0) {RAG phẳng, không đồ thị};
+\end{tikzpicture}

@@ -1,0 +1,32 @@
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1,horizontal sep=1.5cm},cavat,width=7.9cm,height=5.2cm,ymin=0,ymax=1.05,ymajorgrids,symbolic x coords={Từ khóa,Ngữ nghĩa,Lai,Từ khóa+XH,Lai+XH},xtick=data,x tick label style={rotate=25,anchor=east,font=\scriptsize},enlarge x limits=0.12]
+\nextgroupplot[title={(a) MRR},ybar,bar width=4.2pt]
+\addplot+[fill=cavat!45,draw=none] coordinates {(Từ khóa,0.608) (Ngữ nghĩa,0.599) (Lai,0.609) (Từ khóa+XH,0.804) (Lai+XH,0.944)};
+\addplot+[fill=cavat!75,draw=none] coordinates {(Từ khóa,0.669) (Ngữ nghĩa,0.668) (Lai,0.673) (Từ khóa+XH,0.809) (Lai+XH,0.952)};
+\addplot+[fill=cavat!60!black,draw=none] coordinates {(Từ khóa,0.459) (Ngữ nghĩa,0.449) (Lai,0.460) (Từ khóa+XH,0.728) (Lai+XH,0.887)};
+\addplot+[fill=llm!55,draw=none] coordinates {(Từ khóa,0.826) (Ngữ nghĩa,0.868) (Lai,0.864) (Từ khóa+XH,0.870) (Lai+XH,0.939)};
+\addplot+[fill=llm!90!black,draw=none] coordinates {(Từ khóa,0.608) (Ngữ nghĩa,0.765) (Lai,0.722) (Từ khóa+XH,0.613) (Lai+XH,0.678)};
+\nextgroupplot[title={(b) Hit@3},ybar,bar width=4.2pt]
+\addplot+[fill=cavat!45,draw=none] coordinates {(Từ khóa,0.556) (Ngữ nghĩa,0.556) (Lai,0.556) (Từ khóa+XH,0.833) (Lai+XH,1.000)};
+\addplot+[fill=cavat!75,draw=none] coordinates {(Từ khóa,0.643) (Ngữ nghĩa,0.643) (Lai,0.643) (Từ khóa+XH,0.786) (Lai+XH,1.000)};
+\addplot+[fill=cavat!60!black,draw=none] coordinates {(Từ khóa,0.400) (Ngữ nghĩa,0.400) (Lai,0.400) (Từ khóa+XH,0.700) (Lai+XH,0.900)};
+\addplot+[fill=llm!55,draw=none] coordinates {(Từ khóa,0.912) (Ngữ nghĩa,1.000) (Lai,0.982) (Từ khóa+XH,0.947) (Lai+XH,1.000)};
+\addplot+[fill=llm!90!black,draw=none] coordinates {(Từ khóa,0.800) (Ngữ nghĩa,0.933) (Lai,0.867) (Từ khóa+XH,0.867) (Lai+XH,0.867)};
+\end{groupplot}
+\end{tikzpicture}
+\\[4pt]
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[draw=none,fill=cavat!45,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (0.00,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (0.28,0) {Phát hành, bộ chỉnh (18)};
+\node[draw=none,fill=cavat!75,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (3.97,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (4.25,0) {Phát hành, giữ riêng v1 (14)};
+\node[draw=none,fill=cavat!60!black,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (8.48,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (8.76,0) {Phát hành, giữ riêng v2 (20)};
+\end{tikzpicture}
+\\[1pt]
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[draw=none,fill=llm!55,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (0.00,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (0.28,0) {Chương mẫu, bộ chỉnh (57)};
+\node[draw=none,fill=llm!90!black,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (4.11,0) {};
+\node[anchor=west,font=\scriptsize,inner sep=1pt] at (4.39,0) {Chương mẫu, giữ riêng (15)};
+\end{tikzpicture}

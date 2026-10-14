@@ -1,0 +1,22 @@
+\section{Hạn chế và các mối đe dọa đến tính hợp lệ}\label{sec:limits}
+
+\paragraph{Học sinh và nhãn.}
+Mọi thực nghiệm dùng học sinh \emph{giả lập} (S1, các học sinh mẫu và $13$ vai); không có dữ liệu của trẻ thật, nên chiều 8 chưa được đo, và bài báo không khẳng định rằng CAVAT giúp học sinh học tốt hơn. S1 trả lời đúng bằng ý chính của giáo viên khi đã hiểu, nên số liệu của nó kiểm luồng dạy, bộ chấm và phép chiếu, không đo hiệu quả. Nhãn của các tập truy xuất do người phát triển và một trợ lý AI soạn, chưa có độ đồng thuận với giáo viên (hệ số $\kappa$ chưa đo); nhãn chấm đáp án do một người gán. Tập giữ riêng nhỏ ($14$--$57$ câu trong phạm vi) và tập v1 không còn giữ riêng vì các câu trượt của nó đã được đọc khi thiết kế định tuyến; chỉ v2 và v2 của chấm đáp án là xác nhận độc lập, ở cỡ $20$ và $35$.
+
+\paragraph{Tính độc lập của nội dung.}
+Trong \NDecisions{} quyết định duyệt phương án dạy, chỉ hai quyết định do chính giáo viên thực hiện; phần còn lại do một trợ lý AI theo ủy quyền, và các tài liệu nguồn do giáo viên soạn có hỗ trợ của AI. Chất lượng nội dung vì vậy chưa được một người ngoài kiểm duyệt độc lập; phần đo được ở bài này (đáp án được kiểm chính xác, bộ chấm, truy xuất) không phụ thuộc vào phép duyệt đó, nhưng chất lượng sư phạm của lời giảng, gợi ý và phản ví dụ thì có.
+
+\paragraph{Phép đo.}
+Giám khảo là một mô hình ngôn ngữ, khác họ với gia sư nhưng có thiên lệch riêng, và ví dụ của Mục~\ref{sec:market} cho thấy nó sai ở đâu; vì vậy các chỉ số chủ chốt của bài là chỉ số luật. Lời nhắc của B1 và B2 được soạn một lần, không tối ưu hóa; một lời nhắc tốt hơn có thể làm B2 sạch hơn nữa, trong khi CAVAT không có lời nhắc nào để tối ưu cho các nước đi nó nói bằng câu mẫu. Giám khảo \code{gpt-oss-120b} cũng là mô hình dự phòng đã soạn khoảng $44\%$ đoạn nháp của phương án đã phát hành (Mục~\ref{sec:plan}); các lượt được chấm trong bài (các vai khó, lời nói có căn cứ) chạy trên chương mẫu viết tay nên không có phần nào do chính giám khảo soạn, nhưng đây là một chỗ trùng cần biết. Các định nghĩa của chỉ số (``lộ đáp án'' là nói ra số của đáp án ở đúng dạng đề hỏi, kiểm cho câu đáp án số; ``Socratic'' là một câu hỏi, không lộ) là phép \emph{thao tác hóa} của nguyên tắc, không phải nguyên tắc: một lượt có thể lộ đáp án bằng lời mà luật không bắt. Độ khó và mức nhận thức của câu suy từ mục của tài liệu (DI), chưa hiệu chỉnh bằng dữ liệu làm bài, nên trọng số $0{,}5+\delta$ và $1{,}5-\delta$ mang độ chính xác của phép gán đó. Trần $60$ từ, mọi ngưỡng $k$ và lề định tuyến là diễn giải của dự án; lề $0{,}02$ không tối ưu trên v2 và chúng tôi giữ nguyên.
+
+\paragraph{Thống kê.}
+Với $n=20$ câu trong phạm vi, các khoảng tin cậy rộng (xem Bảng~\ref{tab:ablation-main}); sự \emph{không khác biệt} giữa CAVAT và RAG phẳng về độ chính xác có nghĩa là không phát hiện được chênh lệch cỡ lớn, không phải chúng bằng nhau. Chúng tôi không hiệu chỉnh nhiều phép so sánh. Biên cosine giữa câu trong chương và ngoài chương chỉ $0{,}02$ và được hiệu chỉnh trên chương mẫu rồi áp lên chương phát hành.
+
+\paragraph{Cách đọc các buổi học của S1.}
+Trong các buổi của S1, $85\%$ lượt của gia sư là câu mẫu và mô hình chỉ viết $4$ lượt, do trần $15$ lần gọi mỗi buổi và hạn mức miễn phí. Các con số tuân thủ ở Mục~\ref{sec:res-soc} vì vậy nói về chính sách và nội dung đã duyệt hơn là về lời mô hình; lời do mô hình viết chỉ được đo trên $24$ lượt của các vai khó và $21$ ca lời nói có căn cứ. Đây là một hạn chế của chứng cứ, có thể sửa bằng việc chạy lại với hạn mức rộng hơn.
+
+\paragraph{Phạm vi.}
+Hai chương của một môn, một lớp, tài liệu của một giáo viên, tiếng Việt, và một cặp mô hình (Qwen cho gia sư, Gemini cho ảnh và vector) ở một thời điểm: kết quả không tự nhiên chuyển sang môn khác, giáo viên khác hay phiên bản mô hình khác. Chế độ giọng nói (nghe bằng Whisper, nói bằng một giọng cục bộ) có trong sản phẩm nhưng không nằm trong các thực nghiệm này, ngoại trừ việc bộ chấm đọc số bằng chữ. Chưa đo độ trễ, chi phí theo lượt, khả năng tiếp cận hay độ dễ dùng của trang giáo viên.
+
+\paragraph{Quy trình.}
+Cùng một người (và trợ lý AI của họ) viết mã, tập câu hỏi, sửa lỗi và báo cáo. Việc đóng băng tập bằng thẻ git làm cho thứ tự thời gian kiểm tra được, nhưng không thay thế một người đánh giá bên ngoài hay một lần chạy lại độc lập.

@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -86,6 +86,11 @@ web-live: web-install ## Run the web app against the real API (start "make api" 
 
 paper: ## Build the paper docs/paper/cavat-paper.pdf (Tectonic: brew install tectonic)
 	cd docs/paper && tectonic -X compile cavat-paper.tex
+
+paper-data: ## Regenerate docs/paper/data/*.json (database read-only, no writes) and the tables and figures in docs/paper/gen
+	cd services/api && .venv/bin/python scripts/paper_corpus.py && .venv/bin/python scripts/paper_rag.py \
+		&& .venv/bin/python scripts/paper_student.py && .venv/bin/python scripts/paper_assessment.py \
+		&& .venv/bin/python scripts/paper_baselines.py && .venv/bin/python scripts/paper_figures.py
 
 eval-baselines: ## CAVAT against a market chatbot (Gemini) and a prompted LLM (Qwen): hard students and grading (free-tier quota)
 	cd services/api && .venv/bin/python scripts/eval_vs_baselines.py

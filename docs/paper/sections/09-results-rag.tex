@@ -1,0 +1,119 @@
+\section{Kết quả I: truy xuất và quyết định trả lời}\label{sec:res-rag}
+
+Mục này trả lời RQ2. Chúng tôi lần lượt xem thành phần nào đóng góp (Mục~\ref{sec:ablation}), cái giá và tác dụng của ràng buộc đồ thị cùng định tuyến (Mục~\ref{sec:routing-res}), điều đồ thị mua được so với RAG phẳng (Mục~\ref{sec:flat}), việc nhận ra câu không có căn cứ (Mục~\ref{sec:grounding-res}), các lỗi còn lại (Mục~\ref{sec:failures}) và cuối cùng là mức đạt định hướng (Mục~\ref{sec:targets}).
+
+\subsection{Mỗi thành phần đóng góp bao nhiêu}\label{sec:ablation}
+Bảng~\ref{tab:ablation-main} và Hình~\ref{fig:ablation} so năm cấu hình bỏ dần thành phần (và hai cấu hình phẳng để so ở Mục~\ref{sec:flat}); bảng đầy đủ cho mọi tập ở Phụ lục~\ref{app:ablation}. Có ba điều rút ra ở tập giữ riêng v2, tập duy nhất của chương phát hành chưa từng chi phối thiết kế.
+
+\textbf{Từ khóa, ngữ nghĩa và hợp nhất không tách được nhau.} Cả ba cho Hit@3 đúng $0{,}40$ và MRR trong khoảng $0{,}449$--$0{,}460$ ($\Delta$MRR từ khóa$\to$lai $+0{,}001$, khoảng $[0{,}000;\,0{,}002]$, McNemar $p=1{,}0$). Lý do nằm ở dữ liệu chứ không phải ở bộ so khớp: văn bản của giáo viên ngắn và dùng chung nhiều thuật ngữ giữa các tiết (``phần nguyên'', ``hàng'', ``dấu phẩy''), nên đoạn từ tiết đang học và đoạn từ tiết khác khớp từ khóa và nghĩa tương đương nhau; điều phân biệt là \emph{cấu trúc}, tức tiết nào đang được học.
+
+\textbf{Cấu trúc đồ thị và xếp hạng lại sư phạm là phần có tác dụng.} Thêm xếp hạng lại và trọng số khoảng cách vào cấu hình lai nâng MRR từ $0{,}460$ lên $0{,}887$ ($\Delta=+0{,}427$, khoảng $[0{,}236;\,0{,}613]$; Hit@3 $+0{,}50$, McNemar $p=0{,}002$, $10$ câu từ sai sang đúng và không câu nào ngược lại).
+
+\textbf{Phần góp của vector chưa chứng minh được.} So từ khóa $+$ xếp hạng lại với lai $+$ xếp hạng lại, $\Delta$MRR $=+0{,}158$ với khoảng $[-0{,}031;\,0{,}359]$ chứa $0$ và McNemar $p=0{,}22$ trên $20$ câu. Một nhận định trước đây của dự án (``vector ngữ nghĩa chỉ có ích khi đi cùng cấu trúc đồ thị'') vì vậy \emph{không được dữ liệu ủng hộ ở mức thống kê}; nó chỉ nhất quán với một xu hướng thuận lợi ở cỡ mẫu này. Ở chương mẫu, ngữ nghĩa thuần đứng đầu về MRR ($0{,}765$ so với $0{,}678$ của lai $+$ xếp hạng lại) và giả thuyết ``lai $+$ xếp hạng lại tốt nhất'' không đạt: xếp hạng lại được thiết kế cho cấu trúc của tài liệu thật và không giúp ở đây.
+
+\begin{table}[tbp]
+\centering
+\caption{Ablation trên hai tập giữ riêng. Hit@$k$: tỉ lệ câu có đoạn liên quan trong $k$ đoạn đầu; KTC: khoảng bootstrap $95\%$. Đậm: MRR cao nhất trên tập v2. ``Phẳng'': không đưa tiết đang học vào truy xuất (Mục~\ref{sec:flat}); trên chương mẫu, câu hỏi không mang tiết nên phẳng và có đồ thị trùng nhau.}
+\label{tab:ablation-main}
+\input{gen/tab-ablation-main}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-ablation}
+\caption{MRR và Hit@3 của năm cấu hình trên năm tập câu hỏi (cỡ mẫu trong ngoặc; XH: xếp hạng lại). Hai tập ``giữ riêng v1'' và ``giữ riêng v2'' được viết sau tập chỉnh; chỉ v2 chưa từng chi phối thiết kế.}
+\label{fig:ablation}
+\end{figure}
+
+\subsection{Cái giá và tác dụng của ràng buộc phạm vi}\label{sec:routing-res}
+Bản đầu của truy xuất theo phạm vi, chưa có định tuyến, \emph{làm hỏng} các câu hỏi về bài trước: trên v2, Hit@3 của nhóm ``hỏi khái niệm của bài trước'' là $0{,}08$ ($1$ trong $12$ câu), vì trọng số $1/(1+d_G)$ và phạm vi đẩy các đoạn của tiết hiện tại lên trước đoạn thật sự trả lời. Định tuyến (DI-57) đưa nhóm này lên $0{,}83$ và toàn tập từ $0{,}45$ lên $0{,}90$ (Bảng~\ref{tab:routing}, Hình~\ref{fig:hitk}): $9$ câu từ sai sang đúng, không câu nào ngược lại (McNemar $p=0{,}004$). Tác dụng cùng chiều trên hai tập còn lại (bộ chỉnh $0{,}83\to1{,}00$, v1 $0{,}64\to1{,}00$); các tập đó đã chi phối thiết kế nên chỉ v2 mang nghĩa xác nhận. Nhóm ``hỏi trong bài đang học'' không đổi ($1{,}00$ trước và sau), tức là định tuyến không làm hại câu trong bài.
+
+\begin{table}[tbp]
+\centering
+\caption{Tác dụng của định tuyến chủ đề (DI-57) trên cấu hình sản phẩm (lai $+$ xếp hạng lại). Mũi tên: số câu chuyển từ sai sang đúng ($\uparrow$) và ngược lại ($\downarrow$) ở Hit@3.}
+\label{tab:routing}
+\input{gen/tab-routing}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-hitk}
+\caption{Hit@$k$ của cấu hình sản phẩm khi không có và khi có định tuyến, cùng RAG phẳng, trên ba tập của chương phát hành.}
+\label{fig:hitk}
+\end{figure}
+
+Bảng~\ref{tab:trace} cho thấy cơ chế này làm việc ra sao ở một câu cụ thể: một học sinh đang học tiết viết số đo diện tích (STP-08) hỏi ``$1$ m bằng bao nhiêu cm vậy cô'', một câu về đổi độ dài mà tiết STP-06 đã dạy. Không có định tuyến, năm đoạn đầu đều của tiết hiện tại (cosine $0{,}63$--$0{,}69$, không đoạn nào trả lời); với định tuyến, tiết STP-06 gần câu hơn tiết hiện tại quá lề $\varepsilon$ nên các đoạn của nó nhận $d_G=0$, và cả năm đoạn đầu đều của tiết ấy (cosine $0{,}69$--$0{,}75$).
+
+\begin{table}[tbp]
+\centering
+\caption{Vết truy xuất của câu ``$1$ m bằng bao nhiêu cm vậy cô'' hỏi ở tiết STP-08 (đáp án nằm ở tiết STP-06): năm đoạn đầu và các tín hiệu của chúng, không định tuyến và có định tuyến. BM25, cos: hạng của đoạn trong từng danh sách; cosine: độ gần với câu hỏi; $d_G$: khoảng cách trên đồ thị; fuse: điểm RRF nhân $1/(1+d_G)$ (nhân 100); điểm: sau xếp hạng lại (nhân 100). \tick: đoạn thuộc tiết mà nhãn ghi.}
+\label{tab:trace}
+\input{gen/tab-trace}
+\end{table}
+
+Hình~\ref{fig:sweep} cho thấy độ nhạy với lề định tuyến $\varepsilon$. MRR có một \emph{vùng phẳng} cho $\varepsilon\in[0;\,0{,}03]$ ($0{,}84$--$0{,}95$) và giảm đơn điệu khi $\varepsilon$ lớn dần, về mức không định tuyến khi $\varepsilon\ge0{,}12$. Giá trị sản phẩm $0{,}02$ được chọn trên bộ chỉnh và v1 và \emph{không tối ưu trên v2}: ở $\varepsilon\le0{,}01$, MRR của v2 là $0{,}929$ so với $0{,}887$. Chúng tôi giữ $0{,}02$ chứ không chỉnh lại trên v2, vì làm thế sẽ biến tập giữ riêng thành tập chỉnh; ghi nhận đây là phân tích độ nhạy sau khi đo. Ở mọi $\varepsilon$, không câu ngoài phạm vi nào bị trả lời (số trả lời sai bằng $0$ ở cả ba tập), nên chọn $\varepsilon$ chỉ đánh đổi độ chính xác chứ không đánh đổi an toàn.
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-sweep}
+\caption{MRR theo lề định tuyến $\varepsilon$ trên ba tập; điểm cuối là tắt định tuyến. Đường đứt nét: giá trị sản phẩm.}
+\label{fig:sweep}
+\end{figure}
+
+\subsection{Đồ thị mua được gì so với RAG phẳng}\label{sec:flat}
+Một nhận xét công bằng cần được nêu: RAG phẳng, tức là cùng chỉ mục và cùng hợp nhất nhưng \emph{không} đưa tiết đang học vào truy xuất, đạt Hit@3 và MRR ngang với cấu hình sản phẩm. Trên v2, Hit@3 của hai hệ đều là $0{,}90$ ($\Delta$MRR $=+0{,}014$, khoảng $[-0{,}128;\,0{,}156]$); gộp ba tập của chương phát hành ($52$ câu trong phạm vi), Hit@3 là $0{,}96$ so với $0{,}92$ (McNemar $p=0{,}63$, $3$ câu tốt hơn, $1$ câu kém hơn) và $\Delta$MRR $=+0{,}058$ với khoảng $[-0{,}018;\,0{,}137]$. Vậy ở cỡ mẫu này, \emph{ràng buộc theo đồ thị không làm truy xuất chính xác hơn}; việc định tuyến chỉ khôi phục độ chính xác mà phạm vi đã làm mất.
+
+Cái mà phạm vi mua được là \emph{an toàn phạm vi} (Bảng~\ref{tab:flat}). Với RAG phẳng, ba đoạn đầu chứa ít nhất một đoạn của tiết \emph{sau} tiết đang học ở $31$ trên $83$ câu ($37\%$, khoảng $[28\%;\,48\%]$); ngay cả trong $52$ câu hỏi thuộc phạm vi, $12$ câu ($23\%$, $[14\%;\,36\%]$) có đoạn như vậy. Nó cũng \emph{trả lời cả $11$ trên $11$ câu hỏi về bài sau}, tức dạy trước nội dung chưa học, và trả lời $3$ trong $20$ câu ngoài chương. CAVAT trả lời $0$ trong $11$ câu hỏi về bài sau (cả $11$ được nói ``bài sau mình học'') và $0$ câu ngoài chương. Đây là một lựa chọn thiết kế có chủ đích: thà chậm một lượt chờ giáo viên giải đáp còn hơn để học sinh nghe giải thích một nội dung của bài chưa học.
+
+\begin{table}[tbp]
+\centering
+\caption{CAVAT và RAG phẳng trên ba tập của chương phát hành. ``Đoạn bài sau trong top-3'': số câu mà ba đoạn đầu chứa đoạn của tiết đứng sau tiết đang học (trên tổng số câu của tập). ``Bị trả lời'': số câu mà hệ sẽ đưa lời giải thích có căn cứ, thay vì nói ``bài sau'' hoặc giữ cho giáo viên.}
+\label{tab:flat}
+\input{gen/tab-flat}
+\end{table}
+
+\subsection{Nhận ra câu không có căn cứ}\label{sec:grounding-res}
+Trên cả năm tập, \NQuestionsInScope{} câu trong phạm vi đều có căn cứ ($124$/$124$, khoảng Wilson $[97\%;\,100\%]$) và $45$ câu ngoài chương (Toán ngoài chương và lạc đề) đều bị từ chối ($45$/$45$, $[92\%;\,100\%]$). Hình~\ref{fig:grounding} cho thấy biên: cosine thấp nhất của câu trong chương là $0{,}668$ và cao nhất của câu ngoài chương là $0{,}648$. Biên $0{,}02$ giữa hai nhóm, với ngưỡng $0{,}65$ nằm trong biên, là mỏng và chỉ được xác nhận ở cỡ mẫu nhỏ.
+
+\begin{figure}[tbp]
+\centering
+\input{gen/fig-grounding}
+\caption{Cosine lớn nhất của các đoạn được chọn, theo loại câu hỏi, trên cả năm tập. Mỗi chấm là một câu (lệch dọc ngẫu nhiên để khỏi chồng). Ngưỡng $0{,}65$ tách câu trong phạm vi khỏi câu ngoài chương, nhưng \emph{không} tách được câu hỏi bài sau: bảy trong mười một câu ở trên ngưỡng.}
+\label{fig:grounding}
+\end{figure}
+
+Hình~\ref{fig:grounding} cũng cho thấy vì sao cổng phạm vi không dư: $7$ trong $11$ câu hỏi bài sau có căn cứ theo cosine, vì kho \emph{có} nội dung đó, ở tiết sau. Nếu chỉ có ngưỡng nền tảng, hệ sẽ trả lời chúng; chính phát hiện tiết sau (Mục~\ref{sec:rag}) chuyển tất cả $11$ câu sang ``bài sau''. Tính cả quyết định cuối, \NQuestionsInScope{} câu trong phạm vi có $123$ được trả lời; câu còn lại là một lỗi mà Mục~\ref{sec:failures} phân tích. Bảng~\ref{tab:rag-decisions} liệt kê quyết định theo nhóm câu.
+
+\begin{table}[tbp]
+\centering
+\caption{Quyết định cuối cùng của gia sư theo nhóm câu hỏi (cấu hình sản phẩm). ``Đúng'': câu trong phạm vi được trả lời; câu bài sau được báo ``bài sau''; câu ngoài chương không được trả lời.}
+\label{tab:rag-decisions}
+\input{gen/tab-rag-decisions}
+\end{table}
+
+\subsection{Các lỗi còn lại}\label{sec:failures}
+Bảng~\ref{tab:failures} liệt kê mọi câu của v2 mà hệ sản phẩm không đưa đoạn đúng vào ba đoạn đầu hoặc ra quyết định sai. Có hai kiểu. Kiểu một là \emph{lệch nhãn nhưng có thể vẫn đúng}: các câu V09 (``phần thập phân nằm ở bên nào dấu phẩy'') và V12 (``làm tròn đến hàng phần mười là nhìn chữ số nào'') truy xuất một đoạn nói đúng điều đó ở tiết khác với tiết mà nhãn ghi (hạng $14$ và $6$ của đoạn được gán nhãn), với cosine $0{,}77$ và $0{,}80$; nhãn của chúng tôi chặt hơn điều một học sinh cần, nên đây là chặn trên của lỗi. Kiểu hai là lỗi thật: V01 (``số $7{,}25$ đọc như thế nào ạ'') bị báo ``bài sau'' vì một đoạn của tiết so sánh đứng gần câu hơn đoạn của tiết đang học $0{,}03$; một đứa trẻ hỏi một điều thuộc bài mình đang học sẽ bị bảo chờ. Đây là loại lỗi \emph{an toàn nhưng gây khó chịu}: hệ chọn sai về phía thận trọng.
+
+\begin{table}[tbp]
+\centering
+\caption{Các câu của tập v2 mà cấu hình sản phẩm không đưa đoạn đúng vào ba đoạn đầu hoặc quyết định chưa đúng. ``Hạng'': vị trí của đoạn đúng đầu tiên trong toàn bảng xếp hạng.}
+\label{tab:failures}
+\input{gen/tab-failures}
+\end{table}
+
+\subsection{Lời nói có căn cứ}\label{sec:grounded-res}
+Truy xuất chỉ là nửa đầu: điều học sinh nghe là lời của mô hình viết từ các đoạn đó. Chúng tôi chạy thật $21$ ca của chương mẫu: $15$ câu con tự hỏi (trong chương, về bài sau, ngoài chương) và $6$ câu nối trước lời giải thích đã duyệt, với Qwen làm gia sư và \code{gpt-oss-120b} làm giám khảo. Phiên bản \rid{grounded-speech/0.2.2} chọn đúng loại phản hồi (trả lời, mời con tự nghĩ, ``bài sau'', giữ cho giáo viên) ở $15/15$ câu; $8$ câu trả lời bằng lời của Qwen đã qua kiểm chứng và được giám khảo chấm bám nguồn $5{,}00/5$, đúng trọng tâm $4{,}62$, đúng kiến thức $4{,}88$, hợp trẻ $5{,}00$, không có lượt bịa hoặc lộ; $6$ câu nối đều qua kiểm chứng và đạt $5{,}00$ ở cả bốn tiêu chí. Bộ kiểm chứng \emph{đã chặn} năm câu mà Qwen viết trước khi học sinh nghe thấy: một câu dùng thuật ngữ Toán mà đoạn nguồn không có (``Vì $0{,}2$ m bằng $20$ cm\ldots'', với đơn vị cm) và bốn câu nối nhắc lại ý của học sinh mà không nói đó là ý của con, điều sẽ làm một ý sai nghe như lời gia sư. Đây là bằng chứng trực tiếp rằng bộ kiểm chứng là thành phần chính chứ không phải phụ: nếu không có nó, năm câu đó đã đến tai trẻ.
+
+Con số này không so được trực tiếp với lần chạy đầu ngày $7/10$ (phiên bản $0.1.0$: bám nguồn $4{,}12/5$, $1$ trong $8$ câu trả lời và $2$ trong $5$ câu nối bị giám khảo coi là bịa, $1$ câu nối lộ đáp án câu đang chờ), vì giữa hai lần có hai thay đổi lẫn lộn: phép kiểm khẳng định được siết (đo bằng chạy thật, vì $80\%$ từ có trọng số idf từng từ chối câu trả lời đúng) và giám khảo được sửa lỗi định dạng đầu vào. Chúng tôi vì vậy chỉ khẳng định kết quả của lần đo sau, trên $14$ lượt, và không khẳng định mức cải thiện.
+
+\subsection{Mức đạt so với định hướng thiết kế (RQ2)}\label{sec:targets}
+Bảy định hướng của phần truy xuất được đặt trước khi đo (Bảng~\ref{tab:targets}); mục không có số trong thiết kế gốc được khai báo là diễn giải của dự án trước khi xem kết quả của tập giữ riêng. \textbf{Truy xuất của CAVAT đạt trung bình \TargetMean{} so với bảy định hướng; năm định hướng đạt trọn.} Định hướng R1 (Hit@3 $\ge0{,}90$) đạt $96\%$, vì con số thấp hơn trong hai tập giữ riêng là $0{,}87$ của chương mẫu. Định hướng R7 không đạt, vì ``lai $+$ xếp hạng lại tốt nhất'' chỉ đúng ở chương phát hành. Hai định hướng R5 và R6 (bám nguồn và không bịa) đo trên $21$ ca của chương mẫu (Mục~\ref{sec:grounded-res}); chúng đạt $100\%$ nhưng chỉ trên $14$ lượt, nên ngưỡng $2\%$ chưa thật sự kiểm chứng được (cần khoảng $100$ lượt).
+
+Con số $85\%$ là kết quả của hai việc cần tách bạch. Lần đo đầu, trước các sửa chữa, cho $65\%$. Mức tăng đến từ (i)~một sửa chữa thật của hệ thống, định tuyến (R1: $71\%\to96\%$, đo trên tập đóng băng viết trước khi sửa), và (ii)~một lần đo lại R5, R6 trên mã hiện tại với một giám khảo đã được sửa lỗi định dạng đầu vào (``không có phản hồi của gia sư'' khi ô trước đó rỗng) làm nó chấm nhầm một ca ($82\%\to100\%$ và $23\%\to0\%$ lượt bịa hoặc lộ). Phần (ii) là sửa phép đo, không phải cải thiện hệ; bài báo báo cáo cả hai.
+
+\begin{table}[tbp]
+\centering
+\caption{Bảy định hướng của phần truy xuất và mức đạt. Mức đạt $=\min(1,x/\tau)$ với mục tiêu ``$\ge$'', $\min(1,\tau/x)$ với ``$\le$''; lấy con số thấp hơn giữa chương mẫu và chương phát hành. R1--R4 và R7: tập giữ riêng; R5, R6: $21$ ca của lời nói có căn cứ.}
+\label{tab:targets}
+\input{gen/tab-targets}
+\end{table}

@@ -1,0 +1,20 @@
+\begin{tikzpicture}[x=1cm,y=1cm,
+  stage/.style={draw=cavat,rounded corners=2pt,fill=soft,align=left,font=\scriptsize,text width=3.35cm,inner sep=4pt,minimum height=20mm},
+  model/.style={stage,draw=llm,fill=llmsoft},
+  human/.style={stage,draw=ink,fill=gray!12},
+  head/.style={font=\scriptsize\bfseries,align=left},
+  arr/.style={-{Latex[length=2mm]},thick,draw=ink!70}]
+  \node[human] (docs) at (0,0) {\textbf{1. Tài liệu}\\ 18 tệp PDF của giáo viên,\\ 77 trang, 24\,920 âm tiết;\\ 7 loại: giáo án, bài giảng, bài tập, phiếu, đề, đáp án, lỗi sai};
+  \node[model] (read) at (4.0,0) {\textbf{2. Đọc từng trang}\\ lớp chữ: 46 trang;\\ đọc lại bằng Gemini: 31 trang (ảnh, hình vẽ);\\ kiểm số \DI{43}; mô hình thứ hai xác nhận};
+  \node[stage] (parse) at (8.0,0) {\textbf{3. Phân tích tất định}\\ cắt câu hỏi, đáp án, bài kể lại, lỗi sai;\\ gắn câu vào tiết của giáo án;\\ không dùng mô hình};
+  \node[stage] (verify) at (12.0,0) {\textbf{4. Kiểm đáp án chính xác}\\ 389 câu: 349 đã kiểm đúng;\\ 2 mâu thuẫn, 1 lệch,\\ 4 xem lại, 33 chưa kiểm được};
+  \node[stage] (plan) at (12.0,-3.1) {\textbf{5. Phương án dạy}\\ đồ thị 19 tiết, 28 quan hệ;\\ 381 câu, 54 lỗi sai;\\ lý thuyết, phương pháp, ví dụ lấy từ lời giáo viên};
+  \node[model] (draft) at (8.0,-3.1) {\textbf{6. Mô hình soạn phần thiếu}\\ 1\,379 đoạn (gợi ý, ý chính,\\ cách nói chấp nhận); bộ kiểm chứng\\ giữ 969 đoạn};
+  \node[human] (review) at (4.0,-3.1) {\textbf{7. Duyệt}\\ 1\,326 quyết định:\\ 1\,112 chấp nhận, 129 sửa,\\ 85 loại; mỗi quyết định ghi người duyệt};
+  \node[stage] (index) at (0,-3.1) {\textbf{8. Chỉ mục truy xuất}\\ 221 đoạn (83 đoạn tài liệu);\\ BM25 hai dạng và vector 768 chiều;\\ gắn mỗi đoạn vào tiết};
+  \draw[arr] (docs) -- (read);\draw[arr] (read) -- (parse);\draw[arr] (parse) -- (verify);
+  \draw[arr] (verify) -- (plan);\draw[arr] (plan) -- (draft);\draw[arr] (draft) -- (review);\draw[arr] (review) -- (index);
+  \node[draw=cavat,fill=soft,minimum width=3mm,minimum height=3mm,inner sep=0pt] at (0.2,-5.35) {};\node[anchor=west,font=\scriptsize] at (0.45,-5.35) {thành phần tất định};
+  \node[draw=llm,fill=llmsoft,minimum width=3mm,minimum height=3mm,inner sep=0pt] at (4.2,-5.35) {};\node[anchor=west,font=\scriptsize] at (4.45,-5.35) {có gọi mô hình ngôn ngữ (kết quả luôn qua bộ kiểm)};
+  \node[draw=ink,fill=gray!12,minimum width=3mm,minimum height=3mm,inner sep=0pt] at (11.2,-5.35) {};\node[anchor=west,font=\scriptsize] at (11.45,-5.35) {con người};
+\end{tikzpicture}

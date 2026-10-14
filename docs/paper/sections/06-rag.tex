@@ -1,0 +1,101 @@
+\section{Truy xuất lai có ràng buộc theo đồ thị tri thức}\label{sec:rag}
+
+\subsection{Truy xuất trong dạy học khác truy xuất tổng quát ở đâu}
+Trong một cuộc trò chuyện dạy học, truy xuất phục vụ bốn việc khác nhau mà một hệ RAG tổng quát không phân biệt: chọn cách giảng kế tiếp cho tiết đang học (\emph{teach}), tìm chỗ để neo một gợi ý (\emph{hint}), trả lời một câu con tự hỏi (\emph{question}) và trả lời một câu ``X là gì'' (\emph{definition}). Mỗi việc cần một thứ tự ưu tiên loại đoạn khác nhau, và cả bốn chịu cùng hai ràng buộc không có trong truy xuất tổng quát: (i)~\emph{phạm vi}: không dùng đoạn của tiết chưa học để trả lời, vì đó là dạy trước; (ii)~\emph{có căn cứ}: câu không có đoạn nào trả lời thì phải được giữ lại cho giáo viên, không được bịa. Hình~\ref{fig:retrieval} tóm tắt luồng sáu bước.
+
+\begin{figure}[tbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+  st/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\scriptsize,text width=2.55cm,minimum height=11mm,inner sep=2pt},
+  ob/.style={st,fill=white},
+  arr/.style={-{Latex[length=1.8mm]},thick,draw=ink!70},
+  lab/.style={font=\tiny,text=mute,fill=white,inner sep=1pt}]
+\node[st] (q) at (0,0) {\textbf{1. Phạm vi}\\ tiết đang học và tổ tiên $\le 2$ bước; đoạn nhiều tiết chỉ khi mọi tiết trong phạm vi};
+\node[st] (bm) at (3.1,1.0) {\textbf{2. Từ khóa}\\ BM25 hai dạng: có dấu và bỏ dấu; âm tiết và cặp liền kề};
+\node[st] (vec) at (3.1,-1.0) {\textbf{3. Ngữ nghĩa}\\ cosine với vector $768$ chiều của đoạn};
+\node[st] (rrf) at (6.2,0) {\textbf{4. Hợp nhất}\\ RRF $k{=}60$, nhân $1/(1{+}d_G)$};
+\node[st] (rr) at (9.3,0) {\textbf{5. Xếp hạng lại}\\ loại đoạn theo chế độ, đã dùng, lỗi vừa gặp, nháp, định nghĩa};
+\node[st] (sel) at (12.4,0) {\textbf{6. Chọn}\\ trong ngân sách ký tự; vết đầy đủ của mọi tín hiệu};
+\draw[arr] (q) -- (bm); \draw[arr] (q) -- (vec); \draw[arr] (bm) -- (rrf); \draw[arr] (vec) -- (rrf);
+\draw[arr] (rrf) -- (rr); \draw[arr] (rr) -- (sel);
+\node[ob,text width=3.4cm] (route) at (4.65,-2.8) {\textbf{Định tuyến (DI-57)}\\ câu về tiết trước: đoạn của tiết đó coi như $d_G=0$};
+\node[ob,text width=3.4cm] (ground) at (9.3,-2.8) {\textbf{Nền tảng}\\ cosine lớn nhất của đoạn chọn $\ge 0{,}65$ (đã hiệu chỉnh)};
+\node[ob,text width=3.9cm] (dec) at (13.0,-2.8) {\textbf{Quyết định}\\ \textsc{answer} / \textsc{later} (``bài sau'') / \textsc{parked} (cho giáo viên)};
+\draw[arr,dashed] (route.north) -- ++(0,0.7) -| (q.south);
+\draw[arr] (sel.south) -- ++(0,-0.7) -| (ground.north);
+\draw[arr] (ground) -- (dec);
+\end{tikzpicture}
+\caption{Luồng truy xuất sáu bước của CAVAT. Hai tín hiệu của đồ thị tri thức vào ở bước 1 (phạm vi, định tuyến) và bước 4 (trọng số theo khoảng cách); quyết định cuối cùng chỉ được đưa ra sau khi kiểm nền tảng.}
+\label{fig:retrieval}
+\end{figure}
+
+\subsection{Chỉ mục}
+\paragraph{Từ khóa.} BM25 được viết lại cho tiếng Việt thay vì dùng thư viện: chỉ mục là các \emph{âm tiết} và các \emph{cặp âm tiết liền kề} (``phần\_mười'' giữ được tính chất cụm từ), trên hai dạng của văn bản, \emph{có dấu} (khớp chính xác) và \emph{bỏ dấu} (trẻ gõ ``tai sao phai them so 0''); điểm của một đoạn là điểm lớn hơn của hai dạng. Các từ đệm (``cô ơi'', ``vậy'', ``là gì'') bị bỏ khi tạo cặp, vì nếu không ``phần nguyên là gì'' sẽ khớp ``phần nguyên là 7'' qua cặp ``nguyên\_là'' tốt hơn định nghĩa thật. Mọi số có một dạng duy nhất (``0.25'' và ``0,25'' cùng một token). Với tham số $k_1=1{,}2$, $b=0{,}75$,
+\begin{equation}
+\mathrm{BM25}(q,c)=\sum_{t\in q}\mathrm{idf}(t)\,\frac{f_{t,c}\,(k_1+1)}{f_{t,c}+k_1\bigl(1-b+b\,|c|/\overline{|c|}\bigr)},\qquad
+\mathrm{idf}(t)=\ln\!\Bigl(1+\tfrac{N-n_t+0{,}5}{n_t+0{,}5}\Bigr).
+\end{equation}
+BM25 và RRF chỉ \emph{xếp hạng}; không đại lượng nào trong chúng nói rằng không đoạn nào trả lời cả (đoạn đầu tiên của mọi câu luôn đứng đầu). Vì vậy chỉ mục còn tính \emph{độ phủ}: phần trăm âm tiết có nghĩa của câu hỏi, có trọng số idf, mà một đoạn chứa; một âm tiết mà kho chưa từng dùng (``mèo'') có trọng số lớn nhất, nên câu lạc đề có độ phủ thấp ở mọi đoạn.
+
+\paragraph{Ngữ nghĩa.} Mỗi đoạn và mỗi câu hỏi được nhúng bằng \code{gemini-embedding-001} ($768$ chiều); độ gần là cosine. Độ phủ từ khóa là phương án dự phòng khi mô hình nhúng không dùng được (hết hạn mức hoặc mạng); lúc đó hệ vẫn chạy bằng từ khóa và cấu trúc.
+
+\subsection{Hợp nhất có trọng số khoảng cách và xếp hạng lại sư phạm}
+Với câu hỏi $q$ hỏi khi đang học tiết $v$, mỗi đoạn $c$ trong phạm vi (gắn với tiết $\nu(c)$) nhận điểm hợp nhất
+\begin{equation}
+\mathrm{fuse}(c)=\frac{1}{1+d_G(v,\nu(c))}\sum_{r\in\{\mathrm{BM25},\,\cos\}}\frac{1}{60+\mathrm{rank}_r(c)},
+\label{eq:fuse}
+\end{equation}
+trong đó $d_G$ là khoảng cách trên đồ thị (tiết đang học: $0$; tiết nó dựa vào: $1$; tiết của tiết đó: $2$). Điểm sau cùng nhân thêm một hệ số xác định theo chế độ:
+\begin{equation}
+\mathrm{score}(c)=\mathrm{fuse}(c)\cdot\kappa_{\text{chế độ}}(\text{loại}_c)\cdot 0{,}5^{[\text{đã dùng}]}\cdot 1{,}5^{[\text{đúng lỗi vừa gặp}]}\cdot 0{,}9^{[\text{bản nháp}]}\cdot 1{,}6^{[\text{định nghĩa}]},
+\end{equation}
+với $\kappa$ ở Bảng~\ref{tab:kind}: lời giảng lý thuyết đứng trước khi nghĩ cách dạy tiết, các bước của phương pháp và ví dụ mẫu đứng trước khi neo gợi ý, và định nghĩa đứng trước khi con hỏi ``X là gì''. Đoạn định nghĩa được nhận ra bằng mẫu câu (``đường cao của tam giác là\dots'', ``gọi là đường cao'') và \emph{không bị suy giảm theo khoảng cách}: một thuật ngữ được định nghĩa ở nơi nó được dạy, dù đó là tiết đã qua từ lâu. Mọi hằng số không do kế hoạch cố định là diễn giải khai báo DI-17 hoặc DI-50.
+
+\begin{table}[tbp]
+\centering
+\caption{Hệ số $\kappa$ của loại đoạn theo chế độ truy xuất (1 nếu không ghi).}
+\label{tab:kind}
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Chế độ & cách giảng & phương pháp & ví dụ mẫu & lỗi sai \\
+\midrule
+\emph{teach} (cách dạy tiết) & $1{,}5$ & $1{,}0$ & $1{,}1$ & $0{,}7$ \\
+\emph{hint} (neo gợi ý) & $1{,}0$ & $1{,}4$ & $1{,}3$ & $1{,}2$ \\
+\emph{question} (câu hỏi tự do) & $1$ & $1$ & $1$ & $1$ \\
+\emph{definition} (``X là gì'') & $1{,}3$ & $1{,}3$ & $1$ & $0{,}8$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phạm vi theo đồ thị và phát hiện câu hỏi về bài sau}
+Phạm vi là phép chặn cứng, không phải chỉ trọng số. Đồ thị truy xuất chỉ dẫn \emph{ngược} về điều một tiết dựa vào, nên các tiết sau không bao giờ lọt vào phạm vi. Đoạn tài liệu thuộc nhiều tiết chỉ chạm tới câu hỏi khi \emph{mọi} tiết ứng viên của nó nằm trong phạm vi; nhờ đó một trang tổng quan của chương, nhắc cả tiết sau, không bao giờ dạy trước. Câu hỏi có thể thuộc về một tiết \emph{sau} tiết đang học; khi đó truy xuất theo phạm vi sẽ cho đoạn đúng chủ đề nhưng thiếu, nên CAVAT còn truy xuất trên toàn chương (không có tiết) để tìm tiết mà câu hỏi nói tới. Nếu tiết đó đứng sau tiết đang học và đoạn của nó gần câu hỏi hơn đoạn tốt nhất trong phạm vi ít nhất $\varepsilon_{\text{sau}}=0{,}03$ cosine, hoặc phạm vi không có căn cứ, gia sư không trả lời mà nói tên bài sau (``bài sau: Số thập phân bằng nhau''). Lề $0{,}03$ để câu ``vì sao diện tích tam giác phải chia 2'' vẫn được trả lời ở tiết tam giác dù công thức hình thang cũng chia 2.
+
+\subsection{Định tuyến về tiết đã học (DI-57)}\label{sec:routing}
+Phạm vi chặt có một cái giá. Câu ``1 m bằng bao nhiêu cm'' hỏi khi đang học diện tích nói về \emph{độ dài}, một chủ đề của tiết trước, và truy xuất theo phạm vi, với trọng số $1/(1+d_G)$, đẩy các đoạn của tiết hiện tại lên trước các đoạn thật sự trả lời. Định tuyến sửa điều này: mỗi tiết trong $\{v\}\cup\mathrm{anc}(v)$ được chấm bằng cosine lớn nhất của các đoạn của nó; nếu một tiết đã học $u^\star$ gần câu hỏi hơn tiết đang học ít nhất $\varepsilon$ ($0{,}02$ cosine, hoặc $0{,}15$ độ phủ khi không có vector) thì câu được coi là \emph{nói về} $u^\star$ và các đoạn của $u^\star$ có $d_G=0$. Định tuyến chỉ xét các tiết trong tổ tiên, không bao giờ một tiết sau, nên bất biến B5 vẫn giữ. Mục~\ref{sec:res-rag} đo cả tác dụng của định tuyến lẫn độ nhạy với $\varepsilon$.
+
+\subsection{Nền tảng và lời nói có căn cứ}\label{sec:grounded}
+Một lần truy xuất được coi là \emph{có căn cứ} khi cosine lớn nhất của các đoạn được chọn không nhỏ hơn $0{,}65$. Ngưỡng được hiệu chỉnh một lần: nằm giữa câu lạc đề gần nhất ($0{,}633$) và câu trong chương xa nhất ($0{,}668$) của tập chỉnh trên chương mẫu, rồi được xác nhận trên tập giữ riêng chưa nhìn thấy (mọi câu trong chương $\ge0{,}65$, mọi câu lạc đề $<0{,}65$, gần nhất $0{,}648$). Khi truy xuất có căn cứ, lời gia sư được viết theo Thuật toán~\ref{alg:answer}. Mô hình nhận không quá ba đoạn (tối đa $1\,200$ ký tự) và \emph{không được trả lời bằng hiểu biết riêng}; lời của nó phải qua một phép kiểm khẳng định--bằng chứng viết tất định (theo ý tưởng khẳng định--bằng chứng của 2T-KT~\cite{li2026}): mọi số có trong bằng chứng, mọi thuật ngữ Toán có trong bằng chứng (một quy tắc mới như ``nhân với 10'' bị từ chối, DI-40), ít nhất $60\%$ từ có nghĩa của lời nói xuất hiện trong bằng chứng, không có câu hỏi, không quá $50$ từ, không hỏi thông tin cá nhân hay khen trí thông minh. Thất bại thì thử lại một lần kèm lý do; vẫn thất bại thì dùng câu của đoạn nguồn \emph{nguyên văn} (\textsc{extract}) nếu nó phủ ít nhất một nửa câu hỏi; nếu không thì câu hỏi được giữ cho giáo viên (\textsc{parked}), vì thà gác lại còn hơn trả lời sai. Ngoài trả lời, mô hình còn viết một \emph{câu nối}: một câu ngắn nhắc lại ý con vừa nói (``con nghĩ\dots, mình cùng xem lại nhé'') trước lời giải thích đã duyệt được nói nguyên văn; câu nối bị từ chối nếu chép lại lời giải thích, không nói rõ đó là ý của con, hoặc gọi một đáp án sai là đúng.
+
+\begin{algorithm}[tbp]
+\caption{Trả lời một câu con tự hỏi (\rid{grounded-speech/0.2.2})}\label{alg:answer}
+\begin{algorithmic}[1]
+\Require câu hỏi $q$, tiết đang học $v$, thứ tự học $\prec$, thứ tự câu đang chờ trả lời $w$
+\State \textbf{nếu} $q$ gần như trùng $w$ \textbf{thì} \Return ``chính là câu cô đang hỏi'' \Comment{độ trùng từ $\ge 0{,}8$}
+\State $P \gets \textsc{Retrieve}(q, v)$ \Comment{các bước 1--6, định tuyến, kiểm nền tảng}
+\State $(u, P_u) \gets \textsc{Later}(q, v)$ \Comment{truy xuất toàn chương, chỉ tiết $u \succ v$}
+\If{$u$ tồn tại \textbf{và} ($P$ không có căn cứ \textbf{hoặc} $\mathrm{best}(P_u)-\mathrm{best}(P)\ge 0{,}03$)}
+  \State \Return \textsc{later}($u$) \Comment{gia sư nói tên bài sau}
+\EndIf
+\If{$P$ không có căn cứ} \Return \textsc{parked} \EndIf
+\For{$a = 1,2$}
+  \State $y \gets \textsc{LLM}(q, P, \text{lý do lần trước})$
+  \If{$y$ rỗng} \Return \textsc{parked} \EndIf \Comment{mô hình không tìm thấy gì trong đoạn nguồn}
+  \If{\textsc{ClaimCheck}$(y, P, q)$} \Return \textsc{answer}($y$) \EndIf
+\EndFor
+\State $s \gets$ câu của $P$ phủ nhiều nhất $q$ \Comment{\textsc{extract}}
+\State \textbf{nếu} $\mathrm{coverage}(s,q)\ge 0{,}5$ \textbf{thì} \Return \textsc{answer}($s$) \textbf{ngược lại} \Return \textsc{parked}
+\end{algorithmic}
+\end{algorithm}
+
+Hệ còn có một phép tra cứu ngoài chương cho các câu ``X là gì'' không thuộc bài (DI-51, chỉ một miền bách khoa được liệt kê); phép này tắt trong mọi thực nghiệm của bài báo để kết quả không phụ thuộc vào mạng.
