@@ -1,16 +1,16 @@
-\section{Kết quả II: hành vi Socratic}\label{sec:res-soc}
+\section{Kết quả: hành vi Socratic}\label{sec:res-soc}
 
 Mục này đo chiều 1 và 2 của khung tám chiều trên các buổi học đã lưu của học sinh giả lập S1 (ba buổi, hai chương), rồi đọc kỹ một chuỗi sự kiện của một câu để cho thấy chính sách làm việc ra sao, kể cả khi nó chưa tốt. Việc so với các hệ khác ở Mục~\ref{sec:market}.
 
 \subsection{Tuân thủ trên \NTutorMsg{} lượt của gia sư}
 Từ sổ sự kiện của ba buổi học (\NEvents{} sự kiện, \NStudentMsg{} lời của học sinh) chúng tôi trích mọi lượt gia sư (\NTutorMsg{} lượt) và đo bằng luật tất định: số dấu hỏi, số từ, và việc lời có nói ra đáp án của câu ở đúng dạng mà đề hỏi khi cả đề lẫn học sinh chưa nói số đó (kiểm cho các câu đáp án số; \NLeakChecked{} lượt). Kết quả ở Bảng~\ref{tab:socratic}: \textbf{không lượt nào lộ đáp án ($0/\NLeakChecked{}$)} và \textbf{không lượt nào có hơn một câu hỏi ($0/\NTutorMsg{}$)}. Mọi nước đi đòi câu hỏi (hỏi cách làm, gợi ý, hỏi vì sao, mời giảng lại, cùng làm, giải thích điều con hỏi, kéo về câu) đều có đúng một câu hỏi; các lượt không có câu hỏi là nêu đề (\textsc{present}, $136$ trong $142$ lượt không có dấu hỏi vì đề là câu lệnh), xác nhận và khép câu. Số từ trung bình là $18{,}2$ (trung vị $18$); ba lượt vượt trần $60$ từ đều là lúc \emph{nêu đề} của các bài toán hình có kèm lời mô tả hình (tối đa $129$ từ), không phải lời bình của gia sư.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Hành vi của \NTutorMsg{} lượt gia sư trong các buổi học của S1, theo nước đi. ``Lộ đáp án'': số lượt lộ trên số lượt đã kiểm được (chỉ câu đáp án số).}
 \label{tab:socratic}
 \input{gen/tab-socratic}
-\end{table}
+\end{table*}
 
 Kết quả này cần đọc cùng với \emph{ai nói}. Bảng~\ref{tab:sources} cho thấy phần lớn lượt trong các buổi này là câu mẫu của giáo viên ($397$ trên $468$, $85\%$); mô hình ngôn ngữ chỉ viết $4$ lượt, còn $67$ lượt là chỗ bộ diễn đạt được gọi nhưng phải dùng câu mẫu thay (trần $15$ lần gọi mỗi buổi, hạn mức, hoặc lời nháp bị chặn), và $16$ lời nháp của mô hình bị bộ kiểm chứng chặn. Vì vậy các con số ở trên chủ yếu nói về \emph{chính sách và nội dung đã duyệt}, không phải về lời của mô hình; phần lời do mô hình viết được đo riêng ở Mục~\ref{sec:market} và \ref{sec:grounded-res}. Chúng tôi coi đây là một giới hạn thực sự của chứng cứ ở mục này, không phải một ưu điểm.
 
@@ -21,34 +21,34 @@ Kết quả này cần đọc cùng với \emph{ai nói}. Bảng~\ref{tab:source
 \input{gen/tab-sources}
 \end{table}
 
-\begin{figure}[tbp]
+\begin{figure*}[tp]
 \centering
 \input{gen/fig-messages}
 \caption{Số từ trung bình của lượt gia sư theo nước đi (hai chương gộp); đường đứt nét là trần $60$ từ.}
 \label{fig:messages}
-\end{figure}
+\end{figure*}
 
 \subsection{Thang gợi ý và các luật được dùng}
 Trong \NItemsResolved{} câu của S1, $93$ ($65\%$) được giải độc lập ở H0, $38$ có hỗ trợ (H1--H3), $8$ phải đến bước cùng làm và $3$ khép là chưa giải được (Hình~\ref{fig:ladder}b). Gợi ý hiếm khi vượt H2: trong $71$ gợi ý đã đưa, $44$ ở H1 và $17$ ở H2, một ở H3 và chín ở H6. Luật \rid{R-FULL} được kích hoạt $4$ lần: một lần cho giải thích đầy đủ (H7) và ba lần khép câu là chưa giải được, vì H7 chỉ được phép khi luyện tập; ba câu chưa giải được ở trên chính là ba lần đó. Điều này phù hợp với thiết kế ``vừa đủ'' (Mục~\ref{sec:socratic}), nhưng cũng phản ánh S1: một học sinh giả lập trả lời đúng bằng ý của giáo viên khi đã hiểu nên cần ít gợi ý hơn một học sinh thật. Hình~\ref{fig:rules} cho thấy tần suất các luật: ở tầng một câu hỏi, ba luật nêu câu, hỏi vì sao và xác nhận chiếm phần lớn; ở tầng chương, luyện tập và kiểm tra hiểu chiếm nhiều nhất, trong khi \rid{N-RECALL}, \rid{N-REVIEW} và \rid{N-RETEACH} (nhắc lại bài cũ, ôn cách quãng, giảng lại) được dùng đều chứ không hiếm.
 
-\begin{figure}[tbp]
+\begin{figure*}[tp]
 \centering
 \input{gen/fig-ladder}
 \caption{(a) Gợi ý đã đưa theo bậc (hai chương). (b) Số câu theo bậc gợi ý cao nhất đã dùng và cách câu được khép.}
 \label{fig:ladder}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[tbp]
+\begin{figure*}[tp]
 \centering
 \input{gen/fig-rules}
 \caption{Số lần mỗi luật quyết định một nước đi trong các buổi của S1 (hai chương gộp), ở vòng một câu hỏi (a) và ở chính sách dạy (b).}
 \label{fig:rules}
-\end{figure}
+\end{figure*}
 
 \subsection{Một câu từ sổ sự kiện}
 Bảng~\ref{tab:trace} đọc một câu của S1 từ chính sổ sự kiện, vì đây là chỗ thấy rõ cả điều chính sách làm được lẫn chỗ nội dung còn thiếu. Học sinh trả lời $322$ cho câu ``gồm $3$ đơn vị, $2$ phần mười, $2$ phần trăm''; lỗi ``quên dấu phẩy'' do giáo viên ghi cho tiết được nhận ra ngay (độ tin cậy cao) nên \rid{R-MISC-HIGH} bỏ qua bước hỏi lại và đi thẳng tới gợi ý khái niệm H2 thay vì H1. Lần sai thứ hai không có bậc cao hơn cho cùng mục tiêu, nên lời gợi ý được nói \emph{lại} đúng như cũ; khi đến bước cùng làm (H6), câu này không có lời giải mẫu trong phương án, nên lời vẫn là gợi ý đó với một lời mở đầu. Học sinh làm được ở lượt sau, và vì vậy \rid{R-TEACH-BACK} mời giảng lại trước khi xác nhận.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Một câu của S1 (chương Số thập phân) đọc từ sổ sự kiện. Ba lượt cuối cho thấy hai điểm yếu có thật: lời gợi ý lặp đúng như cũ khi thang của câu hết bậc cho mục tiêu, và bậc ``cùng làm'' dùng lại lời gợi ý vì câu chưa có lời giải mẫu.}
 \label{tab:trace}
@@ -69,7 +69,7 @@ Bảng~\ref{tab:trace} đọc một câu của S1 từ chính sổ sự kiện, 
 10 & gia sư & ``Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.'' & \textsc{confirm\_advance}; câu khép là \textsc{worked}, H6, $3$ lần thử \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 Đây không phải trường hợp hiếm. Trong các buổi của S1, $13$ trong $326$ lượt gia sư (không tính nêu đề) lặp lại \emph{nguyên văn} một lượt trước đó của cùng một câu ($4{,}0\%$), thuộc $8$ trong $140$ câu ($5{,}7\%$); các lượt gợi ý lặp $7$ trong $58$. Thang H1--H3 do mô hình soạn và được duyệt có đủ ba bậc cho hầu hết câu, nhưng khi mục tiêu của luật không khớp bậc còn lại, hệ thống nói lại bậc đã dùng thay vì nói điều mới. Đây là điều cần sửa ở \emph{nội dung} (thêm bậc, hoặc để luật chuyển sang mục tiêu khác), không phải ở mô hình ngôn ngữ.
 

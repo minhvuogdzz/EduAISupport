@@ -1,8 +1,8 @@
-\section{Danh sách đầy đủ các luật của vòng một câu hỏi}\label{app:rules}
+\section{Các luật của vòng một câu hỏi}\label{app:rules}
 
 Bảng~\ref{tab:rules-full} liệt kê các luật \rid{R-*} của \rid{hint-policy/0.7.0} theo họ, với điều kiện (nói gọn) và quyết định; số lần luật quyết định một nước đi trong các buổi của S1 ở Hình~\ref{fig:rules}.
 
-\begin{table}[h]
+\begin{table*}[tp]
 \centering
 \caption{Các luật của vòng một câu hỏi. Hằng số do khung quy định [FACT] hoặc là diễn giải khai báo (DI).}
 \label{tab:rules-full}
@@ -38,7 +38,7 @@ Luật & Điều kiện & Quyết định \\
 \rid{R-ASSESS-CAP} [FACT H1] & câu của bài kiểm tra & bậc tối đa H1; quá thì khép \textsc{unresolved} \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \section{Hiến pháp của gia sư (trích)}\label{app:prompt}
 
@@ -59,18 +59,22 @@ Bạn là gia sư Toán của một học sinh lớp 5 ở Việt Nam, giúp con
 \clearpage
 \section{Bảng ablation đầy đủ}\label{app:ablation}
 
-\begin{table}[h]
+\begin{table*}[tp]
 \centering
 \caption{Hit@$k$ và MRR của mọi cấu hình trên cả năm tập, với định tuyến bật (sản phẩm); với hai cấu hình có xếp hạng lại ở chương phát hành, thêm dòng không định tuyến.}
 \label{tab:ablation-full}
 \input{gen/tab-ablation-full}
-\end{table}
+\end{table*}
 
 \section{Tập câu hỏi giữ riêng v2}\label{app:v2}
 
 Tập $30$ câu của chương phát hành, viết và đóng băng trước khi sửa định tuyến (DI-57); nhãn theo tiết do trợ lý AI soạn, chưa có giáo viên duyệt. ``Hạng'' là vị trí của đoạn đúng đầu tiên trong bảng xếp hạng đầy đủ của cấu hình sản phẩm; ``Quyết định'' là điều gia sư làm với câu.
 
+\begin{table*}[tp]
+\centering
+\caption{Tập câu hỏi giữ riêng v2: câu nguyên văn, hạng của đoạn đúng đầu tiên và quyết định định tuyến.}\label{tab:v2-questions}
 \input{gen/tab-v2-questions}
+\end{table*}
 
 \section{Tái lập}\label{app:repro}
 
