@@ -52,7 +52,20 @@ def thou(n: int) -> str:
     return f"{n:,}".replace(",", r"\,")
 
 
+# Bảng hẹp đặt trong một cột của bài hai cột: cột đầu xuống dòng thay vì kéo giãn bảng.
+_ONE_COLUMN = {
+    "tab-reading.tex",
+    "tab-bank.tex",
+    "tab-plan-stats.tex",
+    "tab-sources.tex",
+    "tab-baselines.tex",
+    "tab-conformance.tex",
+}
+
+
 def write(name: str, text: str) -> None:
+    if name in _ONE_COLUMN:
+        text = text.replace(r"\begin{tabular}{@{}l", r"\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.4cm}", 1)
     (GEN / name).write_text(text.rstrip() + "\n", encoding="utf-8")
 
 
@@ -2071,13 +2084,10 @@ def tab_v2_questions() -> None:
     out_vi = {"ANSWER": "trả lời", "LATER": "bài sau", "PARKED": "giữ cho cô"}
     body = [
         r"{\scriptsize",
-        r"\begin{longtable}{@{}lllp{6.6cm}rl@{}}",
+        r"\begin{tabular}{@{}lllp{7.4cm}rl@{}}",
         r"\toprule",
         r"Mã & Nhóm & Tiết & Câu hỏi (nguyên văn) & Hạng & Quyết định \\",
         r"\midrule",
-        r"\endhead",
-        r"\bottomrule",
-        r"\endfoot",
     ]
     for r in rows:
         node = r["node"].replace("STP-T", "STP-").replace("DTTGHT-T", "DTTGHT-")
@@ -2086,8 +2096,7 @@ def tab_v2_questions() -> None:
         body.append(
             f"{r['id']} & {group_vi[r['group']]} & {node} & {tex_escape(r['q'])} & {rank} & {outcome} \\\\"
         )
-    body.append(r"\end{longtable}")
-    body.append("}")
+    body += [r"\bottomrule", r"\end{tabular}", "}"]
     write("tab-v2-questions.tex", "\n".join(body))
 
 

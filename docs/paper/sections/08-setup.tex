@@ -8,7 +8,7 @@
   \item \emph{Bỏ từng phần và đối chứng}: mỗi thành phần có thí nghiệm bỏ đi, và hệ được so với hai mốc, một chatbot thương mại và chính mô hình của hệ chỉ có lời nhắc.
 \end{enumerate}
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Khung đánh giá tám chiều. Chiều 8 chưa đo được vì chưa có học sinh thật; các chiều còn lại được đo trong bài này, ở mục ghi ở cột cuối.}
 \label{tab:dims}
@@ -27,9 +27,9 @@
 8 & Kết quả học tập & điểm trước/sau so với đối chứng; ghi nhớ sau 7 và 30 ngày & --- & \textit{chưa đo} \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
-\begin{figure}[tbp]
+\begin{figure*}[tp]
 \centering
 \begin{tikzpicture}[x=1cm,y=1cm,
   st/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\scriptsize,text width=2.5cm,minimum height=12mm,inner sep=2pt},
@@ -50,17 +50,17 @@
 \end{tikzpicture}
 \caption{Giao thức đánh giá: thứ tự thời gian của một vòng đo. Thẻ git ở bước 3 làm cho việc bộ giữ riêng được viết \emph{trước} khi sửa mã kiểm tra được từ lịch sử kho mã; các bước 8--9 cho biết loại chỉ số nào được tin trước (luật) và loại nào chỉ bổ sung (giám khảo).}
 \label{fig:protocol}
-\end{figure}
+\end{figure*}
 
 \subsection{Dữ liệu}
 Bảng~\ref{tab:sets} liệt kê các tập dùng trong bài. Các tập truy xuất gồm các câu hỏi do người phát triển và một trợ lý AI soạn theo bốn kiểu: hỏi trong bài đang học, hỏi một khái niệm của bài trước, hỏi bài sau (phải nói ``bài sau mình học'') và câu ngoài chương (Toán chương khác, hoặc trò chuyện) phải được giữ cho giáo viên. Nhãn liên quan của một câu là mọi đoạn của một hoặc vài tiết mà nội dung tiết đó trả lời câu hỏi (cùng các đoạn tài liệu gắn tiết ấy); nhãn do trợ lý AI soạn theo tên và nội dung tiết và chưa có giáo viên duyệt. Một câu được tính đúng ở mức $k$ khi có ít nhất một đoạn như vậy trong $k$ đoạn đầu của toàn bộ bảng xếp hạng. Đây là nhãn chặt, theo tiết chứ không theo ý: một câu hỏi về dấu phẩy có thể được trả lời đúng bằng một đoạn của tiết khác mà nhãn không tính. Các tập hạn chế ở $14$--$57$ câu; chúng tôi báo cáo khoảng tin cậy để cỡ mẫu hiện ra trong con số.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Các tập dữ liệu của thực nghiệm. ``Đóng băng'' là được cam kết vào kho mã (kèm thẻ git) \emph{trước} khi sửa mã mà nó dùng để đo.}
 \label{tab:sets}
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}rr>{\raggedright\arraybackslash}Y>{\raggedright\arraybackslash}p{3.3cm}@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}rr>{\raggedright\arraybackslash}Y>{\raggedright\arraybackslash}p{4.2cm}@{}}
 \toprule
 Tập & Câu & Trong phạm vi & Thành phần và vai trò & Trạng thái \\
 \midrule
@@ -76,7 +76,7 @@ Chấm đáp án v2 & 35 & --- & 23 đúng, 12 sai; số đọc bằng chữ, d�
 Học sinh giả lập S1 & 3 buổi & --- & học hai chương từ chưa hiểu đến hiểu: \NEvents{} sự kiện, \NStudentMsg{} lời của học sinh & kịch bản \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \paragraph{Học sinh giả lập.} S1 là một học sinh giả lập được viết kịch bản, không phải dữ liệu của trẻ thật: nó đi từ chưa hiểu đến hiểu qua các buổi học (có lỗi quan niệm lặp lại, hỏi lạc đề, cảm xúc tiêu cực, tin nhắn viết tắt và emoji), trả lời đúng bằng \emph{ý chính của giáo viên} khi đã hiểu. Vì vậy nó kiểm tra luồng dạy, bộ chấm và phép chiếu; nó \emph{không} đo hiệu quả học tập. Dữ liệu được ẩn danh thành ``S1''. Bốn học sinh mẫu của lệnh \code{trial} (giỏi, hay sai, sai dạng, bí) cộng một học sinh phụ thuộc được dùng làm nhóm đã biết ở Mục~\ref{sec:known-groups}.
 

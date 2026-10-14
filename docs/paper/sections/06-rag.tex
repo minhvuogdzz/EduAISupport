@@ -1,6 +1,6 @@
-\section{Truy xuất lai có ràng buộc theo đồ thị tri thức}\label{sec:rag}
+\section{Truy xuất lai theo đồ thị tri thức}\label{sec:rag}
 
-\subsection{Truy xuất trong dạy học khác truy xuất tổng quát ở đâu}
+\subsection{Truy xuất trong dạy học}
 Trong một cuộc trò chuyện dạy học, truy xuất phục vụ bốn việc khác nhau mà một hệ RAG tổng quát không phân biệt:
 \begin{itemize}
   \item \emph{teach}: chọn cách giảng kế tiếp cho tiết đang học;
@@ -15,7 +15,7 @@ Mỗi việc cần một thứ tự ưu tiên loại đoạn khác nhau, và c�
 \end{enumerate}
 Hình~\ref{fig:retrieval} tóm tắt luồng sáu bước.
 
-\begin{figure}[tbp]
+\begin{figure*}[tp]
 \centering
 \begin{tikzpicture}[x=1cm,y=1cm,
   st/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\scriptsize,text width=2.55cm,minimum height=11mm,inner sep=2pt},
@@ -39,19 +39,21 @@ Hình~\ref{fig:retrieval} tóm tắt luồng sáu bước.
 \end{tikzpicture}
 \caption{Luồng truy xuất sáu bước của CAVAT. Hai tín hiệu của đồ thị tri thức vào ở bước 1 (phạm vi, định tuyến) và bước 4 (trọng số theo khoảng cách); quyết định cuối cùng chỉ được đưa ra sau khi kiểm nền tảng.}
 \label{fig:retrieval}
-\end{figure}
+\end{figure*}
 
 \subsection{Chỉ mục}
 \paragraph{Từ khóa.} BM25 được viết lại cho tiếng Việt thay vì dùng thư viện: chỉ mục là các \emph{âm tiết} và các \emph{cặp âm tiết liền kề} (``phần\_mười'' giữ được tính chất cụm từ), trên hai dạng của văn bản, \emph{có dấu} (khớp chính xác) và \emph{bỏ dấu} (trẻ gõ ``tai sao phai them so 0''); điểm của một đoạn là điểm lớn hơn của hai dạng. Các từ đệm (``cô ơi'', ``vậy'', ``là gì'') bị bỏ khi tạo cặp, vì nếu không ``phần nguyên là gì'' sẽ khớp ``phần nguyên là 7'' qua cặp ``nguyên\_là'' tốt hơn định nghĩa thật. Mọi số có một dạng duy nhất (``0.25'' và ``0,25'' cùng một token). Với tham số $k_1=1{,}2$, $b=0{,}75$,
 \begin{equation}
-\mathrm{BM25}(q,c)=\sum_{t\in q}\mathrm{idf}(t)\,\frac{f_{t,c}\,(k_1+1)}{f_{t,c}+k_1\bigl(1-b+b\,|c|/\overline{|c|}\bigr)},\qquad
-\mathrm{idf}(t)=\ln\!\Bigl(1+\tfrac{N-n_t+0{,}5}{n_t+0{,}5}\Bigr).
+\begin{split}
+\mathrm{BM25}(q,c)&=\sum_{t\in q}\mathrm{idf}(t)\,\frac{f_{t,c}\,(k_1+1)}{f_{t,c}+k_1\bigl(1-b+b\,|c|/\overline{|c|}\bigr)},\\
+\mathrm{idf}(t)&=\ln\!\Bigl(1+\tfrac{N-n_t+0{,}5}{n_t+0{,}5}\Bigr).
+\end{split}
 \end{equation}
 BM25 và RRF chỉ \emph{xếp hạng}; không đại lượng nào trong chúng nói rằng không đoạn nào trả lời cả (đoạn đầu tiên của mọi câu luôn đứng đầu). Vì vậy chỉ mục còn tính \emph{độ phủ}: phần trăm âm tiết có nghĩa của câu hỏi, có trọng số idf, mà một đoạn chứa; một âm tiết mà kho chưa từng dùng (``mèo'') có trọng số lớn nhất, nên câu lạc đề có độ phủ thấp ở mọi đoạn.
 
 \paragraph{Ngữ nghĩa.} Mỗi đoạn và mỗi câu hỏi được nhúng bằng \code{gemini-embedding-001} ($768$ chiều); độ gần là cosine. Độ phủ từ khóa là phương án dự phòng khi mô hình nhúng không dùng được (hết hạn mức hoặc mạng); lúc đó hệ vẫn chạy bằng từ khóa và cấu trúc.
 
-\subsection{Hợp nhất có trọng số khoảng cách và xếp hạng lại sư phạm}
+\subsection{Hợp nhất theo khoảng cách và xếp hạng lại}
 Với câu hỏi $q$ hỏi khi đang học tiết $v$, mỗi đoạn $c$ trong phạm vi (gắn với tiết $\nu(c)$) nhận điểm hợp nhất
 \begin{equation}
 \mathrm{fuse}(c)=\frac{1}{1+d_G(v,\nu(c))}\sum_{r\in\{\mathrm{BM25},\,\cos\}}\frac{1}{60+\mathrm{rank}_r(c)},
@@ -59,7 +61,11 @@ Với câu hỏi $q$ hỏi khi đang học tiết $v$, mỗi đoạn $c$ trong p
 \end{equation}
 trong đó $d_G$ là khoảng cách trên đồ thị (tiết đang học: $0$; tiết nó dựa vào: $1$; tiết của tiết đó: $2$). Điểm sau cùng nhân thêm một hệ số xác định theo chế độ:
 \begin{equation}
-\mathrm{score}(c)=\mathrm{fuse}(c)\cdot\kappa_{\text{chế độ}}(\text{loại}_c)\cdot 0{,}5^{[\text{đã dùng}]}\cdot 1{,}5^{[\text{đúng lỗi vừa gặp}]}\cdot 0{,}9^{[\text{bản nháp}]}\cdot 1{,}6^{[\text{định nghĩa}]},
+\begin{split}
+\mathrm{score}(c)=\mathrm{fuse}(c)&\cdot\kappa_{\text{chế độ}}(\text{loại}_c)\\
+&\cdot 0{,}5^{[\text{đã dùng}]}\cdot 1{,}5^{[\text{đúng lỗi vừa gặp}]}\\
+&\cdot 0{,}9^{[\text{bản nháp}]}\cdot 1{,}6^{[\text{định nghĩa}]},
+\end{split}
 \end{equation}
 với $\kappa$ ở Bảng~\ref{tab:kind}: lời giảng lý thuyết đứng trước khi nghĩ cách dạy tiết, các bước của phương pháp và ví dụ mẫu đứng trước khi neo gợi ý, và định nghĩa đứng trước khi con hỏi ``X là gì''. Đoạn định nghĩa được nhận ra bằng mẫu câu (``đường cao của tam giác là\dots'', ``gọi là đường cao'') và \emph{không bị suy giảm theo khoảng cách}: một thuật ngữ được định nghĩa ở nơi nó được dạy, dù đó là tiết đã qua từ lâu. Mọi hằng số không do kế hoạch cố định là diễn giải khai báo DI-17 hoặc DI-50.
 
@@ -67,8 +73,8 @@ với $\kappa$ ở Bảng~\ref{tab:kind}: lời giảng lý thuyết đứng tr�
 \centering
 \caption{Hệ số $\kappa$ của loại đoạn theo chế độ truy xuất (1 nếu không ghi).}
 \label{tab:kind}
-\small
-\begin{tabular}{@{}lrrrr@{}}
+\footnotesize
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedleft\arraybackslash}p{1.0cm}>{\raggedleft\arraybackslash}p{1.3cm}>{\raggedleft\arraybackslash}p{1.0cm}>{\raggedleft\arraybackslash}p{0.9cm}@{}}
 \toprule
 Chế độ & cách giảng & phương pháp & ví dụ mẫu & lỗi sai \\
 \midrule
@@ -80,7 +86,7 @@ Chế độ & cách giảng & phương pháp & ví dụ mẫu & lỗi sai \\
 \end{tabular}
 \end{table}
 
-\subsection{Phạm vi theo đồ thị và phát hiện câu hỏi về bài sau}
+\subsection{Phạm vi theo đồ thị và câu hỏi bài sau}
 Phạm vi là phép chặn cứng, không phải chỉ trọng số. Đồ thị truy xuất chỉ dẫn \emph{ngược} về điều một tiết dựa vào, nên các tiết sau không bao giờ lọt vào phạm vi. Đoạn tài liệu thuộc nhiều tiết chỉ chạm tới câu hỏi khi \emph{mọi} tiết ứng viên của nó nằm trong phạm vi; nhờ đó một trang tổng quan của chương, nhắc cả tiết sau, không bao giờ dạy trước. Câu hỏi có thể thuộc về một tiết \emph{sau} tiết đang học; khi đó truy xuất theo phạm vi sẽ cho đoạn đúng chủ đề nhưng thiếu, nên CAVAT còn truy xuất trên toàn chương (không có tiết) để tìm tiết mà câu hỏi nói tới. Nếu tiết đó đứng sau tiết đang học và đoạn của nó gần câu hỏi hơn đoạn tốt nhất trong phạm vi ít nhất $\varepsilon_{\text{sau}}=0{,}03$ cosine, hoặc phạm vi không có căn cứ, gia sư không trả lời mà nói tên bài sau (``bài sau: Số thập phân bằng nhau''). Lề $0{,}03$ để câu ``vì sao diện tích tam giác phải chia 2'' vẫn được trả lời ở tiết tam giác dù công thức hình thang cũng chia 2.
 
 \subsection{Định tuyến về tiết đã học (DI-57)}\label{sec:routing}

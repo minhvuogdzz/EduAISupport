@@ -12,7 +12,7 @@ Bài báo này nghiên cứu một hướng thiết kế khác: xây \emph{hệ 
   \item Kiến thức của gia sư là tài liệu của chính giáo viên, được đọc, kiểm đáp án và dựng thành đồ thị tri thức, và các câu hỏi của học sinh được trả lời bằng truy xuất lai có ràng buộc theo đồ thị đó.
 \end{enumerate}
 
-\begin{figure}[tbp]
+\begin{figure*}[tp]
 \centering
 \begin{tikzpicture}[x=1cm,y=1cm,
   box/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\small,minimum height=11mm,text width=27mm,inner sep=2pt},
@@ -53,7 +53,7 @@ Bài báo này nghiên cứu một hướng thiết kế khác: xây \emph{hệ 
 \end{tikzpicture}
 \caption{Kiến trúc của CAVAT. Mô hình ngôn ngữ (màu cam) là thành phần duy nhất không tất định và chỉ tham gia ở khâu diễn đạt; mọi quyết định sư phạm, mọi phán quyết đúng--sai và mọi điểm số đi qua thành phần tất định. Sổ sự kiện chỉ ghi thêm là nguồn sự thật duy nhất: mức hiểu bài, trạng thái buổi học và trang giáo viên đều tính lại được từ đó. Nét đứt: các đoạn nguồn đi tới mô hình, và lời chỉ đến học sinh sau bộ kiểm chứng.}
 \label{fig:arch}
-\end{figure}
+\end{figure*}
 
 Để đánh giá hướng thiết kế này một cách nghiêm túc, chúng tôi đặt bốn câu hỏi nghiên cứu.
 \begin{description}[leftmargin=3.2em,font=\normalfont]

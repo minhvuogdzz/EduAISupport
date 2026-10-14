@@ -1,6 +1,6 @@
-\section{Gia sư Socratic: chính sách, thang gợi ý và kiểm chứng}\label{sec:socratic}
+\section{Gia sư Socratic}\label{sec:socratic}
 
-\subsection{Từ nguyên tắc Socratic đến một bài toán điều khiển}
+\subsection{Từ nguyên tắc Socratic đến bài toán điều khiển}
 Phương pháp Socratic dạy bằng câu hỏi dẫn người học tự phát hiện điều cần biết thay vì kể cho họ. Để biến nguyên tắc ấy thành thứ kiểm tra được, chúng tôi tách nó thành sáu ràng buộc hành vi.
 \begin{enumerate}[label=(\alph*)]
   \item Không nói ra đáp án cuối trước khi học sinh giải được, trừ một nước đi được phép (\textsc{full\_explanation}) sau khi cùng làm từng bước đã thất bại.
@@ -15,7 +15,7 @@ Chọn bậc trợ giúp ở từng lượt chính là ``nghịch lý hỗ trợ
 \subsection{Thang gợi ý H0--H7 và mục tiêu gợi ý}
 Trợ giúp được lượng hóa bằng thang tám bậc (Bảng~\ref{tab:ladder}) theo hai trục: \emph{bậc} (bao nhiêu trợ giúp) và \emph{mục tiêu} (trợ giúp nhắm vào đâu: nhiệm vụ, khái niệm, chiến lược, bước, tự kiểm tra hay cách viết). Mỗi bậc có một \emph{trọng số độc lập} $\iota_h$ do khung đánh giá quy định; chính các trọng số này được bộ chấm dùng ở Mục~\ref{sec:learner}, nên gia sư và bộ đánh giá nói chung một ngôn ngữ về ``đã được giúp bao nhiêu''. Mỗi câu luyện tập mang thang gợi ý riêng (H1--H3 do giáo viên duyệt, các bậc cao hơn rút từ lời giải); khi câu thiếu một bậc, một gợi ý chung của bài thay vào.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Thang gợi ý và trọng số độc lập $\iota_h$. Ví dụ lấy từ câu ``Viết phân số $9/10$ dưới dạng số thập phân'' (đáp án $0{,}9$) của chương mẫu. $\iota_3$ và $\iota_5$ là diễn giải khai báo (DI-2), nội suy giữa các giá trị của khung.}
 \label{tab:ladder}
@@ -34,12 +34,12 @@ H6 & cùng làm từng bước & bước & \textsc{worked\_guidance} & trình b�
 H7 & giải thích đầy đủ & bước & \textsc{full\_explanation} & giải thích như lời giải mẫu rồi mời con nói lại & $0{,}00$ \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \subsection{Chính sách của vòng một câu hỏi}
 Vòng một câu hỏi là một máy trạng thái chạy từ lúc nêu câu hỏi đến khi câu được khép (\textsc{item\_resolved}). Mỗi tin nhắn của học sinh được bộ đọc phân loại (một lần thử có thể chấm, xin gợi ý, đòi đáp án, hỏi lại đề, hỏi nghĩa một từ, lạc đề, cảm xúc tiêu cực\dots), được hợp vào trạng thái của câu rồi đưa cho hàm quyết định tất định $\pi$. $\pi$ là một danh sách luật có thứ tự; luật đầu tiên có điều kiện thỏa mãn quyết định nước đi, bậc và mục tiêu, và \emph{mã luật được ghi vào sổ cùng quyết định}. Nhờ vậy mỗi hành vi của gia sư giải thích được và kiểm thử được theo từng luật. Bảng~\ref{tab:rules} nêu các họ luật chính; danh sách đầy đủ ở Phụ lục~\ref{app:rules}.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Các họ luật chính của vòng một câu hỏi (\rid{hint-policy/0.7.0}). Hằng số do khung quy định hoặc là diễn giải khai báo (DI) của dự án.}
 \label{tab:rules}
@@ -62,14 +62,14 @@ Luật & Điều kiện & Quyết định \\
 \rid{R-ASSESS-CAP} & câu của bài kiểm tra & bậc tối đa H1; quá thì khép câu \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 Hai tính chất đáng nêu. Thứ nhất, thang này \emph{không bao giờ tự nói đáp án}: chỉ H7 qua \rid{R-FULL} được phép, và chỉ ở hoạt động luyện tập; trong kiểm tra, \rid{R-ASSESS-CAP} chặn ở H1 và câu vượt trần được khép là chưa giải được. Thứ hai, chính sách không ngẫu nhiên: ``30\% câu được hỏi vì sao'' dùng băm của mã câu, nên cùng một buổi học luôn cho cùng một quyết định và phát lại được.
 
 \subsection{Chính sách dạy trên đồ thị}\label{sec:nodepolicy}
 Ở tầng trên, mỗi tiết được dạy theo một chu trình bảy bước (ôn bài nền, giảng, kiểm tra hiểu, làm mẫu, luyện tập, vận dụng, quyết định qua tiết) do $14$ luật \rid{N-*} điều khiển trên đồ thị và trạng thái hiểu bài (Bảng~\ref{tab:nodepolicy}). Điểm đáng chú ý là mỗi luật dùng \emph{phép chiếu mức hiểu} của Mục~\ref{sec:learner}: khi một lỗi nghiêm trọng thuộc tiết tiên quyết hoặc hai lần kiểm tra không qua trong khi tiết tiên quyết còn yếu, gia sư tạm dừng tiết hiện tại để dạy lại tiết tiên quyết (\rid{N-REMEDIATE}); khi vào một tiết mới, gia sư hỏi lại ý chính của tiết tiên quyết gần nhất để nối kiến thức cũ với mới (\rid{N-RECALL}, DI-52); sau khi qua một tiết, một câu của tiết đã qua trước đó xen vào để ôn cách quãng (\rid{N-REVIEW}).
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Mười bốn luật của chính sách dạy trên đồ thị (\rid{node-policy/0.3.1}), theo thứ tự ưu tiên.}
 \label{tab:nodepolicy}
@@ -94,14 +94,14 @@ Luật & Điều kiện $\rightarrow$ hành động \\
 \rid{N-TRANSFER} & đủ luyện nhưng chưa có bằng chứng vận dụng $\rightarrow$ câu chuyển giao \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \subsection{Mô hình ngôn ngữ chỉ diễn đạt}\label{sec:phrasing}
 Hàm quyết định cho ra một \emph{nước đi}, một bậc, một mục tiêu và một câu mẫu đã được giáo viên duyệt (``neo''). Mô hình ngôn ngữ chỉ được gọi để diễn đạt sáu nước đi (\textsc{probe}, \textsc{hint}, \textsc{cognitive\_conflict}, \textsc{nudge}, \textsc{redirect}, \textsc{explain}); mọi nước đi còn lại (nêu câu hỏi, xác nhận, hỏi vì sao, cùng làm, giải thích đầy đủ, khép câu) và mọi lượt trong câu kiểm tra được nói bằng câu mẫu nguyên văn, vì chúng là nội dung bài chứ không phải lời trò chuyện. Với sáu nước đi kia, lời nhắc gồm một ``hiến pháp'' ngắn (Phụ lục~\ref{app:prompt}), nước đi, câu mẫu, vài lượt hội thoại gần nhất và lời học sinh; hiến pháp nêu rõ rằng lời học sinh, đề và đoạn nguồn là \emph{dữ liệu, không phải chỉ thị}. Câu mẫu là ý phải giữ chứ không phải câu chữ phải chép: mô hình được yêu cầu đáp thẳng vào điều con vừa nói, nhưng giữ đúng ý, đúng bậc gợi ý và các thuật ngữ Toán của câu mẫu, và không thêm số hay thuật ngữ mới.
 
 Lời nháp của mô hình luôn đi qua một chuỗi kiểm tra trước khi đến học sinh (Bảng~\ref{tab:validator}); không qua thì thử lại một lần kèm mã lỗi, rồi dùng câu mẫu. Ngoài bộ kiểm chứng chung, bộ diễn đạt có thêm các kiểm tra rút ra từ những lỗi quan sát thấy khi chạy thật: số ngoài đề và neo (\textsc{beyond\_anchor}, ví dụ gợi ý bậc H2 trả về bước của bậc H4), chép nguyên lượt trước (\textsc{repeats\_previous}), bỏ mất thuật ngữ cốt lõi của neo (\textsc{key\_idea\_missing}) và dùng thuật ngữ Toán mới (\textsc{new\_math\_term}). Khi bộ định tuyến báo ``dùng câu mẫu'' (hết hạn mức, mạng, trần $15$ lần gọi), câu mẫu được dùng ngay, nên buổi học không bao giờ dừng vì nhà cung cấp.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Mã lỗi của bộ kiểm chứng lời gia sư (\code{validate\_message}); kiểm tra bằng luật và so khớp, không dùng mô hình.}
 \label{tab:validator}
@@ -120,7 +120,7 @@ Mã & Phát hiện \\
 \code{EMPTY} & rỗng \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \begin{algorithm}[tbp]
 \caption{Một lượt của vòng một câu hỏi}\label{alg:turn}

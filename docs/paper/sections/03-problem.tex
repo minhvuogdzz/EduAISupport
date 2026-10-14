@@ -1,4 +1,4 @@
-\section{Phát biểu bài toán và các bất biến thiết kế}\label{sec:problem}
+\section{Bài toán và các bất biến thiết kế}\label{sec:problem}
 
 \subsection{Đối tượng và ký hiệu}
 Một \emph{chương} được biểu diễn bằng đồ thị có hướng $G=(V,E)$. Mỗi đỉnh $v\in V$ là một \emph{tiết} học; mỗi cạnh $(u,v)\in E$ mang một trong hai kiểu thứ tự, \textsc{prerequisite} (học $u$ trước $v$) hoặc \textsc{application} ($v$ vận dụng $u$). Đỉnh $v$ đi kèm gói nội dung $K_v=(\mathcal{T}_v,\mu_v,\mathcal{W}_v,\mathcal{N}_v,\mathcal{I}_v,\mathcal{R}_v)$ gồm các cách giảng lý thuyết, phương pháp, ví dụ mẫu, ghi chú lỗi sai, ngân hàng câu hỏi và các ý chính của bài kể lại. Một \emph{câu hỏi} $i\in\mathcal{I}_v$ có đề, đặc tả đáp án $\alpha_i$ (số, trắc nghiệm, so sánh, sắp xếp, đúng/sai hoặc mở), mức nhận thức $\ell_i\in\{A,B,C,D,E,\mathrm{DIAG}\}$, độ khó $\delta_i\in[0,1]$, mục đích (kiểm tra hiểu, luyện tập, kiểm tra cuối tiết, ôn tập) và một thang gợi ý.
@@ -8,7 +8,7 @@ Một buổi học sinh ra \emph{sổ sự kiện} $L=(e_1,\dots,e_T)$ chỉ ghi
 \subsection{Sáu bất biến}
 Từ các rủi ro ở Mục~\ref{sec:intro} chúng tôi rút ra sáu bất biến mà hệ thống phải giữ \emph{bất kể mô hình ngôn ngữ nói gì}; Bảng~\ref{tab:invariants} nêu cơ chế thực thi và cách kiểm chứng của từng bất biến. Hai nguyên tắc kỹ thuật bổ sung đi cùng: ràng buộc của buổi học được thực thi ở máy chủ chứ không bao giờ chỉ ẩn nút ở giao diện, và khách không bao giờ được chọn mô hình.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Sáu bất biến của CAVAT, cơ chế giữ chúng và nơi bài báo kiểm chứng.}
 \label{tab:invariants}
@@ -25,7 +25,7 @@ Bất biến & Cơ chế thực thi & Kiểm chứng \\
 \textbf{B6.} Nền tảng: mọi điều gia sư khẳng định có trong đoạn nguồn hoặc lời học sinh & Kiểm chứng số, thuật ngữ Toán, từ có nghĩa; thử lại một lần rồi dùng câu trích nguyên văn hoặc giữ cho giáo viên & Độ bám nguồn, số lần bịa (Mục~\ref{sec:res-rag}) \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \subsection{Ràng buộc của môi trường}
 CAVAT được thiết kế để chạy trên các dịch vụ miễn phí, nên giới hạn hạn mức là một ràng buộc thiết kế chứ không phải chi tiết triển khai. Mỗi lời nhắc gửi mô hình tutor không quá $3\,000$ token và tắt suy luận mở rộng, vì hạn mức $8\,000$ token mỗi phút; mỗi buổi học có trần $15$ lần gọi mô hình; khi mô hình không dùng được (hết hạn mức, mạng, lỗi), mọi nước đi vẫn có câu mẫu đã duyệt để nói thay, nên buổi học không bao giờ dừng vì nhà cung cấp. Hệ quả là một phần đáng kể lời gia sư trong các buổi dài là câu mẫu của giáo viên; Mục~\ref{sec:res-soc} đo tỉ lệ này và Mục~\ref{sec:limits} nêu ý nghĩa của nó cho cách đọc kết quả.

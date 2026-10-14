@@ -5,7 +5,7 @@
 \setsansfont{texgyreheros}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
 \setmonofont{texgyrecursor}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic,Scale=0.92]
 \usepackage{amsmath,amssymb}
-\usepackage[a4paper,top=2.3cm,bottom=2.3cm,left=2.2cm,right=2.2cm]{geometry}
+\usepackage[a4paper,top=2.0cm,bottom=2.1cm,left=1.8cm,right=1.8cm,columnsep=0.7cm]{geometry}
 \usepackage{booktabs,tabularx,array,multirow,makecell,longtable}
 \usepackage{xcolor}
 \usepackage{graphicx}
@@ -24,7 +24,8 @@
 \usepackage{microtype}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
-\usepackage[colorlinks=true,linkcolor=cavat,citecolor=cavat,urlcolor=cavat]{hyperref}
+\definecolor{linkblue}{HTML}{1B4F8A}
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
 
 % --- màu
 \definecolor{cavat}{HTML}{1F6F78}
@@ -68,13 +69,13 @@
 % --- bố cục
 \setlength{\parindent}{1.2em}
 \setlength{\parskip}{0pt}
-\linespread{1.05}
+\linespread{1.0}
 \setlength{\emergencystretch}{3em}
 \sloppy
 \hbadness=10000
-\titleformat{\section}{\Large\bfseries\color{ink}}{\thesection}{0.7em}{}
-\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
-\titleformat{\subsubsection}{\normalsize\bfseries\itshape\color{ink}}{\thesubsubsection}{0.5em}{}
+\titleformat{\section}{\normalsize\bfseries\color{ink}}{\thesection.}{0.6em}{\MakeUppercase}
+\titleformat{\subsection}{\normalsize\bfseries\color{ink}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\color{ink}}{\thesubsubsection}{0.5em}{}
 \titlespacing*{\section}{0pt}{2.0ex plus 0.5ex minus 0.3ex}{1.0ex plus 0.2ex}
 \titlespacing*{\subsection}{0pt}{1.6ex plus 0.4ex minus 0.2ex}{0.7ex plus 0.2ex}
 \titlespacing*{\subsubsection}{0pt}{1.2ex plus 0.3ex minus 0.2ex}{0.5ex plus 0.1ex}
@@ -119,6 +120,29 @@
 \setcounter{totalnumber}{5}
 
 \let\OldSection\section
-\renewcommand{\section}{\Needspace*{7\baselineskip}\OldSection}
+\renewcommand{\section}{\Needspace*{6\baselineskip}\OldSection}
+\renewcommand{\sectionmark}[1]{\markright{#1}}
 \let\OldSubsection\subsection
-\renewcommand{\subsection}{\Needspace*{5\baselineskip}\OldSubsection}
+\renewcommand{\subsection}{\Needspace*{4\baselineskip}\OldSubsection}
+
+% --- bố cục hai cột kiểu bài hội nghị
+\setlength{\columnseprule}{0pt}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.7}
+\setcounter{dbltopnumber}{3}
+\setlength{\dbltextfloatsep}{12pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{0pt}
+\captionsetup{font={small}}
+% khối tiêu đề và tóm tắt trải hai cột: hộp tóm tắt nền nhạt
+\newsavebox{\absbox}
+\renewenvironment{abstract}{%
+  \begin{lrbox}{\absbox}\begin{minipage}{0.91\textwidth}\vspace{4pt}\small\noindent\textbf{\color{cavat}Tóm tắt.}\ }{%
+  \vspace{3pt}\end{minipage}\end{lrbox}%
+  \begin{center}\fcolorbox{rule}{soft!35}{\usebox{\absbox}}\end{center}\vspace{-2pt}}
+
+% URL dài trong tài liệu tham khảo được phép ngắt ở bất kỳ chữ nào
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\a\do\e\do\i\do\o\do\t\do\n\do\s\do\r\do\l\do\c\do\-}
+\makeatother

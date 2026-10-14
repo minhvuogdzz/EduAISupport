@@ -1,29 +1,29 @@
-\section{Mô hình người học và đánh giá mức hiểu bài}\label{sec:learner}
+\section{Mô hình người học}\label{sec:learner}
 
 Mức hiểu bài của CAVAT là một \emph{phép chiếu}: một hàm thuần túy từ sổ sự kiện đến trạng thái của mọi tiết, cùng một sổ luôn cho cùng một kết quả và mô hình ngôn ngữ không bao giờ ghi điểm. Công thức, trọng số và ngưỡng lấy từ khung đánh giá Toán của dự án (các mục §4--§35 và các diễn giải DI-1\ldots DI-12 của nó); những chỗ khung không nêu được khai báo là DI. Mục này mô tả mô hình; Mục~\ref{sec:res-assess} đo độ sát của nó với khung.
 
 \subsection{Bằng chứng}
 Mỗi tiết $v$ có bảy chiều: đúng ($C$), lập luận ($R$), vận dụng ($A$), chuyển giao ($T$), độc lập ($I$), ghi nhớ ($S$) và chẩn đoán lỗi ($D$). Một \emph{bằng chứng} là bộ ba (chiều, điểm $s\in[0,1]$, trọng số $w\ge0$). Ba kiểu sự kiện sinh bằng chứng (Bảng~\ref{tab:evidence}). Chiều mà đáp án của một câu cung cấp bằng chứng được suy từ mức nhận thức và tính chuyển giao của câu: mức A, B cho $C$; mức C cho $R$; mức D cho $A$; mức E hoặc câu chuyển giao cho $T$; câu chẩn đoán cho $D$. Chiều ghi nhớ $S$ chỉ có thể đến từ bài kiểm tra trì hoãn (T1/T3/T7/T30) mà phiên bản demo chưa có; Mục~\ref{sec:res-assess} nêu hệ quả.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Bằng chứng mà các sự kiện sinh ra (\rid{node-mastery/0.2.0}). $\delta$: độ khó; $\iota_h$: trọng số độc lập của bậc gợi ý cao nhất $h$ (Bảng~\ref{tab:ladder}); $\sigma=0{,}5$ cho câu ``cùng làm'' (đã có một phần lời giải), nếu không thì $1$; $g=0{,}5$ nếu bị coi là đoán, nếu không thì $1$.}
 \label{tab:evidence}
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{3.4cm}Y@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{2.8cm}Y@{}}
 \toprule
 Sự kiện & Chiều & Điểm $s$ & Trọng số $w$ \\
 \midrule
 câu được giải (độc lập, có hỗ trợ, cùng làm) & chiều của câu & $1$ & $(0{,}5+\delta)\cdot\max(\iota_h,0{,}3)\cdot\sigma\cdot g$ \\
  & $I$ & $\iota_h$ & $\sigma$ \\
-câu chưa giải được & chiều của câu & $e\in\{0{,}5\ (\text{tính}),\ 0{,}7\ (\text{cách viết}),\ 0\}$ & $(1{,}5-\delta)\cdot\sigma$ \\
+câu chưa giải được & chiều của câu & $e\in\{0{,}5\ (\text{tính}),$ $0{,}7\ (\text{cách viết}),$ $0\}$ & $(1{,}5-\delta)\cdot\sigma$ \\
  & $R$ (nếu lỗi quan niệm) & $0$ & $(1{,}5-\delta)\cdot\sigma$ \\
 được hỏi ``vì sao'' mà không giải thích; hoặc đoán & $R$ & $0$ & $1$ \\
 lời giải thích ``vì sao'' & $R$ & chất lượng $q$ (thang $0{,}2/0{,}6/1$) & $0{,}5$; không tính khi $q\le0{,}2$ \\
 bài kể lại của tiết & $R$ & phần ý chính tìm thấy & $1$; $0{,}3$ nếu nhãn của mô hình có độ tin cậy $<0{,}6$ \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 Hai chi tiết cho thấy tinh thần của bảng. Một câu đúng \emph{sau khi được giải thích đầy đủ} (H7) vẫn có một trọng số nhỏ ($\max(\iota_7,0{,}3)=0{,}3$) chứ không bị bỏ, vì học sinh đã làm được điều gì đó; nhưng nó không bao giờ được tính là thành công của tiết (xem luật qua tiết). Và một câu sai do \emph{cách viết} hoặc \emph{tính toán} vẫn mang điểm một phần, vì học sinh hiểu phương pháp.
 
@@ -34,15 +34,21 @@ Với mỗi tiết $v$ và chiều $d$ ta giữ một phân phối $\mathrm{Beta
 \end{equation}
 từ giá trị khởi đầu $\alpha^0=m\,p_v$, $\beta^0=m(1-p_v)$ với khối lượng tiên nghiệm $m=2$ (DI-12) và điểm khởi đầu $p_v$ là trung bình mức thành thạo của các tiết tiên quyết đã có điểm, hoặc $0{,}5$ nếu chưa có (DI-16, theo ý tưởng khởi động nguội của 2T-KT). Kỳ vọng của chiều là $\mu_{v,d}=\alpha_{v,d}/(\alpha_{v,d}+\beta_{v,d})$ và $n_{v,d}=\sum w$ là lượng bằng chứng hiệu dụng. Mức thành thạo tổng hợp lấy các chiều đã có đủ bằng chứng $\mathcal{A}_v=\{d:n_{v,d}\ge1\}$ và chuẩn hóa lại trọng số của khung (DI-1):
 \begin{equation}
-M_v=100\cdot\frac{\sum_{d\in\mathcal{A}_v}\omega_d\,\mu_{v,d}}{\sum_{d\in\mathcal{A}_v}\omega_d},\qquad
-\omega=(C\!:\!0{,}20,\ R\!:\!0{,}20,\ A\!:\!0{,}15,\ T\!:\!0{,}15,\ I\!:\!0{,}10,\ S\!:\!0{,}10,\ D\!:\!0{,}10).
+\begin{split}
+M_v&=100\cdot\frac{\sum_{d\in\mathcal{A}_v}\omega_d\,\mu_{v,d}}{\sum_{d\in\mathcal{A}_v}\omega_d},\\
+\omega&=(C\!:\!0{,}20,\ R\!:\!0{,}20,\ A\!:\!0{,}15,\ T\!:\!0{,}15,\\
+&\phantom{={}(}I\!:\!0{,}10,\ S\!:\!0{,}10,\ D\!:\!0{,}10).
+\end{split}
 \end{equation}
 Khi chưa chiều nào có đủ bằng chứng, $M_v$ chưa xác định và trang giáo viên hiện ``chưa học'' thay vì một con số.
 
 \subsection{Mức hiểu, các cổng và độ tin cậy}
 Mức hiểu (0--5) đếm số ngưỡng $(20,40,60,75,90)$ mà $M_v$ đạt, rồi bị chặn bởi các cổng theo chiều (DI-6): mức $\ge3$ (``khái niệm'') cần chiều $R$ có đủ bằng chứng với $\mu_R\ge0{,}6$, mức $\ge4$ (``vận dụng'') cần bằng chứng vận dụng từ một câu thành công ở mức D, E hoặc câu chuyển giao, và mức $5$ (``thành thạo tạm thời'', vì chưa có $S$) cần, ngoài $M_v\ge90$ theo ngưỡng, độ tin cậy $\ge75$, $\mu_A\ge0{,}8$ và không còn lỗi quan niệm nghiêm trọng. Tên mức, theo thứ tự, là học, nhận ra, quy trình, khái niệm, vận dụng, thành thạo tạm thời. \emph{Độ tin cậy} cho biết con số đáng tin đến đâu (DI-11):
 \begin{equation}
-\mathrm{conf}_v=100\cdot\underbrace{\bigl(1-e^{-n_v/6}\bigr)}_{f_n}\cdot\underbrace{\bigl(0{,}4+0{,}6\min(1,|\Lambda_v|/4)\bigr)}_{f_{\text{div}}}\cdot f_{\text{span}}\cdot f_{\text{cons}},
+\begin{split}
+\mathrm{conf}_v=100\cdot{}&\underbrace{\bigl(1-e^{-n_v/6}\bigr)}_{f_n}\cdot\underbrace{\bigl(0{,}4+0{,}6\min(1,|\Lambda_v|/4)\bigr)}_{f_{\text{div}}}\\
+&\cdot f_{\text{span}}\cdot f_{\text{cons}},
+\end{split}
 \end{equation}
 với $n_v$ là bằng chứng ngoài chiều $I$, $\Lambda_v$ là các mức nhận thức đã gặp, $f_{\text{span}}=0{,}7$ nếu chỉ một buổi, $0{,}85$ nếu nhiều buổi trong dưới ba ngày và $1$ nếu từ ba ngày; $f_{\text{cons}}=\min(1,\max(0{,}5,1-2\sigma))$ với $\sigma$ là độ lệch chuẩn của tám điểm gần nhất. Dưới $30$, trang giáo viên vẫn hiện số nhưng kèm cảnh báo ``chưa đủ dữ liệu'' (DI-7).
 

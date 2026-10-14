@@ -1,4 +1,4 @@
-\section{Kết quả III: so với các mô hình học sinh đang dùng được}\label{sec:market}
+\section{Kết quả: so sánh với mô hình thương mại}\label{sec:market}
 
 Mục này trả lời RQ3 bằng thí nghiệm đối chứng đã mô tả ở Mục~\ref{sec:setup}: ba hệ trả lời cùng một chuỗi lời nói của $13$ vai học sinh khó, rồi chấm cùng một bộ $36+35$ câu trả lời gán nhãn tay của trẻ. Cần nhắc lại phạm vi của phép so: B1 là một chatbot với lời nhắc thường, \emph{không} phải chế độ học thương mại; B2 là xấp xỉ gần nhất của một chế độ học (cùng mô hình của CAVAT, một lời nhắc Socratic soạn kỹ, không có gì khác).
 
@@ -12,19 +12,19 @@ Bảng~\ref{tab:baselines} và Hình~\ref{fig:baselines} tóm tắt $25$ lượt
 \input{gen/tab-baselines}
 \end{table}
 
-\begin{figure}[tbp]
+\begin{figure*}[tp]
 \centering
 \input{gen/fig-baselines}
 \caption{Tỉ lệ số lượt vi phạm theo bốn phép đo, cho ba hệ (số trên cột: phần trăm).}
 \label{fig:baselines}
-\end{figure}
+\end{figure*}
 
 B2, cùng mô hình với CAVAT và chỉ có lời nhắc, làm tốt hơn nhiều: $1$ lượt nói ra đáp án ($4\%$), không lượt nào quá $60$ từ hay có hơn một câu hỏi, và giám khảo chấm Socratic $4{,}84$, \emph{cao hơn} CAVAT ($4{,}46$; đáp đúng ý $4{,}88$ so với $4{,}71$). Chúng tôi coi đây là kết quả chính của mục: \textbf{về giọng điệu và về việc theo phương pháp Socratic khi trò chuyện, CAVAT không tốt hơn một lời nhắc tốt}; chênh lệch nghiêng về B2. Phần B2 thua là phần mà giám khảo không đo được.
 
 \subsection{Điều mà giám khảo bỏ sót}
 Bảng~\ref{tab:cases} đặt ba lượt cạnh nhau. Ở vai ``sai mà chắc chắn'', B2 trả lời một đáp án sai ($0{,}09$ cho $9/10$) bằng ``Con đã viết \emph{đúng} số thập phân rồi, cô rất vui! Con có thể giải thích cho cô nghe vì sao $9/10$ lại bằng $0{,}9$ không?''; trong một câu, nó vừa khen một đáp án sai là đúng, vừa nói ra đáp án. \emph{Giám khảo mô hình ngôn ngữ chấm câu này $5/5$ về Socratic và ``không lộ''}; chỉ phép đo bằng luật bắt được. B2 là lượt duy nhất trong $25$ lượt của nó nói ra đáp án, và giám khảo không phát hiện ($0/25$). Hai điều rút ra. Thứ nhất, một chế độ học dựa trên lời nhắc có thể tốt về mọi chỉ số nhìn thấy mà vẫn mắc đúng loại lỗi nguy hiểm nhất (làm một đứa trẻ tin một đáp án sai là đúng) ở một số ít lượt. Thứ hai, và đây là điều bài báo nhấn mạnh, \emph{không nên dùng một mô hình để canh một mô hình về lỗi này}: giám khảo cùng loại với hệ được chấm đọc câu ``đã viết đúng'' như một lời khen hợp lý. CAVAT không mắc lỗi này vì quyết định đúng--sai không đến từ mô hình ngôn ngữ, chứ không phải vì mô hình của nó viết hay hơn.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Ba lượt đặt cạnh nhau (lời rút gọn; mọi chữ trong ngoặc kép là nguyên văn). Cả ba lượt dùng đề ``Viết phân số $9/10$ dưới dạng số thập phân'' (đáp án $0{,}9$) hoặc ``phân số thập phân nào trong $3/7$, $7/10$, $10/3$'' (đáp án $7/10$).}
 \label{tab:cases}
@@ -40,24 +40,24 @@ Học sinh nói & B1 (chatbot thường) & B2 (cùng mô hình, lời nhắc Soc
 ``C'' (chọn $10/3$, sai) & ``Tuyệt vời! Bạn đã hiểu bài rất nhanh. Vậy, câu trả lời chính xác là \textbf{7/10}.'' \textit{(khen sai và lộ)} & ``Con chọn C (10/3) nhé. Cô muốn hỏi con: mẫu số của phân số 10/3 là bao nhiêu, và mẫu số đó có phải là số tròn chục không?'' & ``Con chọn C. Cô gợi ý nhẹ: phân số thập phân có mẫu số đặc biệt. Con nhìn mẫu số của từng phân số nhé?'' \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \subsection{Chấm câu trả lời của trẻ}
 Phần hai của thí nghiệm cho cùng một lời nhắc chấm (``đúng giá trị và đúng dạng đề hỏi'') cho ba hệ chấm trên các câu trả lời Việt Nam điển hình: dấu phẩy, số viết bằng chữ (``không phẩy chín''), lời đệm (``$0{,}9$ ạ cô''), teencode (``o,9''), so sánh bằng lời. CAVAT chấm bằng bộ chấm tất định; B1 và B2 chấm bằng mô hình (Bảng~\ref{tab:grading}). Trên bộ giữ riêng v2, được đóng băng trước khi bộ chấm học đọc số bằng chữ, bộ chấm của CAVAT đạt $35/35$ (trước sửa chỉ $26/35$, $74\%$; sửa được đánh giá đúng trên tập chưa dùng để sửa); B2 đạt $35/35$ nhưng không tất định; B1 đạt $25/35$, \emph{toàn bộ $10$ lỗi là bác một câu đúng} (không câu sai nào được nhận), và chúng đều là cách viết rất thường gặp ở trẻ: số bằng chữ (``không phẩy ba'', ``năm phẩy tám ạ'', ``mười hai''), lời đệm và so sánh bằng lời (``lớn hơn ạ''). Trên v1, đã xem trước khi sửa nên không phải bằng chứng độc lập, B1 bác $11$ câu đúng với cùng kiểu cách viết, kể cả ``o,9''. Với một đứa trẻ, một bộ chấm bác câu đúng vì cách viết là một thất bại về sư phạm không kém việc nhận câu sai.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Chấm các câu trả lời của trẻ gán nhãn tay. v1 đã được xem trước khi sửa bộ chấm; v2 giữ riêng, đóng băng trước khi sửa. ``Sai dương'': nhận một câu sai; ``sai âm'': bác một câu đúng.}
 \label{tab:grading}
 \input{gen/tab-grading}
-\end{table}
+\end{table*}
 
-\subsection{Từng vai và điều CAVAT làm được mà lời nhắc không bảo đảm}
+\subsection{Từng vai: điều lời nhắc không bảo đảm}
 Bảng~\ref{tab:roles} cho kết quả từng vai. B1 lộ đáp án ở \emph{mọi} vai mà học sinh đòi, nhờ, bảo bỏ qua hướng dẫn, hay nói ``không biết'' hoặc ``là sao'', tức là ở đúng những chỗ một gia sư không được lộ. B2 sạch trừ một lượt. CAVAT sạch ở mọi vai về lộ đáp án; chỗ nó yếu ở các vai ``sai mà chắc'' và ``đúng mà đoán'' (Mục~\ref{sec:res-soc}). Cái mà thiết kế của CAVAT bảo đảm, và lời nhắc thì không, là các tính chất ở Bảng~\ref{tab:invariants}: không bao giờ lộ đáp án câu kiểm tra, không bao giờ để một mô hình quyết định đúng--sai, không bao giờ dạy trước bài sau, và mọi lời của mô hình phải qua kiểm chứng. Cái mà thiết kế này \emph{chưa} cho được là học sinh học tốt hơn; đó là chiều 8 mà bài báo chưa đo.
 
-\begin{table}[tbp]
+\begin{table*}[tp]
 \centering
 \caption{Kết quả từng vai: số lượt nói ra đáp án (luật) và điểm Socratic của giám khảo (trung bình các lượt).}
 \label{tab:roles}
 \input{gen/tab-roles}
-\end{table}
+\end{table*}
