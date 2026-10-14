@@ -1,6 +1,13 @@
 \section{Kết quả IV: độ sát của đánh giá hiểu bài so với khung gốc}\label{sec:res-assess}
 
-Mục này trả lời RQ4. ``Sát khung'' có ít nhất bốn nghĩa, và chúng tôi đo cả bốn thay vì chọn một: (i)~\emph{về nội dung}, hệ thống làm được bao nhiêu mục mà khung đòi (Mục~\ref{sec:fidelity}); (ii)~\emph{về tính toán}, mã có thực sự tính đúng công thức của khung hay không (Mục~\ref{sec:conformance}); (iii)~\emph{về hành vi}, điểm và mức hiểu có đáp ứng đúng chiều với những thứ khung nói nên có ảnh hưởng, như gợi ý, độ khó, loại lỗi, giải thích, vận dụng, và các nhóm học sinh đã biết trước ra sao (Mục~\ref{sec:curves}--\ref{sec:known-groups}); và (iv)~\emph{về độ bền}, kết luận về một học sinh có đổi khi một diễn giải khai báo đổi sang giá trị lân cận không (Mục~\ref{sec:sensitivity}). Mục~\ref{sec:visual} đưa các hiển thị mà giáo viên thấy, để người đọc tự đánh giá.
+Mục này trả lời RQ4. ``Sát khung'' có ít nhất bốn nghĩa, và chúng tôi đo cả bốn thay vì chọn một:
+\begin{enumerate}[label=(\roman*)]
+  \item \emph{về nội dung}, hệ thống làm được bao nhiêu mục mà khung đòi (Mục~\ref{sec:fidelity}).
+  \item \emph{về tính toán}, mã có thực sự tính đúng công thức của khung hay không (Mục~\ref{sec:conformance}).
+  \item \emph{về hành vi}, điểm và mức hiểu có đáp ứng đúng chiều với những thứ khung nói nên có ảnh hưởng, như gợi ý, độ khó, loại lỗi, giải thích, vận dụng, và các nhóm học sinh đã biết trước ra sao (Mục~\ref{sec:curves}--\ref{sec:known-groups}); và
+  \item \emph{về độ bền}, kết luận về một học sinh có đổi khi một diễn giải khai báo đổi sang giá trị lân cận không (Mục~\ref{sec:sensitivity}).
+\end{enumerate}
+Mục~\ref{sec:visual} đưa các hiển thị mà giáo viên thấy, để người đọc tự đánh giá.
 
 \subsection{Đối chiếu từng mục của khung}\label{sec:fidelity}
 Bảng~\ref{tab:fidelity} đối chiếu $25$ mục của khung đánh giá Toán của dự án với mã. \textbf{Có $16$ mục được làm đầy đủ, $5$ mục một phần và $4$ mục chưa làm}; nếu mục một phần tính một nửa, độ sát là $(16+0{,}5\times5)/25=74\%$, và chỉ tính mục đầy đủ là $64\%$. Cần đọc con số này cùng với \emph{chỗ hổng nằm ở đâu}. Hai mục chưa làm (\#14, \#25) và hai mục một phần (\#1, \#11) đều xoay quanh \emph{thời gian}, tức ghi nhớ sau nhiều ngày (chiều $S$ và các trạng thái ``có nguy cơ quên'', ``đã quên'', ``thành thạo ổn định'' dựa vào nó); một buổi demo không đo được các thứ này, nên đó là giới hạn của phạm vi chứ không phải một sai lệch thiết kế. Hai mục chưa làm còn lại là điểm từng câu và việc giáo viên sửa điểm, đều là giao diện; ba mục một phần còn lại (\#19--\#21) nói về độ giàu của bằng chứng và của chẩn đoán. Mọi chỗ khác khung được khai báo: có \NDIs{} diễn giải (DI-1 đến DI-58) trong tài liệu thiết kế, mỗi diễn giải nói rõ ngưỡng nào do dự án tự đặt và vì sao.

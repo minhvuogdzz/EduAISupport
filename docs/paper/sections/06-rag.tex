@@ -1,7 +1,19 @@
 \section{Truy xuất lai có ràng buộc theo đồ thị tri thức}\label{sec:rag}
 
 \subsection{Truy xuất trong dạy học khác truy xuất tổng quát ở đâu}
-Trong một cuộc trò chuyện dạy học, truy xuất phục vụ bốn việc khác nhau mà một hệ RAG tổng quát không phân biệt: chọn cách giảng kế tiếp cho tiết đang học (\emph{teach}), tìm chỗ để neo một gợi ý (\emph{hint}), trả lời một câu con tự hỏi (\emph{question}) và trả lời một câu ``X là gì'' (\emph{definition}). Mỗi việc cần một thứ tự ưu tiên loại đoạn khác nhau, và cả bốn chịu cùng hai ràng buộc không có trong truy xuất tổng quát: (i)~\emph{phạm vi}: không dùng đoạn của tiết chưa học để trả lời, vì đó là dạy trước; (ii)~\emph{có căn cứ}: câu không có đoạn nào trả lời thì phải được giữ lại cho giáo viên, không được bịa. Hình~\ref{fig:retrieval} tóm tắt luồng sáu bước.
+Trong một cuộc trò chuyện dạy học, truy xuất phục vụ bốn việc khác nhau mà một hệ RAG tổng quát không phân biệt:
+\begin{itemize}
+  \item \emph{teach}: chọn cách giảng kế tiếp cho tiết đang học;
+  \item \emph{hint}: tìm chỗ để neo một gợi ý;
+  \item \emph{question}: trả lời một câu con tự hỏi;
+  \item \emph{definition}: trả lời một câu ``X là gì''.
+\end{itemize}
+Mỗi việc cần một thứ tự ưu tiên loại đoạn khác nhau, và cả bốn chịu cùng hai ràng buộc không có trong truy xuất tổng quát:
+\begin{enumerate}[label=(\roman*)]
+  \item \emph{Phạm vi}: không dùng đoạn của tiết chưa học để trả lời, vì đó là dạy trước.
+  \item \emph{Có căn cứ}: câu không có đoạn nào trả lời thì phải được giữ lại cho giáo viên, không được bịa.
+\end{enumerate}
+Hình~\ref{fig:retrieval} tóm tắt luồng sáu bước.
 
 \begin{figure}[tbp]
 \centering

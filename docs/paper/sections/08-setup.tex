@@ -1,7 +1,12 @@
 \section{Thiết lập thực nghiệm}\label{sec:setup}
 
 \subsection{Phương pháp đánh giá: tám chiều (RQ1)}
-Đánh giá một gia sư chỉ bằng một con số sẽ che đi chính những thứ quan trọng: một hệ có thể nói rất hay mà vẫn lộ đáp án, hoặc truy xuất rất chính xác mà vẫn dạy trước. Vì vậy chúng tôi đánh giá theo tám chiều (Bảng~\ref{tab:dims}): bảy chiều đánh giá hệ AI của thiết kế gốc của dự án và một chiều kết quả học tập do chúng tôi bổ sung. Mỗi chiều có một chỉ số, một cách đo, một ngưỡng đặt \emph{trước khi đo} và một trạng thái. Hình~\ref{fig:protocol} tóm tắt giao thức. Ba nguyên tắc chi phối cả tám chiều. \emph{Tất định trước, mô hình chấm sau}: chỉ số nào đo được bằng luật (lộ đáp án, số câu hỏi, đúng--sai Toán, phạm vi) thì đo bằng luật; giám khảo là mô hình chỉ dùng cho chất lượng ngôn ngữ và sư phạm, và luôn khác họ với mô hình gia sư (gia sư là Qwen, giám khảo là \code{gpt-oss-120b}). \emph{Tách bộ chỉnh và bộ giữ riêng}: mọi bộ dùng để chỉnh tham số có một bộ giữ riêng viết sau, không dùng để chỉnh gì; con số của bộ giữ riêng mới được báo cáo. \emph{Bỏ từng phần và đối chứng}: mỗi thành phần có thí nghiệm bỏ đi, và hệ được so với hai mốc, một chatbot thương mại và chính mô hình của hệ chỉ có lời nhắc.
+Đánh giá một gia sư chỉ bằng một con số sẽ che đi chính những thứ quan trọng: một hệ có thể nói rất hay mà vẫn lộ đáp án, hoặc truy xuất rất chính xác mà vẫn dạy trước. Vì vậy chúng tôi đánh giá theo tám chiều (Bảng~\ref{tab:dims}): bảy chiều đánh giá hệ AI của thiết kế gốc của dự án và một chiều kết quả học tập do chúng tôi bổ sung. Mỗi chiều có một chỉ số, một cách đo, một ngưỡng đặt \emph{trước khi đo} và một trạng thái. Hình~\ref{fig:protocol} tóm tắt giao thức. Ba nguyên tắc chi phối cả tám chiều.
+\begin{enumerate}
+  \item \emph{Tất định trước, mô hình chấm sau}: chỉ số nào đo được bằng luật (lộ đáp án, số câu hỏi, đúng--sai Toán, phạm vi) thì đo bằng luật; giám khảo là mô hình chỉ dùng cho chất lượng ngôn ngữ và sư phạm, và luôn khác họ với mô hình gia sư (gia sư là Qwen, giám khảo là \code{gpt-oss-120b}).
+  \item \emph{Tách bộ chỉnh và bộ giữ riêng}: mọi bộ dùng để chỉnh tham số có một bộ giữ riêng viết sau, không dùng để chỉnh gì; con số của bộ giữ riêng mới được báo cáo.
+  \item \emph{Bỏ từng phần và đối chứng}: mỗi thành phần có thí nghiệm bỏ đi, và hệ được so với hai mốc, một chatbot thương mại và chính mô hình của hệ chỉ có lời nhắc.
+\end{enumerate}
 
 \begin{table}[tbp]
 \centering
