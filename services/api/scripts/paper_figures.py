@@ -364,7 +364,7 @@ def tab_bank() -> None:
     # the checks themselves
     kinds = sorted(
         {k for c in b for k in b[c]["checks"]},
-        key=lambda k: -sum(b[c]["checks"].get(k, {"n": 0})["n"] for c in b),
+        key=lambda k: (-sum(b[c]["checks"].get(k, {"n": 0})["n"] for c in b), k),
     )
     rows2 = []
     for k in kinds:
