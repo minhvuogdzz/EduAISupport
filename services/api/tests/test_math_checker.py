@@ -237,7 +237,7 @@ def test_order_descending_item():
         ("6 vì 0,65 > 0,6", CORRECT, None),
         ("5", WRONG, None),
         ("x = 5 thì 0,55 < 0,6, x = 6 thì 0,65 > 0,6", UNPARSEABLE, None),  # two values for x
-        ("sáu", UNPARSEABLE, None),
+        ("sáu", CORRECT, None),  # GRADE-1: a number in words, said alone
     ],
 )
 def test_numeric(text, outcome, misconception):
@@ -531,3 +531,44 @@ def test_a_pair_may_be_said_with_a_colon():
 
 def test_a_pair_said_the_wrong_way_round_is_wrong():
     assert _open("bao A nhẹ nhất còn bao C nặng nhất", pairs=[["nhẹ", "C"], ["nặng", "A"]]) is WRONG
+
+
+# --------------------------------------------------------------------------- GRADE-1: numbers in words
+
+
+@pytest.mark.parametrize(
+    ("text", "digits"),
+    [
+        ("không phẩy chín", "0,9"),
+        ("0 phẩy 9 ạ", "0,9 ạ"),
+        ("ba phẩy không sáu", "3,06"),
+        ("hai phẩy bảy mươi lăm", "2,75"),
+        ("mười hai", "12"),
+        ("con không biết", "con không biết"),  # "không" is "no" here, never 0
+        ("năm nay con lớp năm", "năm nay con lớp năm"),  # words around: not a number said alone
+    ],
+)
+def test_a_number_said_in_words_is_read(text, digits):
+    from cavat.modules.assessment.vi_words import spoken_to_digits
+
+    assert spoken_to_digits(text) == digits
+
+
+def test_an_item_asking_for_a_decimal_does_not_take_the_fraction_back():
+    from cavat.modules.content.lesson_package import Item
+
+    item = Item.model_validate(
+        {
+            "id": "X",
+            "purpose": "PRACTICE",
+            "kc_ids": ["KC"],
+            "cognitive_level": "B",
+            "difficulty": 0.3,
+            "stem": "Viết phân số 9/10 dưới dạng số thập phân.",
+            "answer": {"type": "numeric", "value": "0,9"},
+        }
+    )
+    pkg = PKG
+    assert check_answer(item, "0,9", pkg).outcome == CORRECT
+    assert check_answer(item, "không phẩy chín", pkg).outcome == CORRECT
+    assert check_answer(item, "9/10", pkg).outcome == WRONG

@@ -1,0 +1,40 @@
+# EVAL-1 part B, held-out v2: written 2026-10-13 and committed BEFORE the checker learns to read answers in
+# words (GRADE-1); never used to tune anything. v1's misses were read while writing the evaluation, so v1 is
+# no longer held out. Other items than v1, same kinds of answers. Labelled by hand: truth = what a Vietnamese
+# Grade 5 teacher accepts.
+cases:
+  - {item: TP-TR-01, answer: "0,3", correct: true}
+  - {item: TP-TR-01, answer: "không phẩy ba", correct: true}
+  - {item: TP-TR-01, answer: "0 phẩy 3 ạ", correct: true}
+  - {item: TP-TR-01, answer: "0,30", correct: true}
+  - {item: TP-TR-01, answer: "3/10", correct: false, why: "the item asks for a decimal"}
+  - {item: TP-TR-01, answer: "0,03", correct: false}
+  - {item: TP-CP-01, answer: "0,07", correct: true}
+  - {item: TP-CP-01, answer: "không phẩy không bảy", correct: true}
+  - {item: TP-CP-01, answer: "0,7", correct: false}
+  - {item: TP-CP-01, answer: "7/100", correct: false, why: "the item asks for a decimal"}
+  - {item: KN-CC-01, answer: "12", correct: true}
+  - {item: KN-CC-01, answer: "mười hai", correct: true}
+  - {item: KN-CC-01, answer: "45", correct: false}
+  - {item: KN-CC-01, answer: "12,45", correct: false}
+  - {item: GP-07, answer: "6", correct: true}
+  - {item: GP-07, answer: "x = 6", correct: true}
+  - {item: GP-07, answer: "sáu ạ", correct: true}
+  - {item: GP-07, answer: "5", correct: false}
+  - {item: GP-03, answer: "<", correct: true}
+  - {item: GP-03, answer: "bé hơn", correct: true}
+  - {item: GP-03, answer: "0,05 nhỏ hơn 0,5", correct: true}
+  - {item: GP-03, answer: ">", correct: false}
+  - {item: EX-07, answer: ">", correct: true}
+  - {item: EX-07, answer: "lớn hơn ạ", correct: true}
+  - {item: EX-07, answer: "<", correct: false}
+  - {item: EX-06, answer: "=", correct: true}
+  - {item: EX-06, answer: "<", correct: false}
+  - {item: EX-08, answer: "0,75; 0,8; 0,9", correct: true}
+  - {item: EX-08, answer: "0,75 < 0,8 < 0,9", correct: true}
+  - {item: EX-08, answer: "0,8; 0,9; 0,75", correct: false}
+  - {item: EX-04, answer: "sai", correct: true}
+  - {item: EX-04, answer: "bạn Hà sai rồi", correct: true}
+  - {item: EX-04, answer: "đúng", correct: false}
+  - {item: KN-PR-01, answer: "năm phẩy tám ạ", correct: true}
+  - {item: PL-02, answer: "3 phẩy 06", correct: true}

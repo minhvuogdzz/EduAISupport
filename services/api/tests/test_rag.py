@@ -489,10 +489,40 @@ def test_a_definition_question_reaches_every_period_the_node_builds_on():
     found = index.retrieve("phần thập phân là gì vậy cô", node_id="D", k=3)
     assert found.mode == "definition" and found.results[0].chunk.chunk_id == "A:theory"
     assert "định nghĩa «phan thap phan»" in found.results[0].reasons
-    assert (
-        not index.retrieve("phần thập phân có mấy chữ số", node_id="D", k=3).results[0].chunk.node_id == "A"
-    )
     assert "E" not in index.ancestors("D") and index.ancestors("D") == {"A", "B", "C"}
+
+
+def test_a_question_about_an_earlier_period_is_routed_to_it():
+    """DI-57: "phần thập phân có mấy chữ số" while ordering numbers is about the period that taught it."""
+    chunks = [
+        chunk("A:theory", "Phần thập phân là các chữ số bên phải dấu phẩy.", node="A"),
+        chunk("D:theory", "Sắp xếp các số thập phân từ bé đến lớn.", node="D"),
+    ]
+    index = RagIndex(chunks, None, CHAIN)
+    about_a = index.retrieve("phần thập phân có mấy chữ số", node_id="D", k=3)
+    assert about_a.results[0].chunk.node_id == "A" and about_a.results[0].distance == 0
+    about_d = index.retrieve("sắp xếp từ bé đến lớn thế nào", node_id="D", k=3)
+    assert about_d.results[0].chunk.node_id == "D"
+
+
+def test_a_question_is_never_routed_to_a_later_period():
+    chunks = [
+        chunk("A:theory", "Đọc số thập phân.", node="A"),
+        chunk("E:theory", "Làm tròn số thập phân đến hàng phần mười.", node="E"),
+    ]
+    index = RagIndex(chunks, None, CHAIN)
+    found = index.retrieve("làm tròn số thập phân đến hàng phần mười", node_id="A", k=3)
+    assert all(s.chunk.node_id != "E" for s in found.ranked)
+
+
+def test_routing_is_part_of_the_structure_step_of_the_ablation():
+    chunks = [
+        chunk("A:theory", "Phần thập phân là các chữ số bên phải dấu phẩy.", node="A"),
+        chunk("D:theory", "Sắp xếp các số thập phân từ bé đến lớn.", node="D"),
+    ]
+    index = RagIndex(chunks, None, CHAIN)
+    plain = index.retrieve("phần thập phân có mấy chữ số", node_id="D", k=3, rerank=False)
+    assert all(s.chunk.node_id != "A" for s in plain.ranked)  # without structure: periods near only
 
 
 def test_a_passage_of_several_periods_never_reaches_an_earlier_one():

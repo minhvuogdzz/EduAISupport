@@ -1,6 +1,7 @@
-"""Gemini adapter: vision/OCR only (geometry images, photographed problems). ADR-017.
+"""Gemini adapter: vision/OCR (geometry images, photographed problems) and RAG embeddings. ADR-017.
 
-Gemini is never used for chat (free tier: 20 requests/day). The ``google-genai`` SDK is
+Gemini is never the tutor (free tier: 20 requests/day); ``GeminiChat`` only answers as the market baseline
+of the evaluation (EVAL-1). The ``google-genai`` SDK is
 imported only inside this module.
 """
 
@@ -10,7 +11,15 @@ from typing import Any
 
 from pydantic import SecretStr
 
-from .base import InvalidModelOutput, ModelUnavailable, QuotaExceeded, Usage, VisionResult
+from .base import (
+    ChatRequest,
+    ChatResult,
+    InvalidModelOutput,
+    ModelUnavailable,
+    QuotaExceeded,
+    Usage,
+    VisionResult,
+)
 
 DEFAULT_VISION_MODEL = "gemini-3.8-flash"
 
@@ -85,6 +94,63 @@ class GeminiVision:
         if not text:
             raise InvalidModelOutput("empty vision response", model=model)
         return VisionResult(model=model, text=text, usage=_usage(getattr(response, "usage_metadata", None)))
+
+
+class GeminiChat:
+    """EVAL-1 only: Gemini as the baseline "chatbot on the market" the tutor is compared with. Never the tutor
+    (ADR-017: the tutor is Qwen); a chain of free models, each with 20 requests a day."""
+
+    def __init__(self, api_key: str | SecretStr, *, models: tuple[str, ...], client: Any = None) -> None:
+        self.models = models
+        if client is None:
+            from google import genai
+
+            key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
+            client = genai.Client(api_key=key)
+        self._client = client
+
+    def chat(self, request: ChatRequest) -> ChatResult:
+        from google.genai import errors, types
+
+        system = "\n".join(m.content for m in request.messages if m.role == "system") or None
+        contents = [
+            types.Content(
+                role="model" if m.role == "assistant" else "user", parts=[types.Part(text=m.content)]
+            )
+            for m in request.messages
+            if m.role != "system"
+        ]
+        last: Exception | None = None
+        for model in self.models:
+            thinking = (
+                types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+                if model.startswith("gemini-3")
+                else types.ThinkingConfig(thinking_budget=0)
+            )
+            config = types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=request.temperature,
+                max_output_tokens=request.max_output_tokens,
+                thinking_config=thinking,
+            )
+            try:
+                response = self._client.models.generate_content(model=model, contents=contents, config=config)
+            except errors.APIError as exc:
+                last = (QuotaExceeded if exc.code == 429 else ModelUnavailable)(
+                    f"Gemini HTTP {exc.code}", model=model
+                )
+                continue
+            except Exception as exc:
+                last = ModelUnavailable(f"Gemini call failed: {type(exc).__name__}", model=model)
+                continue
+            text = (getattr(response, "text", None) or "").strip()
+            if text:
+                return ChatResult(
+                    model=model, text=text, usage=_usage(getattr(response, "usage_metadata", None))
+                )
+            last = InvalidModelOutput("empty chat response", model=model)
+        assert last is not None
+        raise last
 
 
 DEFAULT_EMBEDDING_MODEL = "gemini-embedding-001"

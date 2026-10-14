@@ -17,7 +17,6 @@ evals/reports/<date>-grounded-live.md.
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 import time
 from dataclasses import dataclass, field
@@ -101,19 +100,23 @@ class Row:
 def judge(
     router, kind: str, waiting: str, said: str, evidence: list[str], text: str, after: str = ""
 ) -> dict:
-    case = {
-        "loai": kind,
-        "cau_gia_su_dang_cho": waiting,
-        "hoc_sinh_vua_noi": said,
-        "doan_nguon": evidence,
-        "loi_gia_su_can_cham": text,
-    }
+    # Labelled lines, not JSON: an empty JSON field made the judge read "the tutor said nothing" and score
+    # 1/1/1/1 although the reply was there (TQ-3; seen again on G05 of 2026-10-07).
+    lines = [
+        f"LOẠI LƯỢT: {kind}",
+        f"CÂU GIA SƯ ĐANG CHỜ CON TRẢ LỜI: {waiting or '(không có)'}",
+        f"HỌC SINH VỪA NÓI: {said}",
+        "ĐOẠN NGUỒN (tài liệu đã duyệt):",
+        *[f"- {e}" for e in evidence],
+        f"LỜI GIA SƯ CẦN CHẤM: «{text}»",
+    ]
     if after:
-        case["loi_giai_thich_noi_ngay_sau"] = after
+        lines.append(f"LỜI GIẢI THÍCH NÓI NGAY SAU (đã duyệt, không chấm): {after}")
+    case = "\n".join(lines)
     request = ChatRequest(
         messages=(
             ChatMessage("system", JUDGE_SYSTEM),
-            ChatMessage("user", json.dumps(case, ensure_ascii=False)),
+            ChatMessage("user", case),
         ),
         json_schema=JUDGE_SCHEMA,
         schema_name="judgement",
