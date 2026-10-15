@@ -73,28 +73,39 @@ Tách như vậy tạo ra một vấn đề thứ hai: gia sư phải dạy đú
 
 \begin{figure*}[t]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm,
-  box/.style={draw=cavat,rounded corners=2pt,fill=soft,align=center,font=\small,minimum height=11mm,text width=27mm,inner sep=2pt},
-  llmbox/.style={box,fill=llmsoft,draw=llm},
-  data/.style={box,fill=gray!10,draw=gray!60},
-  arr/.style={-{Latex[length=2mm]},thick,draw=ink!75},
-  dsh/.style={-{Latex[length=2mm]},thick,draw=ink!55,dashed},
-  lab/.style={font=\scriptsize,fill=white,inner sep=1pt,text=mute}]
-% hàng A: đường quyết định
+\begin{tikzpicture}[x=0.95cm,y=1cm,font=\small,
+  box/.style={draw=black,line width=0.5pt,fill=white,align=center,minimum height=11mm,text width=29mm,inner sep=2pt},
+  store/.style={box,fill=gray!14},
+  llmbox/.style={box,fill=gray!38,dashed,line width=0.7pt},
+  arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt,draw=black},
+  dsh/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt,draw=black,dash pattern=on 3pt off 2pt},
+  lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1.2pt},
+  lane/.style={font=\scriptsize\scshape,anchor=north west,text=black!70}]
+% ba làn: quyết định, chấm điểm và mức hiểu, nội dung và lời nói
+\begin{scope}[on background layer]
+  \fill[black!5] (-2.6,1.0) rectangle (15.0,-1.0);
+  \fill[black!5] (-2.6,-1.4) rectangle (15.0,-3.4);
+  \fill[black!5] (-2.6,-3.8) rectangle (15.0,-5.8);
+\end{scope}
+\node[lane] at (-2.5,0.97) {quyết định sư phạm};
+\node[lane] at (-2.5,-1.43) {chấm điểm và mức hiểu};
+\node[lane] at (-2.5,-3.83) {nội dung và lời nói};
+% làn 1
 \node[box,draw=none,fill=none,text width=22mm] (kid) at (0,0) {\textbf{Học sinh}\\\scriptsize gõ hoặc nói};
 \node[box] (cond) at (4.0,0) {\textbf{Bộ điều phối}\\\scriptsize làm sạch, đọc ý định};
 \node[box] (node) at (8.0,0) {\textbf{Chính sách dạy}\\\scriptsize luật N-* trên đồ thị};
 \node[box] (item) at (12.0,0) {\textbf{Vòng một câu hỏi}\\\scriptsize luật R-*, thang H0--H7};
-% hàng B: bằng chứng và điểm
+% làn 2
 \node[box] (teacher) at (0,-2.4) {\textbf{Giao diện giáo viên}\\\scriptsize bằng chứng học tập};
 \node[box] (learner) at (4.0,-2.4) {\textbf{Mô hình người học}\\\scriptsize 7 chiều, phát lại được};
-\node[data] (ledger) at (8.0,-2.4) {\textbf{Sổ sự kiện}\\\scriptsize chỉ ghi thêm};
+\node[store] (ledger) at (8.0,-2.4) {\textbf{Sổ sự kiện}\\\scriptsize chỉ ghi thêm};
 \node[box] (check) at (12.0,-2.4) {\textbf{Bộ chấm tất định}\\\scriptsize vi-VN, MathChecker};
-% hàng C: lời nói
-\node[data] (kb) at (0,-4.8) {\textbf{Kho tri thức}\\\scriptsize tài liệu giáo viên, đã duyệt};
+% làn 3
+\node[store] (kb) at (0,-4.8) {\textbf{Kho tri thức}\\\scriptsize tài liệu giáo viên, đã duyệt};
 \node[box] (rag) at (4.0,-4.8) {\textbf{Truy xuất lai}\\\scriptsize BM25, vector, đồ thị};
-\node[box] (valid) at (8.0,-4.8) {\textbf{Bộ kiểm chứng}\\\scriptsize lộ, câu hỏi, nguồn};
+\node[box] (valid) at (8.0,-4.8) {\textbf{Bộ kiểm chứng}\\\scriptsize lộ đáp án, câu hỏi, nguồn};
 \node[llmbox] (llm) at (12.0,-4.8) {\textbf{Mô hình ngôn ngữ}\\\scriptsize chỉ diễn đạt};
+% luồng
 \draw[arr] (kid) -- (cond);
 \draw[arr] (cond) -- (node);
 \draw[arr] (node) -- (item);
@@ -102,15 +113,16 @@ Tách như vậy tạo ra một vấn đề thứ hai: gia sư phải dạy đú
 \draw[arr] (check) -- node[lab,above]{bằng chứng} (ledger);
 \draw[arr] (ledger) -- (learner);
 \draw[arr] (learner) -- (teacher);
-\draw[arr] (learner.north east) -- node[lab,pos=0.45,sloped,above]{trạng thái từng tiết} (node.south west);
-\draw[arr] (item.east) -- ++(0.55,0) |- node[lab,pos=0.25,right]{nước đi, câu mẫu} (llm.east);
+\draw[arr] (learner.north) -- ++(0,0.55) -| node[lab,pos=0.25,above]{trạng thái từng tiết} (node.south);
+\draw[arr] (item.east) -- ++(0.9,0) |- (llm.east);
+\node[lab,rotate=90,anchor=south] at ([xshift=0.9cm]item.east |- ledger.east) {nước đi, câu mẫu};
 \draw[arr] (llm) -- node[lab,above]{lời nháp} (valid);
 \draw[arr] (kb) -- (rag);
 \draw[arr] (rag) -- node[lab,above]{đoạn nguồn} (valid);
-\draw[dsh] (rag.south) -- ++(0,-0.7) -| (llm.south);
-\draw[dsh] (valid.south) -- ++(0,-1.1) -| node[lab,pos=0.12,above]{lời đã qua kiểm chứng} ([xshift=-0.35cm]kid.west |- kid.west) -- (kid.west);
+\draw[dsh] (rag.north) -- ++(0,0.65) -| node[lab,pos=0.25,above]{đoạn nguồn cho mô hình} (llm.north);
+\draw[dsh] (valid.south) -- ++(0,-0.7) -| node[lab,pos=0.12,above]{lời đã qua kiểm chứng} ([xshift=-1.55cm]kid.west) -- (kid.west);
 \end{tikzpicture}
-\caption{Kiến trúc của CAVAT. Mô hình ngôn ngữ (cam) là thành phần duy nhất không tất định và chỉ diễn đạt; mọi quyết định sư phạm, phán quyết đúng--sai và điểm số đi qua thành phần tất định. Sổ sự kiện chỉ ghi thêm là nguồn sự thật duy nhất, mức hiểu bài tính lại được từ đó. Nét đứt: đoạn nguồn đi tới mô hình; lời chỉ đến học sinh sau bộ kiểm chứng.}
+\caption{Kiến trúc của CAVAT. Mô hình ngôn ngữ (ô xám đậm, nét đứt) là thành phần duy nhất không tất định và chỉ diễn đạt; mọi quyết định sư phạm, phán quyết đúng--sai và điểm số đi qua thành phần tất định (ô trắng). Sổ sự kiện chỉ ghi thêm (ô xám nhạt) là nguồn sự thật duy nhất, mức hiểu bài tính lại được từ đó. Nét đứt: đoạn nguồn đi tới mô hình; lời chỉ đến học sinh sau bộ kiểm chứng.}
 \label{fig:arch}
 \end{figure*}
 
