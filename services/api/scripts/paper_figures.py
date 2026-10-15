@@ -1085,6 +1085,40 @@ def tab_ablation_main() -> None:
         out.append(" & ".join(cells) + r" \\")
     out += [r"\bottomrule", r"\end{tabular}"]
     write("tab-ablation-main.tex", "\n".join(out))
+    tab_ablation_v2(configs, best_v2)
+
+
+def tab_ablation_v2(configs: list[str], best_v2: float) -> None:
+    """The v2 columns only, narrow enough for half a page in the compact version."""
+    out = [
+        r"\footnotesize",
+        r"\begin{tabular}{@{}lrrrr@{}}",
+        r"\toprule",
+        r"Cấu hình & Hit@1 & Hit@3 & MRR & KTC 95\% \\",
+        r"\midrule",
+    ]
+    for i, c in enumerate(configs):
+        if i == 5:
+            out.append(r"\midrule")
+        lo, hi = boot_ci([rr(r) for r in rows_of("published_holdout_v2", c)])
+        m = metric("published_holdout_v2", c, "mrr")
+        mrr_txt = num(m, 3)
+        if abs(m - best_v2) < 1e-9:
+            mrr_txt = rf"\best{{{mrr_txt}}}"
+        out.append(
+            " & ".join(
+                [
+                    CONFIG_LABEL[c],
+                    num(metric("published_holdout_v2", c, "hit1"), 2),
+                    num(metric("published_holdout_v2", c, "hit3"), 2),
+                    mrr_txt,
+                    ci(lo, hi),
+                ]
+            )
+            + r" \\"
+        )
+    out += [r"\bottomrule", r"\end{tabular}"]
+    write("tab-ablation-v2.tex", "\n".join(out))
 
 
 def tab_ablation_full() -> None:
@@ -1682,9 +1716,15 @@ def heat_cells(chapter: str) -> list[str]:
 
 
 def fig_heat() -> None:
+    _heat_figure("fig-heat.tex", ((DEC, "(a) Số thập phân"), (GEO, "(b) Diện tích tam giác, hình thang")))
+    # one chapter only, for the compact version of the paper
+    _heat_figure("fig-heat-dec.tex", ((DEC, "Số thập phân"),))
+
+
+def _heat_figure(filename: str, chapters: tuple[tuple[str, str], ...]) -> None:
     parts = [r"\begin{tikzpicture}[x=1cm,y=1cm]"]
     offset = 0.0
-    for c, title in ((DEC, "(a) Số thập phân"), (GEO, "(b) Diện tích tam giác, hình thang")):
+    for c, title in chapters:
         nodes = STUDENT["chapters"][c]["nodes"]
         parts.append(rf"\begin{{scope}}[shift={{(0,{offset:.2f})}}]")
         parts.append(rf"\node[anchor=west,font=\small\bfseries] at (-1.2,1.15) {{{title}}};")
@@ -1720,7 +1760,7 @@ def fig_heat() -> None:
     )
     parts.append(rf"\node[anchor=west,font=\scriptsize] at ({x + 0.5:.2f},{y:.2f}) {{chưa đủ bằng chứng}};")
     parts.append(r"\end{tikzpicture}")
-    write("fig-heat.tex", "\n".join(parts))
+    write(filename, "\n".join(parts))
 
 
 def fig_traj() -> None:
