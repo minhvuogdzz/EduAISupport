@@ -726,8 +726,8 @@ def fig_pipeline() -> None:
 
 KIND_COLOUR = {
     "theory": "cavat",
-    "method": "teal!55!black",
-    "worked_example": "blue!55!cyan",
+    "method": "okgreen",
+    "worked_example": "oksky",
     "misconception_note": "llm",
     "source_passage": "gray",
 }
@@ -887,19 +887,21 @@ def fig_hitk() -> None:
         extra = ",ylabel={Hit@$k$}" if i == 0 else ""
         out.append(rf"\nextgroupplot[title={{{titles[s]}}}{extra}]")
         series = [
-            ("hybrid+rerank", "off", "ink!70", "dashed", "Không định tuyến (trước RAG-4)"),
-            ("hybrid+rerank", "on", "cavat", "solid", "Có định tuyến (sản phẩm)"),
-            ("flat-hybrid", "on", "llm", "dotted", "RAG phẳng (không đồ thị)"),
+            ("hybrid+rerank", "off", "ink!60", "dashed", "square*"),
+            ("hybrid+rerank", "on", "cavat", "solid", "*"),
+            ("flat-hybrid", "on", "llm", "dotted", "triangle*"),
         ]
-        for cfg, routing, colour, style, _label in series:
+        for cfg, routing, colour, style, mark in series:
             hk = RAG["sets"][s]["configs"][cfg][routing]["metrics"]["hit_k"]
             coords = " ".join(f"({k},{hk[str(k)]:.3f})" for k in range(1, 11))
-            out.append(rf"\addplot[color={colour},{style},mark=*,mark size=1.3pt] coordinates {{{coords}}};")
+            out.append(
+                rf"\addplot[color={colour},{style},line width=0.9pt,mark={mark},mark size=1.4pt] coordinates {{{coords}}};"
+            )
     out += [r"\end{groupplot}", r"\end{tikzpicture}", r"\\[4pt]"]
     out.append(
         legend_tikz(
             [
-                ("không định tuyến (trước RAG-4)", "line", "color=ink!70,dashed"),
+                ("không định tuyến", "line", "color=ink!60,dashed"),
                 ("có định tuyến (sản phẩm)", "line", "color=cavat"),
                 ("RAG phẳng, không đồ thị", "line", "color=llm,dotted"),
             ]
@@ -967,7 +969,7 @@ def fig_grounding() -> None:
     rows = [
         (f"Trong phạm vi (n={len(on)})", on, "cavat", "*"),
         (f"Bài sau (n={len(later)})", later, "llm", "triangle*"),
-        (f"Toán ngoài chương (n={len(off_math)})", off_math, "red!70!black", "square*"),
+        (f"Toán ngoài chương (n={len(off_math)})", off_math, "llm", "square*"),
         (f"Lạc đề (n={len(off_other)})", off_other, "ink!70", "diamond*"),
     ]
     out = [
@@ -982,9 +984,9 @@ def fig_grounding() -> None:
         out.append(
             rf"\addplot[only marks,mark={mark},mark size=1.5pt,color={colour},fill opacity=0.65,draw opacity=0.9] coordinates {{{coords}}};"
         )
-    out.append(r"\draw[dashed,color=red!70!black,line width=0.9pt] (axis cs:0.65,0.4) -- (axis cs:0.65,4.6);")
+    out.append(r"\draw[dashed,color=llm,line width=0.9pt] (axis cs:0.65,0.4) -- (axis cs:0.65,4.6);")
     out.append(
-        r"\node[anchor=south west,font=\scriptsize,color=red!70!black] at (axis cs:0.655,4.05) {ngưỡng $0{,}65$};"
+        r"\node[anchor=south west,font=\scriptsize,color=llm] at (axis cs:0.655,4.05) {ngưỡng $0{,}65$};"
     )
     out += [r"\end{axis}", r"\end{tikzpicture}"]
     write("fig-grounding.tex", "\n".join(out))
@@ -1662,10 +1664,8 @@ def fig_messages() -> None:
     ]
     coords = " ".join(f"({acc[m]['words'] / acc[m]['n']:.1f},{n - i})" for i, m in enumerate(moves))
     out.append(rf"\addplot[fill=cavat!70,draw=none] coordinates {{{coords}}};")
-    out.append(rf"\draw[dashed,color=red!70!black] (axis cs:60,0.4) -- (axis cs:60,{n + 0.6});")
-    out.append(
-        rf"\node[font=\tiny,color=red!70!black,anchor=south east] at (axis cs:60,{n - 0.6}) {{trần 60 từ}};"
-    )
+    out.append(rf"\draw[dashed,color=llm] (axis cs:60,0.4) -- (axis cs:60,{n + 0.6});")
+    out.append(rf"\node[font=\tiny,color=llm,anchor=south east] at (axis cs:60,{n - 0.6}) {{trần 60 từ}};")
     out += [r"\end{axis}", r"\end{tikzpicture}"]
     write("fig-messages.tex", "\n".join(out))
 
@@ -1872,31 +1872,27 @@ def tab_baselines() -> None:
 def fig_baselines() -> None:
     sy = BASE["systems"]
     metrics_ = [
-        ("nói ra đáp án (luật)", "says_answer"),
-        ("giám khảo thấy lộ", "judge_leak"),
-        ("hơn một câu hỏi", "more_than_one_question"),
-        ("dài hơn 60 từ", "over_limit_words"),
+        (r"nói ra đáp án\\(luật tất định)", "says_answer"),
+        (r"giám khảo\\thấy lộ", "judge_leak"),
+        (r"hơn một\\câu hỏi", "more_than_one_question"),
+        (r"dài hơn\\$60$ từ", "over_limit_words"),
     ]
     names = ",".join("{" + m[0] + "}" for m in metrics_)
     out = [
         r"\begin{tikzpicture}",
-        r"\begin{axis}[cavat,ybar,bar width=9pt,width=0.9\linewidth,height=5.2cm,ymin=0,ymax=100,ymajorgrids,ylabel={\% số lượt},"
-        rf"xtick={{0,1,2,3}},xticklabels={{{names}}},x tick label style={{font=\scriptsize}},enlarge x limits=0.18,nodes near coords,"
-        r"nodes near coords style={font=\tiny},every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/precision=0}]",
+        r"\begin{axis}[cavat,ybar,bar width=7pt,width=\linewidth,height=5.2cm,ymin=0,ymax=100,ymajorgrids,"
+        r"ylabel={\% số lượt},"
+        rf"xtick={{0,1,2,3}},xticklabels={{{names}}},xticklabel style={{font=\scriptsize,align=center}},"
+        r"enlarge x limits=0.16,nodes near coords,nodes near coords style={font=\tiny},"
+        r"every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/precision=0},"
+        r"legend style={at={(0.5,1.03)},anchor=south,draw=none,legend columns=-1,font=\scriptsize,"
+        r"/tikz/every even column/.append style={column sep=0.25cm}},area legend]",
     ]
-    for s, colour in (("B1", "llm"), ("B2", "ink!45"), ("C", "cavat")):
+    for s, colour in (("B1", "llm"), ("B2", "ink!40"), ("C", "cavat")):
         coords = " ".join(f"({i},{100 * sy[s][k] / sy[s]['turns']:.1f})" for i, (_, k) in enumerate(metrics_))
         out.append(rf"\addplot[fill={colour},draw=none] coordinates {{{coords}}};")
-    out += [r"\end{axis}", r"\end{tikzpicture}", r"\\[4pt]"]
-    out.append(
-        legend_tikz(
-            [
-                ("B1: chatbot thường (Gemini)", "box", "llm"),
-                ("B2: cùng mô hình + lời nhắc Socratic", "box", "ink!45"),
-                ("C: CAVAT", "box", "cavat"),
-            ]
-        )
-    )
+    out.append(r"\legend{B1: chatbot thường,B2: lời nhắc Socratic,C: CAVAT}")
+    out += [r"\end{axis}", r"\end{tikzpicture}"]
     write("fig-baselines.tex", "\n".join(out))
 
 
@@ -1986,17 +1982,11 @@ def fig_curves() -> None:
     out.append(
         r"\nextgroupplot[title={(a) Bậc gợi ý cao nhất của mỗi câu đúng},xmin=1,xmax=15,ylabel={$M$ của tiết},xtick={1,5,10,15}]"
     )
-    for lo, hi, colour in (
-        (0, 40, "zoneE"),
-        (40, 60, "zoneD"),
-        (60, 75, "zoneC"),
-        (75, 90, "zoneB"),
-        (90, 100, "zoneA"),
-    ):
-        out.append(rf"\fill[{colour},opacity=0.13] (axis cs:1,{lo}) rectangle (axis cs:15,{hi});")
+    for lo, hi in ((0, 40), (40, 60), (60, 75), (75, 90), (90, 100)):
+        if lo in (0, 60, 90):
+            out.append(rf"\fill[black,opacity=0.05] (axis cs:1,{lo}) rectangle (axis cs:15,{hi});")
     for h in range(8):
-        t = h / 7
-        colour = f"cavat!{round(100 * (1 - t))}!llm" if h not in (0, 7) else ("cavat" if h == 0 else "llm")
+        colour = f"cavat!{round(100 - 9 * h)}" if h < 7 else "llm"
         coords = " ".join(f"({k},{v})" for k, v in enumerate(cv["independence"][str(h)], 1) if v is not None)
         out.append(
             rf"\addplot[color={colour},line width=0.9pt,mark=*,mark size=0.8pt] coordinates {{{coords}}};"
@@ -2006,21 +1996,16 @@ def fig_curves() -> None:
     out.append(
         r"\nextgroupplot[title={(b) Sáu kiểu người học},xmin=1,xmax=14,xtick={1,5,10,14},legend pos=south east]"
     )
-    for lo, hi, colour in (
-        (0, 40, "zoneE"),
-        (40, 60, "zoneD"),
-        (60, 75, "zoneC"),
-        (75, 90, "zoneB"),
-        (90, 100, "zoneA"),
-    ):
-        out.append(rf"\fill[{colour},opacity=0.13] (axis cs:1,{lo}) rectangle (axis cs:14,{hi});")
+    for lo, hi in ((0, 40), (40, 60), (60, 75), (75, 90), (90, 100)):
+        if lo in (0, 60, 90):
+            out.append(rf"\fill[black,opacity=0.05] (axis cs:1,{lo}) rectangle (axis cs:14,{hi});")
     styles = {
         "đều, không gợi ý": ("cavat", "solid"),
-        "sai rồi học dần": ("zoneA", "solid"),
+        "sai rồi học dần": ("okgreen", "solid"),
         "luôn cần gợi ý H6": ("llm", "solid"),
         "đoán": ("ink!60", "dashed"),
-        "đúng sai xen kẽ": ("blue!60!black", "dashed"),
-        "toàn sai": ("zoneE", "dotted"),
+        "đúng sai xen kẽ": ("oksky", "dashed"),
+        "toàn sai": ("ink", "dotted"),
     }
     for name, (colour, style) in styles.items():
         tr = cv["patterns"][name]["trace"]

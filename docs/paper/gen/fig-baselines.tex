@@ -1,16 +1,8 @@
 \begin{tikzpicture}
-\begin{axis}[cavat,ybar,bar width=9pt,width=0.9\linewidth,height=5.2cm,ymin=0,ymax=100,ymajorgrids,ylabel={\% số lượt},xtick={0,1,2,3},xticklabels={{nói ra đáp án (luật)},{giám khảo thấy lộ},{hơn một câu hỏi},{dài hơn 60 từ}},x tick label style={font=\scriptsize},enlarge x limits=0.18,nodes near coords,nodes near coords style={font=\tiny},every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/precision=0}]
+\begin{axis}[cavat,ybar,bar width=7pt,width=\linewidth,height=5.2cm,ymin=0,ymax=100,ymajorgrids,ylabel={\% số lượt},xtick={0,1,2,3},xticklabels={{nói ra đáp án\\(luật tất định)},{giám khảo\\thấy lộ},{hơn một\\câu hỏi},{dài hơn\\$60$ từ}},xticklabel style={font=\scriptsize,align=center},enlarge x limits=0.16,nodes near coords,nodes near coords style={font=\tiny},every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/precision=0},legend style={at={(0.5,1.03)},anchor=south,draw=none,legend columns=-1,font=\scriptsize,/tikz/every even column/.append style={column sep=0.25cm}},area legend]
 \addplot[fill=llm,draw=none] coordinates {(0,60.0) (1,72.0) (2,28.0) (3,80.0)};
-\addplot[fill=ink!45,draw=none] coordinates {(0,4.0) (1,0.0) (2,0.0) (3,0.0)};
+\addplot[fill=ink!40,draw=none] coordinates {(0,4.0) (1,0.0) (2,0.0) (3,0.0)};
 \addplot[fill=cavat,draw=none] coordinates {(0,0.0) (1,0.0) (2,0.0) (3,0.0)};
+\legend{B1: chatbot thường,B2: lời nhắc Socratic,C: CAVAT}
 \end{axis}
-\end{tikzpicture}
-\\[4pt]
-\begin{tikzpicture}[x=1cm,y=1cm]
-\node[draw=none,fill=llm,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (0.00,0) {};
-\node[anchor=west,font=\scriptsize,inner sep=1pt] at (0.28,0) {B1: chatbot thường (Gemini)};
-\node[draw=none,fill=ink!45,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (4.38,0) {};
-\node[anchor=west,font=\scriptsize,inner sep=1pt] at (4.66,0) {B2: cùng mô hình + lời nhắc Socratic};
-\node[draw=none,fill=cavat,minimum width=2.6mm,minimum height=2.6mm,inner sep=0pt] at (9.97,0) {};
-\node[anchor=west,font=\scriptsize,inner sep=1pt] at (10.25,0) {C: CAVAT};
 \end{tikzpicture}
