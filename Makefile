@@ -87,6 +87,9 @@ web-live: web-install ## Run the web app against the real API (start "make api" 
 paper: ## Build the paper docs/paper/cavat-paper.pdf (Tectonic: brew install tectonic)
 	cd docs/paper && tectonic -X compile cavat-paper.tex
 
+paper-compact: ## Build the 8-page version docs/paper/cavat-paper-compact.pdf (Tectonic)
+	cd docs/paper && tectonic -X compile cavat-paper-compact.tex
+
 paper-data: ## Regenerate docs/paper/data/*.json (database read-only, no writes) and the tables and figures in docs/paper/gen
 	cd services/api && .venv/bin/python scripts/paper_corpus.py && .venv/bin/python scripts/paper_rag.py \
 		&& .venv/bin/python scripts/paper_student.py && .venv/bin/python scripts/paper_assessment.py \
