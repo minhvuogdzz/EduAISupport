@@ -18,7 +18,7 @@ from cavat.modules.tutor.contracts import (
     PolicyDecision,
     RenderContext,
 )
-from cavat.modules.tutor.llm_renderer import TEMPLATE_ONLY_MOVES, LLMRenderer
+from cavat.modules.tutor.llm_renderer import ANCHOR_SLACK, TEMPLATE_ONLY_MOVES, LLMRenderer, word_cap
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
@@ -294,3 +294,46 @@ def test_lesson_content_moves_are_said_with_the_template(move):
     ctx = ctx_for("GP-01", move, "<", level=HintLevel.H6, target=HintTarget.STEP)
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
     assert fake.calls == [] and renderer.calls_used == 0
+
+
+# DI-60 (LLM-1): the S1 sessions rejected 16 of 20 drafts, all for form. The cap follows the anchor, and two
+# form slips are repaired in place, the repaired text going through every check again.
+NO_QUESTION_HINT = "Con thử viết 0,3 thành 0,30 để hai số cùng có hai chữ số ở phần thập phân nhé."
+EM_HINT = GOOD_HINT.replace("Con thử", "Em thử").replace("rồi con", "rồi em")
+
+
+def test_a_missing_final_question_gets_the_anchors_question():
+    renderer, fake = make([turn(NO_QUESTION_HINT)])
+    ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
+    anchor_question = TEMPLATE.render(ctx).text.split(". ")[-1]
+    assert anchor_question.endswith("?")
+    msg = renderer.render(ctx)
+    assert msg.source == "LLM" and msg.text == f"{NO_QUESTION_HINT} {anchor_question}"
+    assert len(fake.calls) == 1 and renderer.last_trace.rejected == ()
+
+
+def test_the_child_called_em_gets_the_lessons_word():
+    renderer, fake = make([turn(EM_HINT)])
+    msg = renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3))
+    assert (msg.text, msg.source) == (GOOD_HINT, "LLM") and len(fake.calls) == 1
+
+
+def test_no_repair_when_another_check_fails():
+    leaky = LEAK.replace("Con thấy chưa?", "Em thấy chưa?")
+    renderer, fake = make([turn(leaky), turn(leaky)])
+    ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
+    assert renderer.render(ctx) == TEMPLATE.render(ctx) and len(fake.calls) == 2
+    assert all("ANSWER_LEAK" in codes for codes in renderer.last_trace.rejected)
+
+
+def test_the_word_cap_leaves_room_for_a_long_anchor():
+    ctx = ctx_for("GP-01", Move.HINT, **HINT_H3)
+    assert word_cap(ctx, "một hai ba") == 60
+    assert word_cap(ctx, " ".join(["chữ"] * 52)) == 52 + ANCHOR_SLACK
+
+
+def test_a_draft_cut_short_is_not_patched_with_a_question():
+    cut = "Con thử viết 0,3 thành 0,30 để hai số cùng có"
+    renderer, fake = make([turn(cut), turn(cut)])
+    ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
+    assert renderer.render(ctx) == TEMPLATE.render(ctx) and len(fake.calls) == 2

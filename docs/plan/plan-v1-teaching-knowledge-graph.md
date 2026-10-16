@@ -461,6 +461,14 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-60, Qwen viết được lời trong buổi học (LLM-1, `llm-renderer.v4`, 2026-10-16):**
+  - **Vấn đề:** bài báo đọc 16 sự kiện `OUTPUT_REJECTED` của S1 là "16 bản nháp của Qwen bị chặn". Chạy lại có ghi từng bản nháp (2026-10-16) cho thấy khác:
+    - Sự kiện đó là lần kiểm cuối của vòng một câu hỏi. Lần kiểm này chạy trên **mọi** lời sắp gửi (cả câu mẫu đã duyệt) với trần cứng 60 từ. Ở chương hình học, lời giải thích đã duyệt dài tới 158 từ (nhắc lại đề) bị chặn hai lần, và trẻ nhận một câu chung chung (nguồn `FALLBACK`) thay vì lời giải thích. Lần kiểm này cũng chặn cả lời của Qwen mà renderer đã nhận.
+    - `FALLBACK` không có nghĩa "mô hình thử rồi dùng câu mẫu": đó là câu chung chung khi không có gợi ý đã duyệt hợp bậc, hoặc khi lần kiểm cuối chặn hai lần. Khi Qwen hỏng, renderer dùng câu mẫu, và nguồn ghi là `TEMPLATE`.
+    - Thứ giới hạn Qwen nhiều nhất là trần 15 lần gọi mỗi buổi và hạn mức Groq. Ở một buổi hình học: 28 lần hết trần, 9 lần bị 429, 3 lần Qwen viết được, 2 lần hỏng vì kiểm.
+  - **Luật mới:**
+    - Trần từ của lời mô hình là `max(trần của lượt, số từ của câu mẫu + 15)`. Lần kiểm cuối dùng đúng trần đó cho lời của mô hình, và không chặn câu mẫu đã duyệt vì độ dài.
+    - Hai lỗi hình thức được sửa tại chỗ: thiếu câu hỏi thì nối câu hỏi cuối của chính câu mẫu (văn bản đã duyệt), gọi "em" thì đổi thành cách gọi của bài. Chỉ sửa khi đó là lỗi duy nhất, bản nháp kết thúc trọn câu (không bị cắt), và lời đã sửa phải qua lại toàn bộ phép kiểm. Không sửa lỗi nào khác.
 - **DI-59, thành thạo tạm thời từ M ≥ 85 (FIX-1, `node-mastery/0.3.0`, 2026-10-16):**
   - **Vấn đề:** khung §53 cho "thành thạo tạm thời" khi M ≥ 85, tin cậy ≥ 75, chiều A ≥ 0,8 và không còn lỗi nghiêm trọng. Mã cũ chỉ xét các điều kiện này khi M đã qua dải 90 của §4–§8, nên ngưỡng 85 không bao giờ có tác dụng. Khi rà bài báo, Bảng 38 có hai trạng thái đạt §53 (M 88,9 và 88,7) mà vẫn ở mức 4.
   - **Luật mới:** chủ dự án chọn theo khung (2026-10-16): mức 5 do điều kiện §53 quyết định từ M ≥ 85. Dải 90 chỉ còn là vùng màu trên trang giáo viên, không còn là cổng.

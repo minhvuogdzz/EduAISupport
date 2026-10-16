@@ -67,9 +67,10 @@ from cavat.modules.tutor.contracts import (
     StudentSnapshot,
     TurnTrigger,
 )
+from cavat.modules.tutor.llm_renderer import word_cap
 from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, decide
 from cavat.modules.tutor.reader import ContextReader
-from cavat.modules.tutor.renderer import PHRASES, counter_example, ladder_top
+from cavat.modules.tutor.renderer import PHRASES, TemplateRenderer, counter_example, ladder_top
 
 # DI, approved by the owner on 2026-10-01: hard stop for one item. Every policy path ends well before
 # this (frustration -> worked -> full -> teach-back); the guard only makes sure that no sequence of
@@ -586,9 +587,14 @@ class ItemTutor:
             last_tutor=self.last_tutor or None,
             evidence=evidence,
         )
+        # DI-60: the word cap of the final check follows the approved text, as in the LLM renderer. With the
+        # fixed 60 an approved explanation of a geometry period (158 words with its stem) failed twice and the
+        # child got a generic phrase, and a model message the renderer had accepted was rejected here.
+        anchor = TemplateRenderer().render(ctx).text
         for attempt in (1, 2):
             msg = self.renderer.render(ctx)
-            result = self.validator(msg.text, ctx)
+            cap = word_cap(ctx, anchor) if msg.source == "LLM" else len(msg.text.split())
+            result = self.validator(msg.text, replace(ctx, max_words=max(ctx.max_words, cap)))
             if result.ok:
                 return msg, attempt
             self._emit(
