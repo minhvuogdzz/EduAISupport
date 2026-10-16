@@ -461,6 +461,10 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-59, thành thạo tạm thời từ M ≥ 85 (FIX-1, `node-mastery/0.3.0`, 2026-10-16):**
+  - **Vấn đề:** khung §53 cho "thành thạo tạm thời" khi M ≥ 85, tin cậy ≥ 75, chiều A ≥ 0,8 và không còn lỗi nghiêm trọng. Mã cũ chỉ xét các điều kiện này khi M đã qua dải 90 của §4–§8, nên ngưỡng 85 không bao giờ có tác dụng. Khi rà bài báo, Bảng 38 có hai trạng thái đạt §53 (M 88,9 và 88,7) mà vẫn ở mức 4.
+  - **Luật mới:** chủ dự án chọn theo khung (2026-10-16): mức 5 do điều kiện §53 quyết định từ M ≥ 85. Dải 90 chỉ còn là vùng màu trên trang giáo viên, không còn là cổng.
+  - **Test:** `test_provisional_mastery_starts_at_85_as_in_the_framework_not_at_the_90_band`.
 - **DI-58, chấm câu trả lời viết hoặc nói bằng chữ (GRADE-1, 2026-10-13):**
   - **Đọc số nói (`vi_words.spoken_to_digits`):**
     - đổi "0 phẩy 9" và "không phẩy chín" thành 0,9;

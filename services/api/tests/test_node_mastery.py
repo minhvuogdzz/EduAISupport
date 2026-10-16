@@ -87,7 +87,7 @@ def node(events, node_id=FRAC, policy=None):
 
 def test_nothing_is_learned_before_any_evidence():
     projection = project_chapter([], CHAPTER)
-    assert projection.policy_version == "node-mastery/0.2.0" and projection.evidence == []
+    assert projection.policy_version == "node-mastery/0.3.0" and projection.evidence == []
     for state in projection.nodes.values():
         assert (state.mastery, state.state, state.level, state.confidence) == (None, "NOT_LEARNED", 0, 0.0)
         assert state.prior == 0.5 and not state.pass_now and state.passed_at is None
@@ -105,6 +105,24 @@ def test_a_strong_student_passes_the_first_node_with_the_transfer_item():
     assert state.forms == ["choice", "numeric"] and state.levels == ["A", "B", "D"]
     assert state.successes == 4  # the worked-together item is not a success
     assert state.pass_now and state.passed_at == 5 and state.missing == []
+
+
+def _two_sessions(rounds):
+    """STRONG_FRAC on day 0, then `rounds` x (transfer, retell, practice) four days later."""
+    later = [item("TP-TR-01"), retell(FRAC), item("TP-PR-02")] * rounds
+    return [
+        *STRONG_FRAC,
+        *(Ev(e.event_type, e.payload, "s2", T0 + timedelta(days=4)) for e in later),
+    ]
+
+
+def test_provisional_mastery_starts_at_85_as_in_the_framework_not_at_the_90_band():
+    state = node(_two_sessions(4))
+    assert 85 <= state.mastery < 90 and state.confidence >= 75 and state.dimensions["A"].mean >= 0.8
+    assert (state.level, state.state) == (5, "PROVISIONALLY_MASTERED")
+    stricter = MasteryPolicy(provisional=(90, 75, 0.8))
+    assert node(_two_sessions(4), policy=stricter).level == 4
+    assert node(_two_sessions(2)).level == 4  # M 83: below §53
 
 
 def test_one_step_hint_is_not_a_success_and_lowers_the_score():

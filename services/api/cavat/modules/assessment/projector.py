@@ -33,7 +33,7 @@ from cavat.core.events import EventType, ExplanationSubmitted, ItemResolved, Que
 from cavat.core.pedagogy import ErrorClass, ItemResolution
 from cavat.modules.content.chapter_package import Chapter
 
-MASTERY_POLICY_VERSION = "node-mastery/0.2.0"  # 0.2.0: DI-55, a "vì sao" judged by the rubric
+MASTERY_POLICY_VERSION = "node-mastery/0.3.0"  # 0.3.0: provisional mastery from M >= 85 (§53, DI-59)
 
 DIMENSIONS = ("C", "R", "A", "T", "I", "S", "D")
 APPLICATION_DIMENSIONS = frozenset({"A", "T"})  # DI-6 "application evidence": level D/E or transfer items
@@ -84,7 +84,9 @@ class MasteryPolicy:
     resolve_after: int = 2  # DI: successes after the last detection that resolve a misconception
     bands: tuple[float, ...] = (20, 40, 60, 75, 90)  # §4-§8 [FACT]: lower bounds of levels 1 to 5
     explanation_gate: float = 0.6  # DI-6: mu_R for level CONCEPTUAL and for passing a node
-    provisional: tuple[float, float, float] = (85, 75, 0.8)  # §53 without S: M, confidence, mu_A
+    # §53 without S: M, confidence, mu_A. It decides level 5 on its own: the 90 band of §4-§8 colours the
+    # teacher view, it is not a gate (before 0.3.0 the band hid the 85 of §53).
+    provisional: tuple[float, float, float] = (85, 75, 0.8)
 
 
 DEFAULT_POLICY = MasteryPolicy()
@@ -444,8 +446,8 @@ class _Projector:
             level = 3
         m_min, c_min, a_min = pol.provisional
         provisional = mastery is not None and mastery >= m_min and confidence >= c_min and not critical
-        if level == 5 and not (provisional and dims["A"].in_mastery and dims["A"].mean >= a_min):
-            level = 4
+        if level >= 4:  # §53, DI-59: provisionally mastered from M >= 85 and the rest, whatever the band
+            level = 5 if provisional and dims["A"].in_mastery and dims["A"].mean >= a_min else 4
 
         levels = sorted({lv for lv, _ in acc.successes} - {"DIAG"})
         forms = sorted({f for _, f in acc.successes})

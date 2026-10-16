@@ -12,6 +12,7 @@ import json
 import re
 import sys
 import time
+from collections import Counter
 from statistics import fmean
 
 import eval_vs_baselines as ev
@@ -146,6 +147,9 @@ def main() -> None:
     out: dict = {
         "judge": ev.JUDGE_MODEL,
         "models": {s: sorted({r.model for r in v if r.model}) for s, v in systems.items()},
+        # turns per model (B1 falls back across Gemini models) and, for C, who wrote each turn
+        "turns_by_model": {s: dict(Counter(r.model or "?" for r in v)) for s, v in systems.items()},
+        "c_turn_source": dict(Counter(r.source or "unknown (cached before FIX-1)" for r in systems["C"])),
         "systems": {s: summarise(v, chapter) for s, v in systems.items()},
         "roles": {},
     }

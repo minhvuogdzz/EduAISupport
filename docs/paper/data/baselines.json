@@ -12,10 +12,25 @@
    "qwen/qwen3.8-27b + policy"
   ]
  },
+ "turns_by_model": {
+  "B1": {
+   "gemini-2.5-flash": 12,
+   "gemini-3.8-flash": 13
+  },
+  "B2": {
+   "qwen/qwen3.8-27b": 25
+  },
+  "C": {
+   "qwen/qwen3.8-27b + policy": 24
+  }
+ },
+ "c_turn_source": {
+  "unknown (cached before FIX-1)": 24
+ },
  "systems": {
   "B1": {
    "turns": 25,
-   "says_answer": 15,
+   "says_answer": 18,
    "judge_leak": 18,
    "judged": 25,
    "more_than_one_question": 7,
@@ -292,7 +307,7 @@
   "Bi, đoán bừa": {
    "B1": {
     "turns": 2,
-    "says_answer": 0,
+    "says_answer": 2,
     "judge_leak": 2,
     "words": 86.5,
     "questions": 1.0,
@@ -344,7 +359,7 @@
   "Vân, hỏi lại gợi ý (ca của chủ dự án)": {
    "B1": {
     "turns": 2,
-    "says_answer": 0,
+    "says_answer": 1,
     "judge_leak": 0,
     "words": 109.5,
     "questions": 1.0,

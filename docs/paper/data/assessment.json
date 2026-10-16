@@ -1,6 +1,6 @@
 {
  "policy": {
-  "version": "node-mastery/0.2.0",
+  "version": "node-mastery/0.3.0",
   "weights": {
    "C": 0.2,
    "R": 0.2,
@@ -63,7 +63,8 @@
    "levels": {
     "2": 95,
     "3": 80,
-    "4": 325
+    "4": 323,
+    "5": 2
    },
    "max_dev_mastery": 0.049810765636905785,
    "mean_dev_mastery": 0.02491375411616184,
@@ -1305,8 +1306,8 @@
   {
    "mastery": 88.9,
    "confidence": 99.2,
-   "level": 4,
-   "state": "APPLIED",
+   "level": 5,
+   "state": "PROVISIONALLY_MASTERED",
    "items": 27,
    "successes": 27,
    "levels": [
@@ -1531,8 +1532,8 @@
   {
    "mastery": 88.7,
    "confidence": 100.0,
-   "level": 4,
-   "state": "APPLIED",
+   "level": 5,
+   "state": "PROVISIONALLY_MASTERED",
    "items": 44,
    "successes": 43,
    "levels": [
