@@ -461,6 +461,14 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-61, dành lượt gọi Qwen cho nước đi quan trọng (LLM-2, `llm-renderer.v5`, 2026-10-16):**
+  - **Vấn đề:** trần 15 lần gọi mỗi buổi hết rất sớm. Trong một buổi hình học, PROBE ("con làm thế nào") tiêu 4 trên khoảng 13 lần gọi, rồi 19 gợi ý, 8 lần kéo về bài và 3 lời giải thích chỉ còn dùng được câu mẫu.
+  - **Quyết định của chủ dự án (2026-10-16):** giữ trần 15, nhưng dành lượt gọi cho giải thích, gợi ý sau câu sai và kéo về bài.
+  - **Luật mới:**
+    - EXPLAIN và REDIRECT được dùng hết trần.
+    - HINT và COGNITIVE_CONFLICT chừa lại 1/5 cuối của trần (3 lần) cho hai nước đi trên.
+    - PROBE và NUDGE chỉ gọi mô hình trong 1/3 đầu (5 lần); sau đó nói bằng câu mẫu đã duyệt.
+    - Lượt bị giữ lại ghi lý do `call_budget`.
 - **DI-60, Qwen viết được lời trong buổi học (LLM-1, `llm-renderer.v4`, 2026-10-16):**
   - **Vấn đề:** bài báo đọc 16 sự kiện `OUTPUT_REJECTED` của S1 là "16 bản nháp của Qwen bị chặn". Chạy lại có ghi từng bản nháp (2026-10-16) cho thấy khác:
     - Sự kiện đó là lần kiểm cuối của vòng một câu hỏi. Lần kiểm này chạy trên **mọi** lời sắp gửi (cả câu mẫu đã duyệt) với trần cứng 60 từ. Ở chương hình học, lời giải thích đã duyệt dài tới 158 từ (nhắc lại đề) bị chặn hai lần, và trẻ nhận một câu chung chung (nguồn `FALLBACK`) thay vì lời giải thích. Lần kiểm này cũng chặn cả lời của Qwen mà renderer đã nhận.
