@@ -21,6 +21,14 @@ real Qwen output:
 - ``NEW_MATH_TERM``: a mathematical term none of those sources uses (a step or a rule of another level);
 - ``OFF_ANCHOR``: for an anchor with no mathematical term, fewer than ``MIN_ANCHOR_COVERAGE`` of its words.
 
+LLM-1 (llm-renderer.v4, DI-60), from the S1 sessions where 16 of 20 drafts were rejected, all for form:
+
+- the word cap follows the anchor: ``max(max_words, anchor words + ANCHOR_SLACK)``. A geometry anchor
+  that restates a long stem already has about 40 words, and every rewording of it went over 60;
+- two form slips are repaired in place, then the repaired text goes through every check again: a missing
+  final question gets the anchor's own last question (approved text), and the child called "em" in a
+  lesson that says "con" gets the lesson's word. Nothing else is ever repaired.
+
 The policy picks the move, the target and the level; the model may not change them. When the router answers
 ``use_template`` (429, session cap, no API key, prompt too long) the template is used at once: a lesson
 never stops because of a provider. One instance serves one session: it counts the LLM calls of that session
@@ -31,7 +39,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from cavat.core.pedagogy import Move
@@ -50,7 +58,7 @@ from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, build_request
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import singles_out_choice
 
-LLM_RENDERER_VERSION = "llm-renderer.v3"
+LLM_RENDERER_VERSION = "llm-renderer.v4"
 LLM_MOVES = frozenset(
     {Move.PROBE, Move.HINT, Move.COGNITIVE_CONFLICT, Move.NUDGE, Move.REDIRECT, Move.EXPLAIN}
 )
@@ -67,6 +75,10 @@ MIN_ANCHOR_COVERAGE = 0.3
 # DI-42: share of the anchor's mathematical terms a message must keep ("mẫu số đặc biệt là 10, 100 hay 1000"
 # answers "mẫu như nào" without saying "phân số thập phân" again).
 KEY_TERMS = 0.6
+# DI-60: words a model message may add to its anchor when the anchor is already near the cap.
+ANCHOR_SLACK = 15
+_REPAIRABLE = frozenset({ValidationCode.MISSING_QUESTION, ValidationCode.WRONG_ADDRESS})
+_SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
 
 _WORD = re.compile(r"[^\W_]+(?:[,.\-][^\W_]+)*")  # words, decimals ("0,25") and "xăng-ti-mét"
 
@@ -120,6 +132,39 @@ def idea_codes(text: str, ctx: RenderContext, anchor: str) -> tuple[str, ...]:
     if terms_missing(terms_in(text), _sources(ctx, anchor)):
         codes.append(NEW_MATH_TERM)
     return tuple(codes)
+
+
+def word_cap(ctx: RenderContext, anchor: str) -> int:
+    """DI-60: a model message's cap: never under the turn's cap, room for the anchor plus a little."""
+    return max(ctx.max_words, len(anchor.split()) + ANCHOR_SLACK)
+
+
+def repair(text: str, codes: Sequence[str], ctx: RenderContext, anchor: str) -> str | None:
+    """DI-60: fix the two form slips in place, or None. Only when they are the only codes; the caller checks
+    the repaired text again in full."""
+    if not codes or not set(codes) <= _REPAIRABLE:
+        return None
+    out = text
+    if ValidationCode.WRONG_ADDRESS in codes:
+        want = ctx.persona.student_address
+        for word in ("em", "cháu", "cậu"):
+            if word != want:
+                out = re.sub(
+                    rf"(?<!\w)({word})(?!\w)(?! bé)",
+                    lambda m: want.capitalize() if m.group(1)[0].isupper() else want,
+                    out,
+                    flags=re.IGNORECASE,
+                )
+    if ValidationCode.MISSING_QUESTION in codes:
+        if "?" in out:  # a question that is not last: reordering would change what the model said
+            return None
+        if not out.rstrip().endswith((".", "!", "…")):  # cut short (max output tokens): never patch it
+            return None
+        sentences = [x for x in _SENTENCE_END.split(anchor.strip()) if x]
+        if not sentences or not sentences[-1].rstrip(" \"'”»)").endswith("?"):
+            return None
+        out = f"{out.rstrip()} {sentences[-1]}"
+    return out if out != text else None
 
 
 @dataclass(frozen=True)
@@ -189,10 +234,24 @@ class LLMRenderer:
         said = normalize_text(text)
         return any(t.role == "tutor" and normalize_text(t.text) == said for t in self._history)
 
+    def _codes(self, text: str, ctx: RenderContext, anchor: str) -> tuple[str, ...]:
+        """Every rejection code of a model message: the validator, then the anchor checks."""
+        codes = self._validator(text, ctx).codes  # the full item: leak checks need the answer
+        if text:  # an empty message is already rejected; the anchor checks need words to look at
+            if beyond_anchor(text, ctx, anchor):
+                codes = (*codes, BEYOND_ANCHOR)
+            if self._repeats(text):
+                codes = (*codes, REPEATS_PREVIOUS)
+            codes = (*codes, *idea_codes(text, ctx, anchor))
+            if singles_out_choice(text, ctx.item) and not singles_out_choice(anchor, ctx.item):
+                codes = (*codes, ValidationCode.ANSWER_LEAK)
+        return tuple(codes)
+
     def _render_with_llm(self, ctx: RenderContext, fallback: RenderedMessage) -> RenderedMessage:
         move = ctx.decision.move
         view = prompt_view(ctx)
         anchor = fallback.text if view is ctx else self._template.render(view).text
+        ctx = replace(ctx, max_words=word_cap(ctx, anchor))  # DI-60: the prompt and the checks use it
         rejected: list[tuple[str, ...]] = []
         calls, flagged = 0, False  # a safety flag survives even when its message is rejected
         for _ in range(MAX_ATTEMPTS):
@@ -212,15 +271,10 @@ class LLMRenderer:
                 return fallback
             text, safety_flag, feedback = _fields(outcome.result.data)
             flagged = flagged or safety_flag
-            codes = self._validator(text, ctx).codes  # the full item: leak checks need the answer
-            if text:  # an empty message is already rejected; the anchor checks need words to look at
-                if beyond_anchor(text, ctx, anchor):
-                    codes = (*codes, BEYOND_ANCHOR)
-                if self._repeats(text):
-                    codes = (*codes, REPEATS_PREVIOUS)
-                codes = (*codes, *idea_codes(text, ctx, anchor))
-                if singles_out_choice(text, ctx.item) and not singles_out_choice(anchor, ctx.item):
-                    codes = (*codes, ValidationCode.ANSWER_LEAK)
+            codes = self._codes(text, ctx, anchor)
+            fixed = repair(text, codes, ctx, anchor)
+            if fixed is not None and not self._codes(fixed, ctx, anchor):
+                text, codes = fixed, ()
             if not codes:
                 self.last_trace = RenderTrace(move, "LLM", calls, None, tuple(rejected), flagged, feedback)
                 return RenderedMessage(text=text, source="LLM", hint_ref=fallback.hint_ref)

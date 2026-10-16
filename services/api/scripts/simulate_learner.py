@@ -359,6 +359,39 @@ def _in_memory(settings, student: str | None = None, templates_only: bool = True
     return memory
 
 
+def _measure(memory) -> None:
+    """LLM-1: who wrote each tutor turn of the sessions in memory, and why model drafts were rejected."""
+    import asyncio
+    from collections import Counter
+
+    async def read() -> list[dict]:
+        return await memory["learning_sessions"].find({}).to_list(None)
+
+    for doc in asyncio.run(read()):
+        events = doc.get("events", [])
+        sources = Counter(
+            e["payload"].get("source") for e in events if e["event_type"] == "TUTOR_MESSAGE_SENT"
+        )
+        codes = Counter(
+            c
+            for e in events
+            if e["event_type"] == "OUTPUT_REJECTED"
+            for c in e["payload"].get("issue_codes", [])
+        )
+        drafts = sum(1 for e in events if e["event_type"] == "OUTPUT_REJECTED")
+        print(
+            json.dumps(
+                {
+                    "chapter": doc.get("chapter_id"),
+                    "tutor_turns": dict(sources),
+                    "rejected_drafts": drafts,
+                    "rejected_codes": dict(codes),
+                },
+                ensure_ascii=False,
+            )
+        )
+
+
 def _write_back(settings, memory, session_ids: list[str]) -> None:
     """--write-at-end: each session the run made or resumed, as one document (rule 10), and its new ledger
     events, written to the database of .env once (a slow line made every turn take half a minute)."""
@@ -404,13 +437,18 @@ def main() -> None:
         help="run in memory with the live tutor, then write the sessions to the database of .env at the end",
     )
     parser.add_argument("--resume", help="session id to go on with (the first chapter given)")
+    parser.add_argument(
+        "--measure",
+        action="store_true",
+        help="in memory with the live tutor, write nothing; print who wrote each tutor turn (LLM-1)",
+    )
     args = parser.parse_args()
     settings = get_settings()
     print(f"Database: {settings.mongodb_db} · học sinh {args.student_id} ({args.name})")
     memory = None
     if args.memory:
         _in_memory(settings)
-    elif args.write_at_end:
+    elif args.write_at_end or args.measure:
         memory = _in_memory(settings, args.student_id, templates_only=False)
     elif not args.write:
         sys.exit("Thêm --write để ghi thật (CLAUDE.md quy tắc 11: chỉ khi chủ dự án yêu cầu), hoặc --memory.")
@@ -427,6 +465,9 @@ def main() -> None:
             )
             made[chapter_id] = run(client, chapter_id, args.student_id, args.sessions, args.turns, resume)
     if args.memory:
+        return
+    if args.measure:
+        _measure(memory)
         return
     if memory is not None:
         _write_back(settings, memory, [x["session_id"] for runs in made.values() for x in runs])

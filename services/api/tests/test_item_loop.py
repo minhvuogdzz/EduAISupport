@@ -292,3 +292,27 @@ def test_rejected_output_retries_then_falls_back() -> None:
     talk(retry, "0,25 > 0,3")
     assert len(of_type(retry.events, EventType.OUTPUT_REJECTED)) == 1
     assert of_type(retry.events, EventType.TUTOR_MESSAGE_SENT)[-1]["attempts_to_pass_validator"] == 2
+
+
+class _LongApproved:
+    """An approved message over 60 words (a geometry explanation restates its stem)."""
+
+    text = (
+        " ".join(["Mình so sánh phần nguyên trước, rồi đến hàng phần mười, rồi hàng phần trăm."] * 6)
+        + " Con thử nhé?"
+    )
+
+    def render(self, ctx: RenderContext) -> RenderedMessage:
+        return RenderedMessage(text=self.text, source="TEMPLATE")
+
+
+def test_a_long_approved_message_reaches_the_child_and_is_not_swapped_for_a_generic_phrase():
+    # DI-60 (LLM-1): the final check kept a fixed 60-word cap, so a long approved message failed twice and
+    # the child got a generic phrase instead (the geometry explanations of S1).
+    t = tutor("GP-01", renderer=_LongApproved())
+    t.start()
+    turn = t.on_student("con không biết", 10)
+    sent = of_type(list(turn.events), EventType.TUTOR_MESSAGE_SENT)
+    assert len(_LongApproved.text.split()) > 60
+    assert sent and sent[-1]["source"] == "TEMPLATE" and sent[-1]["text"] == _LongApproved.text
+    assert of_type(list(turn.events), EventType.OUTPUT_REJECTED) == []
