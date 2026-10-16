@@ -1,0 +1,19 @@
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Tập & Hệ truy xuất & Hit@3 & MRR & \makecell{Đoạn bài sau\\trong top-3} & \makecell{Câu bài sau\\bị trả lời} & \makecell{Câu ngoài\\chương bị trả lời} \\
+\midrule
+Bộ chỉnh & CAVAT (ràng buộc đồ thị) & 1,00 & 0,944 & 0/30 & 0/4 & 0/8 \\
+ & Flat RAG & 1,00 & 0,907 & 10/30 & 4/4 & 1/8 \\
+ & Flat RAG + xếp hạng lại & 1,00 & 0,880 & 12/30 & 4/4 & 1/8 \\
+\midrule
+Giữ riêng v1 & CAVAT (ràng buộc đồ thị) & 1,00 & 0,952 & 0/23 & 0/3 & 0/6 \\
+ & Flat RAG & 0,86 & 0,806 & 9/23 & 3/3 & 1/6 \\
+ & Flat RAG + xếp hạng lại & 0,86 & 0,787 & 9/23 & 3/3 & 1/6 \\
+\midrule
+Giữ riêng v2 & CAVAT (ràng buộc đồ thị) & 0,90 & 0,887 & 0/30 & 0/4 & 0/6 \\
+ & Flat RAG & 0,90 & 0,873 & 12/30 & 4/4 & 1/6 \\
+ & Flat RAG + xếp hạng lại & 0,90 & 0,848 & 11/30 & 4/4 & 1/6 \\
+\bottomrule
+\end{tabular}

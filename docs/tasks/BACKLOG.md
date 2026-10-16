@@ -88,13 +88,13 @@ Chi tiết: `docs/plan/plan-v1-teaching-knowledge-graph.md`, ADR-018, D-T9 đế
 | M1-1 | Ghi kế hoạch vào repo | — | Xong (PR #24) |
 | M1-2 | Khuôn gói chương (đồ thị hai tầng, quan hệ, nội dung theo 4 mức, quy tắc qua node), bộ đọc, bộ kiểm tra; gói chương Số thập phân phần đầu (nháp) | — | Xong: khuôn và bộ kiểm tra (PR #25); gói chương 7 node `docs/pedagogy/math-g5/chuong-so-thap-phan/chapter.yaml` và bài `khai-niem-so-thap-phan` (M1-2b, nháp chờ duyệt) |
 | M1-3 | Điểm từng node: projector tất định theo PART 25.2 và 26.1, cổng qua node (DI-15), điểm khởi đầu từ tiên quyết (DI-16) | T10 | Xong: `assessment/projector.py`, policy `node-mastery/0.1.0`, chấm phần con nói lại `assessment/retell.py` |
-| M1-2c | Thêm 2–3 câu luyện cho mỗi node (nháp chờ duyệt) để còn câu mới khi quay về node tiên quyết giữa buổi (kế hoạch 5.4, [OPEN]) | — | Chưa |
+| M1-2c | Thêm 2–3 câu luyện cho mỗi node (nháp chờ duyệt) để còn câu mới khi quay về node tiên quyết giữa buổi (kế hoạch 5.4, [OPEN]) | — | Bỏ: hai chương giờ dựng từ tài liệu của chủ dự án (DATA-1, DATA-2), câu luyện lấy từ ngân hàng câu |
 | M1-4 | Chính sách dạy theo node (luật `N-*`) | — | Xong: `teaching/node_policy.py` (policy `node-policy/0.1.0`), trạng thái dạy `teaching/state.py`, sự kiện `NODE_DECISION` |
-| M1-5 | Hybrid RAG tự xây: chia đoạn, BM25 hai bản, chỉ mục vector, RRF, xếp hạng lại theo sư phạm, ghi vết; model class `EMBEDDING`; bộ câu hỏi đánh giá đầu tiên | — | Chưa |
+| M1-5 | Hybrid RAG tự xây: chia đoạn, BM25 hai bản, chỉ mục vector, RRF, xếp hạng lại theo sư phạm, ghi vết; model class `EMBEDDING`; bộ câu hỏi đánh giá đầu tiên | — | Xong: RAG-1 (PR #39) |
 | M1-6 | Bộ máy vòng dạy 7 bước, dùng vòng kèm từng câu ở bước luyện tập; test hội thoại trọn 7 node | — | Xong: `teaching/loop.py` (mẫu câu `teaching-templates/0.1.0`); hội thoại trọn 7 node chạy offline, tiếp tục được từ sự kiện đã lưu |
 | M1-7 | Nối vào API buổi học và web: bản đồ node, lời giảng, ô giải thích | T08, T13 (mở rộng) | Xong: buổi học theo chương qua API, màn học sinh có bản đồ và 7 bước, màn giáo viên "Bộ não gia sư" (`GET /report`); lưu lịch sử hội thoại và học tiếp qua nhiều buổi (M1-7b) |
-| M1-8 | Học sinh ảo: lỗi sai và chỗ hổng tiên quyết; không công nhận "đã hiểu" sai | T05 | Chưa |
-| M1-9 | Qwen diễn đạt lời giảng neo vào đoạn của Hybrid RAG; chạy thử thật | T06b (mở rộng) | Chưa |
+| M1-8 | Học sinh ảo: lỗi sai và chỗ hổng tiên quyết; không công nhận "đã hiểu" sai | T05 | Xong: học sinh giả lập "Vương" (`make simulate`, CTX-2 PR #52, SIM-2 PR #59) |
+| M1-9 | Qwen diễn đạt lời giảng neo vào đoạn của Hybrid RAG; chạy thử thật | T06b (mở rộng) | Xong: RAG-2 (PR #40) |
 
 ### Giao diện hoàn chỉnh (yêu cầu 2026-10-06)
 
@@ -114,7 +114,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | TQ-1 | Đọc ý định học sinh trước khi chấm, luật R-OFF-TOPIC, R-CLARIFY, R-AFFECT (`hint-policy/0.5.0`), câu dẫn ấm hơn (`template-renderer.v3`), lời đáp câu hỏi lý thuyết (`teaching-templates/0.2.0`), prompt v2, 10 vai học sinh khó chạy offline; màn học chữ nhỏ lại | Xong (PR #34) |
 | UI-3 | Thu gọn các trang còn lại: tiêu đề và con số nhỏ một bậc, ghi chú cách tính của giáo viên gấp vào "Cách tính" | Xong |
 | TQ-2 | Chạy 10 vai học sinh khó với Qwen thật, giám khảo LLM chấm từng lượt (sư phạm, an toàn, cảm xúc, chính xác, lộ đáp án) như Edubot; báo cáo `docs/poc/` | Xong: `make eval-hard`, báo cáo `evals/reports/2026-10-07-hard-students-live.md` (19 lượt, 0 lộ đáp án) |
-| TQ-3 | Chấm lời giải thích "vì sao" (vai "đúng mà lý do sai": "vì con đoán") | Mốc 2 |
+| TQ-3 | Chấm lời giải thích "vì sao" (vai "đúng mà lý do sai": "vì con đoán") | Xong: WHY-1 (PR #57, DI-55) |
 
 ### Tài khoản, tài liệu giáo viên, RAG (yêu cầu 2026-10-07, ADR-020)
 
@@ -124,21 +124,21 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | ACC-2 | Không đăng xuất, chỉ chuyển vai: nút Học sinh / Phụ huynh / Giáo viên ở đầu trang, mỗi vai một màu; lần đầu mở một vai trên máy thì nhập PIN của vai đó, sau đó chuyển một chạm (giữ đăng nhập riêng từng vai). Bỏ ô "Con tên là gì?": chế độ chạy thử cũng chỉ có 1 học sinh mẫu (An). Đã xóa 5 buổi cũ trước khi có tài khoản trong `cavat_dev` (chủ dự án đồng ý 2026-10-12) | Xong |
 | DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Xong (PR #38) |
 | RAG-1 | Hybrid RAG tự xây (M1-5): chia đoạn theo cấu trúc, BM25 hai bản, embedding Gemini, chỉ mục vector tự viết, RRF, xếp hạng lại theo sư phạm, ghi vết; trang tra cứu cho giáo viên; bộ câu hỏi Recall@k, MRR | Xong: tab RAG của giáo viên, `make eval-rag` (plan v1 mục 5.5.6; báo cáo `evals/reports/2026-10-07-rag-gemini.md`) |
-| RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án. Yêu cầu rút từ RAG-1, xem danh sách dưới bảng | Xong: ADR-021, `make eval-grounded`, báo cáo `evals/reports/2026-10-07-grounded-live.md`. Còn chạy lại đủ 21 ca với `grounded-speech/0.2.1` (plan 5.6.2) |
+| RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án. Yêu cầu rút từ RAG-1, xem danh sách dưới bảng | Xong: ADR-021, `make eval-grounded`, báo cáo `evals/reports/2026-10-07-grounded-live.md`; đủ 21 ca với `grounded-speech/0.2.2`: `evals/reports/2026-10-13-grounded-live.md` |
 | SAFE-1 | Cờ an toàn lên màn hình giáo viên: lượt hội thoại có chip đỏ, lớp học có lý do "cần xem ngay"; nhận diện câu đáng lo (DI-41) cả lúc làm bài tập; trước đó chỉ ghi sự kiện `SAFETY_FLAGGED` mà chưa ai thấy | Xong. Còn: bước "giáo viên đã xem" |
 | CTX-1 | Gia sư hiểu và đáp theo ngữ cảnh (ADR-022): Qwen đọc câu không rõ (đề xuất nhãn, ghi `MESSAGE_READ`), nước đi EXPLAIN, prompt v3 có định hướng và ví dụ, Qwen viết tự do nhưng phải giữ ý chính; vá lỗi câu Qwen nhắc riêng phương án đúng của câu trắc nghiệm | Xong. `make eval-hard` chạy thật: 3 vai CTX được 5,0/4,8/5,0/5,0 (báo cáo 2026-10-08) |
 | TQ-3 | Giám khảo của `make eval-hard` nhận lượt dạng các dòng có nhãn (dạng JSON khiến nó chấm 1/1/1/1 "không có phản hồi"); chặn câu Qwen gọi học sinh sai xưng hô (`WRONG_ADDRESS`, cả lời có căn cứ `grounded-speech/0.2.2`) | Xong |
-| CTX-2 | Bước tới Qwen tự chủ: chính sách đưa các nước đi được phép kèm giới hạn, Qwen chọn nước và nêu lý do, chính sách kiểm lại và có quyền chặn (đáp án, bài kiểm tra, an toàn) | Chưa |
-| RAG-3 | Câu con tự hỏi trong lúc làm bài tập (không phải bài kiểm tra): trả lời có căn cứ mà không lộ đáp án câu đang làm; prompt `grounded.v2` chọn đoạn trả lời đúng câu hỏi thay vì đoạn đứng đầu (ca G09) | Chưa |
-| DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án: INGEST-1..4 trên các file `STP-*` | Đang làm (tài liệu đã có, 2026-10-12) |
-| DATA-2 | Chương Diện tích hình tam giác, hình thang: INGEST-1..4 trên các file `DTTGHT-*`, kèm bài nền nhân, chia số thập phân (chủ dự án quyết 2026-10-12: "vẫn dạy") | Đang làm |
+| CTX-2 | Bước tới Qwen tự chủ: chính sách đưa các nước đi được phép kèm giới hạn, Qwen chọn nước và nêu lý do, chính sách kiểm lại và có quyền chặn (đáp án, bài kiểm tra, an toàn) | Chưa. Mã CTX-2 đã dùng cho bộ điều phối hội thoại và biểu đồ quá trình học (PR #52) |
+| RAG-3 | Câu con tự hỏi trong lúc làm bài tập (không phải bài kiểm tra): trả lời có căn cứ mà không lộ đáp án câu đang làm; prompt `grounded.v2` chọn đoạn trả lời đúng câu hỏi thay vì đoạn đứng đầu (ca G09) | Một phần: RAG-3 (PR #53, DI-50) giới hạn phạm vi và báo "bài sau"; định tuyến về tiết đã học DI-57 (EVAL-1, PR #60) |
+| DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án: INGEST-1..4 trên các file `STP-*` | Xong: phát hành 2026-10-12 (INGEST-5, PR #51), 11 tiết |
+| DATA-2 | Chương Diện tích hình tam giác, hình thang: INGEST-1..4 trên các file `DTTGHT-*`, kèm bài nền nhân, chia số thập phân (chủ dự án quyết 2026-10-12: "vẫn dạy") | Xong phần chương: phát hành 2026-10-12 (PR #51), 8 tiết. **Chưa:** bài nền nhân, chia số thập phân, vì chưa có tài liệu `NHANCHIA-*` |
 | INGEST-1 | Đọc tài liệu từng trang có kiểm chứng (ADR-023, DI-43): Gemini đọc lại trang có ảnh, hình vẽ, trục số; mọi số của lớp chữ phải có trong bản đọc; loại tài liệu mới (bài giảng, phiếu, đáp án, lỗi sai); **đáp án và đề kiểm tra không vào RAG**; `make library-import DIR=tailieu` | Xong |
 | INGEST-2 | Ngân hàng câu nháp (ADR-024, DI-44): tách bài tập, phiếu, đề thành câu nhỏ kèm đáp án, gắn tiết theo giáo án, kiểm mọi đáp án với đề bằng tính toán chính xác và kiểm "có căn cứ"; `make item-bank`, `make eval-items` (độ nhạy 97,1% / 98,4%), API giáo viên `/v1/teachers/item-banks/…` | Xong |
 | INGEST-3a | Phương án dạy nháp (ADR-025, DI-45): mỗi tiết một node; cách giảng, phương pháp, bài mẫu, "con nói lại", lỗi sai lấy nguyên văn từ tài liệu kèm trang; câu theo 4 mức từ ngân hàng câu; đáp án chuyển sang dạng bộ chấm dùng; `make teaching-plan`, API giáo viên | Xong |
 | INGEST-3b | Qwen soạn phần tài liệu không có (ADR-026, DI-46): thang gợi ý H1–H3 qua bộ kiểm của gia sư, câu trả lời mẫu và cách nói được chấp nhận, ý chính để con nói lại; câu kiểm tra không bao giờ gửi model; lưu vết từng phần; `make draft-teaching` | Xong |
 | INGEST-4a | Quyết định của giáo viên (ADR-027): duyệt, loại, sửa câu, gợi ý và phần của bài; thêm cách giảng hoặc bài mẫu; chuyển mức câu; giữ qua mọi lần dựng lại; phát hành khi mọi bài đã duyệt và không còn chỗ thiếu; gia sư dạy bản phát hành, buổi cũ phát lại đúng version | Xong |
 | INGEST-4b | Trang duyệt `/teacher/plans/:chương` (từ tab Bài học): từng bài với trang nguồn, sửa cách giảng, câu trả lời mẫu, quy tắc, ý chính; từng câu với trạng thái kiểm, sửa đáp án, bỏ câu, chuyển mức; gợi ý có nhãn "AI soạn" với nút duyệt, sửa, loại; mục câu chưa được dạy (đáp án đọc lệch) để sửa; nút phát hành | Xong |
-| RAG-3 | Đánh giá lại Hybrid RAG trên tài liệu thật: bộ câu hỏi mới có phần giữ riêng, chạy `make eval-rag LIVE=1`, báo số liệu | Chưa |
+| RAG-3 | Đánh giá lại Hybrid RAG trên tài liệu thật: bộ câu hỏi mới có phần giữ riêng, chạy `make eval-rag LIVE=1`, báo số liệu | Xong: `make eval-rag-published` (RAG-3, PR #53); tập giữ riêng v2 đóng băng, định tuyến DI-57 (EVAL-1, PR #60) |
 
 **RAG-2, những điều RAG-1 đã chốt cho bước nối với gia sư:**
 - Câu truy vấn ghép câu học sinh vừa nói với tên, mô tả bài và mã lỗi sai vừa gặp (plan 5.5.3). Nhưng **"có căn cứ" phải tính trên chính câu của học sinh**: ghép tên bài vào thì câu lạc đề nào cũng gần nội dung chương hơn.
@@ -153,9 +153,30 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 
 ### Mốc 2 và Mốc 3
 
-- **Mốc 2:** đường đọc tài liệu tự xây (thay T14; bỏ LlamaParse), dựng phần còn lại của chương Số thập phân từ tài liệu thật, chấm lời giải thích, đủ 7 chiều điểm, báo cáo giáo viên có cây tri thức và nhận xét.
-- **Mốc 3:** chương Diện tích hình tam giác và hình thang.
-- **Không làm trong demo:** T15 (giọng nói), English. T11 (`make seed`) và T12 (đăng nhập) làm khi cần cho buổi thử với học sinh thật.
+Đã xong: đường đọc tài liệu tự xây (INGEST-1..5), hai chương dựng từ tài liệu thật và đã phát hành, chấm lời giải thích (WHY-1), báo cáo giáo viên. Giọng nói quay lại demo (D-T12, ADR-030, VOICE-1/2, PR #55, #58).
+
+### Sau Mốc 3 (2026-10-13 đến 2026-10-16)
+
+| Task | Nội dung | Trạng thái |
+|---|---|---|
+| TEACH-1, TEACH-2 | Hỏi lại ý chính của bài đã học (N-RECALL, DI-52); nhắc bài gốc sau câu sai đầu (DI-53) | Xong (PR #54, #55) |
+| MISC-1 | Nhận ra lỗi sai điển hình của giáo viên trong đáp án sai (DI-54) | Xong (PR #56) |
+| SIM-2 | "Vương" học lại hai chương; làm lại câu bù dạng (DI-56) | Xong (PR #59) |
+| EVAL-1 | Đánh giá cho luận văn: định tuyến DI-57, chấm số đọc bằng chữ DI-58, tập giữ riêng đóng băng bằng thẻ git | Xong (PR #60) |
+| PAPER-2..11 | Bài báo: bản dài `docs/paper/cavat-paper.tex`, bản 8 trang `cavat-paper-compact.tex`, số liệu sinh bằng `make paper-data` | Xong (PR #61–#71) |
+| FIX-1 | Thành thạo tạm thời từ M ≥ 85 theo §53 (DI-59, `node-mastery/0.3.0`); luật "lộ đáp án" kiểm cả câu trắc nghiệm (B1 15/25 → 18/25); ghi nguồn từng lượt của CAVAT | Xong (PR #72) |
+| LLM-1 | Lần kiểm cuối dùng trần từ theo câu mẫu, lời đã duyệt không còn bị thay bằng câu chung chung; sửa tại chỗ hai lỗi hình thức (DI-60) | Xong (PR #73) |
+| LLM-2 | Dành lượt gọi Qwen cho giải thích, gợi ý, kéo về bài; giữ trần 15 (DI-61) | Xong (PR #74) |
+| DOCS-1 | BACKLOG theo đúng hiện trạng; bản REV-ECIT 2026 vào `docs/paper/rev-ecit-2026/` | Xong |
+
+### Việc còn mở
+
+- **Thử với học sinh thật (chiều 8 của khung đánh giá):** chủ dự án để sau (2026-10-16).
+- **Bài nền nhân, chia số thập phân** cho chương hình học: chờ tài liệu `NHANCHIA-*.pdf`.
+- **Chạy lại `make eval-baselines` thật** để có nguồn từng lượt của CAVAT (bản đệm cũ ghi "chưa rõ"); tốn hạn mức Groq và Gemini.
+- **Bài báo:** chữ trong bài vẫn ghi B1 lộ 15/25 (nay là 18/25), và vẫn ghi "16 bản nháp của Qwen bị chặn" (thực ra là lần kiểm cuối chặn cả câu mẫu, DI-60). Các điểm rà soát khác ở memory của dự án.
+- **Duyệt nội dung:** 1 324/1 326 quyết định duyệt do trợ lý AI làm theo ủy quyền; chủ dự án nên tự duyệt lại một phần trước khi bảo vệ.
+- **CTX-2 (Qwen tự chủ có kiểm soát), SAFE-1 "giáo viên đã xem":** chưa làm.
 
 ## Kế hoạch theo đợt (cũ, trước 2026-10-06)
 

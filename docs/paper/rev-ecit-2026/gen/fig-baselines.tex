@@ -1,0 +1,8 @@
+\begin{tikzpicture}
+\begin{axis}[cavat,ybar,bar width=7pt,width=\linewidth,height=5.0cm,ymin=0,ymax=100,ymajorgrids,ylabel={\% số lượt},xtick={0,1,2,3},xticklabels={{tiết lộ đáp án\\(luật tất định)},{giám khảo\\phát hiện lộ},{> 1 câu hỏi\\mỗi lượt},{dài hơn\\$60$ từ}},xticklabel style={font=\scriptsize,align=center},enlarge x limits=0.16,nodes near coords,nodes near coords style={font=\tiny},every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/precision=0},legend style={at={(0.5,1.03)},anchor=south,draw=none,legend columns=-1,font=\scriptsize,/tikz/every even column/.append style={column sep=0.25cm}},area legend]
+\addplot[fill=llm,draw=none] coordinates {(0,60.0) (1,72.0) (2,28.0) (3,80.0)};
+\addplot[fill=ink!40,draw=none] coordinates {(0,4.0) (1,0.0) (2,0.0) (3,0.0)};
+\addplot[fill=cavat,draw=none] coordinates {(0,0.0) (1,0.0) (2,0.0) (3,0.0)};
+\legend{B1: Chatbot thông thường,B2: Lời nhắc Socratic,C: CAVAT}
+\end{axis}
+\end{tikzpicture}
