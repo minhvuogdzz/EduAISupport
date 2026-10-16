@@ -44,7 +44,7 @@ from typing import Any
 
 from cavat.core.pedagogy import Move
 from cavat.modules.ai_gateway.base import ModelClass
-from cavat.modules.ai_gateway.router import AIRouter
+from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.assessment.math_terms import terms_in, terms_missing
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
 from cavat.modules.tutor.contracts import (
@@ -58,11 +58,17 @@ from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, build_request
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import singles_out_choice
 
-LLM_RENDERER_VERSION = "llm-renderer.v4"
+LLM_RENDERER_VERSION = "llm-renderer.v5"
 LLM_MOVES = frozenset(
     {Move.PROBE, Move.HINT, Move.COGNITIVE_CONFLICT, Move.NUDGE, Move.REDIRECT, Move.EXPLAIN}
 )
 TEMPLATE_ONLY_MOVES = frozenset(Move) - LLM_MOVES
+# DI-61 (LLM-2): the session's model calls go where the wording matters most. The owner chose (2026-10-16)
+# to keep the cap of 15 and spend it on explanations, hints after a wrong answer and pulling back to the
+# lesson. EXPLAIN and REDIRECT may use every call; HINT and COGNITIVE_CONFLICT leave the last fifth of the
+# cap to them; PROBE and NUDGE (the approved "con làm thế nào" says it well) only use the first third.
+TOP_MOVES = frozenset({Move.EXPLAIN, Move.REDIRECT})
+HINT_MOVES_LLM = frozenset({Move.HINT, Move.COGNITIVE_CONFLICT})
 MAX_ATTEMPTS = 2  # the first call and one retry carrying the rejection codes
 BEYOND_ANCHOR = "BEYOND_ANCHOR"
 REPEATS_PREVIOUS = "REPEATS_PREVIOUS"
@@ -220,6 +226,9 @@ class LLMRenderer:
         if ctx.decision.move in TEMPLATE_ONLY_MOVES or ctx.item.is_assessment:
             message = fallback
             self.last_trace = RenderTrace(ctx.decision.move, fallback.source)
+        elif not self._may_call(ctx.decision.move):
+            message = fallback  # DI-61: this move leaves the remaining calls to the moves that need them
+            self.last_trace = RenderTrace(ctx.decision.move, fallback.source, 0, "call_budget")
         else:
             message = self._render_with_llm(ctx, fallback)
         if ctx.student_text:
@@ -227,6 +236,15 @@ class LLMRenderer:
         self._history.append(Turn("tutor", message.text))
         del self._history[:-RECENT_TURNS]
         return message
+
+    def _may_call(self, move: Move) -> bool:
+        """DI-61: whether this move may still spend one of the session's model calls."""
+        cap = getattr(self._router, "max_calls_per_session", DEFAULT_MAX_LLM_CALLS_PER_SESSION)
+        if move in TOP_MOVES or self.calls_used >= cap:
+            return True  # the router enforces the cap itself and says so ("session_cap")
+        if move in HINT_MOVES_LLM:
+            return self.calls_used < cap - cap // 5
+        return self.calls_used < max(1, cap // 3)
 
     def _repeats(self, text: str) -> bool:
         """The model copied a tutor turn of this item word for word (seen with real Qwen output: a level 3

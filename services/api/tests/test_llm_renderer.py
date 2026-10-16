@@ -337,3 +337,25 @@ def test_a_draft_cut_short_is_not_patched_with_a_question():
     renderer, fake = make([turn(cut), turn(cut)])
     ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
     assert renderer.render(ctx) == TEMPLATE.render(ctx) and len(fake.calls) == 2
+
+
+# DI-61 (LLM-2): the 15 calls of a session go to explanations, hints and pulling back to the lesson.
+@pytest.mark.parametrize(
+    ("move", "decision", "used", "calls"),
+    [
+        (Move.PROBE, {}, 4, 1),  # the first third of the cap
+        (Move.PROBE, {}, 5, 0),
+        (Move.HINT, HINT_H3, 11, 1),  # hints leave the last fifth to explanations and redirects
+        (Move.HINT, HINT_H3, 12, 0),
+        (Move.REDIRECT, {}, 14, 1),  # these may use every call
+        (Move.EXPLAIN, {}, 14, 1),
+    ],
+)
+def test_the_session_calls_are_kept_for_the_moves_that_need_them(move, decision, used, calls):
+    renderer, fake = make(
+        [turn(GOOD_HINT if move == Move.HINT else GOOD_PROBE)] * 2, max_calls=15, calls_used=used
+    )
+    renderer.render(ctx_for("GP-01", move, "cô ơi con thích đá bóng", **decision))
+    assert (len(fake.calls) > 0) == (calls > 0)
+    if calls == 0:
+        assert renderer.last_trace.fallback_reason == "call_budget"
