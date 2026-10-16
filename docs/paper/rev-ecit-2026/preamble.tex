@@ -1,0 +1,166 @@
+% Phần mở đầu dùng chung của bài báo CAVAT (biên dịch bằng Tectonic / XeLaTeX).
+\usepackage{fontspec}
+% TeX Gyre: đủ dấu tiếng Việt, đi kèm bản phân phối TeX nên bài dựng giống nhau trên mọi máy
+\setmainfont{texgyretermes}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\setsansfont{texgyreheros}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\setmonofont{texgyrecursor}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic,Scale=0.92]
+\usepackage{amsmath,amssymb}
+\usepackage[a4paper,top=1.8cm,bottom=1.8cm,left=1.7cm,right=1.7cm,columnsep=0.65cm]{geometry}
+\setlength{\headheight}{14pt}
+\usepackage{booktabs,tabularx,array,multirow,makecell,longtable}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric,matrix,decorations.pathreplacing,patterns}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots,statistics}
+\pgfplotsset{compat=1.18}
+\usepackage[labelfont=bf,labelsep=period,font=small,justification=justified,singlelinecheck=false]{caption}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{needspace}
+\usepackage{microtype}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\definecolor{linkblue}{HTML}{000000}
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
+
+% --- màu
+\definecolor{cavat}{HTML}{0072B2}
+\definecolor{soft}{HTML}{F2F6FA}
+\definecolor{llm}{HTML}{D55E00}
+\definecolor{llmsoft}{HTML}{FBE5D6}
+\definecolor{ink}{HTML}{1A1A1A}
+\definecolor{mute}{HTML}{555555}
+\definecolor{okgreen}{HTML}{009E73}
+\definecolor{oksky}{HTML}{56B4E9}
+\definecolor{okorange}{HTML}{E69F00}
+\definecolor{rule}{HTML}{BFBFBF}
+% vùng màu của khung đánh giá Toán (§25), trùng giao diện giáo viên
+\definecolor{zoneE}{HTML}{EFF3FF}  % 0-39
+\definecolor{zoneD}{HTML}{C6DBEF}  % 40-59
+\definecolor{zoneC}{HTML}{6BAED6}  % 60-74
+\definecolor{zoneB}{HTML}{3182BD}  % 75-89
+\definecolor{zoneA}{HTML}{08519C}  % 90-100
+
+% Màu hiện đại cho sơ đồ kiến trúc
+\definecolor{cbluebg}{HTML}{EBF5FB}
+\definecolor{cblueborder}{HTML}{2980B9}
+\definecolor{cgreenbg}{HTML}{E8F8F5}
+\definecolor{cgreenborder}{HTML}{27AE60}
+\definecolor{cyellowbg}{HTML}{FEF9E7}
+\definecolor{cyellowborder}{HTML}{D4AC0D}
+\definecolor{credorangebg}{HTML}{FDEDEC}
+\definecolor{credorangeborder}{HTML}{E74C3C}
+\definecolor{cpurplebg}{HTML}{F5EEF8}
+\definecolor{cpurpleborder}{HTML}{8E44AD}
+\definecolor{cgraybg}{HTML}{F8F9F9}
+\definecolor{cgrayborder}{HTML}{7F8C8D}
+
+% --- tiếng Việt
+\renewcommand{\abstractname}{Tóm tắt}
+\renewcommand{\refname}{Tài liệu tham khảo}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\contentsname}{Mục lục}
+\floatname{algorithm}{Thuật toán}
+\renewcommand{\appendixname}{Phụ lục}
+\algrenewcommand\algorithmicrequire{\textbf{Đầu vào:}}
+\algrenewcommand\algorithmicensure{\textbf{Đầu ra:}}
+\algrenewcommand\algorithmicif{\textbf{nếu}}
+\algrenewcommand\algorithmicthen{\textbf{thì}}
+\algrenewcommand\algorithmicelse{\textbf{ngược lại}}
+\algrenewcommand\algorithmicfor{\textbf{với}}
+\algrenewcommand\algorithmicforall{\textbf{với mọi}}
+\algrenewcommand\algorithmicdo{\textbf{thực hiện}}
+\algrenewcommand\algorithmicreturn{\textbf{trả về}}
+\algrenewcommand\algorithmicwhile{\textbf{khi}}
+\algrenewcommand\algorithmicend{\textbf{hết}}
+\algrenewcommand\algorithmicuntil{\textbf{cho đến khi}}
+\algrenewcommand\algorithmicrepeat{\textbf{lặp}}
+\renewcommand{\algorithmiccomment}[1]{\hfill{\small\color{mute}\(\triangleright\) #1}}
+\algnewcommand{\algorithmicinput}{\textbf{Đầu vào:}}
+
+% --- bố cục
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0pt}
+\linespread{1.0}
+\setlength{\emergencystretch}{3em}
+\sloppy
+\hbadness=10000
+\titleformat{\section}{\normalsize\bfseries\color{ink}}{\thesection.}{0.6em}{\MakeUppercase}
+\titleformat{\subsection}{\normalsize\bfseries\color{ink}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\color{ink}}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.4ex plus 0.2ex minus 0.1ex}{0.5ex plus 0.1ex}
+\titlespacing*{\subsection}{0pt}{1.1ex plus 0.2ex minus 0.1ex}{0.4ex plus 0.1ex}
+\titlespacing*{\subsubsection}{0pt}{0.9ex plus 0.2ex minus 0.1ex}{0.3ex plus 0.1ex}
+\setlist{nosep,leftmargin=1.6em,itemsep=1.5pt}
+\captionsetup[table]{skip=4pt}
+\captionsetup[figure]{skip=4pt}
+\renewcommand{\arraystretch}{1.08}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcommand{\vn}[1]{\textit{#1}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\rid}[1]{\textsf{\small #1}}   % mã luật: R-..., N-...
+\newcommand{\DI}[1]{\textsf{DI-#1}}
+\newcommand{\tick}{\textcolor{cavat}{\(\bullet\)}}
+\newcommand{\best}[1]{\textbf{#1}}
+
+% --- số thập phân dùng dấu phẩy trong biểu đồ
+\pgfplotsset{
+  cavat/.style={
+    /pgf/number format/use comma,
+    /pgf/number format/precision=2,
+    /pgf/number format/fixed,
+    /pgf/number format/fixed zerofill=false,
+    tick label style={font=\scriptsize},
+    label style={font=\small},
+    legend style={font=\scriptsize,draw=none,fill=none},
+    title style={font=\small\bfseries},
+    axis line style={color=ink},
+    grid style={color=rule,line width=0.3pt},
+    every axis plot/.append style={line width=0.9pt},
+  }
+}
+
+% --- thả nổi: giữ bảng và hình trong mục của nó
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{4}
+\setcounter{bottomnumber}{3}
+\setcounter{totalnumber}{6}
+
+\let\OldSection\section
+\renewcommand{\section}{\Needspace*{4\baselineskip}\OldSection}
+\renewcommand{\sectionmark}[1]{\markright{#1}}
+\let\OldSubsection\subsection
+\renewcommand{\subsection}{\Needspace*{3\baselineskip}\OldSubsection}
+
+% --- bố cục hai cột kiểu bài hội nghị
+\setlength{\columnseprule}{0pt}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\dblfloatpagefraction}{0.75}
+\setcounter{dbltopnumber}{4}
+\setlength{\dbltextfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{0pt}
+\captionsetup{font={small}}
+% khối tiêu đề và tóm tắt trải hai cột: hộp tóm tắt nền nhạt
+\newsavebox{\absbox}
+\renewenvironment{abstract}{%
+  \begin{lrbox}{\absbox}\begin{minipage}{0.94\textwidth}\vspace{3pt}\small\noindent\textbf{Tóm tắt.}\ }{%
+  \vspace{2pt}\end{minipage}\end{lrbox}%
+  \begin{center}\usebox{\absbox}\end{center}\vspace{-3pt}}
+
+% URL dài trong tài liệu tham khảo được phép ngắt ở bất kỳ chữ nào
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\a\do\e\do\i\do\o\do\t\do\n\do\s\do\r\do\l\do\c\do\-}
+\makeatother

@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -89,6 +89,9 @@ paper: ## Build the paper docs/paper/cavat-paper.pdf (Tectonic: brew install tec
 
 paper-compact: ## Build the 8-page version docs/paper/cavat-paper-compact.pdf (Tectonic)
 	cd docs/paper && tectonic -X compile cavat-paper-compact.tex
+
+paper-rev: ## Build the 6-page REV-ECIT 2026 version docs/paper/rev-ecit-2026/main.pdf (Tectonic)
+	cd docs/paper/rev-ecit-2026 && tectonic -X compile main.tex
 
 paper-data: ## Regenerate docs/paper/data/*.json (database read-only, no writes) and the tables and figures in docs/paper/gen
 	cd services/api && .venv/bin/python scripts/paper_corpus.py && .venv/bin/python scripts/paper_rag.py \
