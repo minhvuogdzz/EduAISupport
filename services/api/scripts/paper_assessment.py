@@ -214,8 +214,9 @@ def spec_state(rows: list[dict], completion: set[str], prior: float = 0.5) -> di
         level = 2
     if level >= 4 and not application:
         level = 3
-    if level == 5 and not (mastery >= 85 and confidence >= 75 and acc["A"][2] >= 1.0 and mu["A"] >= 0.8):
-        level = 4
+    if level >= 4:  # §53 (DI-59): provisional mastery from M >= 85, whatever the 90 band
+        provisional = mastery >= 85 and confidence >= 75 and acc["A"][2] >= 1.0 and mu["A"] >= 0.8
+        level = 5 if provisional else 4
     return {
         "mastery": mastery,
         "confidence": confidence,

@@ -139,7 +139,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert client.get(f"/v1/sessions/{sid}/report").status_code == 401  # teacher only
     report = client.get(f"/v1/sessions/{sid}/report", headers=TEACHER).json()
     assert report["versions"] == {
-        "mastery": "node-mastery/0.2.0",
+        "mastery": "node-mastery/0.3.0",
         "policy": "node-policy/0.3.1",
         "templates": "teaching-templates/0.5.0",
     }

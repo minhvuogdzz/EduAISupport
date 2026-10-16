@@ -31,6 +31,7 @@ from statistics import fmean
 
 import yaml
 from cavat.config import REPO_ROOT, get_settings
+from cavat.core.events import EventType
 from cavat.core.pedagogy import ActivityType, Outcome
 from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, ModelClass
 from cavat.modules.ai_gateway.gemini import GeminiChat
@@ -43,9 +44,10 @@ from cavat.modules.tutor.item_loop import ItemTutor
 from cavat.modules.tutor.llm_renderer import LLMRenderer
 from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.tutor.renderer import TemplateRenderer
-from cavat.modules.tutor.validator import validate_message
+from cavat.modules.tutor.validator import singles_out_choice, validate_message
 from eval_hard_students import CHAPTER, JUDGE_MODEL, SCENARIOS, judge
 
+CAVAT_MODEL = "qwen/qwen3.8-27b + policy"
 GEMINI_MODELS = ("gemini-3.8-flash", "gemini-2.5-flash", "gemini-3.5-flash-lite")
 PAUSE_S = 10  # Qwen: 8 000 tokens a minute
 GEMINI_PAUSE_S = 14  # Gemini: 5 requests a minute
@@ -85,6 +87,8 @@ class Reply:
     before: str = ""  # what the tutor said just before (the judge sees it)
     model: str = ""
     judged: dict = field(default_factory=dict)
+    # C only: TEMPLATE / GENERIC / LLM / FALLBACK, from TUTOR_MESSAGE_SENT; "" for a reply cached before FIX-1
+    source: str = ""
 
     @property
     def questions(self) -> int:
@@ -97,7 +101,12 @@ class Reply:
 
 def says_answer(item, text: str, said: str) -> bool:
     """The key of a numeric item said in the reply, in the form it is asked ("0,9" for "viết 9/10 thành số
-    thập phân": the stem's 9/10 has the same value), when neither the stem nor the child wrote it so."""
+    thập phân": the stem's 9/10 has the same value), when neither the stem nor the child wrote it so.
+    A choice item: a sentence names the right option and no other ("câu trả lời chính xác là 7/10"), unless
+    the child named it first (FIX-1: choice items went unchecked before, so B1's leaks there were lost)."""
+    if item.answer.type == "choice":
+        child_named_it = singles_out_choice(said, item)
+        return not child_named_it and singles_out_choice(text, item)
     if item.answer.type != "numeric":
         return False
     key = parse_literal(item.answer.value)
@@ -170,7 +179,20 @@ def cavat_tutor(router) -> list[Reply]:
                 break
             time.sleep(PAUSE_S)
             turn = tutor.on_student(clean(said).text, 15)
-            out.append(Reply("C", role, item_id, said, turn.text, before, model="qwen/qwen3.8-27b + policy"))
+            sent = [e.payload for e in turn.events if e.type == EventType.TUTOR_MESSAGE_SENT]
+            source = sent[-1].get("source", "") if sent else ""
+            out.append(
+                Reply(
+                    "C",
+                    role,
+                    item_id,
+                    said,
+                    turn.text,
+                    before,
+                    model="qwen/qwen3.8-27b + policy",
+                    source=source,
+                )
+            )
             before = turn.text
             print(f"[C] {role}: {said!r} -> {turn.text[:120]!r}", flush=True)
         _remember(f"C|{role}", [r.__dict__ for r in out if r.system == "C" and r.role == role])
