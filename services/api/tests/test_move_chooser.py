@@ -34,10 +34,11 @@ class Picks:
     """Picks the scripted option on every turn it is asked; remembers the menus it saw."""
 
     def __init__(self, *picks: str) -> None:
-        self.picks, self.menus = list(picks), []
+        self.picks, self.menus, self.situations = list(picks), [], []
 
-    def choose(self, *, menu, stem, last_tutor, said, turn):
+    def choose(self, *, menu, stem, last_tutor, said, turn, situation=None):
         self.menus.append([o.decision.move for o in menu])
+        self.situations.append(situation)
         return Choice(self.picks.pop(0), "con đang tự nghĩ") if self.picks else None
 
 
@@ -248,6 +249,10 @@ def test_qwen_sees_the_menu_and_the_words_but_never_the_answer():
     assert case["hoc_sinh_vua_go"] == "con không chắc, 0,5 ạ"
     assert [o["ma"] for o in case["nuoc_di"]] == ["A", "B"]
     assert case["nuoc_di"][0]["mo_ta"] == describe(decide_first())
+    # AUTO-4: how the child is doing on the item, and how much each move helps (the probe asks back)
+    assert case["tinh_hinh"]["so_lan_tra_loi"] == 1 and case["tinh_hinh"]["so_goi_y_da_nhan"] == 0
+    assert [o["muc_giup"] for o in case["nuoc_di"]] == [0, 1]
+    assert "con đã sai từ 2 lần" in request.messages[0].content
     assert request.json_schema["properties"]["choice"]["enum"] == ["A", "B"]
     assert "0,9" not in request.messages[1].content and "0,9" not in request.messages[0].content
     assert chosen(t)[0]["reason"].startswith("Con cần")
@@ -335,3 +340,33 @@ def test_a_reason_that_slips_into_another_script_is_cut_there():
     )
     assert clean_reason("介入") == ""
     assert clean_reason("  Con cần một gợi ý nhỏ. ") == "Con cần một gợi ý nhỏ."
+
+
+def test_the_chooser_reads_how_the_child_is_doing_on_the_item():
+    from cavat.modules.tutor.chooser import situation
+
+    picks = Picks("A")
+    tutor(picks).on_student("0,5")
+    [first] = picks.situations
+    assert first["so_lan_tra_loi"] == 1 and first["co_da_hoi_cach_lam"] is False
+    state = ItemState(
+        item_id="I1",
+        activity=ActivityType.GUIDED_PRACTICE,
+        attempt_no=3,
+        hint_levels=[HintLevel.H1, HintLevel.H2],
+        unproductive_turns=2,
+        help_requests=1,
+        affect_signals=1,
+        probes_sent=1,
+        misconception_counts={"M1": 2, "M2": 1},
+    )
+    assert situation(state) == {
+        "so_lan_tra_loi": 3,
+        "so_goi_y_da_nhan": 2,
+        "bac_goi_y_cao_nhat": 2,
+        "luot_chua_tien_bo": 2,
+        "so_lan_xin_goi_y": 1,
+        "dau_hieu_nan": 1,
+        "co_da_hoi_cach_lam": True,
+        "loi_lap_lai_nhieu_nhat": 2,
+    }

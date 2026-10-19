@@ -5,6 +5,7 @@ reasons only for the chapter whose content is in the repo."""
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 from cavat.modules.ai_gateway.base import ChatResult
 from cavat.modules.ai_gateway.router import ChatOutcome, FallbackReason
@@ -78,3 +79,18 @@ def test_the_report_quotes_reasons_only_for_the_repo_chapter():
     assert "| PROBE → HINT | 1 | 0 | 1 | 0 |" in text and "Lý do có thể nhắc nội dung bài." in text
     text = report([theirs], picks, meta)
     assert "Lý do" not in text.split("|---|")[-1]
+
+
+def test_the_report_tells_the_first_answer_from_a_repeated_mistake():
+    [first] = recorded_cases()
+    assert first.stage == "lần trả lời đầu" and dict(first.situation)["so_lan_tra_loi"] == 1
+    later = replace(first, situation=(("so_goi_y_da_nhan", 1), ("so_lan_tra_loi", 2)))
+    assert later.stage == "đã sai hoặc đã có gợi ý" and later.key != first.key
+    picks = {first.key: Choice("A", ""), later.key: Choice("B", "")}  # A asks back, B is a hint
+    s = summarize([first, later], picks)
+    assert s["by_stage"] == {
+        "lần trả lời đầu": {"turns": 1, "least": 1},
+        "đã sai hoặc đã có gợi ý": {"turns": 1, "more": 1},
+    }
+    meta = {"date": "2026-10-19", "collected": 2, "sessions": 1, "calls": 0, "cached": 2}
+    assert "| đã sai hoặc đã có gợi ý | 1 | 0 | 1 |" in report([first, later], picks, meta)
