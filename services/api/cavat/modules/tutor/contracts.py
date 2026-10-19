@@ -137,6 +137,8 @@ class ValidationCode(StrEnum):
     FOREIGN_TEXT = "FOREIGN_TEXT"
     # Qwen called the child "em" although the lesson says "con" ("…trong số đếm của em", seen live, TQ-3)
     WRONG_ADDRESS = "WRONG_ADDRESS"
+    # FIX-2: "Đúng rồi!" on a turn that follows an answer that is not right (R-STRONG-PRIOR's "vì sao")
+    WRONG_PRAISE = "WRONG_PRAISE"
 
 
 @dataclass(frozen=True)
