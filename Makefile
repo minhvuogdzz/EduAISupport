@@ -39,8 +39,8 @@ item-bank: ## Build the draft item bank of each chapter from the imported teache
 teaching-plan: ## Build the draft teaching plan (graph, periods, items) of each chapter from the teacher documents
 	cd services/api && .venv/bin/python -m cavat.teaching_plan
 
-draft-teaching: ## Draft with Qwen the hints, answers and key ideas the documents leave out, checked (free-tier quota)
-	cd services/api && .venv/bin/python -m cavat.draft_teaching
+draft-teaching: ## Draft with Qwen the hints, answers, key ideas and "vì sao" the documents leave out, checked (free-tier quota; ONLY=VERIFY: only those)
+	cd services/api && .venv/bin/python -m cavat.draft_teaching "$(ONLY)"
 
 eval-items: ## Mutate every checked answer of the item banks and count how many the checks catch (read-only)
 	cd services/api && .venv/bin/python scripts/eval_item_bank.py

@@ -15,7 +15,11 @@ applied on top, so fixing a misread answer key or rewording a hint is never lost
   ``node:STP-T01/theory/T1/reply``, ``node:STP-T01/method/rule``, ``node:STP-T01/explain/key_ideas``; an
   explanation or worked example the documents lack is added by its first edit
   (``node:STP-T03/theory/T2/text``); ``node:<id>/pass_rule/min_forms``: how many question forms the
-  period asks, when its documents give fewer than the default two.
+  period asks, when its documents give fewer than the default two;
+- ``node:<id>/verify/prompt``: the "vì sao" asked after a right answer to an item of the period (FIX-3);
+  edit, or reject to ask the generic one; it reaches every item of the period that has no "vì sao" of its own;
+- ``misconception:<id>/counter_examples``: the counterexamples of a mistake, one per line (edit), or none
+  (reject), when one names an answer or does not fit (FIX-3).
 
 A plan is published only when every period is approved and the tutor's validation asks for nothing: the
 teacher, not the builder, decides what is taught (CLAUDE.md: the owner approves pedagogical content).
@@ -41,6 +45,7 @@ NODE_FIELDS = {
     "worked_examples": ("problem", "steps", "answer"),
     # A period whose documents give one question form only: the teacher lowers its pass rule (a DI).
     "pass_rule": ("min_forms",),
+    "verify": ("prompt",),  # FIX-3: the period's "vì sao"
 }
 STAGES = {  # where the teacher may put an item: node list, purpose, level, transfer
     "checks": ("CONCEPT_CHECK", "A", "none"),
@@ -58,8 +63,10 @@ def check_decision(target: str, action: str, value: Any) -> None:
     if action not in ACTIONS:
         raise ReviewError(f"unknown action {action!r}")
     kind = target.split(":", 1)[0]
-    if kind not in ("item", "hint", "node"):
+    if kind not in ("item", "hint", "node", "misconception"):
         raise ReviewError(f"unknown target {target!r}")
+    if kind == "misconception" and not target.endswith("/counter_examples"):
+        raise ReviewError(f"{target}: a mistake edits its counter_examples")
     editable = target.count("/") > 0 or kind == "hint"
     if action == "edit" and not editable:
         raise ReviewError(f"{target} is approved or rejected, its parts are edited")
@@ -143,10 +150,53 @@ def apply_plan_decisions(plan: Plan, decisions: Mapping[str, Mapping[str, Any]])
         for target, decision in decisions.items():
             if target.startswith(f"node:{node.id}/") and decision.get("action") == "edit":
                 node = _edit_node(node, target.split("/")[1:], decision["value"])
+        if decisions.get(f"node:{node.id}/verify/prompt", {}).get("action") == "reject":
+            node = node.model_copy(update={"verify_prompt": ""})
         nodes.append(node)
     plan.package = plan.package.model_copy(update={"nodes": nodes})
     _move_items(plan, decisions)
+    _counter_examples(plan, decisions)
+    _verify_to_items(plan)
     plan.problems = validate_chapter(plan.chapter())
+
+
+def _counter_examples(plan: Plan, decisions: Mapping[str, Mapping[str, Any]]) -> None:
+    """The counterexamples of a mistake as the teacher wrote them, or none (FIX-3)."""
+    chosen = {
+        t.removeprefix("misconception:").removesuffix("/counter_examples"): d
+        for t, d in decisions.items()
+        if t.startswith("misconception:") and d.get("action") in ("edit", "reject")
+    }
+    if not chosen:
+        return
+    for lesson_id, lesson in list(plan.lessons.items()):
+        mistakes = []
+        for m in lesson.misconceptions:
+            d = chosen.get(m.id)
+            if d is not None:
+                lines = [] if d["action"] == "reject" else _as("steps", d["value"])
+                m = m.model_copy(update={"counter_examples": lines})
+            mistakes.append(m)
+        plan.lessons[lesson_id] = lesson.model_copy(update={"misconceptions": mistakes})
+
+
+def _verify_to_items(plan: Plan) -> None:
+    """FIX-3: the period's "vì sao" for each of its items that has none of its own."""
+    asked = {}
+    for node in plan.package.nodes:
+        if node.verify_prompt:
+            for item_id in (*node.checks, *node.completion, *node.practice, *node.transfer):
+                asked[item_id] = node.verify_prompt
+    if not asked:
+        return
+    for lesson_id, lesson in list(plan.lessons.items()):
+        items = [
+            i.model_copy(update={"verify_prompt": asked[i.id]})
+            if i.id in asked and not i.verify_prompt
+            else i
+            for i in lesson.items
+        ]
+        plan.lessons[lesson_id] = lesson.model_copy(update={"items": items})
 
 
 _TARGETS = {}
@@ -170,6 +220,8 @@ def _edit_node(node: Any, path: list[str], value: Any) -> Any:
     from cavat.modules.content.chapter_package import TheoryVariant, WorkedExample
 
     part, field = path[0], path[-1]
+    if part == "verify":
+        return node.model_copy(update={"verify_prompt": str(value).strip()})
     if part in ("theory", "worked_examples"):
         element_id = path[1]
         elements = list(getattr(node, part))

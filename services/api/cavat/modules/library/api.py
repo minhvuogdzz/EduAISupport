@@ -272,6 +272,7 @@ def chapter_content(chapter: Chapter, source: str) -> dict[str, Any]:
                 "method": node.method.model_dump(),
                 "worked_examples": [w.model_dump() for w in node.worked_examples],
                 "retell": {"prompt": node.explain.prompt, "key_ideas": node.explain.key_ideas},
+                "verify_prompt": node.verify_prompt,  # FIX-3: the period's "vì sao"
                 "items": [item_view(i, stage) for stage, ids in stages for i in ids],
                 "pass_rule": {"min_mastery": round(100 * node.pass_rule.min_mastery, 1)},
             }

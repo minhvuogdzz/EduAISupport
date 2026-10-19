@@ -46,7 +46,6 @@ async def rebuild_plan(database: Any, school_id: str, chapter_id: str, drafter: 
     ``drafting.Drafter``, what the documents leave out is drafted by Qwen and checked (INGEST-3b). The
     teacher's decisions and published versions are kept and applied on top (INGEST-4)."""
     from cavat.modules.content.chapter_package import validate_chapter
-    from cavat.modules.ingest.drafting import as_records
     from cavat.modules.ingest.review import apply_item_overrides, apply_plan_decisions
 
     repo = TeachingPlanRepository(database, school_id)
@@ -61,7 +60,8 @@ async def rebuild_plan(database: Any, school_id: str, chapter_id: str, drafter: 
         chapter_id, TITLES.get(chapter_id, chapter_id), PREFIXES.get(chapter_id, "CH"), documents, drafts_in
     )
     drafted = drafter.draft(plan) if drafter is not None else []
-    if drafted:
+    kept = _keep_earlier_drafts(plan, before) if before is not None else set()
+    if drafted or kept:
         plan.problems = validate_chapter(plan.chapter())
     apply_plan_decisions(plan, decisions)
     stored = TeachingPlan(
@@ -76,13 +76,62 @@ async def rebuild_plan(database: Any, school_id: str, chapter_id: str, drafter: 
         problems=plan.problems,
         sources=plan.sources,
         left_out=plan.left_out,
-        drafts=as_records(drafted) if drafted else (before.drafts if before else []),
+        drafts=_records(drafted, before, kept) if drafted else (before.drafts if before else []),
         decisions=decisions,
         published=before.published if before else {},
         current=before.current if before else None,
     )
     await repo.save(stored)
     return await repo.get(chapter_id) or stored
+
+
+def _keep_earlier_drafts(plan: Any, before: TeachingPlan) -> set[str]:
+    """FIX-3: what the drafter could not give again stays as it was in the stored plan.
+
+    The drafts are cached by their request, and a request carries the item's answer as the builder reads it.
+    INGEST-5 changed how answers are read after the plan was last built (2026-10-12): 55 hint requests no
+    longer met their cache, and a rebuild from the cache (any review decision) dropped the hints of about
+    270 items, while a rebuild with Qwen drafted new ones under the old "approve" decisions. Now an item
+    with no drafted hint keeps the hints it had, when its stem is the same; a period keeps its "vì sao".
+    Returns the draft targets kept ("STP-BT-07a:H2", "STP-T01")."""
+    from cavat.modules.content.lesson_package import LessonPackage
+
+    kept: set[str] = set()
+    earlier = {
+        item.id: item for raw in before.lessons.values() for item in LessonPackage.model_validate(raw).items
+    }
+    for lesson_id, lesson in list(plan.lessons.items()):
+        items = []
+        for item in lesson.items:
+            old = earlier.get(item.id)
+            if not item.hints and old is not None and old.hints and old.stem == item.stem:
+                item = item.model_copy(update={"hints": old.hints})
+                kept |= {f"{item.id}:H{int(h.level)}" for h in old.hints}
+            items.append(item)
+        plan.lessons[lesson_id] = lesson.model_copy(update={"items": items})
+    old_nodes = {n.get("id"): n for n in before.package.get("nodes", [])}
+    nodes = []
+    for node in plan.package.nodes:
+        old_verify = old_nodes.get(node.id, {}).get("verify_prompt", "")
+        if not node.verify_prompt and old_verify:
+            node = node.model_copy(update={"verify_prompt": old_verify})
+            kept.add(node.id)
+        nodes.append(node)
+    plan.package = plan.package.model_copy(update={"nodes": nodes})
+    return kept
+
+
+def _records(drafted: list[Any], before: TeachingPlan | None, kept: set[str]) -> list[dict[str, Any]]:
+    """The drafts of this build, and the earlier records of what was kept (still shown as "AI soạn")."""
+    from cavat.modules.ingest.drafting import as_records
+
+    records = as_records(drafted)
+    fresh = {(r["kind"], r["target"]) for r in records if r["ok"]}
+    for r in before.drafts if before else []:
+        target = r["target"].removesuffix(":retry")
+        if r["ok"] and target in kept and (r["kind"], r["target"]) not in fresh:
+            records.append(r)
+    return records
 
 
 def cached_drafter() -> Any:

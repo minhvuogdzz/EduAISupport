@@ -146,6 +146,48 @@ describe("PlanReviewPage (INGEST-4)", () => {
     );
   });
 
+  it("lets the teacher rewrite the period's why question and remove a counterexample (FIX-3)", async () => {
+    const base = plan();
+    const node = {
+      ...base.content.nodes[0],
+      verify_prompt: "Đúng rồi! Vì sao con so sánh phần nguyên trước?",
+    };
+    const mistake = {
+      id: "STP-L4",
+      kc_id: "STP-T04",
+      name: "Số nào nhiều chữ số hơn thì lớn hơn",
+      description: "",
+      severity: "MAJOR",
+      counter_examples: ["0,5 và 0,45: số nào lớn hơn?"],
+    };
+    const review = plan({
+      content: { ...base.content, nodes: [node], misconceptions: [mistake] },
+      ai_verify: ["STP-T04"],
+    });
+    const { api, decisions } = plansApi(review);
+    const { user } = renderApp("/teacher/plans/math-g5-decimals", api);
+    expect(
+      await screen.findByText("Vì sao con so sánh phần nguyên trước?", { exact: false }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("AI soạn")).toHaveLength(2); // the hint and the why question
+    await user.click(screen.getByRole("button", { name: "Sửa câu hỏi vì sao" }));
+    const input = screen.getByRole("textbox", { name: "Câu hỏi vì sao" });
+    await user.clear(input);
+    await user.type(input, "Đúng rồi! Con so sánh phần nào trước?");
+    await user.click(screen.getByRole("button", { name: "Lưu" }));
+    await user.click(screen.getByRole("button", { name: "Bỏ phản ví dụ" }));
+    await waitFor(() =>
+      expect(decisions).toEqual([
+        {
+          target: "node:STP-T04/verify/prompt",
+          action: "edit",
+          value: "Đúng rồi! Con so sánh phần nào trước?",
+        },
+        { target: "misconception:STP-L4/counter_examples", action: "reject", value: undefined },
+      ]),
+    );
+  });
+
   it("publishes once nothing waits", async () => {
     const ready = plan({ review: { approved_nodes: ["STP-T04"], waiting_nodes: [], blockers: [] } });
     const { api, published } = plansApi(ready);

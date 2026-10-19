@@ -9,7 +9,10 @@ approve. Qwen writes; it never decides what is right:
   mathematical terms of the item and the rule. A hint that fails is left out, never replaced;
 - for every period: a sample answer and the accepted short answers of its open questions, the key ideas of
   its retell (each phrasing in the words of the rule), and a question for an explanation without one. Their
-  numbers and terms must come from the period's own text.
+  numbers and terms must come from the period's own text;
+- FIX-3: for every period, the "vì sao" asked after a right answer (``Node.verify_prompt``): one question,
+  no number (it serves every item of the period), terms of the period, the child called "con". Asked in a
+  request of its own, so the cached drafts above stay as they were.
 
 Test items are never sent (CLAUDE.md rule 2). Every draft is recorded with its model and what the checks
 said (``Draft``), and the plan stays a DRAFT for the teacher (INGEST-4). Calls are cached on disk by their
@@ -37,11 +40,14 @@ from cavat.modules.content.lesson_package import HintTemplate, Item, LessonPacka
 from cavat.modules.ingest.teaching import Plan
 from cavat.modules.rag.bm25 import content_words
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, RenderContext
-from cavat.modules.tutor.validator import validate_message
+from cavat.modules.tutor.validator import foreign_text, validate_message, wrong_address
 
 DRAFTER_VERSION = "drafting/0.1.0"
 PROMPTS = Path(__file__).parent / "prompts"
 HINT_PROMPT, NODE_PROMPT = "draft-hints.v1.md", "draft-node.v1.md"
+VERIFY_PROMPT = "draft-verify.v1.md"  # FIX-3
+MAX_VERIFY_WORDS = 25
+VERIFY_LEAD = "Đúng rồi!"  # the tutor's praise before the "vì sao", as in the hand-written lessons
 BATCH = 6  # items per request: the prompt stays well under the 3 000 tokens of a Groq request
 LADDER = ((HintLevel.H1, HintTarget.TASK, "h1"), (HintLevel.H2, HintTarget.CONCEPT, "h2"))
 LADDER += ((HintLevel.H3, HintTarget.STRATEGY, "h3"),)
@@ -83,6 +89,22 @@ HINT_SCHEMA = {
     "required": ["items"],
     "additionalProperties": False,
 }
+VERIFY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"id": {"type": "string"}, "hoi": {"type": "string"}},
+                "required": ["id", "hoi"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["items"],
+    "additionalProperties": False,
+}
 _PHRASES = {"type": "array", "items": {"type": "string"}}
 NODE_SCHEMA = {
     "type": "object",
@@ -116,7 +138,7 @@ NODE_SCHEMA = {
 class Draft:
     """One piece Qwen wrote, and what the checks said (kept in the plan for the teacher)."""
 
-    kind: str  # HINT | REPLY | ACCEPT | KEY_IDEA | ASK
+    kind: str  # HINT | REPLY | ACCEPT | KEY_IDEA | ASK | VERIFY
     target: str  # "STP-BT-07a:H2", "STP-T01/T1", "STP-T01"
     text: str
     ok: bool
@@ -131,13 +153,22 @@ def prompt_text(name: str) -> str:
 
 class Drafter:
     def __init__(
-        self, router: Any, cache: Path, *, pause: float = 0.0, sleep: Callable[[float], None] = time.sleep
+        self,
+        router: Any,
+        cache: Path,
+        *,
+        pause: float = 0.0,
+        sleep: Callable[[float], None] = time.sleep,
+        only: frozenset[str] | None = None,
     ):
+        """``only``: the kinds of drafts that may call the model ("HINT", "NODE", "VERIFY"); the others
+        come from the cache only (FIX-3: draft the periods' "vì sao" without drafting the hints again)."""
         self.router, self.cache, self.pause, self.sleep = router, cache, pause, sleep
+        self.only = only
         self.calls = 0  # requests that reached the model (not the cache)
 
     def _ask(
-        self, prompt: str, payload: dict[str, Any], schema: dict[str, Any], tokens: int
+        self, prompt: str, payload: dict[str, Any], schema: dict[str, Any], tokens: int, kind: str = "HINT"
     ) -> tuple[dict, str]:
         body = json.dumps(payload, ensure_ascii=False)
         key = hashlib.sha256(f"{DRAFTER_VERSION}\n{prompt}\n{body}".encode()).hexdigest()
@@ -145,8 +176,8 @@ class Drafter:
         if kept.exists():
             saved = json.loads(kept.read_text(encoding="utf-8"))
             return saved["data"], saved["model"]
-        if self.router is None:  # cache only: a teacher's decision never waits for a model
-            return {}, ""
+        if self.router is None or (self.only is not None and kind not in self.only):
+            return {}, ""  # cache only: a teacher's decision never waits for a model
         if self.calls and self.pause:
             self.sleep(self.pause)  # 8 000 tokens a minute on the free tier
         request = ChatRequest(
@@ -172,6 +203,8 @@ class Drafter:
         for i, node in enumerate(nodes):
             nodes[i], node_drafts = self._node(node)
             drafts += node_drafts
+        nodes, verify_drafts = self._verify(nodes)
+        drafts += verify_drafts
         plan.package = plan.package.model_copy(update={"nodes": nodes})
         for lesson_id, lesson in list(plan.lessons.items()):
             if lesson_id.endswith("-KT"):
@@ -268,6 +301,31 @@ class Drafter:
             items[i] = items[i].model_copy(update={"hints": [kept[k] for k in sorted(kept)]})
         return drafts
 
+    # -- the period's "vì sao" (FIX-3) ---------------------------------------------------------------------
+
+    def _verify(self, nodes: list[Node]) -> tuple[list[Node], list[Draft]]:
+        nodes = list(nodes)
+        wanted = [i for i, n in enumerate(nodes) if not n.verify_prompt]
+        drafts: list[Draft] = []
+        prompt = prompt_text(VERIFY_PROMPT)
+        for start in range(0, len(wanted), BATCH):
+            batch = wanted[start : start + BATCH]
+            payload = {
+                "TIẾT": [
+                    {"id": nodes[i].id, "tên": nodes[i].name, "quy tắc": _rule_text(nodes[i])[:400]}
+                    for i in batch
+                ]
+            }
+            data, model = self._ask(prompt, payload, VERIFY_SCHEMA, 90 * len(batch), "VERIFY")
+            written = {r.get("id"): r for r in data.get("items", []) if isinstance(r, dict)}
+            for i in batch:
+                text = " ".join(str(written.get(nodes[i].id, {}).get("hoi", "")).split())
+                codes = verify_codes(text, nodes[i])
+                drafts.append(Draft("VERIFY", nodes[i].id, text, not codes, codes, model))
+                if not codes:
+                    nodes[i] = nodes[i].model_copy(update={"verify_prompt": f"{VERIFY_LEAD} {text}"})
+        return nodes, drafts
+
     # -- the period's own text ---------------------------------------------------------------------------
 
     def _node(self, node: Node) -> tuple[Node, list[Draft]]:
@@ -281,7 +339,7 @@ class Drafter:
             "CÂU HỎI": asks,
             "THIẾU CÂU HỎI": [{"id": t.id, "cách giảng": t.text} for t in node.theory if t.id in missing],
         }
-        data, model = self._ask(prompt_text(NODE_PROMPT), payload, NODE_SCHEMA, 700)
+        data, model = self._ask(prompt_text(NODE_PROMPT), payload, NODE_SCHEMA, 700, "NODE")
         source = _node_text(node)
         drafts: list[Draft] = []
         theory = list(node.theory)
@@ -340,6 +398,28 @@ class Drafter:
             if ideas:
                 explain = explain.model_copy(update={"key_ideas": ideas})
         return node.model_copy(update={"theory": theory, "explain": explain}), drafts
+
+
+def verify_codes(text: str, node: Node) -> list[str]:
+    """Why a drafted "vì sao" cannot serve every item of its period (empty: it can)."""
+    if not text:
+        return ["EMPTY"]
+    codes = []
+    if text.count("?") != 1 or not text.rstrip().endswith("?"):
+        codes.append("NOT_ONE_QUESTION")
+    if extract_numbers(text):
+        codes.append("HAS_NUMBER")  # one question for every item of the period: no item's numbers
+    if len(text.split()) > MAX_VERIFY_WORDS:
+        codes.append("TOO_LONG")
+    if foreign_text(text):
+        codes.append("FOREIGN_TEXT")
+    if wrong_address(text, "con"):
+        codes.append("WRONG_ADDRESS")
+    if fold(text).lower().startswith(("dung roi", "chinh xac", "gioi")):
+        codes.append("STARTS_WITH_PRAISE")  # the tutor adds its own "Đúng rồi!"
+    if terms_missing(terms_in(text), [_node_text(node, full=True)]):
+        codes.append("NEW_MATH_TERM")
+    return codes
 
 
 def _rule_text(node: Node) -> str:

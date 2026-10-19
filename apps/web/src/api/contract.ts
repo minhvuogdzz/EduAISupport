@@ -856,6 +856,8 @@ export interface ContentNode {
   method: { rule: string; steps: string[] };
   worked_examples: { id: string; problem: string; steps: string[]; answer: string }[];
   retell: { prompt: string; key_ideas: string[][] };
+  /** FIX-3: the "vì sao" asked after a right answer to an item of the period ("" = the generic one). */
+  verify_prompt?: string;
   items: ContentItem[];
   pass_rule: { min_mastery: number };
 }
@@ -918,6 +920,8 @@ export interface TeachingPlanReview {
   assessment: string[];
   review: { approved_nodes: string[]; waiting_nodes: string[]; blockers: string[] };
   drafted: { hints: number; parts: number };
+  /** FIX-3: the periods whose "vì sao" Qwen drafted (they wait for the teacher). */
+  ai_verify?: string[];
 }
 
 // ---------------------------------------------------------------- Hybrid RAG, teacher view (RAG-1)
