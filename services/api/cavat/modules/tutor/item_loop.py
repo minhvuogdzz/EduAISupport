@@ -57,7 +57,7 @@ from cavat.modules.content.lesson_package import (
     OrderAnswer,
 )
 from cavat.modules.rag.bm25 import content_words
-from cavat.modules.tutor.chooser import MoveChooser
+from cavat.modules.tutor.chooser import MoveChooser, situation
 from cavat.modules.tutor.contracts import (
     ItemState,
     MessageRenderer,
@@ -484,7 +484,12 @@ class ItemTutor:
         if len(menu) < 2:
             return decision
         pick = self.chooser.choose(
-            menu=menu, stem=self.item.stem, last_tutor=self.last_tutor, said=self._said, turn=self._turns
+            menu=menu,
+            stem=self.item.stem,
+            last_tutor=self.last_tutor,
+            said=self._said,
+            turn=self._turns,
+            situation=situation(self.state),
         )
         if pick is None:
             return decision

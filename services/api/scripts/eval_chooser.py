@@ -33,7 +33,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from cavat.modules.tutor.chooser import CHOOSER_VERSION, Choice, describe
+from cavat.modules.tutor.chooser import CHOOSER_VERSION, Choice, describe, help_of
 from cavat.modules.tutor.contracts import PolicyDecision
 from cavat.modules.tutor.policy import MoveOption
 
@@ -55,6 +55,7 @@ class Case:
     last_tutor: str
     said: str
     decisions: tuple[PolicyDecision, ...] = ()  # the moves themselves, for the model's menu
+    situation: tuple[tuple[str, int | bool], ...] = ()  # how the child is doing on the item (AUTO-4)
 
     @property
     def kind(self) -> str:
@@ -62,8 +63,20 @@ class Case:
         return f"{self.moves[0]} → {' / '.join(self.moves[1:])}"
 
     @property
+    def stage(self) -> str:
+        """AUTO-4: the first answer of the item, or after a wrong answer or a hint."""
+        s = dict(self.situation)
+        first = int(s.get("so_lan_tra_loi", 0)) <= 1 and not s.get("so_goi_y_da_nhan")
+        return "lần trả lời đầu" if first else "đã sai hoặc đã có gợi ý"
+
+    def helps(self, option_id: str) -> int:
+        return help_of(self.decisions[ord(option_id) - 65]) if self.decisions else 0
+
+    @property
     def key(self) -> str:
-        raw = json.dumps([CHOOSER_VERSION, self.descriptions, self.stem, self.last_tutor, self.said])
+        raw = json.dumps(
+            [CHOOSER_VERSION, self.descriptions, self.stem, self.last_tutor, self.said, self.situation]
+        )
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def menu(self) -> list[MoveOption]:
@@ -78,7 +91,16 @@ class Recorder:
     chapter: str = ""
     cases: list[Case] = field(default_factory=list)
 
-    def choose(self, *, menu: Sequence[MoveOption], stem: str, last_tutor: str, said: str, turn: int):
+    def choose(
+        self,
+        *,
+        menu: Sequence[MoveOption],
+        stem: str,
+        last_tutor: str,
+        said: str,
+        turn: int,
+        situation: Mapping[str, int | bool] | None = None,
+    ):
         a = menu[0].decision
         self.cases.append(
             Case(
@@ -92,6 +114,7 @@ class Recorder:
                 last_tutor=last_tutor,
                 said=said,
                 decisions=tuple(o.decision for o in menu),
+                situation=tuple(sorted((situation or {}).items())),
             )
         )
         return None
@@ -122,7 +145,16 @@ def summarize(cases: Sequence[Case], picks: Mapping[str, Choice | None]) -> dict
     total = Counter()
     for r in rows.values():
         total.update(r)
+    stages: dict[str, Counter] = defaultdict(Counter)
+    for c in cases:
+        pick = picks.get(c.key)
+        if pick is None or pick.option_id not in [chr(65 + i) for i in range(len(c.moves))]:
+            continue
+        least = min(c.helps(chr(65 + i)) for i in range(len(c.moves)))
+        stages[c.stage]["turns"] += 1
+        stages[c.stage]["least" if c.helps(pick.option_id) == least else "more"] += 1
     return {
+        "by_stage": {k: dict(v) for k, v in sorted(stages.items())},
         "turns": total["turns"],
         "kept": total["kept"],
         "other": total["other"],
@@ -151,6 +183,13 @@ def report(cases: Sequence[Case], picks: Mapping[str, Choice | None], meta: Mapp
     for kind, r in s["by_kind"].items():
         counts = " | ".join(str(r.get(k, 0)) for k in ("turns", "kept", "other", "none"))
         lines.append(f"| {kind} | {counts} |")
+    lines += [
+        "",
+        "| Lúc chọn | Lượt Qwen trả lời | Chọn nước giúp ít nhất | Chọn nước giúp nhiều hơn |",
+        "|---|---|---|---|",
+    ]
+    for stage, r in s["by_stage"].items():
+        lines.append(f"| {stage} | {r.get('turns', 0)} | {r.get('least', 0)} | {r.get('more', 0)} |")
     reasons = [
         (c.kind, c.moves[ord(p.option_id) - 65], p.reason)
         for c in cases
@@ -184,7 +223,14 @@ def ask(cases: Sequence[Case], router: Any, cache_file: Path, pause_s: float) ->
             cached += 1
             continue
         chooser = ModelChooser(router, calls_used=0, max_calls=10**6)
-        pick = chooser.choose(menu=c.menu(), stem=c.stem, last_tutor=c.last_tutor, said=c.said, turn=c.turn)
+        pick = chooser.choose(
+            menu=c.menu(),
+            stem=c.stem,
+            last_tutor=c.last_tutor,
+            said=c.said,
+            turn=c.turn,
+            situation=dict(c.situation),
+        )
         spent += chooser.calls_made
         picks[c.key] = pick
         if pick is not None or chooser.calls_made:  # a quota refusal is not cached: ask again next run

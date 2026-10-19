@@ -520,10 +520,27 @@ Chạy song song từ Mốc 1:
     - **Đọc kết quả:** ở cả 46/46 lượt, Qwen chọn nước **không phải gợi ý** (hỏi "con làm thế nào", hỏi con muốn gợi ý hay tự thử, hoặc giải thích), dù nước đó là `A` hay `B`. Nên đây không phải thiên vị vị trí. Qwen chưa bao giờ chọn đưa gợi ý khi còn nước khác. Lý do Qwen nêu nghe hợp lý, nhưng lặp theo khuôn ("con đã đưa ra đáp án cụ thể, cô cần hỏi lại cách làm…"). Ở mức đo này, bộ chọn chạy như một luật cố định "hỏi trước khi gợi ý", chưa thấy nó chọn theo ngữ cảnh của từng đứa trẻ. Một phần có thể do prompt (`CHOOSE_SYSTEM` có câu "ưu tiên nước giúp ít hơn khi con có vẻ gần đúng hoặc đang tự nghĩ").
     - **Giới hạn:** chỉ một học sinh mô phỏng, 46 lượt, một lần hỏi mỗi lượt (chưa đo độ ổn định khi hỏi lại).
     - **Đã sửa:** 2/46 lý do có chữ Trung Quốc lẫn vào ("trước khi介入"). Lý do nay bị cắt ở chỗ đó (`chooser.clean_reason`); nước đi được chọn không đổi.
-    - **[OPEN] Chủ dự án quyết:**
-      - giữ Qwen chọn như hiện tại;
-      - hoặc thay bằng luật tất định "hỏi trước khi gợi ý" (cùng kết quả ở lần đo này, không tốn lượt gọi);
-      - hoặc sửa prompt cho Qwen cân nhắc khi nào nên đưa gợi ý (ví dụ con đã sai nhiều lần cùng một chỗ), rồi đo lại.
+    - **Chủ dự án chọn (2026-10-19):** sửa prompt cho Qwen cân nhắc khi nào nên đưa gợi ý (ví dụ con đã sai nhiều lần cùng một chỗ), rồi đo lại. Đó là AUTO-4 bên dưới.
+  - **Prompt mới (AUTO-4, `move-chooser/0.2.0`, 2026-10-19):**
+    - **Qwen thấy thêm tình hình của con ở câu đang làm** (`tinh_hinh`, `chooser.situation`): số lần trả lời, số gợi ý đã nhận, bậc gợi ý cao nhất, số lượt chưa tiến bộ, số lần xin gợi ý, dấu hiệu nản, cô đã hỏi cách làm chưa, lỗi lặp lại nhiều nhất. Chỉ có số đếm, không có đáp án.
+    - **Mỗi nước đi kèm mức giúp** (`muc_giup`): 0 là hỏi lại, còn lại là bậc gợi ý.
+    - **Tiêu chí trong prompt:**
+      - giúp ít (hỏi cách làm, hỏi con muốn tự thử) khi: đây là lần trả lời đầu tiên của câu, con có vẻ gần đúng, hoặc con đang nói cách nghĩ của mình;
+      - đưa gợi ý khi: con đã sai từ 2 lần ở câu này, con lặp lại cùng một lỗi, cô đã hỏi cách làm rồi mà con vẫn sai, con nói không biết hoặc xin giúp, hoặc con nản sau nhiều lần thử;
+      - "không có nước nào luôn đúng". Bỏ câu cũ "ưu tiên nước giúp ít hơn".
+    - **Đo lại** (`make eval-chooser`, cùng cách đo, 3 buổi, 48 lượt có lựa chọn, 46 khác nhau): Qwen trả lời 46/46, giữ nước của chính sách 30, chọn nước khác 16.
+
+      | Lúc chọn | Lượt | `0.1` chọn gợi ý | `0.2` chọn gợi ý |
+      |---|---|---|---|
+      | Lần trả lời đầu của câu, chưa có gợi ý | 36 | 0 | 0 |
+      | Lần trả lời đầu, đã có gợi ý (sau khi con hỏi lại đề hoặc xin giúp) | 6 | 0 | 0 |
+      | Con đã sai từ 2 lần ở câu này | 4 | 0 | 3 |
+
+    - **Đọc kết quả:**
+      - 45/46 lượt khớp tiêu chí đã viết. Lượt còn lại (sai lần 2, 2 gợi ý, 2 lượt chưa tiến bộ) Qwen vẫn hỏi lại, trái tiêu chí.
+      - Lý do nay nêu dấu hiệu trong tình hình, ví dụ "con đã trả lời sai 2 lần và có dấu hiệu bế tắc", "lặp lại cùng một lỗi".
+      - Bản `0.1` không bao giờ chọn gợi ý khi còn nước khác. Bản `0.2` chọn gợi ý khi con đã sai nhiều lần. Nhưng ở mẫu này, cách chọn của `0.2` vẫn gần như một luật theo số lần trả lời ("hỏi ở lần đầu, gợi ý từ lần sai thứ hai"). Chưa thấy Qwen dùng lời của con để chọn khác luật đó.
+    - **Giới hạn:** chỉ 4 lượt con sai từ 2 lần, một học sinh mô phỏng, một lần hỏi mỗi lượt. Chưa đo lại trong buổi học (AUTO-2) và chưa đo trên học sinh thật.
 - **DI-61, dành lượt gọi Qwen cho nước đi quan trọng (LLM-2, `llm-renderer.v5`, 2026-10-16):**
   - **Vấn đề:** trần 15 lần gọi mỗi buổi hết rất sớm. Trong một buổi hình học, PROBE ("con làm thế nào") tiêu 4 trên khoảng 13 lần gọi, rồi 19 gợi ý, 8 lần kéo về bài và 3 lời giải thích chỉ còn dùng được câu mẫu.
   - **Quyết định của chủ dự án (2026-10-16):** giữ trần 15, nhưng dành lượt gọi cho giải thích, gợi ý sau câu sai và kéo về bài.
