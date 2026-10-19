@@ -94,6 +94,8 @@ def review_view(plan: Any, bank: Any) -> dict[str, Any]:
             "hints": len(drafted),
             "parts": sum(1 for d in plan.drafts if d["kind"] != "HINT" and d["ok"]),
         },
+        # FIX-3: the periods whose "vì sao" Qwen drafted (they wait for the teacher)
+        "ai_verify": sorted({d["target"] for d in plan.drafts if d["kind"] == "VERIFY" and d["ok"]}),
     }
 
 

@@ -27,6 +27,7 @@ LABELS = {
     "ACCEPT": "cách nói được chấp nhận",
     "KEY_IDEA": "ý chính",
     "ASK": "câu hỏi gợi mở",
+    "VERIFY": "câu hỏi vì sao của tiết",
 }
 
 
@@ -36,7 +37,10 @@ async def main() -> None:
         sys.exit("MONGODB_URI chưa có trong services/api/.env.")
     if settings.groq_api_key is None or not settings.groq_api_key.get_secret_value():
         sys.exit("GROQ_API_KEY chưa có trong services/api/.env.")
-    drafter = Drafter(build_router(settings), settings.storage_dir / "cache" / "drafts", pause=8.0)
+    # ONLY=VERIFY (FIX-3): only these kinds may call Qwen; the other drafts come from the cache, and what the
+    # cache no longer has stays as it is in the stored plan.
+    only = frozenset(k for k in sys.argv[1].split(",") if k) if len(sys.argv) > 1 and sys.argv[1] else None
+    drafter = Drafter(build_router(settings), settings.storage_dir / "cache" / "drafts", pause=8.0, only=only)
     database = db.get_db(settings)
     print(f"Database: {settings.mongodb_db}")
     for chapter_id in PREFIXES:

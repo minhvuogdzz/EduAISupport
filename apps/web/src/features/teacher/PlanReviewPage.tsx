@@ -376,7 +376,9 @@ function NodeReview({
           hint="Mỗi ý một dòng; các cách nói của cùng một ý cách nhau bằng dấu /."
           onSave={(v) => edit("explain/key_ideas", v)}
         />
+        <VerifyReview node={node} plan={plan} actions={actions} />
       </section>
+      <MistakesReview node={node} plan={plan} actions={actions} />
       {STAGES.map(([stage, label]) => {
         const items = node.items.filter((it) => it.stage === label);
         return items.length === 0 ? null : (
@@ -397,6 +399,90 @@ function NodeReview({
         );
       })}
     </article>
+  );
+}
+
+/** FIX-3: the "vì sao" of the period, asked after a right answer to one of its items. */
+function VerifyReview({
+  node,
+  plan,
+  actions,
+}: {
+  node: ContentNode;
+  plan: TeachingPlanReview;
+  actions: Actions;
+}) {
+  const target = `node:${node.node_id}/verify/prompt`;
+  const decision = plan.decisions[target];
+  const ai = plan.ai_verify?.includes(node.node_id) && decision?.action !== "edit";
+  return (
+    <div className="flex flex-col gap-1 rounded-xl bg-slate-50 p-2">
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <span className="font-semibold">Hỏi sau câu đúng</span>
+        {ai && <span className="rounded bg-violet-100 px-1 text-violet-900">AI soạn</span>}
+        {node.verify_prompt && (
+          <button
+            type="button"
+            onClick={() => actions.decide(target, "reject")}
+            className="font-semibold text-rose-700"
+          >
+            Loại câu hỏi vì sao
+          </button>
+        )}
+      </div>
+      <Editable
+        label="Câu hỏi vì sao"
+        value={node.verify_prompt ?? ""}
+        hint="Gia sư hỏi câu này khi con làm đúng một bài của tiết. Không ghi con số: câu dùng chung cho mọi bài. Để trống thì gia sư hỏi câu chung."
+        onSave={(v) => actions.decide(target, "edit", v)}
+      />
+    </div>
+  );
+}
+
+/** FIX-3: the mistakes of the period and their counterexamples, which the teacher edits or removes. */
+function MistakesReview({
+  node,
+  plan,
+  actions,
+}: {
+  node: ContentNode;
+  plan: TeachingPlanReview;
+  actions: Actions;
+}) {
+  const mistakes = plan.content.misconceptions.filter((m) => m.kc_id === node.node_id);
+  if (mistakes.length === 0) return null;
+  return (
+    <section className="card flex flex-col gap-2 p-4">
+      <h3 className="font-bold">Lỗi sai hay gặp và phản ví dụ</h3>
+      {mistakes.map((m) => {
+        const target = `misconception:${m.id}/counter_examples`;
+        return (
+          <div key={m.id} className="rounded-xl bg-slate-50 p-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span className="font-mono">{m.id}</span>
+              <span className="font-semibold text-slate-800">{m.name}</span>
+              {m.counter_examples.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => actions.decide(target, "reject")}
+                  className="ml-auto font-semibold text-rose-700"
+                >
+                  Bỏ phản ví dụ
+                </button>
+              )}
+            </div>
+            <Editable
+              label={`Phản ví dụ của ${m.id}`}
+              value={m.counter_examples.join("\n")}
+              multiline
+              hint="Mỗi phản ví dụ một dòng, kết thúc bằng một câu hỏi; không nói ra đáp án của bài nào."
+              onSave={(v) => actions.decide(target, "edit", v)}
+            />
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
