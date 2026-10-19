@@ -36,7 +36,7 @@ describe("voice live (ADR-030)", () => {
   it("offers to talk with the tutor, and hides when the browser cannot", () => {
     const voice = live();
     const { rerender } = render(<VoiceBar voice={voice} />);
-    fireEvent.click(screen.getByRole("button", { name: "🎤 Nói chuyện với cô" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nói chuyện với cô" }));
     expect(voice.toggle).toHaveBeenCalled();
     rerender(<VoiceBar voice={live({ available: false })} />);
     expect(screen.queryByRole("button")).toBeNull();

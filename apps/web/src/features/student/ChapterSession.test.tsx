@@ -41,8 +41,9 @@ describe("chapter session screen (M1-7)", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Số thập phân" })).toBeInTheDocument();
     expect(screen.getByText("Cô giảng bài")).toBeInTheDocument();
     expect(screen.getByRole("log")).toHaveTextContent("Sợi dây dài 2 m 7 dm");
-    const prompt = screen.getByRole("region", { name: "Cô hỏi con" });
-    expect(prompt).toHaveTextContent(THEORY_ASK);
+    // UI-1: the theory card already ends with its question, so no pinned card says it again.
+    expect(screen.getByRole("log")).toHaveTextContent(THEORY_ASK);
+    expect(screen.queryByRole("region", { name: "Cô hỏi con" })).not.toBeInTheDocument();
     // One step bar for desktop (side column), one for tablets; CSS shows one of them.
     const [steps] = screen.getAllByRole("navigation", { name: "Các bước học bài Khái niệm số thập phân" });
     expect(within(steps).getByText("Giảng bài").closest("li")).toHaveAttribute("aria-current", "step");
@@ -64,9 +65,11 @@ describe("chapter session screen (M1-7)", () => {
       content: { text: "Phần nguyên là 2" },
       expected_state_version: 3,
     });
-    expect(await screen.findByRole("region", { name: "Kiểm tra hiểu" })).toHaveTextContent(
-      "Số 12,45 có phần nguyên là bao nhiêu?",
+    // UI-1: the question is the tutor's last message, so it is not pinned a second time above it.
+    await waitFor(() =>
+      expect(screen.getByRole("log")).toHaveTextContent("Số 12,45 có phần nguyên là bao nhiêu?"),
     );
+    expect(screen.queryByRole("region", { name: "Kiểm tra hiểu" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Xin gợi ý/ })).toBeInTheDocument();
   });
 });
