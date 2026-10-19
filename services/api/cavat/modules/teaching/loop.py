@@ -28,6 +28,7 @@ from cavat.core.events import (
     ChoiceMade,
     EventType,
     HintRequested,
+    ItemRestarted,
     NodeDecisionMade,
     QuestionParked,
     RagRetrieved,
@@ -259,6 +260,7 @@ class TeachingLoop:
         self.speaker = speaker  # live turns only: a replay never calls the RAG or a model again
         self.item_reader = item_reader  # CTX-1: reads an unclear item message in context (live turns only)
         self.item_chooser = item_chooser  # AUTO-1: picks one of the moves the policy allows (live turns only)
+        self._restart: str | None = None  # FIX-4: an item whose replay diverged starts again (its id)
         self.history = list(history)  # events of earlier sessions: the projection reads them too
         self.events: list[Any] = []  # events of this session
         self.item_renderer = item_renderer or TemplateRenderer()
@@ -562,7 +564,7 @@ class TeachingLoop:
         recorded = self._record(now, EventType.CHOICE_MADE, made)
         if choice_id == CHOICE_RETRY:
             self._retry = True
-            return self._waiting_for_item([], [recorded])
+            return self._waiting_for_item([], [*self._restart_mark(now, recorded), recorded])
         return self._item_input(now, recorded, HINT_REQUEST_TEXT, seconds)
 
     @property
@@ -574,11 +576,21 @@ class TeachingLoop:
 
     # ------------------------------------------------------------------ steps
 
+    def _restart_mark(self, now: datetime, recorded: LoopEvent) -> list[LoopEvent]:
+        """FIX-4: the ITEM_RESTARTED mark of an item that starts again, put before this input."""
+        if self._restart is None:
+            return []
+        mark = self._event(now, EventType.ITEM_RESTARTED, ItemRestarted(item_id=self._restart))
+        self.events.insert(self.events.index(recorded), mark)
+        self._restart = None
+        return [mark]
+
     def _item_input(self, now: datetime, recorded: LoopEvent, text: str, seconds: float) -> TeachTurn:
         assert self.tutor is not None
         self._retry = False
+        marks = self._restart_mark(now, recorded)
         turn = self.tutor.on_student(text, seconds)
-        events = [recorded, *self._tutor_events(now, turn.events)]
+        events = [*marks, recorded, *self._tutor_events(now, turn.events)]
         item_id = self.tutor.item.id
         node_id = self._item_node(item_id)
         messages = [TeachMessage(MessageKind.ITEM, turn.text, node_id, item_id)]
@@ -788,21 +800,17 @@ class TeachingLoop:
         d = NodeDecisionMade.model_validate(self.events[last].payload)
         after = self.events[last + 1 :]
         if d.action in ITEM_ACTIONS:
-            readings = [
-                e.payload
-                for e in after
-                if e.event_type == EventType.MESSAGE_READ and e.payload.get("item_id") == d.ref
-            ]
-            picks = [
-                e.payload
-                for e in after
-                if e.event_type == EventType.MOVE_CHOSEN and e.payload.get("item_id") == d.ref
-            ]
+            mine = [e for e in after if e.payload.get("item_id") == d.ref]
+            marks = [i for i, e in enumerate(mine) if e.event_type == EventType.ITEM_RESTARTED]
+            if marks:  # FIX-4: the item started again there; what came before is not replayed
+                mine = mine[marks[-1] + 1 :]
+            readings = [e.payload for e in mine if e.event_type == EventType.MESSAGE_READ]
+            picks = [e.payload for e in mine if e.event_type == EventType.MOVE_CHOSEN]
             self.tutor = self._new_tutor(d, reader=recorded(readings), chooser=recorded_choices(picks))
             self.tutor.start()
-            for e in after:
-                if e.payload.get("item_id") != d.ref:
-                    continue
+            for e in mine:
+                if self.tutor.phase == Phase.RESOLVED:
+                    break  # the replay closed the item before the child's words ran out (FIX-4)
                 seconds = e.payload.get("seconds", 0.0)
                 if e.event_type == EventType.STUDENT_MESSAGE:
                     self._retry = False
@@ -815,8 +823,14 @@ class TeachingLoop:
                 elif e.event_type == EventType.CHOICE_MADE and e.payload.get("choice_id") == CHOICE_RETRY:
                     self._retry = True
             if self.tutor.phase == Phase.RESOLVED:
-                raise ValueError(f"item {d.ref} is resolved but no decision follows it")
-            said = [
+                # FIX-4: today's code reads the child's earlier words differently from the code that taught
+                # them (a checker or a policy changed since), and no decision follows the item. The item
+                # starts again: the next input records ITEM_RESTARTED, and later rebuilds replay from there.
+                self.tutor = self._new_tutor(d)
+                self.tutor.start()
+                self._retry = False
+                self._restart = d.ref
+            said = [e.payload["text"] for e in mine if e.event_type == EventType.TUTOR_MESSAGE_SENT] or [
                 e.payload["text"]
                 for e in after
                 if e.event_type == EventType.TUTOR_MESSAGE_SENT and e.payload.get("item_id") == d.ref

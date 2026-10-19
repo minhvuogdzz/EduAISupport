@@ -93,6 +93,7 @@ _ITEM_EVENTS = frozenset(
         EventType.EXPLANATION_SUBMITTED,
         EventType.POLICY_DECISION,
         EventType.MOVE_CHOSEN,
+        EventType.ITEM_RESTARTED,
         EventType.HINT_DELIVERED,
         EventType.MISCONCEPTION_DETECTED,
         EventType.TUTOR_MESSAGE_SENT,

@@ -71,6 +71,7 @@ class EventType(StrEnum):
     # contextual reading (CTX-1)
     MESSAGE_READ = "MESSAGE_READ"
     MOVE_CHOSEN = "MOVE_CHOSEN"
+    ITEM_RESTARTED = "ITEM_RESTARTED"
     CONTEXT_ROUTED = "CONTEXT_ROUTED"
     WEB_LOOKED = "WEB_LOOKED"
     # assessment / teacher
@@ -286,6 +287,15 @@ class MoveChosen(_Payload):
     source: Literal["LLM"] = "LLM"
 
 
+class ItemRestarted(_Payload):
+    """FIX-4: the open item starts again from here, because today's code reads the child's earlier words on
+    it differently from the code that taught them, and its replay closed the item before they ran out (a
+    session of 2026-10-12 stopped answering on 2026-10-19). A rebuild replays only what follows this mark."""
+
+    item_id: str
+    reason: Literal["REPLAY_DIVERGED"] = "REPLAY_DIVERGED"
+
+
 class QuestionParked(_Payload):
     """A question of the child the tutor did not answer: kept for the teacher (plan v1 5.5.3)."""
 
@@ -371,5 +381,6 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.RAG_RETRIEVED: RagRetrieved,
     EventType.MESSAGE_READ: MessageRead,
     EventType.MOVE_CHOSEN: MoveChosen,
+    EventType.ITEM_RESTARTED: ItemRestarted,
     EventType.QUESTION_PARKED: QuestionParked,
 }
