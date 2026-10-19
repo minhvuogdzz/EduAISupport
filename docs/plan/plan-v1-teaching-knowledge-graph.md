@@ -476,7 +476,33 @@ Chạy song song từ Mốc 1:
       - giữ nước của chính sách (PROBE): "Con đang tự đặt câu hỏi về sự khác biệt giữa hai số, cô cần biết con đã suy luận thế nào để hỗ trợ đúng chỗ.";
       - đổi gợi ý thành "con muốn gợi ý hay tự thử" sau câu nản: "Con đang tỏ ra nản và từ chối làm, cần hỏi ý để con chủ động chọn cách tiếp cận thay vì ép gợi ý ngay."
     - Trong 233 lượt của gia sư, 206 là câu mẫu, 26 là câu dự phòng, 1 do Qwen viết. Lần đo này không tách được lượt gọi nào hết vì trần và lượt nào bị Groq từ chối (429), nên chưa nói được bộ chọn có làm bớt lời Qwen viết hay không.
-    - **[OPEN]** Chưa so với `TUTOR_CHOOSER=policy` và chưa đo trên học sinh: 2 lần chọn chưa đủ để nói AUTO-1 giúp gì cho việc học.
+  - **So với chính sách thuần (AUTO-2, 2026-10-19):**
+    - **Cách đo:** `simulate_learner.py --measure` (trong bộ nhớ, không ghi gì), cả hai chương, tối đa 2 buổi mỗi chương, `TUTOR_RENDERER=llm`. Chạy một lần với `TUTOR_CHOOSER=llm`, ngay sau đó một lần với `TUTOR_CHOOSER=policy`. Học sinh mô phỏng `sim-auto2` chưa có buổi nào trước đó. `_measure` nay ghi thêm: số lượt gọi model của buổi (`state.activity.llm_calls`), kết quả từng lượt gọi qua router theo lớp model và lý do (`fallback_reason`), số yêu cầu Groq trả 429, lý do từng lượt của gia sư không do Qwen viết, số tiết bị dừng. `fallback_reason` không nằm trong sự kiện nào, nên script đếm nó ngay trong tiến trình.
+    - **Kết quả** (cộng các buổi của mỗi chương; "câu" là câu hỏi đã kết thúc, sự kiện `ITEM_RESOLVED`):
+
+      | | Số thập phân, `llm` | Số thập phân, `policy` | Hình học, `llm` | Hình học, `policy` |
+      |---|---|---|---|---|
+      | Số buổi, lượt của con | 1 buổi, 214 lượt | 2 buổi, 123 + 104 = 227 lượt | 1 buổi, 162 lượt | 1 buổi, 162 lượt |
+      | Tiết qua | 11/11 | 5/11 rồi 11/11 | 8/8 | 8/8 |
+      | Gợi ý (H1/H2/H3/H6) | 50 (29/12/2/7) | 43 (26/11/0/6) | 27 (18/5/0/4) | 28 (19/5/0/4) |
+      | Bậc gợi ý cao nhất | H6 | H6 | H6 | H6 |
+      | Câu tự giải / có gợi ý / giải mẫu / chưa giải | 38 / 21 / 4 / 3 (66 câu) | 50 / 23 / 5 / 1 (79 câu) | 42 / 12 / 3 / 1 (58 câu) | 41 / 13 / 3 / 1 (58 câu) |
+      | Lượt gia sư trong câu: Qwen viết / tổng | 3 / 232 | 2 / 257 | 2 / 187 | 1 / 187 |
+      | Lượt gọi model của buổi | 15 | 16 + 14 | 15 | 16 |
+      | Yêu cầu Groq trả 429 | 2 | 4 + 5 | 5 | 7 |
+      | Lượt Qwen không được viết vì: hết trần / hết hạn mức Groq / giữ lượt (DI-61) | 56 / 0 / 0 | 15 / 18 / 21 | 26 / 6 / 8 | 14 / 18 / 9 |
+      | Số lần chọn (bị từ chối) | 2 (0) | — | 2 (0) | — |
+      | Nước của chính sách → nước đã chơi | PROBE → PROBE, HINT → HINT | — | EXPLAIN → EXPLAIN, PROBE → PROBE | — |
+
+    - **Đọc kết quả:**
+      - Trong cả 4 lần chọn, Qwen đều giữ nước của chính sách (phương án `A`). Vì vậy ở lần chạy `llm`, mọi nước đã chơi đều trùng với nước chính sách thuần sẽ chơi. Bộ chọn chỉ ảnh hưởng gián tiếp: mỗi buổi nó tiêu 2 lượt gọi, nên còn ít lượt hơn cho phần diễn đạt.
+      - Mỗi buổi chỉ có 2 lần chọn. Bộ chọn chỉ được gọi khi buổi còn chưa dùng 7 lượt gọi (DI-62), và mọi buổi đều dùng hết trần 15 lượt.
+      - Chương hình học gần như trùng ở hai lần chạy: 162 lượt, 8/8 tiết, 58 câu, 27 và 28 gợi ý.
+      - Chương Số thập phân khác nhau. Lần chạy `policy` cần 2 buổi, vì buổi 1 dừng ở 5/11 tiết: theo `node_policy.py`, buổi kết thúc khi không còn tiết nào mở được (N-FINISH, NO_NODE_LEFT), tức là có tiết bị dừng và chặn các tiết sau. Lần đo này chưa đếm số tiết bị dừng; script nay đếm thêm `nodes_stopped`. Vì nước đi đã chơi không khác chính sách, chênh lệch này (cùng với 50 so với 43 gợi ý, 66 so với 79 câu) không đến từ lựa chọn của Qwen. Nó đến từ chỗ khác: lời Qwen viết khác nhau, hạn mức Groq khác nhau, và con mô phỏng phản ứng theo lời gia sư nhận được. Lần `policy` chạy ngay sau lần `llm` nên gặp 429 nhiều hơn (16 so với 7 yêu cầu).
+      - Hai lần chạy chỉ khác nhau 1–2 lượt Qwen viết (5 so với 3). Đây vẫn là phần rất nhỏ trong 400–450 lượt của gia sư, nên không đủ để nói bộ chọn có làm bớt lời Qwen viết hay không.
+      - Gộp với lần đo đầu, Qwen đã chọn 6 lần, và chỉ 1 lần khác nước của chính sách (câu nản → "con muốn gợi ý hay tự thử").
+    - **Kết luận:** chênh lệch giữa hai lần chạy **không đủ để kết luận** AUTO-1 làm thay đổi việc dạy hay việc học. Ở mức đo này, nó gần như không đổi gì: trong 4 lần chọn, Qwen giữ nước của chính sách cả 4. Muốn thấy khác biệt thì cần nhiều lần chọn hơn: nới phần trần dành cho bộ chọn, hoặc chạy nhiều buổi và nhiều hạt giống học sinh mô phỏng, rồi so trung bình.
+    - **[OPEN]** Chưa đo trên học sinh thật, và chưa có đủ số lần chọn để so có ý nghĩa thống kê.
 - **DI-61, dành lượt gọi Qwen cho nước đi quan trọng (LLM-2, `llm-renderer.v5`, 2026-10-16):**
   - **Vấn đề:** trần 15 lần gọi mỗi buổi hết rất sớm. Trong một buổi hình học, PROBE ("con làm thế nào") tiêu 4 trên khoảng 13 lần gọi, rồi 19 gợi ý, 8 lần kéo về bài và 3 lời giải thích chỉ còn dùng được câu mẫu.
   - **Quyết định của chủ dự án (2026-10-16):** giữ trần 15, nhưng dành lượt gọi cho giải thích, gợi ý sau câu sai và kéo về bài.

@@ -270,6 +270,7 @@ def run(
             assert created.status_code == 201, created.text
             sid = created.json()["session_id"]
             state = _retrying(client.post, f"/v1/sessions/{sid}/join").json()
+        CALLS.session = sid  # AUTO-2: the model calls that follow belong to this session
         chapter = chapter_service.chapters()[chapter_id]
         vuong = vuong or Vuong(chapter, chapter_id)
         for node in state["teaching"]["nodes"]:
@@ -359,14 +360,56 @@ def _in_memory(settings, student: str | None = None, templates_only: bool = True
     return memory
 
 
-def _measure(memory) -> None:
-    """LLM-1: who wrote each tutor turn of the sessions in memory, and why model drafts were rejected; AUTO-1:
-    the moves Qwen picked (policy move -> played move)."""
+class _Calls:
+    """AUTO-2: what each model call of the measured sessions gave, counted in this process (the router's
+    ``fallback_reason`` is not in any event): per session, ``model class:reason`` ("ok" when the model
+    answered), the 429s Groq returned, and why each tutor turn was or was not written by the model."""
+
+    def __init__(self) -> None:
+        from collections import Counter, defaultdict
+
+        self.session: str | None = None
+        self.router: dict[str, Counter] = defaultdict(Counter)
+        self.refused: Counter = Counter()  # Groq answered 429 (QuotaExceeded on a request really sent)
+        self.renderer: dict[str, Counter] = defaultdict(Counter)
+
+    def install(self) -> None:
+        from cavat.modules.ai_gateway.router import AIRouter
+        from cavat.modules.tutor.llm_renderer import LLMRenderer
+
+        chat, render, calls = AIRouter.chat, LLMRenderer.render, self
+
+        def counted_chat(router, model_class, request, *, calls_used):
+            outcome = chat(router, model_class, request, calls_used=calls_used)
+            reason = outcome.fallback_reason.value if outcome.fallback_reason else "ok"
+            calls.router[calls.session][f"{model_class.value}:{reason}"] += 1
+            calls.refused[calls.session] += sum(
+                1 for a in outcome.attempts if a.sent and a.error == "QuotaExceeded"
+            )
+            return outcome
+
+        def counted_render(renderer, ctx):
+            message = render(renderer, ctx)
+            trace = renderer.last_trace
+            if trace is not None:
+                calls.renderer[calls.session][trace.fallback_reason or trace.source] += 1
+            return message
+
+        AIRouter.chat, LLMRenderer.render = counted_chat, counted_render
+
+
+CALLS = _Calls()
+
+
+def _measure(memory, session_ids: list[str]) -> None:
+    """LLM-1: who wrote each tutor turn of the sessions this run made, and why model drafts were rejected;
+    AUTO-1: the moves Qwen picked (policy move -> played move); AUTO-2: the session's model calls, why a turn
+    fell back to a template, hints, how each item was solved and the periods stopped unpassed."""
     import asyncio
     from collections import Counter
 
     async def read() -> list[dict]:
-        return await memory["learning_sessions"].find({}).to_list(None)
+        return await memory["learning_sessions"].find({"_id": {"$in": session_ids}}).to_list(None)
 
     for doc in asyncio.run(read()):
         events = doc.get("events", [])
@@ -381,16 +424,41 @@ def _measure(memory) -> None:
         )
         drafts = sum(1 for e in events if e["event_type"] == "OUTPUT_REJECTED")
         picks = [e["payload"] for e in events if e["event_type"] == "MOVE_CHOSEN"]  # AUTO-1
+        hints = [e["payload"]["hint_level"] for e in events if e["event_type"] == "HINT_DELIVERED"]
+        items = [e["payload"] for e in events if e["event_type"] == "ITEM_RESOLVED"]
+        sid = doc["_id"]
         print(
             json.dumps(
                 {
-                    "chapter": doc.get("chapter_id"),
+                    "session_id": sid,
+                    "chapter": doc.get("lesson_id"),
+                    "lifecycle": doc.get("state", {}).get("lifecycle"),
                     "tutor_turns": dict(sources),
+                    "teach_turns": dict(
+                        Counter(
+                            e["payload"].get("source")
+                            for e in events
+                            if e["event_type"] == "TEACH_MESSAGE_SENT"
+                        )
+                    ),
                     "rejected_drafts": drafts,
                     "rejected_codes": dict(codes),
                     "picks": dict(Counter(f"{p['options'][0]}->{p['move']}" for p in picks)),
                     "picks_refused": sum(1 for p in picks if not p["accepted"]),
                     "pick_reasons": [p["reason"] for p in picks][:6],
+                    "llm_calls": (doc.get("state", {}).get("activity") or {}).get("llm_calls"),
+                    "router": dict(CALLS.router[sid]),
+                    "groq_429": CALLS.refused[sid],
+                    "renderer": dict(CALLS.renderer[sid]),
+                    "hints": len(hints),
+                    "hint_levels": dict(sorted(Counter(hints).items())),
+                    "max_hint_level": max(hints, default=0),
+                    "items": dict(Counter(p["resolution"] for p in items)),
+                    "nodes_stopped": sum(
+                        1
+                        for e in events
+                        if e["event_type"] == "TEACH_MESSAGE_SENT" and e["payload"].get("kind") == "STOP"
+                    ),
                 },
                 ensure_ascii=False,
             )
@@ -455,6 +523,8 @@ def main() -> None:
         _in_memory(settings)
     elif args.write_at_end or args.measure:
         memory = _in_memory(settings, args.student_id, templates_only=False)
+        if args.measure:
+            CALLS.install()
     elif not args.write:
         sys.exit("Thêm --write để ghi thật (CLAUDE.md quy tắc 11: chỉ khi chủ dự án yêu cầu), hoặc --memory.")
     app.dependency_overrides[student_identity] = lambda: args.student_id
@@ -472,7 +542,7 @@ def main() -> None:
     if args.memory:
         return
     if args.measure:
-        _measure(memory)
+        _measure(memory, [x["session_id"] for runs in made.values() for x in runs])
         return
     if memory is not None:
         _write_back(settings, memory, [x["session_id"] for runs in made.values() for x in runs])
