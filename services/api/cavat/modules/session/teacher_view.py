@@ -129,15 +129,22 @@ def _last_learning(folded: Folded) -> Any:
     return max(times) if times else None
 
 
-def attention(chapter: Chapter, folded: Folded, today: date) -> list[dict[str, Any]]:
+def attention(
+    chapter: Chapter, folded: Folded, today: date, reviewed: Mapping[str, int] | None = None
+) -> list[dict[str, Any]]:
     """Why the teacher should look at this student (PART 27.1 "học sinh cần chú ý", DI-20).
 
-    A safety flag (the model's, or the distress words of DI-41) comes first, one per session, until a review
-    step exists: a worry is never hidden by age.
+    A safety flag (the model's, or the distress words of DI-41) comes first, one per session, until the
+    teacher marks it read (``reviewed``: session id → the last event read, SAFE-1). A worry is never hidden
+    by age, and a flag raised after the review shows again.
     """
+    reviewed = reviewed or {}
     reasons: list[dict[str, Any]] = []
     for session in reversed(folded.sessions):
-        flags = [e for e in session.events if e.event_type == EventType.SAFETY_FLAGGED]
+        seen = reviewed.get(session.id, 0)
+        flags = [
+            e for e in session.events if e.event_type == EventType.SAFETY_FLAGGED and e.sequence_no > seen
+        ]
         if flags:
             reasons.append(
                 {"kind": "SAFETY", "session_id": session.id, "at": flags[-1].occurred_at, "count": len(flags)}
@@ -207,7 +214,10 @@ def _nodes_info(chapter: Chapter) -> list[dict[str, Any]]:
 
 
 def class_overview(
-    chapter: Chapter, by_student: Mapping[str, Sequence[LearningSession]], today: date
+    chapter: Chapter,
+    by_student: Mapping[str, Sequence[LearningSession]],
+    today: date,
+    reviewed: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """The class on the chapter: one row per student, one column per KC, and what the class shares."""
     order = chapter.topological_order()
@@ -227,7 +237,7 @@ def class_overview(
                 "passed": sum(1 for n in order if f.projection.nodes[n].passed_at is not None),
                 "overall": overall(f.projection),
                 "cells": [_cell(n, f.projection.nodes[n], f.statuses[n]) for n in order],
-                "attention": attention(chapter, f, today),
+                "attention": attention(chapter, f, today, reviewed),
             }
         )
     students.sort(key=lambda s: (s["display_name"].casefold(), s["student_id"]))
@@ -453,7 +463,11 @@ def _conversation(folded: Folded) -> dict[str, Any]:
 
 
 def student_detail(
-    chapter: Chapter, student_id: str, sessions: Sequence[LearningSession], today: date
+    chapter: Chapter,
+    student_id: str,
+    sessions: Sequence[LearningSession],
+    today: date,
+    reviewed: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """One student on the chapter, for the teacher: §23 overview, §24 radar, §27 timeline, §39 velocity,
     §43 KC groups, §56 activity and the §57 detail of every KC, with its evidence-based trend."""
@@ -530,7 +544,7 @@ def student_detail(
         "timeline": timeline,
         "velocity": _velocity(timeline, today),
         "activity": _activity(f),
-        "attention": attention(chapter, f, today),
+        "attention": attention(chapter, f, today, reviewed),
         "journey": _journey(chapter, f),
         "curve": _curve(chapter, f),
         "conversation": _conversation(f),

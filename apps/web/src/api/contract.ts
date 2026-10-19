@@ -592,6 +592,14 @@ export interface AttentionReason {
   at?: string | null;
 }
 
+/** SAFE-1: the teacher has read a session's worrying words, up to one event of its ledger. */
+export interface SafetyReview {
+  session_id: string;
+  through_sequence_no: number;
+  reviewed_at: string;
+  reviewed_by: string;
+}
+
 /** §23: overall mastery of the KCs with a score, and the share of KCs that have one (DI-21). */
 export interface OverallMastery {
   mastery: number | null;

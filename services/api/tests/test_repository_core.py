@@ -147,6 +147,7 @@ EXPECTED_COLLECTIONS = {
     "documents",
     "item_banks",
     "teaching_plans",
+    "safety_reviews",
 }
 
 

@@ -125,7 +125,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | DOC-1 | Thư viện tài liệu của giáo viên: tải lên (PDF, DOCX, ảnh), lưu file gốc ở `var/storage/`, đọc ra chữ, gắn chương/bài; trang xem nội dung bài (lý thuyết, ví dụ, câu hỏi, gợi ý, đáp án, trạng thái duyệt) | Xong (PR #38) |
 | RAG-1 | Hybrid RAG tự xây (M1-5): chia đoạn theo cấu trúc, BM25 hai bản, embedding Gemini, chỉ mục vector tự viết, RRF, xếp hạng lại theo sư phạm, ghi vết; trang tra cứu cho giáo viên; bộ câu hỏi Recall@k, MRR | Xong: tab RAG của giáo viên, `make eval-rag` (plan v1 mục 5.5.6; báo cáo `evals/reports/2026-10-07-rag-gemini.md`) |
 | RAG-2 | Gia sư nói theo đoạn truy xuất, có nguồn (M1-9); validator kiểm tra bám đoạn và không lộ đáp án. Yêu cầu rút từ RAG-1, xem danh sách dưới bảng | Xong: ADR-021, `make eval-grounded`, báo cáo `evals/reports/2026-10-07-grounded-live.md`; đủ 21 ca với `grounded-speech/0.2.2`: `evals/reports/2026-10-13-grounded-live.md` |
-| SAFE-1 | Cờ an toàn lên màn hình giáo viên: lượt hội thoại có chip đỏ, lớp học có lý do "cần xem ngay"; nhận diện câu đáng lo (DI-41) cả lúc làm bài tập; trước đó chỉ ghi sự kiện `SAFETY_FLAGGED` mà chưa ai thấy | Xong. Còn: bước "giáo viên đã xem" |
+| SAFE-1 | Cờ an toàn lên màn hình giáo viên: lượt hội thoại có chip đỏ, lớp học có lý do "cần xem ngay"; nhận diện câu đáng lo (DI-41) cả lúc làm bài tập; trước đó chỉ ghi sự kiện `SAFETY_FLAGGED` mà chưa ai thấy. Bước "giáo viên đã xem": nút "Cô đã xem" ở trang lớp, lưu riêng ở `safety_reviews` (không ghi vào sổ của buổi học), cờ mới sau lúc xem thì hiện lại | Xong |
 | CTX-1 | Gia sư hiểu và đáp theo ngữ cảnh (ADR-022): Qwen đọc câu không rõ (đề xuất nhãn, ghi `MESSAGE_READ`), nước đi EXPLAIN, prompt v3 có định hướng và ví dụ, Qwen viết tự do nhưng phải giữ ý chính; vá lỗi câu Qwen nhắc riêng phương án đúng của câu trắc nghiệm | Xong. `make eval-hard` chạy thật: 3 vai CTX được 5,0/4,8/5,0/5,0 (báo cáo 2026-10-08) |
 | TQ-3 | Giám khảo của `make eval-hard` nhận lượt dạng các dòng có nhãn (dạng JSON khiến nó chấm 1/1/1/1 "không có phản hồi"); chặn câu Qwen gọi học sinh sai xưng hô (`WRONG_ADDRESS`, cả lời có căn cứ `grounded-speech/0.2.2`) | Xong |
 | CTX-2 | Bước tới Qwen tự chủ: chính sách đưa các nước đi được phép kèm giới hạn, Qwen chọn nước và nêu lý do, chính sách kiểm lại và có quyền chặn (đáp án, bài kiểm tra, an toàn) | Chưa. Mã CTX-2 đã dùng cho bộ điều phối hội thoại và biểu đồ quá trình học (PR #52) |
@@ -173,10 +173,9 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 
 - **Thử với học sinh thật (chiều 8 của khung đánh giá):** chủ dự án để sau (2026-10-16).
 - **Bài nền nhân, chia số thập phân** cho chương hình học: chờ tài liệu `NHANCHIA-*.pdf`.
-- **Chạy lại `make eval-baselines` thật** để có nguồn từng lượt của CAVAT (bản đệm cũ ghi "chưa rõ"); tốn hạn mức Groq và Gemini.
-- **Bài báo:** chữ trong bài vẫn ghi B1 lộ 15/25 (nay là 18/25), và vẫn ghi "16 bản nháp của Qwen bị chặn" (thực ra là lần kiểm cuối chặn cả câu mẫu, DI-60). Các điểm rà soát khác ở memory của dự án.
+- **Bài báo:** số liệu và chữ của ba bản đã khớp lần chạy lại ngày 19/10 (PAPER-12, PR #76): B1 18/25, CAVAT 0/24 với 8 lượt Qwen viết. Luận văn viết sau.
 - **Duyệt nội dung:** 1 324/1 326 quyết định duyệt do trợ lý AI làm theo ủy quyền; chủ dự án nên tự duyệt lại một phần trước khi bảo vệ.
-- **CTX-2 (Qwen tự chủ có kiểm soát), SAFE-1 "giáo viên đã xem":** chưa làm.
+- **CTX-2 (Qwen tự chủ có kiểm soát):** chưa làm.
 
 ## Kế hoạch theo đợt (cũ, trước 2026-10-06)
 

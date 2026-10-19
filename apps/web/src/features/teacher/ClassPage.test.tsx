@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { SessionApi } from "../../api/client";
@@ -291,6 +291,36 @@ describe("class dashboard (PART 27.1, khung Toán §45, §46, §28)", () => {
       "/teacher/sessions/s-bao-1",
     );
     expect(screen.getByText("Cần chú ý").parentElement?.parentElement).toHaveTextContent("1");
+  });
+
+  it("lets the teacher mark a worrying conversation read, then reloads the list (SAFE-1)", async () => {
+    const reviewed: string[] = [];
+    const api: SessionApi = {
+      ...teacherApi(),
+      getClassOverview: () =>
+        Promise.resolve({
+          ...CLASS,
+          students: CLASS.students.map((s) => ({
+            ...s,
+            attention: s.attention.filter((r) => !(r.session_id && reviewed.includes(r.session_id))),
+          })),
+        }),
+      markSafetyReviewed: (sessionId) => {
+        reviewed.push(sessionId);
+        return Promise.resolve({
+          session_id: sessionId,
+          through_sequence_no: 7,
+          reviewed_at: "2026-10-06T10:00:00Z",
+          reviewed_by: "1",
+        });
+      },
+    };
+    const { user } = renderApp("/teacher", api);
+    const attention = await screen.findByRole("region", { name: "Học sinh cần chú ý" });
+    await user.click(within(attention).getByRole("button", { name: "Cô đã xem hội thoại đáng lo của Bảo" }));
+    expect(reviewed).toEqual(["s-bao-1"]);
+    await waitFor(() => expect(attention).not.toHaveTextContent("Con nói điều đáng lo"));
+    expect(attention).toHaveTextContent("Lặp lại lỗi");
   });
 
   it("explains that the class view needs the real server with the mock API", async () => {
