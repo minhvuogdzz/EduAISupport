@@ -48,6 +48,7 @@ from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_p
 from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.teaching.web import WEB_VERSION, web_query
+from cavat.modules.tutor.chooser import MoveChooser, recorded_choices
 from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator
 from cavat.modules.tutor.item_loop import (
     CHOICE_HINT,
@@ -252,10 +253,12 @@ class TeachingLoop:
         mastery: MasteryPolicy = DEFAULT_POLICY,
         speaker: GroundedSpeaker | None = None,
         item_reader: ContextReader | None = None,
+        item_chooser: MoveChooser | None = None,
     ) -> None:
         self.chapter, self.session_id = chapter, session_id
         self.speaker = speaker  # live turns only: a replay never calls the RAG or a model again
         self.item_reader = item_reader  # CTX-1: reads an unclear item message in context (live turns only)
+        self.item_chooser = item_chooser  # AUTO-1: picks one of the moves the policy allows (live turns only)
         self.history = list(history)  # events of earlier sessions: the projection reads them too
         self.events: list[Any] = []  # events of this session
         self.item_renderer = item_renderer or TemplateRenderer()
@@ -297,15 +300,17 @@ class TeachingLoop:
         renderer: MessageRenderer | None = None,
         reader: ContextReader | None = None,
         speaker: GroundedSpeaker | None = None,
+        chooser: MoveChooser | None = None,
     ) -> None:
         """What this turn may call (a model, the RAG); the replay before it used templates and records."""
         if renderer is not None:
             self.item_renderer = renderer
-        self.item_reader, self.speaker = reader, speaker
+        self.item_reader, self.speaker, self.item_chooser = reader, speaker, chooser
         if self.tutor is not None:
             if renderer is not None:
                 self.tutor.renderer = renderer
             self.tutor.reader = reader
+            self.tutor.chooser = chooser
             self.tutor.explainer = self._explainer(self._item_node(self.tutor.item.id))
 
     def start(self, now: datetime) -> TeachTurn:
@@ -662,7 +667,9 @@ class TeachingLoop:
         messages.append(TeachMessage(MessageKind.ITEM, turn.text, self._item_node(d.ref), d.ref))
         return self._waiting_for_item(messages, events)
 
-    def _new_tutor(self, d: NodeDecisionMade, reader: ContextReader | None = None) -> ItemTutor:
+    def _new_tutor(
+        self, d: NodeDecisionMade, reader: ContextReader | None = None, chooser: MoveChooser | None = None
+    ) -> ItemTutor:
         assert d.ref is not None
         item, lesson = self.chapter.item(d.ref), self.chapter.lesson_of(d.ref)
         return ItemTutor(
@@ -673,6 +680,7 @@ class TeachingLoop:
             self.validator,
             reader=reader or self.item_reader,
             explainer=self._explainer(self._item_node(d.ref)),
+            chooser=chooser or self.item_chooser,
         )
 
     def _explainer(self, node_id: str | None) -> Callable[[str, str], Sequence[str]] | None:
@@ -785,7 +793,12 @@ class TeachingLoop:
                 for e in after
                 if e.event_type == EventType.MESSAGE_READ and e.payload.get("item_id") == d.ref
             ]
-            self.tutor = self._new_tutor(d, reader=recorded(readings))
+            picks = [
+                e.payload
+                for e in after
+                if e.event_type == EventType.MOVE_CHOSEN and e.payload.get("item_id") == d.ref
+            ]
+            self.tutor = self._new_tutor(d, reader=recorded(readings), chooser=recorded_choices(picks))
             self.tutor.start()
             for e in after:
                 if e.payload.get("item_id") != d.ref:

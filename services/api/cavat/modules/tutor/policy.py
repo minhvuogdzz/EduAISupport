@@ -2,7 +2,9 @@
 
 ``decide`` maps one ``PolicyInput`` to a ``PolicyDecision`` (or ``None`` when the tutor should keep
 waiting). Every rule has a ``rule_id`` (R-*) that is recorded in the decision, so each decision can be
-explained, tested rule by rule and replayed. The LLM never picks the move, the target or the level.
+explained, tested rule by rule and replayed. The LLM never picks the move, the target or the level on
+its own: ``options`` (AUTO-1, ADR-031) may offer it a few allowed moves for a turn, none giving more help
+than the policy's own, and ``accept`` plays its pick only when it is one of them.
 
 Input convention: ``inp.state`` already reflects the message being decided on (the item loop bumps
 ``attempt_no``, ``unproductive_turns``... before calling ``decide``), so ``attempt_no == 1`` with a
@@ -17,6 +19,7 @@ Thresholds taken from the blueprint table are marked [FACT]; the others are decl
 from __future__ import annotations
 
 import zlib
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from cavat.core.pedagogy import (
@@ -32,7 +35,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.7.0"  # 0.7.0: DI-55, a vague "vì sao" is asked once more
+POLICY_VERSION = "hint-policy/0.8.0"  # 0.8.0: AUTO-1 (DI-62), the moves allowed on a turn; decide unchanged
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -125,6 +128,96 @@ def decide(
     decision = _time_pressure(decision, inp, facts, config)
     decision = _strong_prior_verify(decision, inp, facts, config)
     return _assessment_cap(decision, inp, config)
+
+
+@dataclass(frozen=True)
+class MoveOption:
+    """One move the policy allows this turn (AUTO-1). ``"A"`` is always the policy's own move."""
+
+    id: str
+    decision: PolicyDecision
+
+
+# AUTO-1 (DI-62): the moves another one may replace, and the rules whose move is never traded: time, the
+# worked steps, the probe of a two-cause option, the assessment cap, a slip, "vì sao" before a hint.
+_OPEN_MOVES = frozenset({Move.PROBE, Move.HINT, Move.COGNITIVE_CONFLICT, Move.OFFER_CHOICE, Move.EXPLAIN})
+_FIXED_RULES = frozenset(
+    {
+        "R-TIME",
+        "R-FRUSTRATION",
+        "R-FULL",
+        "R-PROBE-CAUSE",
+        "R-ASSESS-CAP",
+        "R-SLIP",
+        "R-STRONG-PRIOR",
+        "R-DEESCALATE",
+        "R-TURN-LIMIT",
+    }
+)
+CHOICE_RULE = "R-CHOICE"
+MAX_OPTIONS = 3
+
+
+def options(
+    inp: PolicyInput,
+    decision: PolicyDecision,
+    facts: ItemFacts | None = None,
+    config: PolicyConfig = DEFAULT_CONFIG,
+) -> tuple[MoveOption, ...]:
+    """AUTO-1 (ADR-031, DI-62): the moves allowed this turn besides the policy's own ``decision``.
+
+    Empty when the turn has no free choice (an end-of-lesson test, a move that ends the item, a fixed rule,
+    a turn that is not the child's). Every other option gives **no more help** than the policy's own move:
+    the same rung of the ladder or a lower one, never the worked steps, never past the item's ladder.
+    """
+    facts = facts if facts is not None else ItemFacts()
+    st, d = inp.state, decision
+    if (
+        inp.trigger not in ("ANSWER", "HINT_REQUEST")
+        or st.activity == ActivityType.EXIT_ASSESSMENT
+        or d.resolution is not None
+        or d.move not in _OPEN_MOVES
+        or _FIXED_RULES.intersection(d.rule_ids)
+    ):
+        return ()
+    alts: list[PolicyDecision] = []
+    level, target = d.level, d.target
+    if d.move == Move.PROBE:
+        # R-FIRST-WRONG says the next rung is H1: the first hint instead of "con làm thế nào?"
+        error = (inp.check.error_class if inp.check is not None else None) or ErrorClass.UNKNOWN
+        alts.append(replace(d, move=Move.HINT, level=HintLevel.H1, target=_TARGET_FOR_ERROR[error]))
+    elif d.move in (Move.HINT, Move.COGNITIVE_CONFLICT) and not INTENT_REASONS.intersection(d.reason_codes):
+        # After a wrong answer: ask how the child did it (once per item), a smaller step up the ladder,
+        # or the concept hint instead of the counterexample.
+        if st.probes_sent == 0:
+            alts.append(replace(d, move=Move.PROBE, level=None, target=None))
+        if d.move == Move.COGNITIVE_CONFLICT:
+            alts.append(replace(d, move=Move.HINT))
+        if level is not None and level - 1 > st.max_hint_level and level - 1 >= HintLevel.H1:
+            alts.append(replace(d, level=HintLevel(level - 1)))
+    elif d.move in (Move.OFFER_CHOICE, Move.EXPLAIN) and level is not None:
+        # The hint the offer or the explanation stands for, given at once (the same rung).
+        alts.append(replace(d, move=Move.HINT, target=target or HintTarget.TASK))
+    elif d.move == Move.HINT and "R-AFFECT" in d.rule_ids and not st.choice_offered:
+        alts.append(replace(d, move=Move.OFFER_CHOICE))  # let a discouraged child choose (DI-35 asks once)
+    top = _top(facts, config)
+    allowed = [
+        a for a in alts if a.level is None or (a.level <= top and (d.level is None or a.level <= d.level))
+    ]
+    if not allowed:
+        return ()
+    ids = "ABCDEFG"
+    return tuple(MoveOption(ids[i], x) for i, x in enumerate([d, *allowed][:MAX_OPTIONS]))
+
+
+def accept(menu: Sequence[MoveOption], option_id: str) -> PolicyDecision | None:
+    """The policy's check of a pick (AUTO-1): only a move of the menu is played, tagged ``R-CHOICE``."""
+    chosen = next((o for o in menu if o.id == option_id), None)
+    if chosen is None:
+        return None
+    if chosen.id == "A":
+        return chosen.decision
+    return _tag(chosen.decision, CHOICE_RULE, "MODEL_CHOICE")
 
 
 def wait_seconds(

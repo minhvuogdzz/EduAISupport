@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     max_llm_calls_per_session: int = 15
     # "template": approved sentences only (default). "llm": Qwen phrases hints, templates as fallback.
     tutor_renderer: Literal["template", "llm"] = "template"
+    # AUTO-1 (ADR-031): with the LLM tutor, Qwen picks one of the moves the policy allows on a turn;
+    # "policy" keeps the policy's own move (the ablation of AUTO-1).
+    tutor_chooser: Literal["policy", "llm"] = "llm"
     # WEB-1 (DI-51): a question the teacher's documents do not answer may be looked up in Vietnamese
     # Wikipedia (the only allowed source); "off" keeps such questions for the teacher.
     web_lookup: Literal["off", "wikipedia"] = "wikipedia"

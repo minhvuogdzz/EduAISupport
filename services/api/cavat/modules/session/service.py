@@ -487,6 +487,7 @@ def build_teacher_transcript(
     segments: list[dict[str, Any]] = []
     blocks: dict[str, dict[str, Any]] = {}
     decisions: dict[str | None, dict[str, Any]] = {}  # the POLICY_DECISION that the next message carries out
+    picks: dict[str | None, dict[str, Any]] = {}  # AUTO-1: the MOVE_CHOSEN behind that decision
     graded: dict[str | None, dict[str, Any]] = {}  # the student turn that the next graded event annotates
     node_decision: dict[str, Any] = {}  # the NODE_DECISION that the next teaching message carries out
     retell: dict[str, Any] | None = None  # the student's retell that RETELL_JUDGED annotates
@@ -530,6 +531,13 @@ def build_teacher_transcript(
             block["resolution"], block["max_hint_level"] = p["resolution"], p["max_hint_level"]
         elif kind == EventType.POLICY_DECISION:
             decisions[attempt] = p
+        elif kind == EventType.MOVE_CHOSEN:
+            picks[attempt] = {
+                "options": p["options"],
+                "option_id": p["option_id"],
+                "reason": p.get("reason", ""),
+                "accepted": p.get("accepted", True),
+            }
         elif kind == EventType.TUTOR_MESSAGE_SENT:
             d = decisions.pop(attempt, {})
             tutor = {
@@ -539,6 +547,7 @@ def build_teacher_transcript(
                 "rule_ids": d.get("rule_ids", []),
                 "reason_codes": d.get("reason_codes", []),
                 "source": p["source"],
+                "chosen": picks.pop(attempt, None),
             }
             add({**base, "actor": "tutor", "text": p["text"], "tutor": tutor, "student": None}, attempt)
         elif kind == EventType.NODE_DECISION:

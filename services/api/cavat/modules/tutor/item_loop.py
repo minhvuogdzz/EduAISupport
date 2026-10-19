@@ -26,6 +26,7 @@ from cavat.core.events import (
     ItemResolved,
     MessageRead,
     MisconceptionDetected,
+    MoveChosen,
     OutputRejected,
     PolicyDecisionMade,
     QuestionShown,
@@ -56,6 +57,7 @@ from cavat.modules.content.lesson_package import (
     OrderAnswer,
 )
 from cavat.modules.rag.bm25 import content_words
+from cavat.modules.tutor.chooser import MoveChooser
 from cavat.modules.tutor.contracts import (
     ItemState,
     MessageRenderer,
@@ -68,7 +70,7 @@ from cavat.modules.tutor.contracts import (
     TurnTrigger,
 )
 from cavat.modules.tutor.llm_renderer import word_cap
-from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, decide
+from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, accept, decide, options
 from cavat.modules.tutor.reader import ContextReader
 from cavat.modules.tutor.renderer import PHRASES, TemplateRenderer, counter_example, ladder_top
 
@@ -167,11 +169,15 @@ class ItemTutor:
         snapshot: StudentSnapshot | None = None,
         reader: ContextReader | None = None,
         explainer: Callable[[str, str], Sequence[str]] | None = None,
+        chooser: MoveChooser | None = None,
     ) -> None:
         """``reader``: reads an unclear message in context (CTX-1; a ``RecordedReader`` on replay).
-        ``explainer``: approved passages on what the child asks about (the Hybrid RAG of the chapter)."""
+        ``explainer``: approved passages on what the child asks about (the Hybrid RAG of the chapter).
+        ``chooser``: picks one of the moves the policy allows (AUTO-1; a ``RecordedChooser`` on replay)."""
         self.item = item
         self.reader = reader
+        self.chooser = chooser
+        self._said = ""  # the child's message of this turn: what the chooser reads
         self.explainer = explainer
         self.last_tutor = ""  # what the tutor said last on this item: what "mẫu như nào" asks about
         self._focus: str | None = None  # what the child asks about (EXPLAIN)
@@ -233,6 +239,7 @@ class ItemTutor:
             raise RuntimeError("item already resolved")
         st = self.state
         self._turns += 1
+        self._said = text
         st.seconds_since_shown += seconds
         st.seconds_since_last_message = seconds
         if self._why_pending:
@@ -466,7 +473,35 @@ class ItemTutor:
         decision = decide(inp, self.facts, self.cfg)
         if decision is None:  # only SILENCE/TICK may wait, and the loop never sends them
             raise RuntimeError(f"policy returned no move for {trigger}")
-        return decision
+        return self._chosen(inp, decision)
+
+    def _chosen(self, inp: PolicyInput, decision: PolicyDecision) -> PolicyDecision:
+        """AUTO-1: the policy offers the moves allowed this turn, the chooser picks one, the policy checks
+        the pick. Without a chooser, or with one move only, the policy's own move."""
+        if self.chooser is None:
+            return decision
+        menu = options(inp, decision, self.facts, self.cfg)
+        if len(menu) < 2:
+            return decision
+        pick = self.chooser.choose(
+            menu=menu, stem=self.item.stem, last_tutor=self.last_tutor, said=self._said, turn=self._turns
+        )
+        if pick is None:
+            return decision
+        played = accept(menu, pick.option_id)
+        self._emit(
+            EventType.MOVE_CHOSEN,
+            MoveChosen(
+                item_id=self.item.id,
+                turn=self._turns,
+                option_id=pick.option_id,
+                options=[o.decision.move.value for o in menu],
+                move=(played or decision).move.value,
+                reason=pick.reason,
+                accepted=played is not None,
+            ),
+        )
+        return played or decision
 
     def _act(self, d: PolicyDecision, student_text: str | None) -> TutorTurn:
         st = self.state

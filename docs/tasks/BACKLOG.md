@@ -128,7 +128,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | SAFE-1 | Cờ an toàn lên màn hình giáo viên: lượt hội thoại có chip đỏ, lớp học có lý do "cần xem ngay"; nhận diện câu đáng lo (DI-41) cả lúc làm bài tập; trước đó chỉ ghi sự kiện `SAFETY_FLAGGED` mà chưa ai thấy. Bước "giáo viên đã xem": nút "Cô đã xem" ở trang lớp, lưu riêng ở `safety_reviews` (không ghi vào sổ của buổi học), cờ mới sau lúc xem thì hiện lại | Xong |
 | CTX-1 | Gia sư hiểu và đáp theo ngữ cảnh (ADR-022): Qwen đọc câu không rõ (đề xuất nhãn, ghi `MESSAGE_READ`), nước đi EXPLAIN, prompt v3 có định hướng và ví dụ, Qwen viết tự do nhưng phải giữ ý chính; vá lỗi câu Qwen nhắc riêng phương án đúng của câu trắc nghiệm | Xong. `make eval-hard` chạy thật: 3 vai CTX được 5,0/4,8/5,0/5,0 (báo cáo 2026-10-08) |
 | TQ-3 | Giám khảo của `make eval-hard` nhận lượt dạng các dòng có nhãn (dạng JSON khiến nó chấm 1/1/1/1 "không có phản hồi"); chặn câu Qwen gọi học sinh sai xưng hô (`WRONG_ADDRESS`, cả lời có căn cứ `grounded-speech/0.2.2`) | Xong |
-| CTX-2 | Bước tới Qwen tự chủ: chính sách đưa các nước đi được phép kèm giới hạn, Qwen chọn nước và nêu lý do, chính sách kiểm lại và có quyền chặn (đáp án, bài kiểm tra, an toàn) | Chưa. Mã CTX-2 đã dùng cho bộ điều phối hội thoại và biểu đồ quá trình học (PR #52) |
+| AUTO-1 | Bước tới Qwen tự chủ (ADR-022 gọi là CTX-2; mã này đã dùng cho bộ điều phối, PR #52): chính sách đưa các nước đi được phép, không nước nào giúp nhiều hơn nước của chính sách; Qwen chọn nước và nêu lý do; chính sách kiểm lại. ADR-031, DI-62 | Xong. Còn: so sánh với `TUTOR_CHOOSER=policy` trên học sinh |
 | RAG-3 | Câu con tự hỏi trong lúc làm bài tập (không phải bài kiểm tra): trả lời có căn cứ mà không lộ đáp án câu đang làm; prompt `grounded.v2` chọn đoạn trả lời đúng câu hỏi thay vì đoạn đứng đầu (ca G09) | Một phần: RAG-3 (PR #53, DI-50) giới hạn phạm vi và báo "bài sau"; định tuyến về tiết đã học DI-57 (EVAL-1, PR #60) |
 | DATA-1 | Chương Số thập phân dựng lại từ tài liệu thật của chủ dự án: INGEST-1..4 trên các file `STP-*` | Xong: phát hành 2026-10-12 (INGEST-5, PR #51), 11 tiết |
 | DATA-2 | Chương Diện tích hình tam giác, hình thang: INGEST-1..4 trên các file `DTTGHT-*`, kèm bài nền nhân, chia số thập phân (chủ dự án quyết 2026-10-12: "vẫn dạy") | Xong phần chương: phát hành 2026-10-12 (PR #51), 8 tiết. **Chưa:** bài nền nhân, chia số thập phân, vì chưa có tài liệu `NHANCHIA-*` |
@@ -175,7 +175,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 - **Bài nền nhân, chia số thập phân** cho chương hình học: chờ tài liệu `NHANCHIA-*.pdf`.
 - **Bài báo:** số liệu và chữ của ba bản đã khớp lần chạy lại ngày 19/10 (PAPER-12, PR #76): B1 18/25, CAVAT 0/24 với 8 lượt Qwen viết. Luận văn viết sau.
 - **Duyệt nội dung:** 1 324/1 326 quyết định duyệt do trợ lý AI làm theo ủy quyền; chủ dự án nên tự duyệt lại một phần trước khi bảo vệ.
-- **CTX-2 (Qwen tự chủ có kiểm soát):** chưa làm.
+- **AUTO-1:** đã làm (ADR-031). Chưa đo nó có giúp trẻ học tốt hơn không: cần so với `TUTOR_CHOOSER=policy`.
 
 ## Kế hoạch theo đợt (cũ, trước 2026-10-06)
 

@@ -360,7 +360,8 @@ def _in_memory(settings, student: str | None = None, templates_only: bool = True
 
 
 def _measure(memory) -> None:
-    """LLM-1: who wrote each tutor turn of the sessions in memory, and why model drafts were rejected."""
+    """LLM-1: who wrote each tutor turn of the sessions in memory, and why model drafts were rejected; AUTO-1:
+    the moves Qwen picked (policy move -> played move)."""
     import asyncio
     from collections import Counter
 
@@ -379,6 +380,7 @@ def _measure(memory) -> None:
             for c in e["payload"].get("issue_codes", [])
         )
         drafts = sum(1 for e in events if e["event_type"] == "OUTPUT_REJECTED")
+        picks = [e["payload"] for e in events if e["event_type"] == "MOVE_CHOSEN"]  # AUTO-1
         print(
             json.dumps(
                 {
@@ -386,6 +388,9 @@ def _measure(memory) -> None:
                     "tutor_turns": dict(sources),
                     "rejected_drafts": drafts,
                     "rejected_codes": dict(codes),
+                    "picks": dict(Counter(f"{p['options'][0]}->{p['move']}" for p in picks)),
+                    "picks_refused": sum(1 for p in picks if not p["accepted"]),
+                    "pick_reasons": [p["reason"] for p in picks][:6],
                 },
                 ensure_ascii=False,
             )
