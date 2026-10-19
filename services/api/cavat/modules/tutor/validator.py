@@ -102,6 +102,12 @@ _FOREIGN_LETTER = re.compile(r"(?<![\w-])[a-zà-ỹ]*[fjwz][a-zà-ỹ]*(?![\w-])
 _ENGLISH_WORDS = frozenset("the and is are of you your but this that it not yes like okay ok very".split())
 
 
+def foreign_script(text: str) -> int | None:
+    """Where the first character of a script that is never Vietnamese stands (CJK, Cyrillic...), if any."""
+    m = _FOREIGN_SCRIPT.search(text)
+    return m.start() if m else None
+
+
 def foreign_text(text: str) -> str | None:
     """A character or word that is not Vietnamese (Qwen sometimes switches language mid-sentence)."""
     if m := _FOREIGN_SCRIPT.search(text):

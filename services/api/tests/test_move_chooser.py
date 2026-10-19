@@ -325,3 +325,13 @@ def test_the_teacher_sees_which_move_qwen_picked_and_why(client):
         "reason": "con đang tự nghĩ",
         "accepted": True,
     }
+
+
+def test_a_reason_that_slips_into_another_script_is_cut_there():
+    from cavat.modules.tutor.chooser import clean_reason
+
+    assert clean_reason("cần hỏi lại để hiểu con đang nghĩ gì trước khi介入") == (
+        "cần hỏi lại để hiểu con đang nghĩ gì trước khi…"
+    )
+    assert clean_reason("介入") == ""
+    assert clean_reason("  Con cần một gợi ý nhỏ. ") == "Con cần một gợi ý nhỏ."
