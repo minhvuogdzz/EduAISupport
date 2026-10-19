@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 
@@ -60,6 +60,31 @@ export function ClassPage() {
         {body}
       </div>
     </AppShell>
+  );
+}
+
+/** SAFE-1: the teacher has read the conversation; the reason leaves the list until a new flag. */
+function ReviewedButton({ sessionId, name }: { sessionId: string; name: string }) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const mark = useMutation({
+    mutationFn: () => api.markSafetyReviewed!(sessionId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["class-overview"] }),
+  });
+  if (!api.markSafetyReviewed) return null;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => mark.mutate()}
+        disabled={mark.isPending}
+        aria-label={`Cô đã xem hội thoại đáng lo của ${name}`}
+        className="ml-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-rose-800 ring-1 ring-rose-300 hover:bg-rose-100 disabled:opacity-60"
+      >
+        Cô đã xem
+      </button>
+      {mark.isError && <span className="ml-1 text-xs font-normal">Chưa lưu được, cô thử lại nhé.</span>}
+    </>
   );
 }
 
@@ -181,7 +206,8 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
                             className="hover:underline"
                           >
                             {attentionText(reason, nodeName, misName)}
-                          </Link>
+                          </Link>{" "}
+                          <ReviewedButton sessionId={reason.session_id} name={s.display_name} />
                         </li>
                       ) : (
                         <li key={i}>{attentionText(reason, nodeName, misName)}</li>
@@ -194,8 +220,9 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
           )}
           <Method>
             Lý do được xét: con nói điều đáng lo (bị đánh, bị bắt nạt, muốn làm đau mình…), luôn đứng đầu
-            (DI-41); lỗi nghiêm trọng hoặc lặp lại từ 2 lần mà còn mắc; gia sư đã dừng một bài; bài ở vùng đỏ
-            khi đã đủ dữ liệu; buổi học dở dang mà 7 ngày chưa quay lại (DI-20).
+            (DI-41) cho tới khi cô bấm "Cô đã xem", và hiện lại nếu con nói điều đáng lo mới; lỗi nghiêm trọng
+            hoặc lặp lại từ 2 lần mà còn mắc; gia sư đã dừng một bài; bài ở vùng đỏ khi đã đủ dữ liệu; buổi
+            học dở dang mà 7 ngày chưa quay lại (DI-20).
           </Method>
         </section>
       </div>

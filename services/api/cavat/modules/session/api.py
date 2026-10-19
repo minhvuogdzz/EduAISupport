@@ -47,6 +47,7 @@ from cavat.modules.session.repository import (
     LearningSession,
     LearningSessionRepository,
     LifecycleState,
+    SafetyReviewRepository,
     StateVersionConflict,
 )
 from cavat.modules.teaching.grounded import GroundedSpeaker
@@ -1195,7 +1196,8 @@ async def class_view(database: Database, teacher: Teacher, today: Today, chapter
     for session in await _repo(database).list_lesson(chapter.package.chapter_id):
         if enrolled is None or session.student_id in enrolled:
             by_student.setdefault(session.student_id, []).append(session)
-    return teacher_view.class_overview(chapter, by_student, today)
+    reviewed = await _reviews(database).reviewed([s.id for ss in by_student.values() for s in ss])
+    return teacher_view.class_overview(chapter, by_student, today, reviewed)
 
 
 async def _enrolled(database: Any) -> set[str] | None:
@@ -1221,7 +1223,44 @@ async def teacher_student(
     sessions = await _repo(database).list_for_student(student_id)
     if not progress.chapter_sessions(chapter, sessions):
         raise ApiError(404, "NOT_FOUND", "this student has no session on the chapter")
-    return teacher_view.student_detail(chapter, student_id, sessions, today)
+    reviewed = await _reviews(database).reviewed([s.id for s in sessions])
+    return teacher_view.student_detail(chapter, student_id, sessions, today, reviewed)
+
+
+def _reviews(database: Any) -> SafetyReviewRepository:
+    return SafetyReviewRepository(database, service.DEMO_SCHOOL_ID)
+
+
+class MarkSafetyReviewed(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str = Field(min_length=1)
+
+
+class SafetyReviewView(BaseModel):
+    session_id: str
+    through_sequence_no: int
+    reviewed_at: datetime
+    reviewed_by: str
+
+
+@teachers.post("/safety-reviews", response_model=SafetyReviewView)
+async def mark_safety_reviewed(body: MarkSafetyReviewed, database: Database, teacher: Teacher):
+    """Teacher: "cô đã xem" the worrying words of a session (SAFE-1). The server reads up to which event:
+    the session's last flag now, so a later flag shows again. The ledger of the session is not touched."""
+    session = await _repo(database).get(body.session_id)
+    if session is None:
+        raise ApiError(404, "NOT_FOUND", "session not found")
+    flags = [e.sequence_no for e in session.events if e.event_type == EventType.SAFETY_FLAGGED]
+    if not flags:
+        raise ApiError(409, "INVALID_STATE", "this session has no safety flag")
+    review = await _reviews(database).mark(session.id, session.student_id, max(flags), teacher, utc_now())
+    return {
+        "session_id": review.id,
+        "through_sequence_no": review.through_sequence_no,
+        "reviewed_at": review.reviewed_at,
+        "reviewed_by": review.reviewed_by,
+    }
 
 
 # The school's Hybrid RAG index (RAG-1), rebuilt when the chapter content or the documents change.

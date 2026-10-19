@@ -16,6 +16,7 @@ import type {
   RagMode,
   RagSearch,
   RagStatus,
+  SafetyReview,
   ResponseCommand,
   SessionState,
   SessionSummary,
@@ -111,6 +112,8 @@ export interface SessionApi {
   };
   /** Teacher: the class on the chapter, Student × KC (real API only). */
   getClassOverview?: (chapterId?: string) => Promise<ClassOverview>;
+  /** Teacher: "cô đã xem" the worrying words of a session (SAFE-1); a later flag shows again (real API only). */
+  markSafetyReviewed?: (sessionId: string) => Promise<SafetyReview>;
   /** Teacher: the chapters the tutor teaches now (real API only). */
   getTaughtChapters?: () => Promise<{ chapter_id: string; title: string }[]>;
   /** Teacher: one student on the chapter, every KC in detail (real API only). */

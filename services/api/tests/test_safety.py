@@ -89,3 +89,38 @@ def test_the_teacher_sees_the_flag_first_in_the_class_and_on_the_turn(client):
     said = [t for s in transcript["segments"] for t in s["turns"] if t["actor"] == "student"]
     assert [t["student"]["safety"] for t in said if t["text"] == WORRY] == [True]
     assert not any(t["student"]["safety"] for t in said if t["text"] != WORRY)
+
+
+def safety_reasons(client) -> list[dict]:
+    overview = client.get("/v1/teachers/class", headers=TEACHER).json()
+    [student] = [s for s in overview["students"] if s["display_name"] == "An"]
+    return [r for r in student["attention"] if r["kind"] == "SAFETY"]
+
+
+def test_the_teacher_marks_the_flag_read_and_a_new_flag_shows_again(client):
+    created = client.post("/v1/sessions", json={"student_display_name": "An"}, headers=AN).json()
+    sid = created["session_id"]
+    state = client.post(f"/v1/sessions/{sid}/join", headers=AN).json()
+    state = send(client, state, reply_text(state), "k0")
+    review = {"session_id": sid}
+    assert client.post("/v1/teachers/safety-reviews", json=review, headers=TEACHER).status_code == 409
+    state = send(client, state, WORRY, "k1")
+    assert [r["count"] for r in safety_reasons(client)] == [1]
+
+    assert client.post("/v1/teachers/safety-reviews", json=review, headers=AN).status_code in (401, 403)
+    marked = client.post("/v1/teachers/safety-reviews", json=review, headers=TEACHER)
+    assert marked.status_code == 200, marked.text
+    assert marked.json()["session_id"] == sid and marked.json()["reviewed_by"] == TEACHER["X-Demo-Teacher"]
+    assert safety_reasons(client) == []
+    [student] = client.get("/v1/teachers/class", headers=TEACHER).json()["students"]
+    detail = client.get(f"/v1/teachers/students/{student['student_id']}", headers=TEACHER).json()
+    assert not any(r["kind"] == "SAFETY" for r in detail["attention"])
+
+    send(client, state, WORRY, "k2")  # a new worry after the review: the teacher sees it again
+    assert [r["count"] for r in safety_reasons(client)] == [1]
+    transcript = client.get(f"/v1/sessions/{sid}/transcript", headers=TEACHER).json()
+    said = [t for s in transcript["segments"] for t in s["turns"] if t["actor"] == "student"]
+    # the ledger keeps both flags: the review is stored apart from the session
+    assert [t["student"]["safety"] for t in said if t["text"] == WORRY] == [True, True]
+    missing = client.post("/v1/teachers/safety-reviews", json={"session_id": "nope"}, headers=TEACHER)
+    assert missing.status_code == 404

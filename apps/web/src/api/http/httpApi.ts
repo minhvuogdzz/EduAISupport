@@ -27,6 +27,7 @@ import {
   type ParentChildView,
   type RagSearch,
   type RagStatus,
+  type SafetyReview,
   type SessionTranscript,
   type StreamEvent,
   type StudentOverview,
@@ -438,6 +439,15 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
         "GET",
         `/v1/teachers/class${query}`,
         as(() => TEACHER_HEADERS),
+      );
+    },
+
+    markSafetyReviewed(sessionId) {
+      return request<SafetyReview>(
+        "POST",
+        "/v1/teachers/safety-reviews",
+        as(() => TEACHER_HEADERS),
+        { session_id: sessionId },
       );
     },
 

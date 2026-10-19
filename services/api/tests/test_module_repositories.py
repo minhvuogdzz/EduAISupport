@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from cavat.core.repository import AlreadyExists, ImmutableRecord, NotFound
+from cavat.core.repository import AlreadyExists, ImmutableRecord, NotFound, utc_now
 from cavat.db import repository_classes
 from cavat.modules.assessment.repository import Evidence, EvidenceRepository
 from cavat.modules.content.lesson_package import load_lesson_package
@@ -26,6 +26,7 @@ from cavat.modules.session.repository import (
     LearningSession,
     LearningSessionRepository,
     NewEvent,
+    SafetyReviewRepository,
 )
 from pydantic import ValidationError
 
@@ -263,6 +264,15 @@ async def test_student_kc_state_upsert(db):
     assert await StudentKCStateRepository(db, "sch-B").get("stu-1", "KC-DEC-CMP", "mastery-v1") is None
 
 
+async def test_a_safety_review_never_moves_back_and_stays_in_its_school(db):
+    repo = SafetyReviewRepository(db, "sch-A")
+    await repo.mark("sess-1", "stu-1", 9, "t1", utc_now())
+    review = await repo.mark("sess-1", "stu-1", 4, "t2", utc_now())  # an older read does not undo a newer one
+    assert review.through_sequence_no == 9 and review.reviewed_by == "t2" and len(review.history) == 2
+    assert await repo.reviewed(["sess-1", "sess-2"]) == {"sess-1": 9}
+    assert await SafetyReviewRepository(db, "sch-B").reviewed(["sess-1"]) == {}
+
+
 # --- tenancy sweep ------------------------------------------------------------------------------
 
 
@@ -314,6 +324,7 @@ async def test_every_stored_learner_document_has_school_id(db, package):
     await TeachingPlanRepository(db, "sch-A").save(
         TeachingPlan(school_id="sch-A", chapter_id="c", version="v")
     )
+    await SafetyReviewRepository(db, "sch-A").mark(session.id, "s", 1, "t", utc_now())
 
     for repo in repository_classes():
         docs = await db[repo.collection_name].find({}).to_list()

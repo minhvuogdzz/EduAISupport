@@ -334,3 +334,47 @@ class EventRepository(TenantScopedRepository):
             flt, sort=[("occurred_at", ASCENDING), ("sequence_no", ASCENDING)], projection={"_id": 0}
         )
         return [SessionEvent.model_validate(d) for d in docs]
+
+
+class SafetyReview(TenantDocument):
+    """The teacher has read the worrying words of one session (SAFE-1), up to one event of its ledger.
+
+    Kept apart from the session document: the review is the teacher's act, not the child's, and writing it
+    never races a command of the session. A flag raised after ``through_sequence_no`` is new and shows again.
+    ``id`` is the session id; ``history`` keeps every review (who, when, up to which event)."""
+
+    student_id: str
+    through_sequence_no: int = Field(ge=1)
+    reviewed_at: datetime
+    reviewed_by: str
+    history: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class SafetyReviewRepository(TenantScopedRepository):
+    collection_name = "safety_reviews"
+    indexes = (IndexSpec((("school_id", ASCENDING), ("student_id", ASCENDING)), "student"),)
+
+    async def mark(
+        self, session_id: str, student_id: str, through_sequence_no: int, by: str, at: datetime
+    ) -> SafetyReview:
+        """Record that ``by`` read the session's flags up to ``through_sequence_no`` (never moves back)."""
+        doc = await self._find_one_and_update(
+            {"_id": session_id},
+            {
+                "$setOnInsert": {"school_id": self.school_id, "student_id": student_id},
+                "$max": {"through_sequence_no": through_sequence_no},
+                "$set": {"reviewed_at": at, "reviewed_by": by},
+                "$push": {"history": {"at": at, "by": by, "through_sequence_no": through_sequence_no}},
+            },
+            upsert=True,
+        )
+        return SafetyReview.from_doc(doc)
+
+    async def reviewed(self, session_ids: Sequence[str]) -> dict[str, int]:
+        """Session id → the last event the teacher has read, for the sessions that have a review."""
+        if not session_ids:
+            return {}
+        docs = await self._find(
+            {"_id": {"$in": list(session_ids)}}, projection={"_id": 1, "through_sequence_no": 1}
+        )
+        return {d["_id"]: d["through_sequence_no"] for d in docs}
