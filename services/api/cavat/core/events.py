@@ -70,6 +70,7 @@ class EventType(StrEnum):
     QUESTION_PARKED = "QUESTION_PARKED"
     # contextual reading (CTX-1)
     MESSAGE_READ = "MESSAGE_READ"
+    MOVE_CHOSEN = "MOVE_CHOSEN"
     CONTEXT_ROUTED = "CONTEXT_ROUTED"
     WEB_LOOKED = "WEB_LOOKED"
     # assessment / teacher
@@ -271,6 +272,20 @@ class MessageRead(_Payload):
     source: Literal["RULE", "LLM"]
 
 
+class MoveChosen(_Payload):
+    """AUTO-1 (ADR-031): the policy offered several allowed moves for one turn and Qwen picked one, with its
+    reason; the policy checked the pick (``accepted``). Replayed from this record, never asked again."""
+
+    item_id: str
+    turn: int  # the item loop's student turn the choice was made on
+    option_id: str  # the option Qwen named ("A" is always the policy's own move)
+    options: list[str]  # the moves offered, in the order of their ids
+    move: str  # the move that was played
+    reason: str = ""
+    accepted: bool = True  # False: the pick was not on the menu; the policy's own move was played
+    source: Literal["LLM"] = "LLM"
+
+
 class QuestionParked(_Payload):
     """A question of the child the tutor did not answer: kept for the teacher (plan v1 5.5.3)."""
 
@@ -355,5 +370,6 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.TEACH_MESSAGE_SENT: TeachMessageSent,
     EventType.RAG_RETRIEVED: RagRetrieved,
     EventType.MESSAGE_READ: MessageRead,
+    EventType.MOVE_CHOSEN: MoveChosen,
     EventType.QUESTION_PARKED: QuestionParked,
 }

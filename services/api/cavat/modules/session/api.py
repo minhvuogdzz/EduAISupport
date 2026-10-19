@@ -51,6 +51,7 @@ from cavat.modules.session.repository import (
     StateVersionConflict,
 )
 from cavat.modules.teaching.grounded import GroundedSpeaker
+from cavat.modules.tutor.chooser import ModelChooser
 from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.voice import api as voice_api
 
@@ -214,6 +215,15 @@ class SessionSummaryView(BaseModel):
     mode: Literal["LESSON", "CHAPTER"] = "LESSON"  # CHAPTER: GET /{id}/report explains the teaching
 
 
+class MoveChosenView(BaseModel):
+    """AUTO-1: the moves the policy allowed, the one Qwen named, why, and whether the policy played it."""
+
+    options: list[str]
+    option_id: str
+    reason: str
+    accepted: bool
+
+
 class TutorAnnotation(BaseModel):
     move: str
     hint_level: int | None
@@ -221,6 +231,7 @@ class TutorAnnotation(BaseModel):
     rule_ids: list[str]
     reason_codes: list[str]
     source: Literal["TEMPLATE", "GENERIC", "LLM", "FALLBACK"]
+    chosen: MoveChosenView | None = None
 
 
 class MisconceptionView(BaseModel):
@@ -948,11 +959,14 @@ async def _command(
         # CTX-1: an unclear item message is read in context: by Qwen when it may be called, else by rule.
         calls = (session.state.activity or {}).get("llm_calls", 0)
         reader = LiveReader(ModelReader(router, calls_used=calls) if router is not None else None)
+        # AUTO-1: Qwen picks one of the moves the policy allows, within the first half of the call budget.
+        choosing = router is not None and get_settings().tutor_chooser == "llm"
         command_fn: Any = partial(
             chapter_service.apply_command,
             history=await _history(database, session),
             speaker=speaker,
             reader=reader,
+            chooser=ModelChooser(router, calls_used=calls) if choosing else None,
         )
     else:
         content, command_fn = _package(session.lesson_id), service.apply_command

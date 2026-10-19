@@ -154,7 +154,7 @@ function TurnRow({ turn, studentName }: { turn: TranscriptTurn; studentName: str
 }
 
 function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
-  const { move, hint_level, hint_target, rule_ids, source } = annotation;
+  const { move, hint_level, hint_target, rule_ids, source, chosen } = annotation;
   return (
     <p className="flex flex-wrap gap-1">
       <Chip tone="teal" title={move}>
@@ -172,6 +172,16 @@ function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
           {rule}
         </Chip>
       ))}
+      {chosen && (
+        <Chip
+          tone="sky"
+          title={`Policy cho phép: ${chosen.options.map((m) => MOVE_LABEL[m] ?? m).join(", ")}`}
+        >
+          {chosen.accepted
+            ? `Qwen chọn nước này${chosen.reason ? `: ${chosen.reason}` : ""}`
+            : "Qwen chọn nước ngoài danh sách, policy giữ nước của mình"}
+        </Chip>
+      )}
       {source === "LLM" && (
         <Chip tone="sky" title="AI chỉ diễn đạt nước đi do policy chọn; câu đã qua bộ kiểm tra">
           AI diễn đạt

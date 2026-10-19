@@ -313,6 +313,8 @@ export interface TutorAnnotation {
   reason_codes: string[];
   /** Real API only: approved template, generic hint, LLM wording (validated), or fallback sentence. */
   source?: MessageSource;
+  /** AUTO-1: Qwen picked this move among those the policy allowed (option "A" is the policy's own). */
+  chosen?: { options: Move[]; option_id: string; reason: string; accepted: boolean } | null;
 }
 
 export interface StudentAnnotation {

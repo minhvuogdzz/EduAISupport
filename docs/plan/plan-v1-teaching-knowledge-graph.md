@@ -461,6 +461,22 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-62, Qwen chọn nước đi trong giới hạn của chính sách (AUTO-1, ADR-031, `move-chooser/0.1.0`, 2026-10-19):**
+  - **Yêu cầu của chủ dự án (2026-10-19):** làm bước "Qwen tự chủ có kiểm soát" của ADR-022.
+  - **Tập nước đi được phép** (phương án `A` luôn là nước của chính sách, tối đa 3 phương án):
+    - câu sai đầu tiên (R-FIRST-WRONG, PROBE): thêm gợi ý bậc 1 đúng loại lỗi;
+    - gợi ý hoặc phản ví dụ sau câu sai: thêm PROBE (nếu câu này chưa hỏi "con làm thế nào"), gợi ý khái niệm thay cho phản ví dụ, hoặc gợi ý thấp hơn 1 bậc khi chính sách định lên 2 bậc;
+    - hỏi con muốn gợi ý hay tự thử (OFFER_CHOICE), hoặc giải thích điều con hỏi (EXPLAIN): thêm gợi ý cùng bậc đưa ngay;
+    - gợi ý sau câu nản (R-AFFECT), khi câu này chưa hỏi con chọn: thêm "con muốn gợi ý hay tự thử".
+  - **Giới hạn:** không phương án nào giúp nhiều hơn nước của chính sách (cùng bậc hoặc thấp hơn, không H6/H7, không quá bậc cao nhất của câu). Không có lựa chọn ở bài kiểm tra cuối bài, ở nước đi kết thúc câu và ở các luật cố định (R-TIME, R-FRUSTRATION, R-FULL, R-PROBE-CAUSE, R-ASSESS-CAP, R-SLIP, R-STRONG-PRIOR, R-DEESCALATE, hết lượt). Con bấm "Xin gợi ý" thì được gợi ý luôn (DI-35).
+  - **Hạn mức:** bộ chọn chỉ gọi Qwen trong nửa đầu trần của buổi (7 trên 15); nửa sau dành cho diễn đạt (DI-61).
+  - **Ghi vết:** sự kiện `MOVE_CHOSEN`; nước Qwen chọn khác `A` mang luật `R-CHOICE`. Phát lại đọc bản ghi, không gọi model.
+  - **Đo thật lần đầu (2026-10-19,** `simulate_learner.py --measure`, chương Số thập phân, 1 buổi, trong bộ nhớ, không ghi gì**):**
+    - Buổi học 215 lượt, qua 11/11 tiết. Qwen được hỏi chọn nước ở 2 lượt và chọn trong tập cả 2 lần (0 lần bị từ chối):
+      - giữ nước của chính sách (PROBE): "Con đang tự đặt câu hỏi về sự khác biệt giữa hai số, cô cần biết con đã suy luận thế nào để hỗ trợ đúng chỗ.";
+      - đổi gợi ý thành "con muốn gợi ý hay tự thử" sau câu nản: "Con đang tỏ ra nản và từ chối làm, cần hỏi ý để con chủ động chọn cách tiếp cận thay vì ép gợi ý ngay."
+    - Trong 233 lượt của gia sư, 206 là câu mẫu, 26 là câu dự phòng, 1 do Qwen viết. Lần đo này không tách được lượt gọi nào hết vì trần và lượt nào bị Groq từ chối (429), nên chưa nói được bộ chọn có làm bớt lời Qwen viết hay không.
+    - **[OPEN]** Chưa so với `TUTOR_CHOOSER=policy` và chưa đo trên học sinh: 2 lần chọn chưa đủ để nói AUTO-1 giúp gì cho việc học.
 - **DI-61, dành lượt gọi Qwen cho nước đi quan trọng (LLM-2, `llm-renderer.v5`, 2026-10-16):**
   - **Vấn đề:** trần 15 lần gọi mỗi buổi hết rất sớm. Trong một buổi hình học, PROBE ("con làm thế nào") tiêu 4 trên khoảng 13 lần gọi, rồi 19 gợi ý, 8 lần kéo về bài và 3 lời giải thích chỉ còn dùng được câu mẫu.
   - **Quyết định của chủ dự án (2026-10-16):** giữ trần 15, nhưng dành lượt gọi cho giải thích, gợi ý sau câu sai và kéo về bài.
