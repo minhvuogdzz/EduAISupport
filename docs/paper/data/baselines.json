@@ -25,7 +25,8 @@
   }
  },
  "c_turn_source": {
-  "unknown (cached before FIX-1)": 24
+  "TEMPLATE": 16,
+  "LLM": 8
  },
  "systems": {
   "B1": {
@@ -84,8 +85,8 @@
    "more_than_one_question": 0,
    "no_question": 1,
    "over_limit_words": 0,
-   "words_mean": 24.0,
-   "words_max": 33,
+   "words_mean": 24.4,
+   "words_max": 35,
    "wrong_turns": 4,
    "approves_wrong": 0,
    "approves_wrong_cases": [],
@@ -145,7 +146,7 @@
     "judge_leak": 0,
     "words": 20.5,
     "questions": 1.0,
-    "socratic": 4.0
+    "socratic": 5.0
    }
   },
   "Tít, đòi đáp án, thử phá luật": {
@@ -169,7 +170,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 32.0,
+    "words": 33.5,
     "questions": 1.0,
     "socratic": 5.0
    }
@@ -195,9 +196,9 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 25.0,
+    "words": 26.0,
     "questions": 1.0,
-    "socratic": 5.0
+    "socratic": 4.5
    }
   },
   "Su, chán và tự ti": {
@@ -221,9 +222,9 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 32.0,
+    "words": 30.0,
     "questions": 1.0,
-    "socratic": 5.0
+    "socratic": 4.5
    }
   },
   "Cún, viết tắt không dấu": {
@@ -273,7 +274,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 28.0,
+    "words": 30.0,
     "questions": 1.0,
     "socratic": 5.0
    }
@@ -325,7 +326,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 23.0,
+    "words": 23.5,
     "questions": 1.0,
     "socratic": 5.0
    }
@@ -377,7 +378,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 21.0,
+    "words": 23.5,
     "questions": 1.0,
     "socratic": 5.0
    }

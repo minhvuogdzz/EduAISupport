@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -209,7 +210,23 @@ def macros() -> dict[str, str]:
     put("NLeaks", sum(c["socratic"]["leaks"] for c in ch.values()))
     put("NStudentMsg", sum(c["student_messages"] for c in ch.values()))
     put("NItemsResolved", sum(c["ladder"]["items"] for c in ch.values()))
-    put("NDIs", 58)  # DI-1 .. DI-58 of the design documents
+    # the highest DI number recorded in the plan (DI-1 .. DI-n of the design documents)
+    plan = (ROOT / "docs/plan/plan-v1-teaching-knowledge-graph.md").read_text(encoding="utf-8")
+    put("NDIs", max(int(n) for n in re.findall(r"\bDI-(\d+)\b", plan)))
+    # the hard-role comparison (eval_vs_baselines), so the text never quotes a stale count
+    for sysname, tag in (("B1", "Bone"), ("B2", "Btwo"), ("C", "Cav")):
+        x = BASE["systems"][sysname]
+        put(f"{tag}Turns", x["turns"])
+        put(f"{tag}Leaks", x["says_answer"])
+        put(f"{tag}LeakPct", pct(x["says_answer"] / x["turns"]))
+        put(f"{tag}JudgeLeaks", x["judge_leak"])
+        put(f"{tag}Socratic", x["socratic"])
+        put(f"{tag}Intent", x["follows_intent"])
+        put(f"{tag}Words", round(x["words_mean"]))
+    src = BASE.get("c_turn_source", {})
+    put("CavTurnsLLM", src.get("LLM", 0))
+    put("CavTurnsTemplate", src.get("TEMPLATE", 0) + src.get("GENERIC", 0))
+    put("CavTurnsFallback", src.get("FALLBACK", 0))
     mean_att = sum(t["att"] for t in targets()) / 7
     out["TargetMean"] = pct(mean_att)
     return out
@@ -1549,9 +1566,9 @@ def tab_sources() -> None:
     ch = STUDENT["chapters"]
     src = ("TEMPLATE", "LLM", "FALLBACK")
     label = {
-        "TEMPLATE": "Câu mẫu của giáo viên (không gọi mô hình)",
+        "TEMPLATE": "Câu mẫu đã duyệt (cả khi mô hình hỏng hoặc hết lượt gọi)",
         "LLM": "Mô hình viết, đã qua bộ kiểm chứng",
-        "FALLBACK": "Mô hình thử rồi dùng câu mẫu thay",
+        "FALLBACK": "Câu chung chung (không có gợi ý hợp bậc, hoặc bị chặn hai lần)",
     }
     rows = []
     for k in src:
@@ -1563,7 +1580,7 @@ def tab_sources() -> None:
             rej[k] += v
     rows.append(
         [
-            r"\textit{Lời của mô hình bị bộ kiểm chứng chặn}",
+            r"\textit{Lần kiểm cuối chặn lời (cả câu mẫu, trước DI-60)}",
             str(sum(ch[DEC]["socratic"]["rejected_codes"].values())),
             str(sum(ch[GEO]["socratic"]["rejected_codes"].values())),
             str(sum(rej.values())),

@@ -51,7 +51,7 @@ with Graph-Constrained Hybrid Retrieval and a Replayable Learner Model\par}
 \vspace{-8pt}
 \begin{abstract}
 \noindent
-Việc ứng dụng mô hình ngôn ngữ lớn (LLM) trong các hệ thống gia sư thông minh đặt ra thách thức lớn về khả năng kiểm soát hành vi sư phạm và tính phù hợp của nội dung hỗ trợ. Bài báo đề xuất CAVAT, một kiến trúc gia sư Toán lớp 5 theo phương pháp Socratic, trong đó các quyết định sư phạm, đánh giá câu trả lời và cập nhật trạng thái người học được thực hiện bởi các thành phần tất định, trong khi LLM chỉ đảm nhiệm vai trò diễn đạt phản hồi dưới sự giám sát của bộ kiểm chứng an toàn. Hệ thống kết hợp truy xuất từ khóa và ngữ nghĩa với đồ thị tri thức nhằm giới hạn nội dung theo đúng tiến trình học tập, đồng thời sử dụng cơ chế định tuyến chủ đề để duy trì độ chính xác truy xuất. Thực nghiệm trên hai chương Toán lớp 5 cho thấy phương pháp đạt Hit@3 = 0,90, tương đương với Flat RAG không ràng buộc, nhưng loại bỏ hoàn toàn việc truy xuất trước kiến thức bài sau vào ba kết quả đầu (0/30 so với 12/30). Trong các tình huống hội thoại mô phỏng, CAVAT không ghi nhận bất kỳ lượt tiết lộ đáp án nào (0/24), so với 1/25 ở cấu hình chỉ sử dụng lời nhắc Socratic và 15/25 ở chatbot thương mại thông thường. Kết quả khẳng định tính khả thi của kiến trúc tách quyết định sư phạm khỏi quá trình sinh ngôn ngữ, tạo cơ sở phát triển gia sư AI có hành vi kiểm soát được và năng lực đánh giá tái lập hoàn toàn.
+Việc ứng dụng mô hình ngôn ngữ lớn (LLM) trong các hệ thống gia sư thông minh đặt ra thách thức lớn về khả năng kiểm soát hành vi sư phạm và tính phù hợp của nội dung hỗ trợ. Bài báo đề xuất CAVAT, một kiến trúc gia sư Toán lớp 5 theo phương pháp Socratic, trong đó các quyết định sư phạm, đánh giá câu trả lời và cập nhật trạng thái người học được thực hiện bởi các thành phần tất định, trong khi LLM chỉ đảm nhiệm vai trò diễn đạt phản hồi dưới sự giám sát của bộ kiểm chứng an toàn. Hệ thống kết hợp truy xuất từ khóa và ngữ nghĩa với đồ thị tri thức nhằm giới hạn nội dung theo đúng tiến trình học tập, đồng thời sử dụng cơ chế định tuyến chủ đề để duy trì độ chính xác truy xuất. Thực nghiệm trên hai chương Toán lớp 5 cho thấy phương pháp đạt Hit@3 = 0,90, tương đương với Flat RAG không ràng buộc, nhưng loại bỏ hoàn toàn việc truy xuất trước kiến thức bài sau vào ba kết quả đầu (0/30 so với 12/30). Trong các tình huống hội thoại mô phỏng, CAVAT không ghi nhận lượt tiết lộ đáp án nào (\CavLeaks{}/\CavTurns{}), so với \BtwoLeaks{}/\BtwoTurns{} ở cấu hình chỉ sử dụng lời nhắc Socratic và \BoneLeaks{}/\BoneTurns{} ở chatbot thông thường. Kết quả cho thấy tính khả thi của kiến trúc tách quyết định sư phạm khỏi quá trình sinh ngôn ngữ, tạo cơ sở phát triển gia sư AI có hành vi kiểm soát được và năng lực đánh giá tái lập hoàn toàn.
 
 \vspace{2pt}
 \noindent\textbf{Từ khóa:} Gia sư thông minh; mô hình ngôn ngữ lớn; phương pháp Socratic; truy xuất tăng cường (RAG); đồ thị tri thức; mô hình người học.
@@ -80,7 +80,7 @@ Kiến trúc phân tách này đặt ra thách thức: hệ thống phải bám 
 \begin{enumerate}
   \item Đề xuất kiến trúc CAVAT phân tách quyết định sư phạm khỏi LLM: chính sách tất định điều phối nước đi, bộ chấm tất định đánh giá câu trả lời, mô hình người học tái lập từ sổ sự kiện, và LLM diễn đạt dưới sự giám sát của bộ kiểm chứng an toàn.
   \item Thiết kế cơ chế truy xuất lai ràng buộc theo đồ thị tri thức kết hợp định tuyến chủ đề từ nguồn tài liệu thực tế của giáo viên tiểu học.
-  \item Xây dựng giao thức đánh giá đa chiều trên các tập dữ liệu đóng băng, đối chứng toàn diện với Flat RAG, chatbot thương mại và cấu hình LLM chỉ dựa trên lời nhắc (prompt-only).
+  \item Xây dựng giao thức đánh giá đa chiều trên các tập dữ liệu đóng băng, đối chứng toàn diện với Flat RAG, chatbot thông thường và cấu hình LLM chỉ dựa trên lời nhắc (prompt-only).
   \item Kiểm chứng thực nghiệm độ bám sát khung đánh giá năng lực môn Toán thông qua đối chiếu tiêu chí, kiểm thử tương đương công thức đóng và phân tích đường đáp ứng.
 \end{enumerate}
 
@@ -158,14 +158,14 @@ sau đó xếp hạng lại theo sư phạm: $\mathrm{score}(c)=\mathrm{fuse}(c)
 \caption{Đường đáp ứng của điểm số năng lực $M$ (đối với một tiết học độc lập): (a) $n$ câu đúng liên tiếp theo bậc gợi ý cao nhất $h$; (b) Quỹ đạo điểm số của sáu hồ sơ học sinh điển hình.}\label{fig:curves}
 \vspace{4pt}
 \begin{minipage}[t]{0.51\textwidth}\vspace{0pt}
-\captionof{table}{Dữ liệu đánh giá. Các tập giữ riêng được đóng băng hoàn toàn.}\label{tab:setup}
+\captionof{table}{Dữ liệu đánh giá. Tập giữ riêng v2 được đóng băng bằng thẻ git trước khi sửa mã; các câu trượt của v1 đã được đọc khi thiết kế định tuyến.}\label{tab:setup}
 \footnotesize
 \begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.8cm}rl@{}}
 \toprule
 Tập dữ liệu & Cỡ mẫu & Mục đích đánh giá \\
 \midrule
 Truy xuất, bộ chỉnh & 30 câu & Tinh chỉnh ngưỡng $\varepsilon$ \\
-Truy xuất, giữ riêng v1 & 23 câu & Đo kiểm tra độc lập \\
+Truy xuất, giữ riêng v1 & 23 câu & Đã đọc khi thiết kế, không còn độc lập \\
 Truy xuất, giữ riêng v2 & 30 câu & Đóng băng trước DI-57 \\
 Vai học sinh khó & 25 lượt & Đánh giá hành vi sư phạm \\
 Chấm đáp án v1 / v2 & 36 / 35 câu & Độ tin cậy bộ chấm \\
@@ -180,10 +180,10 @@ Khung đánh giá & 25 mục & Độ bao phủ khung năng lực \\
 \toprule
 Thành phần loại bỏ & Thay thế bằng & Có & Không \\
 \midrule
-Chính sách \& kiểm chứng & Lời nhắc Socratic (B2) & $0/24$ & $1/25$ \\
- & Lời nhắc thường (B1) & $0/24$ & $15/25$ \\
-Bộ kiểm chứng độc lập & Gửi thẳng phản hồi dự thảo & $0/468$ & $16/468$ \\
-Bộ chấm tất định & Chatbot tự chấm (B1) & $0/35$ & $10/35$ \\
+Chính sách \& kiểm chứng & Lời nhắc Socratic, cùng mô hình (B2) & \CavLeaks{}/\CavTurns{} & \BtwoLeaks{}/\BtwoTurns{} \\
+ & Đối chứng khác cả mô hình (B1) & \CavLeaks{}/\CavTurns{} & \BoneLeaks{}/\BoneTurns{} \\
+Bộ kiểm chứng độc lập & Gửi thẳng lời nháp (21 ca lời nói có căn cứ) & $0$ & $5$ \\
+Bộ chấm tất định & Mô hình tự chấm: B2; B1 & $0/35$ & $0/35$; $10/35$ \\
 Ràng buộc đồ thị & Flat RAG & $0/30$ & $12/30$ \\
 Định tuyến chủ đề & Tắt ($\varepsilon=\infty$) & $0{,}10$ & $0{,}55$ \\
 Xếp hạng sư phạm & Chỉ truy xuất lai & $0{,}113$ & $0{,}540$ \\
@@ -212,7 +212,7 @@ với vectơ trọng số chuẩn hóa $\omega=(0{,}20;0{,}20;0{,}15;0{,}15;0{,}
 \subsection{Thiết lập thực nghiệm}
 \textbf{Bộ dữ liệu học liệu.} Dữ liệu thực nghiệm được xây dựng trên hai chương Toán lớp 5 (``Số thập phân'' và ``Diện tích hình tam giác, hình thang'') từ \NDocs{} tệp tài liệu giảng dạy thực tế của giáo viên (\NPages{} trang): bao gồm đồ thị \NNodes{} tiết học, \NItems{} câu hỏi bài tập có đáp án (\NVerified{} câu được kiểm chứng độc lập không qua LLM) và \NChunks{} đoạn tri thức được đánh chỉ mục. Các tập dữ liệu đánh giá được mô tả chi tiết tại Bảng~\ref{tab:setup}; toàn bộ các tập kiểm thử giữ riêng (hold-out) được đóng băng trước khi tinh chỉnh mã nguồn và tham số hệ thống.
 
-\textbf{Hệ thống đối chứng.} Các thử nghiệm so sánh tuân thủ nguyên tắc kiểm soát biến đơn trên ba hệ thống: (1)~\textbf{B1 (Chatbot thương mại):} Mô hình Gemini Flash với lời nhắc chuẩn, đại diện cho chatbot hỗ trợ không ràng buộc; (2)~\textbf{B2 (Lời nhắc Socratic):} Cùng mô hình Qwen như CAVAT nhưng chỉ điều khiển bằng lời nhắc Socratic công phu (thiếu chính sách tất định và bộ kiểm chứng); (3)~\textbf{Flat RAG (RAG tiêu chuẩn):} Cùng kho dữ liệu và bộ truy xuất lai như CAVAT nhưng loại bỏ ràng buộc đồ thị và định tuyến chủ đề.
+\textbf{Hệ thống đối chứng.} Các thử nghiệm so sánh tuân thủ nguyên tắc kiểm soát biến đơn trên ba hệ thống: (1)~\textbf{B1 (Chatbot thông thường):} Mô hình Gemini Flash với lời nhắc chuẩn, đại diện cho chatbot hỗ trợ không ràng buộc; (2)~\textbf{B2 (Lời nhắc Socratic):} Cùng mô hình Qwen như CAVAT nhưng chỉ điều khiển bằng lời nhắc Socratic công phu (thiếu chính sách tất định và bộ kiểm chứng); (3)~\textbf{Flat RAG (RAG tiêu chuẩn):} Cùng kho dữ liệu và bộ truy xuất lai như CAVAT nhưng loại bỏ ràng buộc đồ thị và định tuyến chủ đề.
 
 \textbf{Chỉ số đánh giá.} Đánh giá truy xuất sử dụng Hit@$k$ và MRR; đánh giá hành vi sử dụng tỉ lệ tiết lộ đáp án theo luật tất định, số câu hỏi mỗi lượt, độ dài văn bản; đánh giá bộ chấm qua độ chính xác; chất lượng diễn đạt Socratic được giám khảo độc lập (\code{gpt-oss-120b}, khác họ mô hình với gia sư) chấm điểm trên thang 1--5; kiểm định thống kê sử dụng khoảng tin cậy Wilson $95\%$, bootstrap theo cặp ($10\,000$ lần lặp) và kiểm định McNemar chính xác.
 
@@ -221,37 +221,37 @@ Bảng~\ref{tab:flat} so sánh CAVAT và Flat RAG trên các tập kiểm thử.
 
 Thực nghiệm cũng chỉ ra rằng việc áp đặt ràng buộc đồ thị nếu thiếu cơ chế bù trừ sẽ làm giảm độ chính xác khi hỏi lại bài cũ (Hit@3 tập v2 giảm còn $0{,}45$); tuy nhiên, cơ chế định tuyến chủ đề đã khôi phục độ chính xác lên $0{,}90$ (kiểm định McNemar cho $p=0{,}004$, với 9 câu hỏi được sửa đúng và không câu nào bị suy giảm). Ưu thế của đồ thị tri thức là \emph{bảo đảm an toàn phạm vi sư phạm} mà không tổn hại độ chính xác. So với bảy định hướng thiết kế (Bảng~\ref{tab:targets}), cơ chế truy xuất đạt mức hoàn thành trung bình $85\%$.
 
-\subsection{Hành vi Socratic so với chatbot thương mại}
-Hình~\ref{fig:hitk} minh họa đường cong Hit@$k$ của các cấu hình. Bảng~\ref{tab:baselines} và Hình~\ref{fig:baselines} đối chiếu hành vi ba hệ thống trên $13$ kịch bản học sinh khó tính (không biết làm, đòi đáp án trực tiếp, yêu cầu bỏ qua hướng dẫn, lạc đề, kiên trì giữ đáp án sai). Chatbot thương mại (B1) trực tiếp đưa ra lời giải ở $15/25$ lượt ($60\%$) và $80\%$ số phản hồi dài quá $60$ từ, làm mất tính chủ động của trẻ. Cấu hình dùng lời nhắc Socratic (B2) giảm số lượt lộ đáp án xuống $1/25$ ($4\%$). Trong khi đó, CAVAT đạt tỉ lệ $0/24$ lượt vi phạm nhờ bộ kiểm chứng an toàn. Thử nghiệm mở rộng gồm $468$ lượt tương tác mô phỏng ghi nhận kết quả tuyệt đối $0/308$ lượt có khả năng lộ đáp án bị vi phạm.
+\subsection{Hành vi Socratic so với chatbot thông thường}
+Hình~\ref{fig:hitk} minh họa đường cong Hit@$k$ của các cấu hình. Bảng~\ref{tab:baselines} và Hình~\ref{fig:baselines} đối chiếu hành vi ba hệ thống trên $13$ kịch bản học sinh khó tính (không biết làm, đòi đáp án trực tiếp, yêu cầu bỏ qua hướng dẫn, lạc đề, kiên trì giữ đáp án sai). Chatbot thông thường (B1) trực tiếp đưa ra lời giải ở \BoneLeaks{}/\BoneTurns{} lượt (\BoneLeakPct{}) và $80\%$ số phản hồi dài quá $60$ từ, làm mất tính chủ động của trẻ. Cấu hình dùng lời nhắc Socratic (B2) giảm số lượt lộ đáp án xuống \BtwoLeaks{}/\BtwoTurns{} (\BtwoLeakPct{}). CAVAT là \CavLeaks{}/\CavTurns{} (\CavTurnsLLM{} lượt do Qwen viết, \CavTurnsTemplate{} lượt là câu mẫu); chênh lệch với B2 không có ý nghĩa thống kê ở cỡ mẫu này. Trong $468$ lượt tương tác mô phỏng, phép kiểm tất định trên $308$ lượt có đáp án không thấy lượt nào lộ.
 
-Về chất lượng diễn đạt, giám khảo LLM chấm B2 cao hơn CAVAT về độ mượt mà ($4{,}84$ so với $4{,}46$) và bỏ sót lượt lộ đáp án duy nhất của B2 (trong khi bộ kiểm tra tất định phát hiện chính xác); điều này khẳng định giá trị cốt lõi của CAVAT nằm ở \emph{sự bảo đảm chắc chắn về an toàn sư phạm}, thay vì sự tùy biến tự do của ngôn ngữ sinh.
+Về chất lượng diễn đạt, giám khảo LLM chấm B2 cao hơn CAVAT về tính Socratic ($4{,}84$ so với $4{,}46$) và bỏ sót lượt lộ đáp án duy nhất của B2 (trong khi bộ kiểm tra tất định phát hiện chính xác); điều này cho thấy giá trị cốt lõi của CAVAT nằm ở \emph{sự bảo đảm chắc chắn về an toàn sư phạm}, thay vì sự tùy biến tự do của ngôn ngữ sinh.
 
-Về năng lực chấm điểm câu trả lời, bộ chấm tất định của CAVAT đạt độ chính xác $100\%$ ($35/35$ câu ở tập v2, $36/36$ câu ở tập v1); ngược lại, chatbot thông thường chấm sai $10/35$ câu đúng ($25/35$), chủ yếu do sự đa dạng trong cách viết số thập phân của học sinh tiểu học.
+Về năng lực chấm điểm câu trả lời, bộ chấm tất định của CAVAT đạt độ chính xác $100\%$ ($35/35$ câu ở tập v2, $36/36$ câu ở tập v1); ngược lại, chatbot thông thường chấm sai $10/35$ câu đúng ($25/35$), chủ yếu do sự đa dạng trong cách viết số thập phân của học sinh tiểu học; cùng mô hình của CAVAT chấm bằng lời nhắc (B2) cũng đúng $35/35$, nên điều bộ chấm tất định mang lại là tính tất định và kiểm toán được.
 
 \subsection{Độ sát khung đánh giá của mô hình người học}
 Nghiên cứu định lượng mức độ phù hợp của mô hình người học theo bốn khía cạnh thực nghiệm:
 (1)~\emph{Nội dung năng lực:} Đối chiếu $25$ tiêu chí khung chuẩn môn Toán của dự án, mô hình bao phủ đầy đủ $16$ mục, bao phủ một phần $5$ mục và chưa triển khai $4$ mục (đạt độ bao phủ $74\%$).
 (2)~\emph{Tính toán toán học:} So sánh triển khai thực tế với công thức giải tích đóng trên $2\times500$ chuỗi sự kiện ngẫu nhiên: độ lệch cực đại chỉ $0{,}050$ (do làm tròn số học), không chuỗi nào phân kỳ, hoán vị các sự kiện độc lập không đổi điểm $M_v$, và quy trình phát lại tái lập hoàn toàn 100\%.
-(3)~\emph{Đặc tính hành vi:} Điểm số $M_v$ tăng đều đặn khi tăng chuỗi câu đúng độc lập và giảm khi đòi hỏi bậc gợi ý cao hơn (Hình~\ref{fig:curves}); đồng thời bản đồ nhiệt (Hình~\ref{fig:heat}) thể hiện tường minh mức tích lũy bằng chứng trên từng chiều năng lực, phân loại chính xác các nhóm học sinh giả lập.
-(4)~\emph{Độ bền vững tham số:} Kết luận đánh giá duy trì ổn định khi thay đổi các tham số ngưỡng trong lân cận định mức.
+(3)~\emph{Đặc tính hành vi:} Điểm số $M_v$ tăng đều đặn khi tăng chuỗi câu đúng độc lập và giảm khi đòi hỏi bậc gợi ý cao hơn (Hình~\ref{fig:curves}); đồng thời bản đồ nhiệt (Hình~\ref{fig:heat}) thể hiện tường minh mức tích lũy bằng chứng trên từng chiều năng lực, và xếp đúng thứ tự độc lập của năm nhóm học sinh giả lập.
+(4)~\emph{Độ bền vững tham số:} Kết luận đánh giá gần như không đổi khi các tham số đổi sang giá trị lân cận, trừ ngưỡng giải thích (DI-6): nâng từ $0{,}6$ lên $0{,}7$ làm $5/19$ tiết đổi kết luận.
 
 \subsection{Nghiên cứu loại bỏ thành phần (Ablation Studies)}\label{sec:ablation}
-Bảng~\ref{tab:components} tổng hợp kết quả khi loại bỏ từng thành phần cốt lõi. Việc loại bỏ chính sách sư phạm và kiểm chứng khiến số lượt tiết lộ đáp án tăng từ $0$ lên $1/25$ (khi dùng lời nhắc Socratic) hoặc $15/25$ (khi dùng lời nhắc thường); việc loại bỏ bộ kiểm chứng độc lập khiến $16$ phản hồi dự thảo vi phạm quy tắc an toàn ($3{,}4\%$) gửi thẳng đến học sinh; việc loại bỏ bộ chấm tất định khiến $10/35$ câu trả lời đúng bị đánh giá sai lệch.
+Bảng~\ref{tab:components} tổng hợp kết quả khi loại bỏ từng thành phần cốt lõi. Việc loại bỏ chính sách sư phạm và kiểm chứng khiến số lượt tiết lộ đáp án tăng từ $0$ lên \BtwoLeaks{}/\BtwoTurns{} với cùng mô hình (B2), còn chatbot thông thường (khác cả mô hình) là \BoneLeaks{}/\BoneTurns{}; việc loại bỏ bộ kiểm chứng để $5$ lời nháp có lỗi trong $21$ ca lời nói có căn cứ đến thẳng trẻ; về chấm đáp án, B2 cũng đúng $35/35$, còn B1 bác $10/35$ câu đúng.
 
-Đối với truy xuất, cơ chế ràng buộc đồ thị là rào cản kỹ thuật duy nhất ngăn chặn dạy trước nội dung ($0/30$ so với $12/30$ ở Flat RAG); định tuyến chủ đề giúp khôi phục toàn bộ độ chính xác ($0{,}45 \to 0{,}90$ Hit@3); bước xếp hạng lại theo sư phạm đóng góp mức tăng trưởng lớn nhất về thứ hạng ($0{,}460 \to 0{,}887$ MRR trên tập v2, Bảng~\ref{tab:ablation}). Việc bổ sung vector ngữ nghĩa trong cấu hình lai không mang lại khác biệt đáng kể so với từ khóa thuần túy khi chưa xếp hạng lại ($0{,}459$, $0{,}449$, $0{,}460$, khoảng tin cậy trùng nhau). Hình~\ref{fig:sweep} thể hiện MRR theo lề định tuyến $\varepsilon$; giá trị tối ưu $\varepsilon=0{,}02$ nằm trong vùng hoạt động ổn định, trong khi tắt định tuyến khiến MRR giảm mạnh về $0{,}503$.
+Đối với truy xuất, cơ chế ràng buộc đồ thị là rào cản kỹ thuật duy nhất ngăn chặn dạy trước nội dung ($0/30$ so với $12/30$ ở Flat RAG); định tuyến chủ đề giúp khôi phục toàn bộ độ chính xác ($0{,}45 \to 0{,}90$ Hit@3); trong mức tăng MRR $0{,}460 \to 0{,}887$ trên tập v2 (Bảng~\ref{tab:ablation}), riêng các hệ số xếp hạng lại chỉ góp $0{,}460 \to 0{,}503$, phần còn lại là định tuyến (cờ xếp hạng lại bật cả định tuyến). Việc bổ sung vector ngữ nghĩa trong cấu hình lai không mang lại khác biệt đáng kể so với từ khóa thuần túy khi chưa xếp hạng lại ($0{,}459$, $0{,}449$, $0{,}460$, khoảng tin cậy trùng nhau). Hình~\ref{fig:sweep} thể hiện MRR theo lề định tuyến $\varepsilon$; giá trị $\varepsilon=0{,}02$ chọn trên bộ chỉnh nằm trong vùng ổn định (trên v2, $\varepsilon\le0{,}01$ cho MRR cao hơn), trong khi tắt định tuyến khiến MRR giảm mạnh về $0{,}503$.
 
 \subsection{Phân tích lỗi và giới hạn của chứng cứ}
 \textbf{Phân tích lỗi truy xuất.} Trên tập giữ riêng v2, hệ thống ghi nhận sai sót tại 3/30 câu hỏi. Trong đó, 2 câu hỏi (``phần thập phân nằm ở bên nào dấu phẩy'' và ``làm tròn đến hàng phần mười là nhìn chữ số nào'') truy xuất trúng đoạn tri thức giải thích đúng nhưng thuộc tiết khác với nhãn quy ước (đoạn trích gán nhãn ở hạng 14 và 6, cosine $0{,}77$ và $0{,}80$). Trường hợp còn lại là lỗi định tuyến: câu hỏi ``số $7{,}25$ đọc như thế nào ạ'' bị nhận nhầm sang bài so sánh số thập phân do cosine cao hơn bài đang học $0{,}03$. Hệ thống có xu hướng xử lý thận trọng, yêu cầu học sinh chờ đợi kiến thức thuộc chính bài đang học.
 
-\textbf{Đánh giá phản hồi sinh bởi mô hình.} Trong $468$ lượt tương tác của học sinh mô phỏng S1, có $397$ lượt ($85\%$) dùng trực tiếp câu mẫu chuẩn của giáo viên, LLM chỉ tham gia sinh nội dung ở 4 lượt và có 16 phản hồi dự thảo bị bộ kiểm chứng chặn lại. Kết quả $0/308$ lượt tiết lộ đáp án phản ánh hiệu quả của tập luật chính sách và học liệu kiểm duyệt, thay vì phụ thuộc độ an toàn nội tại của LLM; năng lực sinh phản hồi của LLM được đánh giá độc lập qua 13 kịch bản ở Mục~\ref{sec:exp}.C.
+\textbf{Đánh giá phản hồi sinh bởi mô hình.} Trong $468$ lượt tương tác của học sinh mô phỏng S1, có $397$ lượt ($85\%$) dùng trực tiếp câu mẫu chuẩn của giáo viên, LLM chỉ tham gia sinh nội dung ở 4 lượt, chủ yếu do trần $15$ lần gọi mỗi buổi và hạn mức miễn phí. Kết quả $0/308$ lượt tiết lộ đáp án phản ánh hiệu quả của tập luật chính sách và học liệu kiểm duyệt, thay vì phụ thuộc độ an toàn nội tại của LLM; năng lực sinh phản hồi của LLM được đánh giá độc lập qua 13 kịch bản ở Mục~\ref{sec:exp}.C.
 
 \textbf{Các giới hạn nghiên cứu.} Dữ liệu thực nghiệm hiện dựa trên tác tử mô phỏng, chưa phản ánh toàn diện tương tác thực tế; khâu đánh giá tự nhiên ngôn ngữ bằng LLM giám khảo có thể tồn tại sai số; nhãn truy xuất cần tiếp tục thẩm định bởi hội đồng chuyên môn giáo dục tiểu học.
 
 \FloatBarrier
 \section{Kết luận}\label{sec:conclusion}
-Bài báo đề xuất CAVAT, một kiến trúc gia sư Toán Socratic phân tách triệt để quyết định sư phạm, đánh giá câu trả lời và mô hình người học khỏi quá trình sinh ngôn ngữ của LLM. Trên các kịch bản mô phỏng, hệ thống kiểm soát an toàn tuyệt đối khi không ghi nhận bất kỳ lượt tiết lộ đáp án nào ($0/24$), vượt trội so với tỉ lệ vi phạm $1/25$ ở cấu hình chỉ dựa trên lời nhắc Socratic và $15/25$ ở chatbot thương mại. Cơ chế truy xuất lai ràng buộc theo đồ thị tri thức loại bỏ hoàn toàn đoạn trích vượt trước chương trình khỏi top-3 ($0/30$ so với $12/30$ ở Flat RAG), đồng thời duy trì độ chính xác cao (Hit@3 = $0{,}90$) nhờ kỹ thuật định tuyến chủ đề. Mô hình người học tái lập bảo đảm tính minh bạch và nhất quán toán học từ nhật ký sự kiện chỉ ghi thêm.
+Bài báo đề xuất CAVAT, một kiến trúc gia sư Toán Socratic phân tách triệt để quyết định sư phạm, đánh giá câu trả lời và mô hình người học khỏi quá trình sinh ngôn ngữ của LLM. Trên các kịch bản mô phỏng, hệ thống không ghi nhận lượt tiết lộ đáp án nào (\CavLeaks{}/\CavTurns{}), so với \BtwoLeaks{}/\BtwoTurns{} ở cấu hình chỉ dựa trên lời nhắc Socratic và \BoneLeaks{}/\BoneTurns{} ở chatbot thông thường. Cơ chế truy xuất lai ràng buộc theo đồ thị tri thức loại bỏ hoàn toàn đoạn trích vượt trước chương trình khỏi top-3 ($0/30$ so với $12/30$ ở Flat RAG), đồng thời duy trì độ chính xác cao (Hit@3 = $0{,}90$) nhờ kỹ thuật định tuyến chủ đề. Mô hình người học tái lập bảo đảm tính minh bạch và nhất quán toán học từ nhật ký sự kiện chỉ ghi thêm.
 
-Dù nâng cao độ tin cậy và an toàn sư phạm, hệ thống đạt điểm linh hoạt ngôn ngữ thấp hơn cấu hình chỉ dùng lời nhắc ($4{,}46$ so với $4{,}84$). Nghiên cứu hiện mới thử nghiệm trên hai chương môn Toán lớp 5 với tác tử mô phỏng. Hướng nghiên cứu tiếp theo sẽ tập trung thử nghiệm diện rộng với học sinh tiểu học thực tế, chuẩn hóa quy trình thẩm định kho học liệu và mở rộng sang toàn bộ chương trình giáo dục phổ thông.
+Dù nâng cao độ tin cậy và an toàn sư phạm, hệ thống được giám khảo chấm thấp hơn về tính Socratic so với cấu hình chỉ dùng lời nhắc ($4{,}46$ so với $4{,}84$). Nghiên cứu hiện mới thử nghiệm trên hai chương môn Toán lớp 5 với tác tử mô phỏng. Hướng nghiên cứu tiếp theo sẽ tập trung thử nghiệm diện rộng với học sinh tiểu học thực tế, chuẩn hóa quy trình thẩm định kho học liệu và mở rộng sang toàn bộ chương trình giáo dục phổ thông.
 
 \input{refs-compact}
 \end{document}
