@@ -253,6 +253,34 @@ def grounded_values(ctx: RenderContext) -> set[Fraction]:
     return {n.value for t in texts for n in extract_numbers(t)}
 
 
+# FIX-2: moves that follow an answer that is not right; opening one with "Đúng rồi" praises a wrong answer.
+_NOT_AFTER_CORRECT = frozenset(
+    {
+        Move.HINT,
+        Move.PROBE,
+        Move.COGNITIVE_CONFLICT,
+        Move.NUDGE,
+        Move.REDIRECT,
+        Move.OFFER_CHOICE,
+        Move.ASK_CONFIRM,
+        Move.WORKED_GUIDANCE,
+        Move.FULL_EXPLANATION,
+        Move.EXPLAIN,
+    }
+)
+_PRAISE_OPENING = re.compile(r"^\W*(đúng rồi|chính xác|giỏi lắm|tuyệt vời|rất tốt|con làm đúng|làm đúng rồi)")
+
+
+def wrong_praise(text: str, ctx: RenderContext) -> str | None:
+    """The opening praise of a turn that follows an answer that is not right, if any (FIX-2)."""
+    d = ctx.decision
+    after_wrong = d.move in _NOT_AFTER_CORRECT or "VERIFY_BEFORE_HINT" in d.reason_codes
+    if not after_wrong or "STEP_CORRECT_AFTER_HINT" in d.reason_codes:
+        return None
+    m = _PRAISE_OPENING.search(normalize_text(text))
+    return m.group(1) if m else None
+
+
 def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
     """Check one tutor message against the turn's decision and the lesson content (PART 13.4)."""
     if not text or not text.strip():
@@ -279,6 +307,9 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
     address = wrong_address(text, ctx.persona.student_address)
     if address:
         issues.append(ValidationIssue(ValidationCode.WRONG_ADDRESS, address))
+    praise = wrong_praise(text, ctx)
+    if praise:
+        issues.append(ValidationIssue(ValidationCode.WRONG_PRAISE, praise))
 
     words = len(text.split())
     if words > ctx.max_words:

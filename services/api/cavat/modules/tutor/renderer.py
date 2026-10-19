@@ -22,7 +22,7 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-TEMPLATE_VERSION = "template-renderer.v5"  # v5: DI-55, the lead of a vague "vì sao" asked again
+TEMPLATE_VERSION = "template-renderer.v6"  # v6: FIX-2, no praise before a wrong answer; questions kept
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -258,6 +258,11 @@ def _cognitive_conflict(ctx: RenderContext) -> RenderedMessage:
     if found is None:
         return _hint(ctx)
     text, ref = found
+    if "?" not in text:
+        # FIX-2: a counterexample of the teacher's documents states the case without asking; the check
+        # wanted a question, rejected it twice, and the child lost the counterexample. (One with a question
+        # inside is left as it is: a second question would fail the check too.)
+        text = f"{text.rstrip()} {_say(ctx, 'try_it')}"
     return _msg(text, "TEMPLATE", ref)
 
 
@@ -310,6 +315,11 @@ _PRAISE_RE = re.compile(r"^\s*Đúng rồi[!.]\s*")
 
 
 def _verify(ctx: RenderContext) -> RenderedMessage:
+    if "VERIFY_BEFORE_HINT" in ctx.decision.reason_codes:
+        # FIX-2: R-STRONG-PRIOR asks "vì sao" in place of a light hint, after a WRONG answer. The "vì sao"
+        # prompts open with "Đúng rồi!" (praise of a wrong answer) and an item's own may name the right
+        # answer ("vì sao 0,25 bé hơn 0,3"): ask how the child did it instead, the approved probe.
+        return _msg(_say(ctx, "probe"), "TEMPLATE")
     if ctx.item.verify_prompt:
         msg = _msg(ctx.item.verify_prompt, "TEMPLATE", f"{ctx.item.id}:VERIFY")
     elif ctx.package.default_verify_prompt:
