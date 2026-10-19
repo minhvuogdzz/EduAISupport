@@ -503,6 +503,27 @@ Chạy song song từ Mốc 1:
       - Gộp với lần đo đầu, Qwen đã chọn 6 lần, và chỉ 1 lần khác nước của chính sách (câu nản → "con muốn gợi ý hay tự thử").
     - **Kết luận:** chênh lệch giữa hai lần chạy **không đủ để kết luận** AUTO-1 làm thay đổi việc dạy hay việc học. Ở mức đo này, nó gần như không đổi gì: trong 4 lần chọn, Qwen giữ nước của chính sách cả 4. Muốn thấy khác biệt thì cần nhiều lần chọn hơn: nới phần trần dành cho bộ chọn, hoặc chạy nhiều buổi và nhiều hạt giống học sinh mô phỏng, rồi so trung bình.
     - **[OPEN]** Chưa đo trên học sinh thật, và chưa có đủ số lần chọn để so có ý nghĩa thống kê.
+  - **Đo bộ chọn ngoài trần của buổi (AUTO-3, `make eval-chooser`, 2026-10-19):**
+    - **Cách đo:** học sinh mô phỏng Vương học hai chương bằng câu mẫu, trong bộ nhớ (chỉ đọc kế hoạch từ database của `.env`, không ghi gì). Một bộ chọn ghi lại mọi lượt có lựa chọn mà không chọn gì. Sau đó Qwen chọn trên từng lượt đã ghi, mỗi lượt 1 lần gọi, ngoài trần 15 của buổi. Báo cáo đầy đủ ở máy chạy đo: `evals/reports/2026-10-19-chooser.md` (thư mục này không vào git; số liệu nằm ở bảng dưới).
+    - **Kết quả:** 3 buổi, 48 lượt có lựa chọn (46 khác nhau). Qwen trả lời đủ 46/46: giữ nước của chính sách 27, chọn nước khác 19.
+
+      | Thực đơn (nước của chính sách → nước được phép) | Lượt | Qwen giữ | Qwen chọn khác |
+      |---|---|---|---|
+      | PROBE → HINT | 19 | 19 | 0 |
+      | HINT → PROBE | 8 | 0 | 8 |
+      | EXPLAIN → HINT | 6 | 6 | 0 |
+      | HINT → OFFER_CHOICE | 5 | 0 | 5 |
+      | HINT → PROBE / HINT thấp hơn | 4 | 0 | 4 (đều PROBE) |
+      | COGNITIVE_CONFLICT → PROBE / HINT | 2 | 0 | 2 (đều PROBE) |
+      | OFFER_CHOICE → HINT | 2 | 2 | 0 |
+
+    - **Đọc kết quả:** ở cả 46/46 lượt, Qwen chọn nước **không phải gợi ý** (hỏi "con làm thế nào", hỏi con muốn gợi ý hay tự thử, hoặc giải thích), dù nước đó là `A` hay `B`. Nên đây không phải thiên vị vị trí. Qwen chưa bao giờ chọn đưa gợi ý khi còn nước khác. Lý do Qwen nêu nghe hợp lý, nhưng lặp theo khuôn ("con đã đưa ra đáp án cụ thể, cô cần hỏi lại cách làm…"). Ở mức đo này, bộ chọn chạy như một luật cố định "hỏi trước khi gợi ý", chưa thấy nó chọn theo ngữ cảnh của từng đứa trẻ. Một phần có thể do prompt (`CHOOSE_SYSTEM` có câu "ưu tiên nước giúp ít hơn khi con có vẻ gần đúng hoặc đang tự nghĩ").
+    - **Giới hạn:** chỉ một học sinh mô phỏng, 46 lượt, một lần hỏi mỗi lượt (chưa đo độ ổn định khi hỏi lại).
+    - **Đã sửa:** 2/46 lý do có chữ Trung Quốc lẫn vào ("trước khi介入"). Lý do nay bị cắt ở chỗ đó (`chooser.clean_reason`); nước đi được chọn không đổi.
+    - **[OPEN] Chủ dự án quyết:**
+      - giữ Qwen chọn như hiện tại;
+      - hoặc thay bằng luật tất định "hỏi trước khi gợi ý" (cùng kết quả ở lần đo này, không tốn lượt gọi);
+      - hoặc sửa prompt cho Qwen cân nhắc khi nào nên đưa gợi ý (ví dụ con đã sai nhiều lần cùng một chỗ), rồi đo lại.
 - **DI-61, dành lượt gọi Qwen cho nước đi quan trọng (LLM-2, `llm-renderer.v5`, 2026-10-16):**
   - **Vấn đề:** trần 15 lần gọi mỗi buổi hết rất sớm. Trong một buổi hình học, PROBE ("con làm thế nào") tiêu 4 trên khoảng 13 lần gọi, rồi 19 gợi ý, 8 lần kéo về bài và 3 lời giải thích chỉ còn dùng được câu mẫu.
   - **Quyết định của chủ dự án (2026-10-16):** giữ trần 15, nhưng dành lượt gọi cho giải thích, gợi ý sau câu sai và kéo về bài.

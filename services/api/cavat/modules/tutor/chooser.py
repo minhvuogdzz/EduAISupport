@@ -22,8 +22,9 @@ from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, ModelClass
 from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.tutor.contracts import PolicyDecision
 from cavat.modules.tutor.policy import MoveOption
+from cavat.modules.tutor.validator import foreign_script
 
-CHOOSER_VERSION = "move-chooser/0.1.0"
+CHOOSER_VERSION = "move-chooser/0.1.1"  # 0.1.1: a reason is cut where it slips into another script
 MAX_TEXT = 300
 MAX_REASON = 160
 
@@ -90,6 +91,16 @@ def _case(menu: Sequence[MoveOption], stem: str, last_tutor: str, said: str) -> 
     }
 
 
+def clean_reason(text: str) -> str:
+    """The reason as the teacher reads it: cut where Qwen slips into another script ("trước khi介入",
+    seen live in AUTO-3), and at ``MAX_REASON`` characters."""
+    text = text.strip()
+    at = foreign_script(text)
+    if at is not None:
+        text = text[:at].rstrip(" ,;:") + "…" if text[:at].strip() else ""
+    return text[:MAX_REASON]
+
+
 class ModelChooser:
     """Qwen picks the move; ``calls_made`` adds to the session's count of model calls.
 
@@ -135,7 +146,7 @@ class ModelChooser:
         data = outcome.result.data if outcome.result is not None else None
         if not data or not isinstance(data.get("choice"), str):
             return None
-        return Choice(data["choice"].strip()[:4], str(data.get("reason", "")).strip()[:MAX_REASON])
+        return Choice(data["choice"].strip()[:4], clean_reason(str(data.get("reason", ""))))
 
 
 class RecordedChooser:

@@ -3,7 +3,7 @@ WEB := apps/web
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev
+.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -100,6 +100,9 @@ paper-data: ## Regenerate docs/paper/data/*.json (database read-only, no writes)
 
 eval-baselines: ## CAVAT against a market chatbot (Gemini) and a prompted LLM (Qwen): hard students and grading (free-tier quota)
 	cd services/api && .venv/bin/python scripts/eval_vs_baselines.py
+
+eval-chooser: ## How Qwen picks among the moves the policy allows, on many turns (AUTO-3; reads the database, writes none; uses the Groq quota)
+	cd services/api/scripts && ../.venv/bin/python eval_chooser.py
 
 misconception-coverage: ## Which misconceptions of the published chapters the tutor recognises (reads the database, writes none)
 	cd services/api && .venv/bin/python scripts/misconception_coverage.py
