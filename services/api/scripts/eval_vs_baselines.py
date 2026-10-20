@@ -40,6 +40,7 @@ from cavat.modules.assessment.math_checker import check_answer, classify_intent
 from cavat.modules.assessment.vi_numbers import extract_numbers, parse_literal
 from cavat.modules.content.chapter_package import load_chapter
 from cavat.modules.teaching.conductor import clean
+from cavat.modules.tutor.chooser import ModelChooser
 from cavat.modules.tutor.item_loop import ItemTutor
 from cavat.modules.tutor.llm_renderer import LLMRenderer
 from cavat.modules.tutor.reader import LiveReader, ModelReader
@@ -172,6 +173,8 @@ def cavat_tutor(router) -> list[Reply]:
             renderer,
             validate_message,
             reader=LiveReader(ModelReader(router)),
+            # AUTO-1: as in a session with the LLM tutor (TUTOR_CHOOSER=llm), Qwen picks among allowed moves
+            chooser=ModelChooser(router) if get_settings().tutor_chooser == "llm" else None,
         )
         before = tutor.start().text
         for said in messages:
