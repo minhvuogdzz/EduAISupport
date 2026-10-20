@@ -227,6 +227,23 @@ def macros() -> dict[str, str]:
     put("CavTurnsLLM", src.get("LLM", 0))
     put("CavTurnsTemplate", src.get("TEMPLATE", 0) + src.get("GENERIC", 0))
     put("CavTurnsFallback", src.get("FALLBACK", 0))
+    # The routed CAVAT against the flat RAG on held-out v2 (prose of the compact paper, PAPER-13)
+    v2 = RAG["stats"]["flat"]["published_holdout_v2"]
+    put("CavHitThreeVtwo", v2["hybrid+rerank"]["hit3"])
+    put("CavMrrVtwo", f"{v2['hybrid+rerank']['mrr']:.3f}".replace(".", ","))
+    put("FlatHitThreeVtwo", v2["flat-hybrid"]["hit3"])
+    put("FlatMrrVtwo", f"{v2['flat-hybrid']['mrr']:.3f}".replace(".", ","))
+    # The paired comparison of the long paper (09-results-rag): math-mode values, e.g. $=+\FlatDeltaMrrVtwo$
+    vs = RAG["stats"]["flat_vs_production"]["flat-hybrid"]
+
+    def m3(x: float) -> str:
+        return f"{x:.3f}".replace(".", "{,}")
+
+    for tag, key in (("Vtwo", "published_holdout_v2"), ("All", "all_published")):
+        d, lo, hi = vs[key]["delta_mrr"]
+        out[f"FlatDeltaMrr{tag}"] = m3(d)
+        out[f"FlatDeltaMrr{tag}Lo"] = m3(lo)
+        out[f"FlatDeltaMrr{tag}Hi"] = m3(hi)
     mean_att = sum(t["att"] for t in targets()) / 7
     out["TargetMean"] = pct(mean_att)
     return out
@@ -524,13 +541,14 @@ def tab_plan_stats() -> None:
 
 def tab_drafts() -> None:
     p = CORPUS["plans"]
-    kinds = ["HINT", "KEY_IDEA", "ACCEPT", "REPLY", "ASK"]
+    kinds = ["HINT", "KEY_IDEA", "ACCEPT", "REPLY", "ASK", "VERIFY"]
     kind_vi = {
         "HINT": "Gợi ý H1--H3 của câu",
         "KEY_IDEA": "Ý chính của bài kể lại",
         "ACCEPT": "Cách nói được chấp nhận",
         "REPLY": "Câu trả lời mẫu",
         "ASK": "Câu hỏi giải thích thiếu",
+        "VERIFY": "Câu hỏi vì sao của tiết",  # FIX-3
     }
     rows = []
     for k in kinds:
@@ -569,9 +587,15 @@ def tab_drafts() -> None:
         "NOT_IN_THE_RULE": "Ý chính không có trong quy tắc",
         "ANSWER_LEAK": "Nói ra đáp án",
         "TOO_LONG": "Quá dài",
+        # FIX-3: the period's "vì sao" serves every item of the period
+        "HAS_NUMBER": "Có con số (câu vì sao dùng chung cho cả tiết)",
+        "NOT_ONE_QUESTION": "Không phải đúng một câu hỏi",
+        "STARTS_WITH_PRAISE": "Mở đầu bằng lời khen",
+        "WRONG_ADDRESS": "Xưng hô sai",
+        "FOREIGN_TEXT": "Chen chữ nước ngoài",
     }
     rows = [
-        [f"\\code{{{tex_escape(k)}}}", code_vi.get(k, k), str(v)]
+        [f"\\code{{{tex_escape(k)}}}", code_vi.get(k, tex_escape(k)), str(v)]
         for k, v in sorted(codes.items(), key=lambda kv: -kv[1])
     ]
     write(
@@ -588,12 +612,16 @@ def tab_drafts() -> None:
         "node/pass_rule": "Luật qua tiết",
         "node/explain": "Ý chính, bài kể lại",
         "node/method": "Phương pháp",
+        "node/verify": "Câu hỏi vì sao của tiết",  # FIX-3
+        "misconception": "Phản ví dụ của lỗi sai",  # FIX-3
     }
     targets: dict[str, int] = defaultdict(int)
     for c in p:
         for k, v in p[c]["decisions"]["by_target"].items():
             targets[k] += v
-    rows = [[target_vi.get(k, k), str(v)] for k, v in sorted(targets.items(), key=lambda kv: -kv[1])]
+    rows = [
+        [target_vi.get(k, tex_escape(k)), str(v)] for k, v in sorted(targets.items(), key=lambda kv: -kv[1])
+    ]
     write("tab-decisions.tex", table(r"@{}lr@{}", ["Đối tượng được duyệt", "Quyết định"], rows))
 
 

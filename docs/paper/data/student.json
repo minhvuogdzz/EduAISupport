@@ -5953,6 +5953,16 @@
       "days": null,
       "session_id": null,
       "at": null
+     },
+     {
+      "kind": "INACTIVE",
+      "node_id": null,
+      "misconception_id": null,
+      "count": null,
+      "mastery": null,
+      "days": 7,
+      "session_id": null,
+      "at": null
      }
     ]
    }

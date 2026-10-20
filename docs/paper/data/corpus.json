@@ -286,7 +286,7 @@
  },
  "plans": {
   "math-g5-decimals": {
-   "version": "tl-20261012142023",
+   "version": "tl-20261019140524",
    "nodes": 11,
    "relations": {
     "PREREQUISITE": 6,
@@ -696,8 +696,8 @@
     "with_bug_rule": 0
    },
    "drafts": {
-    "n": 861,
-    "ok": 568,
+    "n": 872,
+    "ok": 575,
     "by_kind": {
      "ACCEPT": {
       "n": 56,
@@ -718,10 +718,14 @@
      "REPLY": {
       "n": 18,
       "ok": 16
+     },
+     "VERIFY": {
+      "n": 11,
+      "ok": 7
      }
     },
     "by_model": {
-     "qwen/qwen3.8-27b": 450,
+     "qwen/qwen3.8-27b": 461,
      "openai/gpt-oss-120b": 411
     },
     "codes": {
@@ -729,14 +733,15 @@
      "UNGROUNDED_NUMBER": 82,
      "MISSING_QUESTION": 60,
      "MULTIPLE_QUESTIONS": 25,
-     "EMPTY": 20
+     "EMPTY": 20,
+     "HAS_NUMBER": 4
     }
    },
    "decisions": {
-    "n": 780,
+    "n": 791,
     "by_action": {
      "approve": 651,
-     "edit": 75,
+     "edit": 86,
      "reject": 54
     },
     "by_target": {
@@ -745,21 +750,22 @@
      "node/theory": 26,
      "node/worked_examples": 17,
      "node": 11,
+     "node/verify": 11,
      "node/pass_rule": 4,
      "node/explain": 2,
      "node/method": 2
     },
     "by_reviewer": {
      "teacher": 2,
-     "assistant": 778
+     "assistant": 789
     }
    },
    "left_out": 4,
    "problems": 0,
-   "published_versions": 4
+   "published_versions": 5
   },
   "math-g5-area-triangle-trapezoid": {
-   "version": "tl-20261012142023",
+   "version": "tl-20261019140531",
    "nodes": 8,
    "relations": {
     "PREREQUISITE": 3,
@@ -1058,8 +1064,8 @@
     "with_bug_rule": 0
    },
    "drafts": {
-    "n": 518,
-    "ok": 401,
+    "n": 526,
+    "ok": 408,
     "by_kind": {
      "ACCEPT": {
       "n": 42,
@@ -1076,15 +1082,19 @@
      "REPLY": {
       "n": 14,
       "ok": 12
+     },
+     "VERIFY": {
+      "n": 8,
+      "ok": 7
      }
     },
     "by_model": {
-     "qwen/qwen3.8-27b": 321,
+     "qwen/qwen3.8-27b": 329,
      "openai/gpt-oss-120b": 197
     },
     "codes": {
      "MISSING_QUESTION": 63,
-     "NEW_MATH_TERM": 44,
+     "NEW_MATH_TERM": 45,
      "NOT_IN_THE_RULE": 6,
      "UNGROUNDED_NUMBER": 4,
      "ANSWER_LEAK": 2,
@@ -1093,9 +1103,9 @@
     }
    },
    "decisions": {
-    "n": 546,
+    "n": 555,
     "by_action": {
-     "edit": 54,
+     "edit": 63,
      "reject": 31,
      "approve": 461
     },
@@ -1105,16 +1115,18 @@
      "node/theory": 19,
      "node/worked_examples": 18,
      "node": 8,
+     "node/verify": 8,
      "node/method": 6,
-     "node/explain": 3
+     "node/explain": 3,
+     "misconception": 1
     },
     "by_reviewer": {
-     "assistant": 546
+     "assistant": 555
     }
    },
    "left_out": 4,
    "problems": 0,
-   "published_versions": 4
+   "published_versions": 5
   }
  }
 }
