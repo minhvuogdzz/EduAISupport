@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import type { AnswerFormat, CommandType, CurrentItem, MicroChoice } from "../../api/contract";
 import { LightbulbIcon, SendIcon } from "../../components/icons";
@@ -14,6 +14,8 @@ interface AnswerPanelProps {
   /** Replies in words to the teaching loop (theory question, retell) have no hint to ask for. */
   showHint?: boolean;
   placeholder?: string;
+  /** UI-1: what starts the answer row (the voice switch), so the footer is one row. */
+  leading?: ReactNode;
 }
 
 /** Signs a 10-year-old cannot easily type on a tablet keyboard. */
@@ -51,6 +53,7 @@ export function AnswerPanel({
   onChoose,
   showHint = true,
   placeholder,
+  leading,
 }: AnswerPanelProps) {
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -93,12 +96,20 @@ export function AnswerPanel({
   }
 
   const bigButton =
-    "min-h-11 rounded-xl px-4 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50";
+    "min-h-11 rounded-xl px-3.5 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-50";
+  const decimals = symbols.includes(",") && !explaining;
+  const hint =
+    placeholder ??
+    (explaining
+      ? "Con giải thích ở đây…"
+      : decimals
+        ? "Con trả lời ở đây (số thập phân viết dấu phẩy: 0,25)"
+        : "Con trả lời ở đây…");
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-2.5">
+    <div className="mx-auto flex max-w-3xl flex-col gap-1.5 px-3 py-2 sm:px-4">
       {pendingChoice && (
-        <div role="group" aria-label="Con chọn một cách" className="flex flex-wrap gap-3">
+        <div role="group" aria-label="Con chọn một cách" className="flex flex-wrap gap-2">
           {pendingChoice.map((choice) => (
             <button
               key={choice.choice_id}
@@ -114,14 +125,14 @@ export function AnswerPanel({
       )}
 
       {(answers.length > 0 || symbols.length > 0) && (
-        <div className="flex flex-wrap gap-2" aria-label="Chọn nhanh">
+        <div className="flex flex-wrap gap-1.5" aria-label="Chọn nhanh">
           {answers.map((answer) => (
             <button
               key={answer}
               type="button"
               disabled={!canAnswer}
               onClick={() => setDraft(answer)}
-              className={`${bigButton} bg-white text-slate-900 ring-1 ring-slate-300 hover:ring-2 hover:ring-brand-600`}
+              className={`${bigButton} bg-white font-medium text-slate-900 ring-1 ring-slate-200 hover:ring-brand-500`}
             >
               {answer}
             </button>
@@ -134,7 +145,7 @@ export function AnswerPanel({
               disabled={!canAnswer}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => insert(symbol)}
-              className="size-11 rounded-xl bg-white text-2xl font-bold text-slate-900 ring-1 ring-slate-300 hover:ring-2 hover:ring-brand-600 disabled:opacity-50"
+              className="size-11 rounded-xl bg-white text-xl font-bold text-slate-900 ring-1 ring-slate-200 hover:ring-brand-500 disabled:opacity-50"
             >
               {symbol}
             </button>
@@ -143,61 +154,60 @@ export function AnswerPanel({
       )}
 
       <form
-        className="flex items-end gap-2 rounded-3xl border border-gold/30 bg-white p-2 shadow-lg focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-100"
+        className="flex items-end gap-1.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100"
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
         }}
       >
+        {leading}
         <label htmlFor="answer" className="sr-only">
           {explaining ? "Lời giải thích của con" : "Câu trả lời của con"}
         </label>
         <textarea
           id="answer"
           ref={inputRef}
-          rows={explaining ? 3 : 1}
+          rows={explaining ? 2 : 1}
           value={draft}
           maxLength={500}
           disabled={!canAnswer}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={placeholder ?? (explaining ? "Con giải thích ở đây…" : "Con viết câu trả lời ở đây…")}
+          placeholder={hint}
           lang="vi"
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="min-h-11 flex-1 resize-none rounded-xl bg-transparent px-3 py-2 text-lg placeholder:text-slate-400 focus-visible:outline-none disabled:opacity-60"
+          className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-2.5 text-base leading-6 placeholder:text-slate-400 focus-visible:outline-none disabled:opacity-60"
         />
-        <button
-          type="submit"
-          disabled={busy || !canAnswer || !draft.trim()}
-          className={`${bigButton} inline-flex items-center gap-2 bg-brand-700 text-white hover:bg-brand-800`}
-        >
-          Gửi
-          <SendIcon className="size-5" />
-        </button>
-      </form>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
         {showHint && (
           <button
             type="button"
             onClick={onHint}
             disabled={busy || !allowed.includes("HINT_REQUEST")}
-            className={`${bigButton} inline-flex items-center gap-2 bg-amber-100 text-amber-950 ring-2 ring-amber-300 hover:bg-amber-200`}
+            aria-label="Xin gợi ý"
+            title="Xin gợi ý"
+            className={`${bigButton} inline-flex shrink-0 items-center gap-1.5 bg-amber-50 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100`}
           >
             <LightbulbIcon className="size-5" />
-            Xin gợi ý
+            <span className="hidden sm:inline">Gợi ý</span>
           </button>
         )}
-        <p className="text-sm text-slate-600" aria-live="polite">
-          {busy
-            ? "Cô đang trả lời…"
-            : symbols.includes(",") && !explaining
-              ? "Viết số thập phân bằng dấu phẩy, ví dụ 0,25."
-              : ""}
+        <button
+          type="submit"
+          disabled={busy || !canAnswer || !draft.trim()}
+          aria-label="Gửi"
+          className={`${bigButton} inline-flex shrink-0 items-center gap-1.5 bg-brand-700 text-white hover:bg-brand-800`}
+        >
+          <span className="hidden sm:inline">Gửi</span>
+          <SendIcon className="size-5" />
+        </button>
+      </form>
+      {busy && (
+        <p className="px-1 text-xs text-slate-500" aria-live="polite">
+          Cô đang trả lời…
         </p>
-      </div>
+      )}
     </div>
   );
 }

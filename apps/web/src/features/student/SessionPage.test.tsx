@@ -59,7 +59,7 @@ describe("student session screen", () => {
     const group = within(card).getByText("0,7").parentElement;
     expect(group).toHaveClass("whitespace-nowrap");
     expect(group).toContainElement(within(card).getByText("0,65"));
-    expect(screen.getByText("Viết số thập phân bằng dấu phẩy, ví dụ 0,25.")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/số thập phân viết dấu phẩy: 0,25/)).toBeInTheDocument();
   });
 
   it("answers with the sign buttons, gets a counter-example for DEC-M01, then moves on", async () => {

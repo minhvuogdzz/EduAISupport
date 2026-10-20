@@ -11,21 +11,26 @@ const PHASE_TEXT: Record<VoiceLive["phase"], string> = {
 // VOICE-2 (drafted for the owner's review): the child knows it may talk over the tutor.
 const SPEAKING_BARGE = "Cô đang nói… con muốn nói thì cứ nói, cô sẽ dừng lại nghe con.";
 
-/** The voice live switch and what the tutor is doing: speaking, listening, what it heard (ADR-030). */
-export function VoiceBar({ voice }: { voice: VoiceLive }) {
+/**
+ * The voice live switch (ADR-030), at the start of the answer row (UI-1: one row instead of a bar of its
+ * own). On: a second button to talk now, or to stop the tutor and talk.
+ */
+export function VoiceToggle({ voice }: { voice: VoiceLive }) {
   if (!voice.available) return null;
   const listening = voice.phase === "listening";
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-2" aria-live="polite">
+    <>
       <button
         type="button"
         onClick={voice.toggle}
         aria-pressed={voice.on}
-        className={`rounded-2xl px-3 py-1.5 text-sm font-semibold ring-1 ${
-          voice.on ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-brand-800 ring-brand-200"
+        aria-label={voice.on ? "Tắt nói chuyện" : "Nói chuyện với cô"}
+        title={voice.on ? "Tắt nói chuyện" : "Nói chuyện với cô"}
+        className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-lg ring-1 ${
+          voice.on ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-brand-800 ring-slate-200"
         }`}
       >
-        {voice.on ? "Tắt nói chuyện" : "🎤 Nói chuyện với cô"}
+        {voice.on ? "✕" : "🎤"}
       </button>
       {voice.on && (
         <button
@@ -34,8 +39,8 @@ export function VoiceBar({ voice }: { voice: VoiceLive }) {
           aria-label={
             listening ? "Dừng nghe" : voice.phase === "speaking" ? "Ngắt lời cô để nói" : "Bấm để nói"
           }
-          className={`flex size-9 items-center justify-center rounded-full ring-1 ${
-            listening ? "bg-rose-500 text-white ring-rose-500" : "bg-white ring-slate-300"
+          className={`flex size-11 shrink-0 items-center justify-center rounded-xl ring-1 ${
+            listening ? "bg-rose-500 text-white ring-rose-500" : "bg-white ring-slate-200"
           }`}
           style={
             listening
@@ -46,14 +51,31 @@ export function VoiceBar({ voice }: { voice: VoiceLive }) {
           {listening ? "■" : "🎤"}
         </button>
       )}
-      {voice.on && (
-        <p className="min-w-0 flex-1 truncate text-sm text-slate-700">
-          {voice.problem ??
-            (voice.phase === "speaking" && voice.bargeIn
-              ? SPEAKING_BARGE
-              : PHASE_TEXT[voice.phase] || (voice.heard ? `Cô nghe con nói: «${voice.heard}»` : ""))}
-        </p>
-      )}
-    </div>
+    </>
+  );
+}
+
+/** What the tutor is doing while voice is on: speaking, listening, what it heard. One short line. */
+export function VoiceStatus({ voice }: { voice: VoiceLive }) {
+  if (!voice.available || !voice.on) return null;
+  const text =
+    voice.problem ??
+    (voice.phase === "speaking" && voice.bargeIn
+      ? SPEAKING_BARGE
+      : PHASE_TEXT[voice.phase] || (voice.heard ? `Cô nghe con nói: «${voice.heard}»` : ""));
+  return (
+    <p className="mx-auto max-w-3xl truncate px-4 pt-2 text-sm text-slate-600" aria-live="polite">
+      {text}
+    </p>
+  );
+}
+
+/** Both parts together (the switch and its status line), where they share a row. */
+export function VoiceBar({ voice }: { voice: VoiceLive }) {
+  return (
+    <>
+      <VoiceToggle voice={voice} />
+      <VoiceStatus voice={voice} />
+    </>
   );
 }

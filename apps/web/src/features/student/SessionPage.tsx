@@ -39,10 +39,10 @@ export function SessionPage() {
   const notice = view.notice && (
     <p
       role="status"
-      className="flex items-center justify-between gap-3 rounded-2xl bg-sky-100 px-4 py-3 text-base text-sky-950"
+      className="flex items-center justify-between gap-3 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-950 ring-1 ring-sky-200"
     >
       {view.notice}
-      <button type="button" onClick={dismissNotice} className="rounded-xl px-3 py-1 font-semibold underline">
+      <button type="button" onClick={dismissNotice} className="rounded-lg px-2 py-1 font-semibold underline">
         Đã hiểu
       </button>
     </p>

@@ -14,7 +14,7 @@ import { Conversation } from "./Conversation";
 import { QuestionCard } from "./QuestionCard";
 import type { DisplayTurn, TutorView } from "./tutorSession";
 import { useVoiceLive } from "./voice/useVoiceLive";
-import { VoiceBar } from "./voice/VoiceBar";
+import { VoiceStatus, VoiceToggle } from "./voice/VoiceBar";
 
 interface ChapterSessionProps {
   state: SessionState;
@@ -90,9 +90,14 @@ export function ChapterSession({
           position: 0,
         }
       : null;
+  // UI-1: while the tutor's last words are the question itself, a pinned card would say it a second time;
+  // it comes back (pinned) once the tutor says something else, a hint for instance.
+  const lastTutor = [...turns].reverse().find((turn) => turn.actor === "tutor")?.text ?? "";
+  const promptShown = Boolean(teaching.prompt) && !lastTutor.includes(teaching.prompt ?? "");
+  const itemShown = Boolean(state.item) && !lastTutor.includes(state.item?.stem ?? "");
 
   return (
-    <div className="flex h-dvh flex-col bg-amber-50">
+    <div className="flex h-dvh flex-col bg-paper">
       <title>{`${teaching.chapter.title} · CAVAT`}</title>
       <MockBanner />
       <ChapterHeader state={state} teaching={teaching} nodeName={current?.name ?? null} />
@@ -101,32 +106,33 @@ export function ChapterSession({
           ref={scrollerRef}
           className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none]"
         >
-          <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-4">
-            <div className="flex flex-col gap-4 lg:hidden">
-              {steps && <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">{steps}</div>}
-              <details className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                <summary className="cursor-pointer font-semibold">
+          <main className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-3 py-3 sm:px-4">
+            <div className="flex flex-col gap-2 lg:hidden">
+              {steps && <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">{steps}</div>}
+              <details className="rounded-2xl bg-white px-4 py-2.5 ring-1 ring-slate-200">
+                <summary className="cursor-pointer text-sm font-semibold">
                   Bản đồ bài học · {teaching.passed}/{teaching.total} bài đã qua
                 </summary>
                 <div className="mt-3">{map}</div>
               </details>
             </div>
-            {state.item ? (
-              <div className="md:sticky md:top-0 md:z-10 md:-mt-4 md:bg-amber-50 md:pt-4 md:pb-1">
-                <QuestionCard
-                  item={state.item}
-                  total={0}
-                  label={ITEM_STEP_LABEL[teaching.step ?? 0] ?? "Câu hỏi"}
-                />
-              </div>
-            ) : (
-              reply &&
-              teaching.prompt && (
-                <div className="md:sticky md:top-0 md:z-10 md:-mt-4 md:bg-amber-50 md:pt-4 md:pb-1">
-                  <PromptCard prompt={teaching.prompt} retell={teaching.awaiting === "RETELL"} />
-                </div>
-              )
-            )}
+            {state.item
+              ? itemShown && (
+                  <div className="md:sticky md:top-0 md:z-10 md:-mt-3 md:bg-paper md:pt-3 md:pb-1">
+                    <QuestionCard
+                      item={state.item}
+                      total={0}
+                      label={ITEM_STEP_LABEL[teaching.step ?? 0] ?? "Câu hỏi"}
+                    />
+                  </div>
+                )
+              : reply &&
+                teaching.prompt &&
+                promptShown && (
+                  <div className="md:sticky md:top-0 md:z-10 md:-mt-3 md:bg-paper md:pt-3 md:pb-1">
+                    <PromptCard prompt={teaching.prompt} retell={teaching.awaiting === "RETELL"} />
+                  </div>
+                )}
             <Conversation
               turns={turns}
               typing={typing}
@@ -138,18 +144,18 @@ export function ChapterSession({
         </div>
         <aside
           aria-label="Bản đồ bài học"
-          className="hidden w-[24rem] shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4 lg:block"
+          className="hidden w-[22rem] shrink-0 overflow-y-auto border-l border-slate-200 bg-white px-4 py-3 lg:block"
         >
-          {steps && <div className="mb-5 rounded-2xl bg-brand-50 p-3">{steps}</div>}
-          <h2 className="font-semibold">Bản đồ bài học</h2>
-          <p className="mb-3 text-sm text-slate-600">
+          {steps && <div className="mb-4 rounded-2xl bg-brand-50/70 px-3 py-3">{steps}</div>}
+          <h2 className="text-sm font-semibold">Bản đồ bài học</h2>
+          <p className="mb-2 text-xs text-slate-500">
             {teaching.passed}/{teaching.total} bài đã qua
           </p>
           {map}
         </aside>
       </div>
       <footer className="shrink-0 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
-        {state.lifecycle_state !== "COMPLETED" && <VoiceBar voice={voice} />}
+        {state.lifecycle_state !== "COMPLETED" && <VoiceStatus voice={voice} />}
         {state.lifecycle_state === "COMPLETED" ? (
           <ChapterComplete teaching={teaching} />
         ) : state.item ? (
@@ -161,6 +167,7 @@ export function ChapterSession({
             onSubmit={onSubmit}
             onHint={onHint}
             onChoose={onChoose}
+            leading={<VoiceToggle voice={voice} />}
           />
         ) : reply ? (
           <AnswerPanel
@@ -172,12 +179,13 @@ export function ChapterSession({
             onHint={onHint}
             onChoose={onChoose}
             showHint={false}
+            leading={<VoiceToggle voice={voice} />}
             placeholder={
               teaching.awaiting === "RETELL" ? "Con nói lại bằng lời của con…" : "Con trả lời cô ở đây…"
             }
           />
         ) : (
-          <p className="px-4 py-4 text-center text-base text-slate-700">Con chờ cô một chút nhé…</p>
+          <p className="px-4 py-3 text-center text-sm text-slate-600">Con chờ cô một chút nhé…</p>
         )}
       </footer>
     </div>
@@ -196,21 +204,21 @@ function ChapterHeader({
   const percent = teaching.total ? Math.round((teaching.passed / teaching.total) * 100) : 0;
   const step = teaching.step ? TEACHING_STEPS[teaching.step - 1] : null;
   return (
-    <header className="border-b border-gold/25 bg-white">
-      <div className="mx-auto flex items-center gap-3 px-4 py-3 lg:max-w-none">
+    <header className="border-b border-slate-200 bg-white">
+      <div className="mx-auto flex items-center gap-3 px-4 py-2 lg:max-w-none">
         <Link to="/" aria-label="CAVAT, trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-2xl">
-          <Mascot size={40} />
+          <Mascot size={32} />
           <span className="hidden font-extrabold text-brand-900 sm:inline">CAVAT</span>
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-brand-800">
+          <p className="truncate text-xs font-medium text-brand-700">
             {state.lifecycle_state === "COMPLETED"
               ? "Tổng kết"
               : [nodeName, step].filter(Boolean).join(" · ")}
           </p>
-          <h1 className="truncate text-lg font-semibold">{teaching.chapter.title}</h1>
+          <h1 className="truncate text-base font-semibold">{teaching.chapter.title}</h1>
         </div>
-        <p className="shrink-0 text-base font-medium">
+        <p className="shrink-0 text-sm font-medium text-slate-700">
           <span className="sr-only">Học sinh: </span>
           {state.student_display_name}
         </p>
@@ -222,7 +230,7 @@ function ChapterHeader({
         aria-valuemax={teaching.total}
         aria-valuenow={teaching.passed}
         aria-valuetext={`Đã qua ${teaching.passed}/${teaching.total} bài`}
-        className="h-2 bg-slate-100"
+        className="h-1 bg-slate-100"
       >
         <div
           className="h-full bg-brand-500 transition-[width] duration-500"
@@ -238,12 +246,12 @@ function PromptCard({ prompt, retell }: { prompt: string; retell: boolean }) {
   return (
     <section
       aria-labelledby="prompt-title"
-      className="rounded-2xl bg-white p-4 shadow-sm ring-2 ring-sky-200"
+      className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-sky-200"
     >
-      <h2 id="prompt-title" className="text-sm font-semibold text-sky-800">
+      <h2 id="prompt-title" className="text-xs font-semibold tracking-wide text-sky-800 uppercase">
         {retell ? "Con nói lại giúp cô" : "Cô hỏi con"}
       </h2>
-      <p className="mt-1.5 text-lg leading-snug font-medium text-pretty md:text-xl">
+      <p className="mt-1 text-[17px] leading-snug font-medium text-pretty md:text-lg">
         <MathText text={prompt} />
       </p>
     </section>
