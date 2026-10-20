@@ -9,8 +9,8 @@
   \node[stage] (parse) at (8.0,0) {\textbf{3. Phân tích tất định}\\ cắt câu hỏi, đáp án, bài kể lại, lỗi sai;\\ gắn câu vào tiết của giáo án;\\ không dùng mô hình};
   \node[stage] (verify) at (12.0,0) {\textbf{4. Kiểm đáp án chính xác}\\ 389 câu: 349 đã kiểm đúng;\\ 2 mâu thuẫn, 1 lệch,\\ 4 xem lại, 33 chưa kiểm được};
   \node[stage] (plan) at (12.0,-3.1) {\textbf{5. Phương án dạy}\\ đồ thị 19 tiết, 28 quan hệ;\\ 381 câu, 54 lỗi sai;\\ lý thuyết, phương pháp, ví dụ lấy từ lời giáo viên};
-  \node[model] (draft) at (8.0,-3.1) {\textbf{6. Mô hình soạn phần thiếu}\\ 1\,379 đoạn (gợi ý, ý chính,\\ cách nói chấp nhận); bộ kiểm chứng\\ giữ 969 đoạn};
-  \node[human] (review) at (4.0,-3.1) {\textbf{7. Duyệt}\\ 1\,326 quyết định:\\ 1\,112 chấp nhận, 129 sửa,\\ 85 loại; mỗi quyết định ghi người duyệt};
+  \node[model] (draft) at (8.0,-3.1) {\textbf{6. Mô hình soạn phần thiếu}\\ 1\,398 đoạn (gợi ý, ý chính,\\ cách nói chấp nhận); bộ kiểm chứng\\ giữ 983 đoạn};
+  \node[human] (review) at (4.0,-3.1) {\textbf{7. Duyệt}\\ 1\,346 quyết định:\\ 1\,112 chấp nhận, 149 sửa,\\ 85 loại; mỗi quyết định ghi người duyệt};
   \node[stage] (index) at (0,-3.1) {\textbf{8. Chỉ mục truy xuất}\\ 221 đoạn (83 đoạn tài liệu);\\ BM25 hai dạng và vector 768 chiều;\\ gắn mỗi đoạn vào tiết};
   \draw[arr] (docs) -- (read);\draw[arr] (read) -- (parse);\draw[arr] (parse) -- (verify);
   \draw[arr] (verify) -- (plan);\draw[arr] (plan) -- (draft);\draw[arr] (draft) -- (review);\draw[arr] (review) -- (index);
