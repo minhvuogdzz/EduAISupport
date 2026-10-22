@@ -175,6 +175,8 @@ def cavat_tutor(router) -> list[Reply]:
             reader=LiveReader(ModelReader(router)),
             # AUTO-1: as in a session with the LLM tutor (TUTOR_CHOOSER=llm), Qwen picks among allowed moves
             chooser=ModelChooser(router) if get_settings().tutor_chooser == "llm" else None,
+            # DI-65: each role is a child's first item on the KC, as in a session that opens with it
+            first_on_kc=True,
         )
         before = tutor.start().text
         for said in messages:

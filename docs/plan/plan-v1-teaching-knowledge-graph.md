@@ -461,6 +461,21 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-65, hỏi "vì sao" theo việc con đã vững kiến thức chưa (VERIFY-1, `hint-policy/0.10.0`, chủ dự án duyệt 2026-10-22):**
+  - **Vấn đề:** R-VERIFY hỏi "vì sao" ở 30% số câu, lấy mẫu cố định theo mã câu. Vai "đúng mà lý do chưa chắc" (con trả lời "0,9" đúng ngay, thật ra là đoán) không được hỏi, Socratic 1/5.
+  - **Cơ sở:**
+    - hiệu ứng tự giải thích: nói ra lý do giúp nhiều nhất khi kiến thức còn mới hoặc chưa vững;
+    - hiệu ứng đảo ngược chuyên môn: bắt người đã thành thạo giải thích lại điều đã vững không giúp thêm.
+  - **Luật (`policy._correct`):** sau một câu đúng, nếu chưa hỏi "vì sao" ở câu đó và không phải bài kiểm tra, gia sư hỏi "vì sao" khi:
+    1. chưa có câu nào của buổi được giải đúng trên một kiến thức của câu (`ItemFacts.first_on_kc`, mã `FIRST_ON_KC`). Câu giải được cần đến lời giải mẫu (`WORKED`) không tính là đã giải đúng;
+    2. mức nắm vững của tiết chứa câu dưới 0,6 (`PolicyConfig.verify_mastery`, `ItemFacts.kc_mastery` = M/100 của projection, mã `WEAK_KC`);
+    3. còn lại thì giữ mẫu 30% như cũ, gồm cả trường hợp chưa có mức nắm vững.
+  - **Bộ chọn nước đi:** sau câu đúng mà con đã sai trước đó, bộ chọn nước đi (AUTO-5) vẫn được thêm "vì sao".
+  - **Cách tính:** buổi học tính `first_on_kc` và `kc_mastery` từ các sự kiện tính tới quyết định mở câu. Khi chạy và khi dựng lại buổi học, đó đều là quyết định cuối cùng, nên phát lại ra đúng như lúc chạy.
+  - **Ngưỡng 0,6** là DI. Nó nằm giữa R-WEAK-PRIOR (0,4) và R-STRONG-PRIOR (0,75).
+  - **Đo:**
+    - học sinh mô phỏng, hai chương, câu mẫu, trong bộ nhớ: tỉ lệ câu đúng được hỏi "vì sao" tăng từ 70/146 lên 91/158. Trong đó 31 lần là câu đúng đầu tiên trên kiến thức, 5 lần là kiến thức còn yếu;
+    - bài đo vai khó ngày 22/10: vai "đúng mà lý do chưa chắc" được hỏi "vì sao". Khi con nói "vì con đoán ạ", gia sư hỏi con kể rõ hơn (5/5 ở cả hai lượt). Trong bài đo, mỗi vai được coi là câu đầu tiên của con trên kiến thức đó, như một buổi học mở đầu bằng câu ấy.
 - **DI-64, phản ví dụ nói rõ vì sao nó đến, và lần sau là phản ví dụ khác (FIX-6, `template-renderer.v7`, 2026-10-22):**
   - **Vấn đề:** ở vai "sai mà chắc" (bài đo vai khó 21/10 và 22/10), con viết 0,09 cho 9/10. Gia sư đưa phản ví dụ của lỗi quan niệm (7 cm = 7/100 m so với 0,7 m). Giám khảo chấm Socratic 2/5, vì thấy phản ví dụ "không liên quan tới đề 9/10": nó nói về số khác mà không báo vì sao. Lần đo 19/10, phản ví dụ còn bị nói lại y nguyên ở lượt sau.
   - **Thay đổi:**
