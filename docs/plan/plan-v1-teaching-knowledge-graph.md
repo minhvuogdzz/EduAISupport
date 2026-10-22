@@ -541,6 +541,29 @@ Chạy song song từ Mốc 1:
       - Lý do nay nêu dấu hiệu trong tình hình, ví dụ "con đã trả lời sai 2 lần và có dấu hiệu bế tắc", "lặp lại cùng một lỗi".
       - Bản `0.1` không bao giờ chọn gợi ý khi còn nước khác. Bản `0.2` chọn gợi ý khi con đã sai nhiều lần. Nhưng ở mẫu này, cách chọn của `0.2` vẫn gần như một luật theo số lần trả lời ("hỏi ở lần đầu, gợi ý từ lần sai thứ hai"). Chưa thấy Qwen dùng lời của con để chọn khác luật đó.
     - **Giới hạn:** chỉ 4 lượt con sai từ 2 lần, một học sinh mô phỏng, một lần hỏi mỗi lượt. Chưa đo lại trong buổi học (AUTO-2) và chưa đo trên học sinh thật.
+  - **"Vì sao" sau câu đúng (AUTO-5, `hint-policy/0.9.0`, `move-chooser/0.3.0`, 2026-10-22):**
+    - **Vấn đề:** bài đo vai khó ngày 21/10 có vai "đúng mà lý do chưa chắc". Con trả lời đúng, gia sư sang câu sau mà không hỏi vì sao (Socratic 1/5). Lý do: R-VERIFY chỉ hỏi "vì sao" ở 30% số câu, lấy mẫu tất định theo mã câu (DI ở `policy._sampled`). Câu không được lấy mẫu thì không bao giờ được hỏi, dù con đúng sau nhiều lần sai.
+    - **Thay đổi:** con trả lời đúng, câu không được lấy mẫu, chưa hỏi "vì sao", chưa xem lời giải mẫu, không phải bài kiểm tra. Khi đó thực đơn có thêm `B`: hỏi "vì sao" rồi mới sang câu.
+      - Hỏi "vì sao" không giúp thêm gì (mức giúp 0).
+      - Câu đóng sau lời giải thích của con với cùng mức hoàn thành.
+      - Mastery không đổi theo lựa chọn này (quy tắc 3).
+      - Tỉ lệ 30% và phép lấy mẫu giữ nguyên. Đây vẫn là DI chờ chủ dự án duyệt.
+    - **Tiêu chí trong prompt:**
+      - hỏi vì sao khi: con đã sai hoặc đã nhận gợi ý ở câu này, hoặc con chọn một phương án trắc nghiệm mà chưa nói cách nghĩ;
+      - sang câu ngay khi: con đúng từ lần đầu, không cần gợi ý, "để con giữ nhịp".
+    - **Đo** (`make eval-chooser`, `evals/reports/2026-10-22-chooser.md`, 3 buổi mô phỏng, 34 lượt con vừa trả lời đúng, Qwen trả lời cả 34):
+
+      | Con vừa trả lời đúng | Lượt | Hỏi vì sao | Sang câu sau |
+      |---|---|---|---|
+      | Đúng ngay lần đầu, chưa có gợi ý | 25 | 3 | 22 |
+      | Đúng sau khi đã sai hoặc đã có gợi ý | 9 | 6 | 3 |
+
+    - **Đọc kết quả:**
+      - Qwen hỏi vì sao ở 6/9 lượt con đúng sau khi đã sai hoặc nhận gợi ý, và 3/25 lượt con đúng ngay. Lựa chọn đi theo tiêu chí đã viết, nhưng chưa khớp hết: 3 lượt "đúng sau khi sai" vẫn sang câu.
+      - Ở 3 lượt "đúng ngay" được hỏi vì sao, lý do Qwen dựa vào lời con, ví dụ "lặp từ 'nghĩ mãi' và không nêu cách xác định hàng".
+    - **Giới hạn:**
+      - vai "đúng mà lý do chưa chắc" (con trả lời "0,9" đúng ngay lần đầu) không có dấu hiệu nào để biết con đoán, nên theo tiêu chí, Qwen sang câu;
+      - một học sinh mô phỏng, một lần hỏi mỗi lượt.
 - **DI-61, dành lượt gọi Qwen cho nước đi quan trọng (LLM-2, `llm-renderer.v5`, 2026-10-16):**
   - **Vấn đề:** trần 15 lần gọi mỗi buổi hết rất sớm. Trong một buổi hình học, PROBE ("con làm thế nào") tiêu 4 trên khoảng 13 lần gọi, rồi 19 gợi ý, 8 lần kéo về bài và 3 lời giải thích chỉ còn dùng được câu mẫu.
   - **Quyết định của chủ dự án (2026-10-16):** giữ trần 15, nhưng dành lượt gọi cho giải thích, gợi ý sau câu sai và kéo về bài.

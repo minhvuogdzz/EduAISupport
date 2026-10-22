@@ -35,7 +35,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.8.0"  # 0.8.0: AUTO-1 (DI-62), the moves allowed on a turn; decide unchanged
+POLICY_VERSION = "hint-policy/0.9.0"  # 0.9.0: AUTO-5, "vì sao" may be chosen after a correct answer
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -172,6 +172,9 @@ def options(
     """
     facts = facts if facts is not None else ItemFacts()
     st, d = inp.state, decision
+    why = _why_option(inp, d)
+    if why is not None:
+        return (MoveOption("A", d), MoveOption("B", why))
     if (
         inp.trigger not in ("ANSWER", "HINT_REQUEST")
         or st.activity == ActivityType.EXIT_ASSESSMENT
@@ -208,6 +211,23 @@ def options(
         return ()
     ids = "ABCDEFG"
     return tuple(MoveOption(ids[i], x) for i, x in enumerate([d, *allowed][:MAX_OPTIONS]))
+
+
+def _why_option(inp: PolicyInput, d: PolicyDecision) -> PolicyDecision | None:
+    """AUTO-5 (DI-62): a correct answer the policy closes at once (R-VERIFY sampled the item out) may get
+    "vì sao" instead. Asking why gives no help, and the item closes after the reply with the same resolution;
+    the chooser asks it where the right answer may be luck (after mistakes or hints on the item)."""
+    st = inp.state
+    if (
+        inp.trigger != "ANSWER"
+        or d.move != Move.CONFIRM_ADVANCE
+        or d.rule_ids != ("R-CORRECT",)
+        or st.verified
+        or st.worked_shown
+        or st.activity == ActivityType.EXIT_ASSESSMENT
+    ):
+        return None
+    return PolicyDecision(move=Move.VERIFY, reason_codes=("CORRECT", "VERIFY_CHOSEN"), rule_ids=("R-VERIFY",))
 
 
 def accept(menu: Sequence[MoveOption], option_id: str) -> PolicyDecision | None:

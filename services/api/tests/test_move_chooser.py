@@ -88,7 +88,9 @@ def test_the_first_wrong_answer_may_get_the_first_hint_instead_of_the_probe():
     "inp",
     [
         _inp(Outcome.WRONG, activity=ActivityType.EXIT_ASSESSMENT, attempt_no=1),  # a test: no choice
-        _inp(Outcome.CORRECT, attempt_no=1),  # the item ends
+        _inp(Outcome.CORRECT, activity=ActivityType.EXIT_ASSESSMENT, attempt_no=1),  # a test ends the item
+        _inp(Outcome.CORRECT, attempt_no=2, verified=True),  # "vì sao" was asked already
+        _inp(Outcome.CORRECT, attempt_no=3, worked_shown=True),  # R-TEACH-BACK stays
         _inp(Outcome.WRONG, error=ErrorClass.CALCULATION, attempt_no=1),  # R-SLIP stays
         _inp(Outcome.WRONG, attempt_no=4, worked_shown=True, hint_levels=[HintLevel.H6]),  # R-FULL stays
         _inp(Outcome.WRONG, attempt_no=1, unproductive_turns=3),  # R-FRUSTRATION stays
@@ -370,3 +372,41 @@ def test_the_chooser_reads_how_the_child_is_doing_on_the_item():
         "co_da_hoi_cach_lam": True,
         "loi_lap_lai_nhieu_nhat": 2,
     }
+
+
+# --- AUTO-5: "vì sao" after a right answer -------------------------------------------------------------
+
+
+def test_a_right_answer_the_policy_closes_may_get_why_instead():
+    inp = _inp(Outcome.CORRECT, attempt_no=2, hint_levels=[HintLevel.H1])
+    d = decide(inp)
+    assert d is not None and d.move == Move.CONFIRM_ADVANCE
+    menu = options(inp, d)
+    assert [(o.id, o.decision.move, o.decision.level, o.decision.resolution) for o in menu] == [
+        ("A", Move.CONFIRM_ADVANCE, None, d.resolution),
+        ("B", Move.VERIFY, None, None),
+    ]
+    played = accept(menu, "B")
+    assert played is not None and played.rule_ids == ("R-VERIFY", CHOICE_RULE)
+    assert describe(menu[1].decision).startswith("Con đã đúng: hỏi con vì sao")
+
+
+def test_why_after_a_right_answer_keeps_the_resolution():
+    """Wrong once, then right: the chooser asks why, the item closes after the reply as it would have."""
+    plain = tutor()
+    plain.on_student("0,09")
+    assert plain.on_student("0,9").resolved
+
+    picks = Picks("A", "B")  # the policy's move on the wrong answer, then "vì sao"
+    t = tutor(picks)
+    t.on_student("0,09")
+    turn = t.on_student("0,9")
+    assert picks.menus[-1] == [Move.CONFIRM_ADVANCE, Move.VERIFY]
+    assert not turn.resolved and turn.move == Move.VERIFY and "?" in turn.text
+    assert chosen(t)[-1]["move"] == "VERIFY" and chosen(t)[-1]["accepted"] is True
+    assert t.on_student("vì mẫu số là 10 nên có một chữ số sau dấu phẩy").resolved
+    assert resolved(plain) and resolved(t) == resolved(plain)
+
+
+def resolved(t: ItemTutor) -> list[Any]:
+    return [e.payload.get("resolution") for e in t.events if e.type == EventType.ITEM_RESOLVED]

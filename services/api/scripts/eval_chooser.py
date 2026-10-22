@@ -146,15 +146,21 @@ def summarize(cases: Sequence[Case], picks: Mapping[str, Choice | None]) -> dict
     for r in rows.values():
         total.update(r)
     stages: dict[str, Counter] = defaultdict(Counter)
+    after_right: dict[str, Counter] = defaultdict(Counter)  # AUTO-5: "vì sao" or the next item
     for c in cases:
         pick = picks.get(c.key)
         if pick is None or pick.option_id not in [chr(65 + i) for i in range(len(c.moves))]:
+            continue
+        if c.moves[0] == "CONFIRM_ADVANCE":
+            after_right[c.stage]["turns"] += 1
+            after_right[c.stage]["why" if pick.option_id != "A" else "next"] += 1
             continue
         least = min(c.helps(chr(65 + i)) for i in range(len(c.moves)))
         stages[c.stage]["turns"] += 1
         stages[c.stage]["least" if c.helps(pick.option_id) == least else "more"] += 1
     return {
         "by_stage": {k: dict(v) for k, v in sorted(stages.items())},
+        "after_right": {k: dict(v) for k, v in sorted(after_right.items())},
         "turns": total["turns"],
         "kept": total["kept"],
         "other": total["other"],
@@ -185,11 +191,20 @@ def report(cases: Sequence[Case], picks: Mapping[str, Choice | None], meta: Mapp
         lines.append(f"| {kind} | {counts} |")
     lines += [
         "",
-        "| Lúc chọn | Lượt Qwen trả lời | Chọn nước giúp ít nhất | Chọn nước giúp nhiều hơn |",
+        "| Lúc chọn (sau câu sai hoặc xin giúp) | Lượt Qwen trả lời "
+        "| Chọn nước giúp ít nhất | Chọn nước giúp nhiều hơn |",
         "|---|---|---|---|",
     ]
     for stage, r in s["by_stage"].items():
         lines.append(f"| {stage} | {r.get('turns', 0)} | {r.get('least', 0)} | {r.get('more', 0)} |")
+    if s["after_right"]:
+        lines += [
+            "",
+            "| Con vừa trả lời đúng (AUTO-5) | Lượt Qwen trả lời | Hỏi vì sao | Sang câu sau |",
+            "|---|---|---|---|",
+        ]
+        for stage, r in s["after_right"].items():
+            lines.append(f"| {stage} | {r.get('turns', 0)} | {r.get('why', 0)} | {r.get('next', 0)} |")
     reasons = [
         (c.kind, c.moves[ord(p.option_id) - 65], p.reason)
         for c in cases
