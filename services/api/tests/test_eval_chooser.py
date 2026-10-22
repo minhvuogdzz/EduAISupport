@@ -94,3 +94,19 @@ def test_the_report_tells_the_first_answer_from_a_repeated_mistake():
     }
     meta = {"date": "2026-10-19", "collected": 2, "sessions": 1, "calls": 0, "cached": 2}
     assert "| đã sai hoặc đã có gợi ý | 1 | 0 | 1 |" in report([first, later], picks, meta)
+
+
+def test_the_report_counts_why_after_a_right_answer_apart():
+    """AUTO-5: "vì sao" and the next item both help 0, so they get their own table, not the hint one."""
+    [first] = recorded_cases()
+    right = replace(first, moves=("CONFIRM_ADVANCE", "VERIFY"), descriptions=("khen", "vì sao"))
+    later = replace(right, situation=(("so_goi_y_da_nhan", 1), ("so_lan_tra_loi", 2)))
+    picks = {right.key: Choice("A", ""), later.key: Choice("B", "")}
+    s = summarize([right, later], picks)
+    assert s["by_stage"] == {}
+    assert s["after_right"] == {
+        "lần trả lời đầu": {"turns": 1, "next": 1},
+        "đã sai hoặc đã có gợi ý": {"turns": 1, "why": 1},
+    }
+    meta = {"date": "2026-10-22", "collected": 2, "sessions": 1, "calls": 0, "cached": 2}
+    assert "| đã sai hoặc đã có gợi ý | 1 | 1 | 0 |" in report([right, later], picks, meta)

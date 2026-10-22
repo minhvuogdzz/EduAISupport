@@ -28,7 +28,7 @@ Luật cứng chọn giống nhau cho mọi đứa trẻ. Một cô giáo nhìn 
    - **Không phương án nào giúp nhiều hơn nước của chính sách:** cùng bậc gợi ý hoặc thấp hơn. Không bao giờ có lời giải mẫu (H6) hay lời giải đầy đủ (H7). Không vượt bậc cao nhất của câu bài tập.
    - **Lượt nào không có lựa chọn** (tập rỗng):
      - bài kiểm tra cuối bài (`EXIT_ASSESSMENT`);
-     - nước đi kết thúc câu (đúng, đóng câu);
+     - nước đi kết thúc câu (đúng, đóng câu), trừ một trường hợp (AUTO-5, 2026-10-22): con trả lời đúng, câu không bị lấy mẫu để hỏi "vì sao" (R-VERIFY), chưa hỏi "vì sao", chưa xem lời giải mẫu, không phải bài kiểm tra. Khi đó phương án `B` là hỏi "vì sao" rồi mới sang câu. Hỏi "vì sao" không giúp gì thêm, và câu đóng sau lời giải thích của con với cùng mức hoàn thành;
      - các luật cố định: hết giờ (R-TIME), bế tắc (R-FRUSTRATION), lời giải đầy đủ (R-FULL), hỏi hai nguyên nhân (R-PROBE-CAUSE), trần gợi ý của bài kiểm tra, lỗi tính nhầm (R-SLIP), "vì sao" trước gợi ý (R-STRONG-PRIOR), giảm bậc (R-DEESCALATE), hết lượt;
      - lượt không phải con trả lời (bắt đầu câu, im lặng).
 2. **Qwen chọn một phương án và nói lý do** (`chooser.ModelChooser`).
