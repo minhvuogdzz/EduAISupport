@@ -22,7 +22,7 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-TEMPLATE_VERSION = "template-renderer.v6"  # v6: FIX-2, no praise before a wrong answer; questions kept
+TEMPLATE_VERSION = "template-renderer.v7"  # v7: FIX-6, the counterexample is tied to the item and varies
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -41,6 +41,9 @@ PHRASES: dict[str, str] = {
     "close_item": "Mình dừng câu này ở đây nhé. {S} đã cố gắng suy nghĩ rất chăm chỉ.",
     "move_on": "Mình sang câu tiếp theo nhé.",  # ADR-019: solved, the "vì sao" skipped (draft wording)
     "explain_lead": "{T} nói rõ hơn nhé:",  # CTX-1 (draft wording): before a sentence of approved content
+    # FIX-6 (drafted, approved on the owner's authority): a counterexample is about other numbers, so the
+    # child is told why it comes now ("không liên quan tới đề", the judge said of it on 2026-10-21).
+    "example_lead": "{T} lấy một ví dụ để {s} so sánh với bài này nhé.",
 }
 
 
@@ -198,16 +201,19 @@ def select_hint(
 
 
 def counter_example(
-    item: Item, package: LessonPackage, misconception_id: str | None
+    item: Item, package: LessonPackage, misconception_id: str | None, shown: int = 0
 ) -> tuple[str, str] | None:
-    """First usable counter-example of the misconception; {left}/{right} only fill for compare items.
+    """A usable counter-example of the misconception; {left}/{right} only fill for compare items.
 
     A counter-example asking two questions would fail the validator (one question per turn) and leave
     the child with the fixed fallback sentence (seen in the live hard-student run, TQ-2): it is skipped.
+    ``shown``: counterexamples already given on the item; the next usable one follows (FIX-6), so a child
+    who keeps the same mistake does not hear the same words again while the lesson has others.
     """
     mis = package.misconception(misconception_id) if misconception_id else None
     if mis is None:
         return None
+    usable: list[tuple[str, str]] = []
     for i, text in enumerate(mis.counter_examples, start=1):
         if "{" not in text:
             found = text
@@ -216,8 +222,8 @@ def counter_example(
         else:
             continue
         if _one_question(found):
-            return found, f"{mis.id}:COUNTER:{i}"
-    return None
+            usable.append((found, f"{mis.id}:COUNTER:{i}"))
+    return usable[shown % len(usable)] if usable else None
 
 
 def _ask_item(ctx: RenderContext) -> tuple[str, str]:
@@ -254,7 +260,9 @@ def _hint(ctx: RenderContext) -> RenderedMessage:
 
 
 def _cognitive_conflict(ctx: RenderContext) -> RenderedMessage:
-    found = counter_example(ctx.item, ctx.package, ctx.decision.misconception_id)
+    found = counter_example(
+        ctx.item, ctx.package, ctx.decision.misconception_id, ctx.state.counter_examples_shown
+    )
     if found is None:
         return _hint(ctx)
     text, ref = found
@@ -263,6 +271,9 @@ def _cognitive_conflict(ctx: RenderContext) -> RenderedMessage:
         # wanted a question, rejected it twice, and the child lost the counterexample. (One with a question
         # inside is left as it is: a second question would fail the check too.)
         text = f"{text.rstrip()} {_say(ctx, 'try_it')}"
+    with_lead = f"{_say(ctx, 'example_lead')} {text}"
+    if lead(ctx) is None and len(with_lead.split()) <= ctx.max_words:  # no lead for the child's words yet
+        text = with_lead
     return _msg(text, "TEMPLATE", ref)
 
 
