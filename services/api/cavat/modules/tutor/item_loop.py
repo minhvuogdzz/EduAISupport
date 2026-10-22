@@ -170,10 +170,13 @@ class ItemTutor:
         reader: ContextReader | None = None,
         explainer: Callable[[str, str], Sequence[str]] | None = None,
         chooser: MoveChooser | None = None,
+        first_on_kc: bool = False,
+        kc_mastery: float | None = None,
     ) -> None:
         """``reader``: reads an unclear message in context (CTX-1; a ``RecordedReader`` on replay).
         ``explainer``: approved passages on what the child asks about (the Hybrid RAG of the chapter).
-        ``chooser``: picks one of the moves the policy allows (AUTO-1; a ``RecordedChooser`` on replay)."""
+        ``chooser``: picks one of the moves the policy allows (AUTO-1; a ``RecordedChooser`` on replay).
+        ``first_on_kc``, ``kc_mastery``: what the session knows of the item's KCs when it opens (DI-65)."""
         self.item = item
         self.reader = reader
         self.chooser = chooser
@@ -195,6 +198,8 @@ class ItemTutor:
             expected_item_s=float(item.expected_time_s),
             requires_explanation=item.requires_explanation,
             top_hint_level=ladder_top(item, package),
+            first_on_kc=first_on_kc,
+            kc_mastery=kc_mastery,
         )
         self.phase: Phase | None = None
         self.events: list[TutorEvent] = []

@@ -1589,7 +1589,7 @@
  "known_groups": {
   "math-g5-area-triangle-trapezoid": {
    "gioi": {
-    "turns": 108,
+    "turns": 120,
     "passed": 8,
     "nodes": 8,
     "hints": 0,
@@ -1659,7 +1659,7 @@
     ]
    },
    "sai-dang": {
-    "turns": 116,
+    "turns": 128,
     "passed": 8,
     "nodes": 8,
     "hints": 0,
@@ -1729,7 +1729,7 @@
     ]
    },
    "bi": {
-    "turns": 160,
+    "turns": 172,
     "passed": 8,
     "nodes": 8,
     "hints": 0,
@@ -1800,7 +1800,7 @@
     ]
    },
    "hay-sai": {
-    "turns": 220,
+    "turns": 232,
     "passed": 8,
     "nodes": 8,
     "hints": 52,
@@ -1872,7 +1872,7 @@
     ]
    },
    "phu-thuoc": {
-    "turns": 70,
+    "turns": 74,
     "passed": 0,
     "nodes": 8,
     "hints": 32,
@@ -1944,7 +1944,7 @@
   },
   "math-g5-decimals": {
    "gioi": {
-    "turns": 136,
+    "turns": 148,
     "passed": 11,
     "nodes": 11,
     "hints": 0,
@@ -2032,7 +2032,7 @@
     ]
    },
    "sai-dang": {
-    "turns": 169,
+    "turns": 181,
     "passed": 11,
     "nodes": 11,
     "hints": 11,
@@ -2121,7 +2121,7 @@
     ]
    },
    "bi": {
-    "turns": 197,
+    "turns": 209,
     "passed": 11,
     "nodes": 11,
     "hints": 0,
@@ -2210,7 +2210,7 @@
     ]
    },
    "hay-sai": {
-    "turns": 266,
+    "turns": 278,
     "passed": 11,
     "nodes": 11,
     "hints": 60,

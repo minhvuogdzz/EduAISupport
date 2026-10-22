@@ -35,7 +35,7 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.9.0"  # 0.9.0: AUTO-5, "vì sao" may be chosen after a correct answer
+POLICY_VERSION = "hint-policy/0.10.0"  # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -92,6 +92,10 @@ class PolicyConfig:
     # DI, approved by the owner on 2026-10-01. Items are picked by a hash of the item id, so the same
     # items always ask (lesson 1: 9 of the 21 items that do not already require an explanation).
     verify_rate: float = 0.3  # share of items whose correct answer is followed by "vì sao" (R-VERIFY)
+    # DI-65 (VERIFY-1, approved by the owner on 2026-10-22): "vì sao" always follows the first right answer
+    # on a KC of the session and a right answer on a KC still below this mastery; the sample above is
+    # only for a KC the child already holds or has no mastery for yet.
+    verify_mastery: float = 0.6
     # DI-42 (CTX-1, drafted for the owner's review): questions about the hint or a word explained per item;
     # asked again past it, the child gets the next hint instead.
     max_explanations: int = 2
@@ -113,6 +117,8 @@ class ItemFacts:
     expected_item_s: float = 90.0  # DI: expected time to finish the item (R-TIME)
     requires_explanation: bool = False  # R-VERIFY always asks "vì sao" after a correct answer
     top_hint_level: int = HintLevel.H5  # DI-37: the strongest hint this item has (its own or a fitting one)
+    first_on_kc: bool = False  # DI-65: no item of the session was solved yet on one of the item's KCs
+    kc_mastery: float | None = None  # DI-65: mastery (0..1) of the item's node so far, None when unknown
 
 
 def decide(
@@ -434,7 +440,8 @@ def _next_hint(
 
 
 def _correct(st: ItemState, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecision:
-    """R-TEACH-BACK after worked guidance, else R-VERIFY ("vì sao") when required or sampled."""
+    """R-TEACH-BACK after worked guidance, else R-VERIFY ("vì sao") when required, on a new or weak KC
+    (DI-65), or sampled."""
     if st.worked_shown:
         return PolicyDecision(
             move=Move.TEACH_BACK,
@@ -445,14 +452,18 @@ def _correct(st: ItemState, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         return PolicyDecision(
             move=Move.VERIFY, reason_codes=("CORRECT", "REQUIRES_EXPLANATION"), rule_ids=("R-VERIFY",)
         )
-    if (
-        not st.verified
-        and st.activity != ActivityType.EXIT_ASSESSMENT
-        and _sampled(st.item_id, cfg.verify_rate)
-    ):
-        return PolicyDecision(
-            move=Move.VERIFY, reason_codes=("CORRECT", "VERIFY_SAMPLED"), rule_ids=("R-VERIFY",)
-        )
+    if not st.verified and st.activity != ActivityType.EXIT_ASSESSMENT:
+        # DI-65: the self-explanation helps most while the KC is new or weak; once held, a sample only.
+        if facts.first_on_kc:
+            reason = "FIRST_ON_KC"
+        elif facts.kc_mastery is not None and facts.kc_mastery < cfg.verify_mastery:
+            reason = "WEAK_KC"
+        elif _sampled(st.item_id, cfg.verify_rate):
+            reason = "VERIFY_SAMPLED"
+        else:
+            reason = None
+        if reason is not None:
+            return PolicyDecision(move=Move.VERIFY, reason_codes=("CORRECT", reason), rule_ids=("R-VERIFY",))
     return PolicyDecision(
         move=Move.CONFIRM_ADVANCE,
         resolution=resolution_for(st.max_hint_level),

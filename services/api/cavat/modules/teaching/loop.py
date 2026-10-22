@@ -38,7 +38,7 @@ from cavat.core.events import (
     TeachMessageSent,
     WebLooked,
 )
-from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, Outcome, TeachAction
+from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, ItemResolution, Outcome, TeachAction
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
 from cavat.modules.assessment.retell import judge_retell
@@ -684,6 +684,7 @@ class TeachingLoop:
     ) -> ItemTutor:
         assert d.ref is not None
         item, lesson = self.chapter.item(d.ref), self.chapter.lesson_of(d.ref)
+        first_on_kc, kc_mastery = self._kc_facts(d.ref)
         return ItemTutor(
             item,
             lesson,
@@ -693,7 +694,29 @@ class TeachingLoop:
             reader=reader or self.item_reader,
             explainer=self._explainer(self._item_node(d.ref)),
             chooser=chooser or self.item_chooser,
+            first_on_kc=first_on_kc,
+            kc_mastery=kc_mastery,
         )
+
+    def _kc_facts(self, item_id: str) -> tuple[bool, float | None]:
+        """DI-65: is no item of this session solved yet on one of the item's KCs, and the mastery of its node.
+        Read from the events up to the item's decision, which is the last one live and on a rebuild alike."""
+        last = max(
+            (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
+        )
+        before = self.events[: last + 1]
+        solved = {
+            k
+            for e in before
+            if e.event_type == EventType.ITEM_RESOLVED
+            and e.payload.get("resolution") in (ItemResolution.INDEPENDENT, ItemResolution.SUPPORTED)
+            for k in e.payload.get("kc_ids", [])
+        }
+        first = any(k not in solved for k in self.chapter.item(item_id).kc_ids)
+        node = self._item_node(item_id)
+        state = project_chapter([*self.history, *before], self.chapter, self.mastery).nodes.get(node or "")
+        mastery = state.mastery / 100 if state is not None and state.mastery is not None else None
+        return first, mastery
 
     def _explainer(self, node_id: str | None) -> Callable[[str, str], Sequence[str]] | None:
         """Approved passages on what the child asks about in an item (CTX-1), from the speaker's index."""
