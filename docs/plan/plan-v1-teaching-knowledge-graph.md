@@ -461,6 +461,18 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-63, gia sư không nhại lời con như lời của mình (FIX-5, 2026-10-22):**
+  - **Vấn đề:** trong bài đo vai khó ngày 22/10, con nói "cô ơi con chơi game được không". Qwen trả lời "cô ơi con chơi game được không, nhưng bây giờ mình quay lại bài nhé…": cô nói lại câu của con như câu của cô. Giám khảo vẫn chấm 5/5, bộ kiểm chứng cũng cho qua.
+  - **Luật (`validator.echoes_child`, mã `ECHOES_CHILD`):** bộ kiểm chứng bác lượt của gia sư khi:
+    - lượt mở đầu bằng nguyên câu của con, và câu đó có từ 4 từ (`ECHO_OPENING_WORDS`);
+    - hoặc lượt chép từ 6 từ liền nhau của con trở lên (`ECHO_RUN_WORDS`).
+  - **Không bác:**
+    - từ nằm trong ngoặc kép (cô trích lời con);
+    - đoạn có trong đề, gợi ý, lời giải, bài học hoặc lời cô vừa nói (con đọc lại đề, hay nhắc lại lời cô);
+    - câu ngắn ("C", "0,09", "con không biết").
+  - **Cách so:** so theo từ, bỏ dấu, vì con hay gõ không dấu.
+  - Lượt bị bác thì đi theo đường chung của bộ kiểm chứng: Qwen viết lại, hỏng nữa thì dùng câu mẫu.
+  - **Ngưỡng 4 và 6 từ** là DI, chọn theo ca thật. Trên 74 lượt của bài đo vai khó ngày 22/10 (B1, B2, C), luật chỉ bắt đúng ca này. Bộ kiểm chứng không có số version riêng; thay đổi này không đổi prompt hay chính sách.
 - **DI-62, Qwen chọn nước đi trong giới hạn của chính sách (AUTO-1, ADR-031, `move-chooser/0.1.0`, 2026-10-19):**
   - **Yêu cầu của chủ dự án (2026-10-19):** làm bước "Qwen tự chủ có kiểm soát" của ADR-022.
   - **Tập nước đi được phép** (phương án `A` luôn là nước của chính sách, tối đa 3 phương án):

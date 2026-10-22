@@ -14,6 +14,7 @@ from fractions import Fraction
 from itertools import combinations
 
 from cavat.core.pedagogy import MOVES_ALLOWED_TO_REVEAL, MOVES_REQUIRING_QUESTION, Move
+from cavat.core.vi_text import fold
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text, parse_literal, parse_number
 from cavat.modules.content.lesson_package import (
     ChoiceAnswer,
@@ -227,10 +228,16 @@ def _leak(text: str, ctx: RenderContext) -> str | None:
 
 def grounded_values(ctx: RenderContext) -> set[Fraction]:
     """Every number the tutor may say for this item: item, hints, solution, lesson counter-examples."""
+    texts = [*_lesson_texts(ctx), ctx.student_text or ""]
+    return {n.value for t in texts for n in extract_numbers(t)}
+
+
+def _lesson_texts(ctx: RenderContext) -> list[str]:
+    """What the tutor may repeat: the item, its hints and solution, the lesson's texts, its own last words."""
     item, pkg = ctx.item, ctx.package
     texts = [item.stem, item.rephrase or "", item.verify_prompt or "", item.explanation or ""]
     texts += item.worked_solution + [h.text for h in item.hints] + [h.text for h in pkg.generic_hints]
-    texts += [pkg.default_verify_prompt or "", ctx.student_text or "", ctx.last_tutor or "", *ctx.evidence]
+    texts += [pkg.default_verify_prompt or "", ctx.last_tutor or "", *ctx.evidence]
     ans = item.answer
     if isinstance(ans, CompareAnswer):
         texts += [ans.left, ans.right]
@@ -250,7 +257,40 @@ def grounded_values(ctx: RenderContext) -> set[Fraction]:
             if isinstance(ans, CompareAnswer):
                 c = c.replace("{left}", ans.left).replace("{right}", ans.right)
             texts.append(c)
-    return {n.value for t in texts for n in extract_numbers(t)}
+    return texts
+
+
+# FIX-5 (DI-63): Qwen once opened with the child's own question as if the tutor asked it ("cô ơi con chơi
+# game được không, nhưng bây giờ mình quay lại bài nhé…", hard roles 2026-10-22). Words are compared without
+# diacritics (the child often types none); quoted words and runs the lesson itself has are allowed.
+ECHO_OPENING_WORDS = 4  # the turn opens with the child's whole message of at least this many words
+ECHO_RUN_WORDS = 6  # or copies at least this many of the child's words in a row
+_QUOTED = re.compile(r"[\"“«‘'][^\"”»’']*[\"”»’']")
+
+
+def _words(text: str) -> list[str]:
+    return re.findall(r"\w+", fold(normalize_text(text)))
+
+
+def _runs(words: list[str], n: int) -> set[tuple[str, ...]]:
+    return {tuple(words[i : i + n]) for i in range(len(words) - n + 1)}
+
+
+def echoes_child(text: str, ctx: RenderContext) -> str | None:
+    """The child's words the turn repeats as the tutor's own, if any (FIX-5)."""
+    said = _words(ctx.student_text or "")
+    if len(said) < ECHO_OPENING_WORDS:
+        return None
+    own = _words(_QUOTED.sub(" ", text))
+    lesson = [_words(t) for t in _lesson_texts(ctx)]
+    if own[: len(said)] == said and not any(_runs(w, len(said)) & {tuple(said)} for w in lesson):
+        return " ".join(said)
+    if len(said) < ECHO_RUN_WORDS:
+        return None
+    copied = _runs(own, ECHO_RUN_WORDS) & _runs(said, ECHO_RUN_WORDS)
+    for w in lesson:
+        copied -= _runs(w, ECHO_RUN_WORDS)
+    return " ".join(sorted(copied)[0]) if copied else None
 
 
 # FIX-2: moves that follow an answer that is not right; opening one with "Đúng rồi" praises a wrong answer.
@@ -310,6 +350,9 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
     praise = wrong_praise(text, ctx)
     if praise:
         issues.append(ValidationIssue(ValidationCode.WRONG_PRAISE, praise))
+    echo = echoes_child(text, ctx)
+    if echo:
+        issues.append(ValidationIssue(ValidationCode.ECHOES_CHILD, echo))
 
     words = len(text.split())
     if words > ctx.max_words:

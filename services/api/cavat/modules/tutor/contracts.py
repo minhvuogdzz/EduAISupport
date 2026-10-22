@@ -139,6 +139,8 @@ class ValidationCode(StrEnum):
     WRONG_ADDRESS = "WRONG_ADDRESS"
     # FIX-2: "Đúng rồi!" on a turn that follows an answer that is not right (R-STRONG-PRIOR's "vì sao")
     WRONG_PRAISE = "WRONG_PRAISE"
+    # FIX-5: the turn repeats the child's words as the tutor's own ("cô ơi con chơi game được không, nhưng…")
+    ECHOES_CHILD = "ECHOES_CHILD"
 
 
 @dataclass(frozen=True)
