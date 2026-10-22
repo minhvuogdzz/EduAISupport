@@ -219,6 +219,7 @@ class TeachMessage:
 # or closed, over this many (blueprint 05: "trung bình level gần đây").
 RECENT_ITEMS = 10
 
+
 @dataclass(frozen=True)
 class LoopEvent:
     """An event of this session; the session service stores it as a ``SessionEvent``."""
