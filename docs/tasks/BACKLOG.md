@@ -170,6 +170,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | FIX-5 | Bộ kiểm chứng bác lượt gia sư nhại lời con như lời của mình (`ECHOES_CHILD`, DI-63): mở đầu bằng nguyên câu của con (≥ 4 từ) hoặc chép ≥ 6 từ liền nhau, trừ chỗ trích trong ngoặc kép và chữ có trong bài | Xong 2026-10-22 |
 | FIX-6 | Phản ví dụ mở đầu bằng "Cô lấy một ví dụ để con so sánh với bài này nhé." và lần sau là phản ví dụ khác của cùng lỗi (DI-64, `template-renderer.v7`) | Xong 2026-10-22 |
 | VERIFY-1 | Hỏi "vì sao" theo việc con đã vững kiến thức chưa: luôn hỏi sau câu đúng đầu tiên trên kiến thức trong buổi và khi mức nắm vững < 0,6, còn lại giữ mẫu 30% (DI-65, `hint-policy/0.10.0`) | Xong 2026-10-22 |
+| PRIOR-1 | Gia sư của từng câu đọc snapshot Student Model (mức nắm vững, độ tin cậy, mức phụ thuộc gợi ý) để R-STRONG-PRIOR và R-WEAK-PRIOR chạy được trong buổi học (DI-66) | Xong 2026-10-22 |
 | LLM-1 | Lần kiểm cuối dùng trần từ theo câu mẫu, lời đã duyệt không còn bị thay bằng câu chung chung; sửa tại chỗ hai lỗi hình thức (DI-60) | Xong (PR #73) |
 | LLM-2 | Dành lượt gọi Qwen cho giải thích, gợi ý, kéo về bài; giữ trần 15 (DI-61) | Xong (PR #74) |
 | DOCS-1 | BACKLOG theo đúng hiện trạng; bản REV-ECIT 2026 vào `docs/paper/rev-ecit-2026/` | Xong |

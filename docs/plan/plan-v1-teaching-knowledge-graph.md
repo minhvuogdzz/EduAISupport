@@ -461,6 +461,17 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-66, gia sư của từng câu đọc Student Model (PRIOR-1, 2026-10-22):**
+  - **Vấn đề:** blueprint 05 và 25.3 cho chính sách đọc snapshot của Student Model ("đóng băng đầu session, cập nhật cục bộ trong session") cho R-STRONG-PRIOR và R-WEAK-PRIOR. Nhưng buổi học chưa bao giờ truyền snapshot cho gia sư của từng câu, nên cả hai luật [FACT] này chưa từng chạy trong buổi học.
+  - **Thay đổi:** khi mở một câu, buổi học dựng `StudentSnapshot` từ projection của các sự kiện tính tới quyết định mở câu, gồm cả các buổi trước:
+    - mức nắm vững của mỗi tiết đã có số: M/100;
+    - độ tin cậy: confidence/100;
+    - mức phụ thuộc gợi ý `hint_dependency`: trung bình bậc gợi ý cao nhất của 10 câu gần nhất chia 7 (`RECENT_ITEMS`, DI).
+    - Khi dựng lại buổi học, snapshot ra giống hệt lúc chạy.
+  - **Đo** (học sinh mô phỏng "Vương", 2 buổi mỗi chương, câu mẫu, trong bộ nhớ):
+    - 1 168/1 198 quyết định nay có mức nắm vững của câu;
+    - không luật nào kích hoạt và không quyết định nào đổi. Học sinh này giỏi (M từ 0,5 tới 0,9), còn độ tin cậy chỉ từ 0,1 tới 0,4: chưa đủ ngưỡng 0,6 của R-STRONG-PRIOR, và M chưa xuống dưới 0,4 của R-WEAK-PRIOR;
+    - hai luật sẽ chạy với học sinh yếu, hoặc sau nhiều buổi khi độ tin cậy đủ cao. Chưa đo trên học sinh thật.
 - **DI-65, hỏi "vì sao" theo việc con đã vững kiến thức chưa (VERIFY-1, `hint-policy/0.10.0`, chủ dự án duyệt 2026-10-22):**
   - **Vấn đề:** R-VERIFY hỏi "vì sao" ở 30% số câu, lấy mẫu cố định theo mã câu. Vai "đúng mà lý do chưa chắc" (con trả lời "0,9" đúng ngay, thật ra là đoán) không được hỏi, Socratic 1/5.
   - **Cơ sở:**

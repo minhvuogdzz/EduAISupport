@@ -50,7 +50,7 @@ from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.teaching.web import WEB_VERSION, web_query
 from cavat.modules.tutor.chooser import MoveChooser, recorded_choices
-from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator
+from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator, StudentSnapshot
 from cavat.modules.tutor.item_loop import (
     CHOICE_HINT,
     CHOICE_RETRY,
@@ -213,6 +213,11 @@ class TeachMessage:
     source: str = "TEMPLATE"  # TEMPLATE, LLM (checked against its sources) or EXTRACT (RAG-2)
     sources: tuple[str, ...] = ()
     rejected: tuple[tuple[str, ...], ...] = ()
+
+
+# DI-66 (PRIOR-1): the hint dependency of the snapshot is the mean top hint level of the last items solved
+# or closed, over this many (blueprint 05: "trung bình level gần đây").
+RECENT_ITEMS = 10
 
 
 @dataclass(frozen=True)
@@ -684,7 +689,7 @@ class TeachingLoop:
     ) -> ItemTutor:
         assert d.ref is not None
         item, lesson = self.chapter.item(d.ref), self.chapter.lesson_of(d.ref)
-        first_on_kc, kc_mastery = self._kc_facts(d.ref)
+        first_on_kc, kc_mastery, snapshot = self._kc_facts(d.ref)
         return ItemTutor(
             item,
             lesson,
@@ -696,10 +701,13 @@ class TeachingLoop:
             chooser=chooser or self.item_chooser,
             first_on_kc=first_on_kc,
             kc_mastery=kc_mastery,
+            snapshot=snapshot,
         )
 
-    def _kc_facts(self, item_id: str) -> tuple[bool, float | None]:
+    def _kc_facts(self, item_id: str) -> tuple[bool, float | None, StudentSnapshot]:
         """DI-65: is no item of this session solved yet on one of the item's KCs, and the mastery of its node.
+        PRIOR-1 (DI-66): the Student Model snapshot the policy's R-STRONG-PRIOR and R-WEAK-PRIOR read
+        (blueprint 25.3: frozen at the start, updated within the session), from the same projection.
         Read from the events up to the item's decision, which is the last one live and on a rebuild alike."""
         last = max(
             (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
@@ -714,9 +722,21 @@ class TeachingLoop:
         }
         first = any(k not in solved for k in self.chapter.item(item_id).kc_ids)
         node = self._item_node(item_id)
-        state = project_chapter([*self.history, *before], self.chapter, self.mastery).nodes.get(node or "")
+        nodes = project_chapter([*self.history, *before], self.chapter, self.mastery).nodes
+        state = nodes.get(node or "")
         mastery = state.mastery / 100 if state is not None and state.mastery is not None else None
-        return first, mastery
+        known = {k: n for k, n in nodes.items() if n.mastery is not None}
+        levels = [
+            e.payload.get("max_hint_level", 0)
+            for e in [*self.history, *before]
+            if e.event_type == EventType.ITEM_RESOLVED
+        ][-RECENT_ITEMS:]
+        snapshot = StudentSnapshot(
+            kc_mastery={k: n.mastery / 100 for k, n in known.items()},
+            kc_confidence={k: n.confidence / 100 for k, n in known.items()},
+            hint_dependency=sum(levels) / len(levels) / 7 if levels else 0.0,
+        )
+        return first, mastery, snapshot
 
     def _explainer(self, node_id: str | None) -> Callable[[str, str], Sequence[str]] | None:
         """Approved passages on what the child asks about in an item (CTX-1), from the speaker's index."""
