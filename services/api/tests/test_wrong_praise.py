@@ -83,4 +83,30 @@ def test_a_counterexample_without_a_question_gets_the_approved_invitation():
     assert validate_message(msg.text, ctx(d, package)).ok
     # a counterexample that already asks is left as it is
     asked = TemplateRenderer().render(ctx(d)).text
-    assert asked == counter_example(ITEM, PACKAGE, mis.id)[0]
+    assert asked.endswith(counter_example(ITEM, PACKAGE, mis.id)[0]) and asked.count("?") == 1
+
+
+def test_a_counterexample_says_why_it_comes_and_the_next_one_differs():
+    """FIX-6: the judge read the counterexample as off the item ("không liên quan tới đề", 2026-10-21), and
+    a child who kept the mistake heard the same words again. It now opens with "Cô lấy một ví dụ để con so
+    sánh với bài này nhé." and the item's next counterexample is another one, when the lesson has one."""
+    mis = next(m for m in PACKAGE.misconceptions if counter_example(ITEM, PACKAGE, m.id) is not None)
+    d = PolicyDecision(
+        move=Move.COGNITIVE_CONFLICT, level=HintLevel.H2, target=HintTarget.CONCEPT, misconception_id=mis.id
+    )
+    first = TemplateRenderer().render(ctx(d))
+    assert first.text.startswith("Cô lấy một ví dụ để con so sánh với bài này nhé.")
+    assert validate_message(first.text, ctx(d)).ok
+    # a lesson with a second counterexample for the mistake (the repo's chapter has one per mistake)
+    other = "0,9 m là 90 xăng-ti-mét, còn 0,09 m là mấy xăng-ti-mét?"
+    two = mis.model_copy(update={"counter_examples": [*mis.counter_examples, other]})
+    package = PACKAGE.model_copy(
+        update={"misconceptions": [two if m.id == mis.id else m for m in PACKAGE.misconceptions]}
+    )
+    state = ItemState(
+        item_id=ITEM.id, activity=ActivityType.GUIDED_PRACTICE, attempt_no=2, counter_examples_shown=1
+    )
+    second = TemplateRenderer().render(replace(ctx(d, package), state=state))
+    assert second.text.endswith(other) and second.hint_ref != first.hint_ref
+    again = replace(state, counter_examples_shown=2)  # past the last one: the first comes back
+    assert TemplateRenderer().render(replace(ctx(d, package), state=again)).hint_ref == first.hint_ref

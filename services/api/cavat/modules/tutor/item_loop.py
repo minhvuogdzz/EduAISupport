@@ -551,6 +551,8 @@ class ItemTutor:
 
         msg, attempts = self._render(d, student_text)
         self.last_tutor = msg.text
+        if d.move == Move.COGNITIVE_CONFLICT:
+            st.counter_examples_shown += 1
         if d.move in HINT_MOVES and d.level is not None and msg.source != "FALLBACK":
             self._emit(
                 EventType.HINT_DELIVERED,

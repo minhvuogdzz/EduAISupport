@@ -25,8 +25,8 @@
   }
  },
  "c_turn_source": {
-  "LLM": 10,
-  "TEMPLATE": 14
+  "LLM": 15,
+  "TEMPLATE": 9
  },
  "systems": {
   "B1": {
@@ -85,15 +85,15 @@
    "more_than_one_question": 0,
    "no_question": 1,
    "over_limit_words": 0,
-   "words_mean": 24.0,
-   "words_max": 32,
+   "words_mean": 24.9,
+   "words_max": 43,
    "wrong_turns": 4,
    "approves_wrong": 0,
    "approves_wrong_cases": [],
-   "follows_intent": 4.75,
-   "socratic": 4.58,
-   "child_friendly": 4.96,
-   "on_topic": 4.83
+   "follows_intent": 4.83,
+   "socratic": 4.42,
+   "child_friendly": 4.92,
+   "on_topic": 4.88
   }
  },
  "roles": {
@@ -120,7 +120,7 @@
     "judge_leak": 0,
     "words": 23.5,
     "questions": 1.0,
-    "socratic": 5.0
+    "socratic": 4.5
    }
   },
   "Na, không hiểu đề": {
@@ -170,7 +170,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 30.0,
+    "words": 30.5,
     "questions": 1.0,
     "socratic": 5.0
    }
@@ -196,7 +196,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 28.5,
+    "words": 27.5,
     "questions": 1.0,
     "socratic": 5.0
    }
@@ -222,7 +222,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 31.0,
+    "words": 32.0,
     "questions": 1.0,
     "socratic": 4.5
    }
@@ -250,7 +250,7 @@
     "judge_leak": 0,
     "words": 21.0,
     "questions": 1.0,
-    "socratic": 4.5
+    "socratic": 4.0
    }
   },
   "Gấu, nhờ làm hộ bài": {
@@ -274,9 +274,9 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 30.0,
+    "words": 27.5,
     "questions": 1.0,
-    "socratic": 5.0
+    "socratic": 4.5
    }
   },
   "Mít, sai mà chắc chắn": {
@@ -300,7 +300,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 21.0,
+    "words": 30.0,
     "questions": 1.0,
     "socratic": 3.5
    }
@@ -326,7 +326,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 25.0,
+    "words": 19.5,
     "questions": 1.0,
     "socratic": 5.0
    }
@@ -378,7 +378,7 @@
     "turns": 2,
     "says_answer": 0,
     "judge_leak": 0,
-    "words": 23.5,
+    "words": 32.5,
     "questions": 1.0,
     "socratic": 5.0
    }
@@ -406,7 +406,7 @@
     "judge_leak": 0,
     "words": 18.5,
     "questions": 1.0,
-    "socratic": 5.0
+    "socratic": 4.5
    }
   },
   "Hà, trả lời bằng lời": {

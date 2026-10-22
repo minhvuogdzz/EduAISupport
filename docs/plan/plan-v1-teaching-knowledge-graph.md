@@ -461,6 +461,12 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-64, phản ví dụ nói rõ vì sao nó đến, và lần sau là phản ví dụ khác (FIX-6, `template-renderer.v7`, 2026-10-22):**
+  - **Vấn đề:** ở vai "sai mà chắc" (bài đo vai khó 21/10 và 22/10), con viết 0,09 cho 9/10. Gia sư đưa phản ví dụ của lỗi quan niệm (7 cm = 7/100 m so với 0,7 m). Giám khảo chấm Socratic 2/5, vì thấy phản ví dụ "không liên quan tới đề 9/10": nó nói về số khác mà không báo vì sao. Lần đo 19/10, phản ví dụ còn bị nói lại y nguyên ở lượt sau.
+  - **Thay đổi:**
+    - phản ví dụ mở đầu bằng câu "Cô lấy một ví dụ để con so sánh với bài này nhé." (`PHRASES["example_lead"]`). Câu do trợ lý soạn và duyệt theo ủy quyền; chủ dự án sửa được;
+    - câu dẫn bị bỏ khi lượt đã có câu đáp lời con (ADR-019), hoặc khi thêm vào thì vượt trần số từ;
+    - `ItemState.counter_examples_shown` đếm số phản ví dụ đã đưa ở câu. Lần sau gia sư dùng phản ví dụ dùng được kế tiếp của lỗi đó, hết thì quay lại phản ví dụ đầu. Chương trong repo hiện có một phản ví dụ dùng được cho mỗi lỗi, nên ở đó chỉ câu dẫn có tác dụng.
 - **DI-63, gia sư không nhại lời con như lời của mình (FIX-5, 2026-10-22):**
   - **Vấn đề:** trong bài đo vai khó ngày 22/10, con nói "cô ơi con chơi game được không". Qwen trả lời "cô ơi con chơi game được không, nhưng bây giờ mình quay lại bài nhé…": cô nói lại câu của con như câu của cô. Giám khảo vẫn chấm 5/5, bộ kiểm chứng cũng cho qua.
   - **Luật (`validator.echoes_child`, mã `ECHOES_CHILD`):** bộ kiểm chứng bác lượt của gia sư khi:
