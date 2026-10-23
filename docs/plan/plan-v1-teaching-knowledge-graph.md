@@ -472,6 +472,12 @@ Chạy song song từ Mốc 1:
     - 1 168/1 198 quyết định nay có mức nắm vững của câu;
     - không luật nào kích hoạt và không quyết định nào đổi. Học sinh này giỏi (M từ 0,5 tới 0,9), còn độ tin cậy chỉ từ 0,1 tới 0,4: chưa đủ ngưỡng 0,6 của R-STRONG-PRIOR, và M chưa xuống dưới 0,4 của R-WEAK-PRIOR;
     - hai luật sẽ chạy với học sinh yếu, hoặc sau nhiều buổi khi độ tin cậy đủ cao. Chưa đo trên học sinh thật.
+  - **Đo thêm với học sinh học chậm** (PRIOR-2, 2026-10-23):
+    - **Cách đo:** `simulate_learner.py --pace 0.35`, tức con học từ lời gia sư chậm gần 3 lần. Đo 2 buổi mỗi chương, câu mẫu, trong bộ nhớ, 1 151 quyết định.
+    - **Kết quả:** trong 428 lần trả lời được chấm đúng sai, con đúng 189 lần. Nhưng mức nắm vững của câu chỉ nằm trong hai dải: 0,4–0,75 ở 520 quyết định, và ≥ 0,75 ở 318 quyết định. Không lần nào dưới 0,4, nên R-WEAK-PRIOR và R-STRONG-PRIOR vẫn không đổi quyết định nào.
+    - **Vì sao M không xuống dưới 0,4:** projection chấm theo cách câu kết thúc chứ không theo từng lần sai. Một câu giải được sau gợi ý bậc 2 vẫn đóng góp 0,70 (độ độc lập §11, [FACT]). Con sai nhiều mà cuối cùng giải được thì M vẫn ở mức giữa. M chỉ xuống dưới 0,4 khi nhiều câu bị đóng mà chưa giải được, hoặc chỉ giải được nhờ lời giải mẫu.
+    - **Vì sao độ tin cậy thấp:** công thức DI-11 nhân hệ số khoảng thời gian (0,70 khi mới có một buổi, 0,85 khi các buổi gần nhau dưới 3 ngày) với hệ số số bằng chứng và độ đa dạng câu. Học sinh mô phỏng học cùng lúc nên độ tin cậy chỉ 0,1–0,4, chưa tới ngưỡng 0,6 của R-STRONG-PRIOR. Một con học thật trong nhiều ngày mới lên được tới đó.
+    - **Kết luận:** với ngưỡng [FACT] của hai khung đánh giá, hai luật này hiếm khi đổi nước đi trong vài buổi đầu. Em không đổi ngưỡng, vì đó là [FACT]. Chỉ ghi lại để đọc kết quả cho đúng.
 - **DI-65, hỏi "vì sao" theo việc con đã vững kiến thức chưa (VERIFY-1, `hint-policy/0.10.0`, chủ dự án duyệt 2026-10-22):**
   - **Vấn đề:** R-VERIFY hỏi "vì sao" ở 30% số câu, lấy mẫu cố định theo mã câu. Vai "đúng mà lý do chưa chắc" (con trả lời "0,9" đúng ngay, thật ra là đoán) không được hỏi, Socratic 1/5.
   - **Cơ sở:**
