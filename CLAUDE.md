@@ -87,6 +87,26 @@ Tài liệu này dành cho mọi phiên Claude Code (local và cloud) làm việ
 - Quyết định kiến trúc mới → file ADR trong `docs/adr/`. Kết quả POC → `docs/poc/<tên>-decision.md`.
 - Code POC nằm trong `poc/` và không được import vào `services/` hoặc `apps/`.
 
+## Ghi chép cho luận văn (bắt buộc)
+
+Chủ dự án yêu cầu ngày 2026-10-23: mọi việc làm được đều phải ghi vào tài liệu nguồn để viết luận văn, Google Doc "Tài liệu phục vụ viết luận" (https://docs.google.com/document/d/1SwopBTZyZ0ScSMqDLLpJBBd2x2OAvkFY4T37eumTJRc/edit, tab `t.0`).
+
+- **Khi nào ghi:**
+  - sau mỗi PR được merge;
+  - sau mỗi bài đo, lần duyệt nội dung hay quyết định của chủ dự án, kể cả khi không có PR.
+- **Ghi gì:**
+  - thêm một mục vào cuối "Phụ lục E. Nhật ký công việc", tiêu đề `dd/mm/yyyy · MÃ-VIỆC (#PR): tóm tắt`;
+  - mục gồm các ý vấn đề, cách làm, kết quả đo, kèm DI hoặc ADR liên quan;
+  - nếu việc đó làm đổi nội dung các chương (kiến trúc, số liệu đánh giá, danh sách DI hoặc ADR, việc còn mở), sửa luôn chỗ đó trong chương tương ứng.
+- **Cách ghi:**
+  - dùng connector Google Docs và đọc tài liệu trước khi sửa;
+  - không ghi đè phần chủ dự án viết;
+  - nội dung tài liệu của giáo viên chỉ ghi bằng mã câu;
+  - thông tin chưa kiểm chứng đánh dấu [cần kiểm tra].
+- **Phiên không có connector Google Docs** (ví dụ phiên cloud):
+  - viết sẵn mục nhật ký trong mô tả PR, dưới tiêu đề "Ghi chép luận văn";
+  - phiên local kế tiếp chép mục đó vào tài liệu.
+
 ## Git
 
 - Nhánh mặc định: `main`. Mỗi task làm trên nhánh `task/<mã>-<tên-ngắn>`, mở PR vào `main`, CI phải xanh.
