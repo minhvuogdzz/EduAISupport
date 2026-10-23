@@ -133,8 +133,11 @@ def rng_choice(xs):
 
 
 class Vuong:
-    def __init__(self, chapter, chapter_id: str, seed: int = 7):
+    def __init__(self, chapter, chapter_id: str, seed: int = 7, pace: float = 1.0):
+        """``pace``: how fast the child learns from what the tutor does (PRIOR-2: 0.35 is a slow child, whose
+        mastery stays low long enough for R-WEAK-PRIOR to be seen)."""
         self.chapter, self.chapter_id = chapter, chapter_id
+        self.pace = pace
         self.rng = random.Random(seed)
         self.understanding: dict[str, float] = {}
         self.tries: dict[str, int] = {}
@@ -143,7 +146,7 @@ class Vuong:
 
     def learn(self, node: str | None, amount: float) -> None:
         if node:
-            self.understanding[node] = min(0.97, self.understanding.get(node, 0.12) + amount)
+            self.understanding[node] = min(0.97, self.understanding.get(node, 0.12) + amount * self.pace)
 
     def notice(self, tutor_texts: list[str], node: str | None) -> None:
         """What the tutor just did teaches the child something."""
@@ -258,6 +261,7 @@ def run(
     max_sessions: int,
     max_turns: int,
     resume: str | None = None,
+    pace: float = 1.0,
 ) -> list[dict]:
     sessions = []
     vuong = None
@@ -272,7 +276,7 @@ def run(
             state = _retrying(client.post, f"/v1/sessions/{sid}/join").json()
         CALLS.session = sid  # AUTO-2: the model calls that follow belong to this session
         chapter = chapter_service.chapters()[chapter_id]
-        vuong = vuong or Vuong(chapter, chapter_id)
+        vuong = vuong or Vuong(chapter, chapter_id, pace=pace)
         for node in state["teaching"]["nodes"]:
             if node["status"] == "PASSED":
                 vuong.understanding.setdefault(node["node_id"], 0.9)
@@ -511,6 +515,9 @@ def main() -> None:
     )
     parser.add_argument("--resume", help="session id to go on with (the first chapter given)")
     parser.add_argument(
+        "--pace", type=float, default=1.0, help="how fast the child learns (0.35: a slow child, PRIOR-2)"
+    )
+    parser.add_argument(
         "--measure",
         action="store_true",
         help="in memory with the live tutor, write nothing; print who wrote each tutor turn (LLM-1)",
@@ -538,7 +545,9 @@ def main() -> None:
                 if chapter_id == (CHAPTERS[0] if args.chapter == "all" else args.chapter)
                 else None
             )
-            made[chapter_id] = run(client, chapter_id, args.student_id, args.sessions, args.turns, resume)
+            made[chapter_id] = run(
+                client, chapter_id, args.student_id, args.sessions, args.turns, resume, pace=args.pace
+            )
     if args.memory:
         return
     if args.measure:
