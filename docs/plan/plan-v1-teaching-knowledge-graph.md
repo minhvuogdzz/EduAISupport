@@ -726,6 +726,7 @@ Chạy song song từ Mốc 1:
     - Tập chỉnh, Hit@3 nhóm hỏi bài trước: 0,20 → 0,70.
     - Tập giữ riêng: 0,29 → 0,29, chưa cải thiện. Các câu hỏi khái niệm không theo dạng "là gì" về bài ở xa vẫn ngoài phạm vi.
     - Chương YAML cũ không tụt (Hit@3: 1,00 / 0,87).
+  - Đo lại riêng từng phần (RAG-5, 2026-10-25, `make eval-rag-published LIVE=1`, cờ `define` của `retrieve`): khi đã có định tuyến DI-57, ưu tiên đoạn định nghĩa làm MRR thấp đi (bỏ nó: tập chỉnh +0,056, giữ riêng v2 +0,025, v1+v2 +0,034, khoảng [0,000; 0,088]). Một lỗi thật: `_FILLERS` bỏ "của hình thang" khỏi khái niệm, nên "chiều cao của hình thang là gì" ưu tiên định nghĩa chiều cao của tam giác. **[OPEN]** sửa và đo trên một tập giữ riêng mới, không chỉnh trên v2.
 - **DI-49, chọn câu bù dạng còn thiếu (`node-policy/0.2.0`, 2026-10-12):** khi tiết còn thiếu dạng câu hoặc mức nhận thức để "hiểu" (DI-6), danh sách câu luyện dài hơn ngân sách còn lại, và câu đầu tiên bù được chỗ thiếu nằm từ vị trí (ngân sách còn lại − 2) trở đi, thì câu đó được đưa lên trước. Các trường hợp khác giữ thứ tự cũ. Phiên học thử phát hiện STP-T06: học sinh làm đúng 11/12 câu vẫn bị dừng tiết vì 12 câu đầu cùng một dạng.
 - **DI-48, chấm tất định câu đáp án mở (`KeyFacts`, 2026-10-12):**
   - Câu đáp án mở mang các ý bắt buộc, rút từ đáp án của giáo viên hoặc do giáo viên ghi (`item:<id>/facts`). `MathChecker` đúng khi mọi ý đều có:
