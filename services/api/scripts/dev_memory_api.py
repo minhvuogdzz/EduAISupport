@@ -17,7 +17,7 @@ from cavat.modules.session.api import get_database
 
 async def _trial_accounts(database: InMemoryDatabase) -> None:
     """``CAVAT_MEMORY_ACCOUNTS=1``: the fixed accounts of `make accounts` (student Vuong, a parent, a teacher;
-    every PIN 2468) in the in-memory database only, to try the login without Atlas."""
+    every PIN 1234) in the in-memory database only, to try the login without Atlas."""
     from cavat.modules.identity.accounts import FIXED_LOGINS, hash_pin
     from cavat.modules.identity.repository import User, UserRepository
     from cavat.modules.session.service import DEMO_SCHOOL_ID
@@ -30,7 +30,7 @@ async def _trial_accounts(database: InMemoryDatabase) -> None:
             login_name=FIXED_LOGINS["STUDENT"],
             display_name="Vuong",
             grade=5,
-            pin_hash=hash_pin("2468"),
+            pin_hash=hash_pin("1234"),
         )
     )
     await repo.save(
@@ -39,7 +39,7 @@ async def _trial_accounts(database: InMemoryDatabase) -> None:
             kind="PARENT",
             login_name=FIXED_LOGINS["PARENT"],
             display_name="Phụ huynh Vuong",
-            pin_hash=hash_pin("2468"),
+            pin_hash=hash_pin("1234"),
             child_id=student.id,
         )
     )
@@ -49,7 +49,7 @@ async def _trial_accounts(database: InMemoryDatabase) -> None:
             kind="TEACHER",
             login_name=FIXED_LOGINS["TEACHER"],
             display_name="Giáo viên Vuong",
-            pin_hash=hash_pin("2468"),
+            pin_hash=hash_pin("1234"),
         )
     )
 
