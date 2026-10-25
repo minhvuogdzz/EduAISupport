@@ -16,7 +16,8 @@ class Settings(BaseSettings):
 
     mongodb_uri: SecretStr | None = None
     mongodb_db: str = "cavat_dev"
-    # Tutor brain (ADR-017): Qwen on Groq. Gemini only for vision/OCR and voice.
+    # Tutor brain (ADR-017): Qwen on Groq; the router's default chain reads its name from here.
+    # Gemini only for vision/OCR and the RAG vectors.
     groq_api_key: SecretStr | None = None
     groq_model: str = "qwen/qwen3.8-27b"
     groq_stt_model: str = "whisper-large-v3"
@@ -30,9 +31,7 @@ class Settings(BaseSettings):
     # Free tier (docs/poc/free-tier-quota.md): 20 requests a day per model. When the first model is rate
     # limited the next one reads (INGEST-1: the owner's 18 documents need 31 pages read by Gemini).
     gemini_vision_fallbacks: tuple[str, ...] = ("gemini-2.5-flash", "gemini-3.5-flash-lite")
-    gemini_live_model: str = "gemini-3.8-live"
     gemini_embedding_model: str = "gemini-embedding-001"  # Hybrid RAG vectors (plan v1 5.5.2)
-    llama_cloud_api_key: SecretStr | None = None
     # Hard cap on LLM calls per session; above it the tutor runs on approved templates only.
     max_llm_calls_per_session: int = 15
     # "template": approved sentences only (default). "llm": Qwen phrases hints, templates as fallback.
