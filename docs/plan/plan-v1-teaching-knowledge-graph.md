@@ -534,6 +534,16 @@ Chạy song song từ Mốc 1:
     | Chưa kiểm được | 4 → 4 | 29 → **28** |
 
     Chỉ `DTTGHT-BT-10b` đổi (6 dm × 5 dm : 2 = 15 dm²). Trang duyệt của Số thập phân: câu đỏ 3 → 0, 23 câu hiện "cô đã sửa". Tài liệu hiện có không viết "cm2" nên chuẩn hóa không đổi câu nào; test chứng minh nó chặn kiểu duyệt nhầm.
+- **DI-74, duyệt và bác một gợi ý là duyệt và bác chữ cô đã đọc (REFORM-3b, `ingest/review.py`, 2026-10-26):**
+  - **Vấn đề:** quyết định `hint:<câu>:H<bậc>` gắn với câu và bậc, không gắn với chữ. Khi Qwen soạn lại câu và nói điều khác, lời duyệt cũ hiện "đã duyệt" trên gợi ý chưa ai đọc, và lời bác cũ lặng lẽ bỏ gợi ý mới cùng bậc. Đo trên bản sao quyết định đã lưu (đọc `cavat_dev`, không ghi): 793 quyết định (Số thập phân 410 duyệt + 50 bác, Diện tích 302 + 31). Dựng lại bằng bộ đệm hiện có (không soạn lại), 13 gợi ý đang bị bỏ vì lời bác của một gợi ý **khác** cùng bậc: `STP-BT-13:H2`, `STP-BT-13:H3`, `STP-BT-29:H1`, `STP-BT-34:H1`, `STP-PH05-7:H3`, `STP-PH05-8:H1`, `STP-PH05-8:H3`, `DTTGHT-BT-09a:H2`, `DTTGHT-BT-09b:H2`, `DTTGHT-BT-09c:H2`, `DTTGHT-BT-09c:H3`, `DTTGHT-BT-30b:H3`, `DTTGHT-PH01-7:H2`. Năm chỗ "H2/H3 chưa có" ở `DTTGHT-T01` trong PDF trang duyệt (09a, 09b, 09c hai bậc, PH01-7) là loại này, không do bộ kiểm.
+  - **Luật:**
+    - Lời duyệt hay bác chỉ tính cho chữ của gợi ý lúc cô quyết định (so sau khi bỏ khoảng trắng thừa).
+    - `decide_many` ghi thêm `text`: chữ đi kèm trong `value` nếu có, không thì gợi ý mà bản đã lưu đang hiện.
+    - Quyết định cũ được ghi `text` ở lần dựng lại kế tiếp, **trước** khi bản soạn mới thay chữ: lấy từ `value` (lời duyệt: 698 trong 712 có), từ "[Nội dung: …]" trong lý do (lời bác: 81 trong 81), còn lại từ gợi ý đang hiện hoặc bản soạn gần nhất. Vì vậy phải gộp thay đổi này trước khi chạy `make draft-teaching`.
+    - Lời duyệt không nêu chữ nào (14, đều ở bậc không còn gợi ý) không duyệt gì cả. Lời bác không nêu chữ nào vẫn bỏ gợi ý đang có, như trước.
+    - Sửa gợi ý (`edit`) là chữ của cô nên ở lại qua các lần soạn lại.
+  - **Trang duyệt** chỉ hiện quyết định còn tính (`effective_decisions`): lời duyệt trên chữ không còn thì trang lại hiện nút "Duyệt". Bản lưu giữ mọi quyết định, là bằng chứng duyệt.
+  - **Còn lại:** duyệt cả tiết (`node:<id>`) không gắn với chữ của gợi ý, và gợi ý chưa duyệt vẫn vào bản phát hành, như trước; bấm "Duyệt" trên gợi ý đã sửa tay vẫn thay quyết định sửa bằng quyết định duyệt (mỗi gợi ý một khóa).
 - **DI-66, gia sư của từng câu đọc Student Model (PRIOR-1, 2026-10-22):**
   - **Vấn đề:** blueprint 05 và 25.3 cho chính sách đọc snapshot của Student Model ("đóng băng đầu session, cập nhật cục bộ trong session") cho R-STRONG-PRIOR và R-WEAK-PRIOR. Nhưng buổi học chưa bao giờ truyền snapshot cho gia sư của từng câu, nên cả hai luật [FACT] này chưa từng chạy trong buổi học.
   - **Thay đổi:** khi mở một câu, buổi học dựng `StudentSnapshot` từ projection của các sự kiện tính tới quyết định mở câu, gồm cả các buổi trước:

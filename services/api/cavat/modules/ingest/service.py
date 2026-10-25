@@ -46,11 +46,12 @@ async def rebuild_plan(database: Any, school_id: str, chapter_id: str, drafter: 
     ``drafting.Drafter``, what the documents leave out is drafted by Qwen and checked (INGEST-3b). The
     teacher's decisions and published versions are kept and applied on top (INGEST-4)."""
     from cavat.modules.content.chapter_package import validate_chapter
-    from cavat.modules.ingest.review import apply_item_overrides, apply_plan_decisions
+    from cavat.modules.ingest.review import apply_item_overrides, apply_plan_decisions, bind_hint_decisions
 
     repo = TeachingPlanRepository(database, school_id)
     before = await repo.get(chapter_id)
-    decisions = before.decisions if before else {}
+    # Bound to the words of the plan as it was stored, before the new drafts replace them (REFORM-3b).
+    decisions = bind_hint_decisions(before.decisions, before.lessons, before.drafts) if before else {}
     bank = await rebuild(database, school_id, chapter_id)
     documents = [
         d for d in await DocumentRepository(database, school_id).list_all() if d.chapter_id == chapter_id
@@ -157,7 +158,7 @@ async def decide_many(
     """Record several decisions at once (``target``, ``action``, ``value``, and why: ``reason``) and rebuild
     the plan once; every decision is checked before any is written."""
     from cavat.core.repository import utc_now
-    from cavat.modules.ingest.review import check_decision
+    from cavat.modules.ingest.review import check_decision, decided_text, hint_target, hint_text_now
 
     for d in batch:
         check_decision(d["target"], d["action"], d.get("value"))
@@ -171,6 +172,11 @@ async def decide_many(
         decisions[d["target"]] = {"action": d["action"], "value": d.get("value"), "by": by, "at": at}
         if d.get("reason"):
             decisions[d["target"]]["reason"] = d["reason"]
+        if (key := hint_target(d["target"])) and d["action"] in ("approve", "reject"):
+            # The words the teacher read: given with the decision, else the hint the plan shows (REFORM-3b).
+            text = decided_text(decisions[d["target"]]) or hint_text_now(plan.lessons, plan.drafts, *key)
+            if text:
+                decisions[d["target"]]["text"] = text
     await repo.save(plan.model_copy(update={"decisions": decisions}))
     return await rebuild_plan(database, school_id, chapter_id, cached_drafter())
 
