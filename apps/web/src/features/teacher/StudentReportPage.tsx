@@ -55,7 +55,10 @@ export function StudentReportPage() {
     body = (
       <Notice>
         {missing ? "Em này chưa học buổi nào của chương." : "Chưa tải được báo cáo, cô thử lại sau nhé."}{" "}
-        <Link to="/teacher" className="text-brand-800 underline">
+        <Link
+          to={chapter ? `/teacher?chapter=${encodeURIComponent(chapter)}` : "/teacher"}
+          className="text-brand-800 underline"
+        >
           Về bảng theo dõi lớp
         </Link>
       </Notice>

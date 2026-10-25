@@ -34,14 +34,21 @@ import type {
  * Everything the screens need from the backend. The UI talks only to this interface, so swapping the
  * in-browser mock for the HTTP client of T08 does not touch any screen.
  *
- * Client code never picks a model, lesson or activity: no method takes such a parameter (CLAUDE.md,
- * design rule 4; blueprint PART 24.2).
+ * Client code never picks a model, a lesson plan or an activity: no method takes such a parameter
+ * (CLAUDE.md, design rule 4; blueprint PART 24.2). It may name a chapter, but only one that the server
+ * lists as taught (`StudentOverview.chapters`); the server refuses any other.
  */
 export interface SessionApi {
   readonly engine: EngineKind;
 
-  /** POST /v1/sessions: demo session for one student (T08). Temporary until login + scheduler exist. */
-  createDemoSession(input: { student_display_name: string }): Promise<{ session_id: string }>;
+  /**
+   * POST /v1/sessions: demo session for one student (T08). Temporary until login + scheduler exist.
+   * `chapter_id` names the chapter to learn (the first one without it); the mock only has lesson 1.
+   */
+  createDemoSession(input: {
+    student_display_name: string;
+    chapter_id?: string;
+  }): Promise<{ session_id: string }>;
   /** GET /v1/sessions/{id}/state */
   getState(sessionId: string): Promise<SessionState>;
   /** POST /v1/sessions/{id}/join. Joining an ACTIVE session resumes it. */
@@ -57,10 +64,10 @@ export interface SessionApi {
 
   /** Student: this student's own sessions, newest first ("Lịch sử học"): GET /v1/sessions/mine. */
   listMySessions(): Promise<SessionSummary[]>;
-  /** Student: the chapter so far, in words (real API only: the mock runs lesson 1 alone). */
-  getMyOverview?: () => Promise<StudentOverview>;
-  /** Parent: the child behind a code (real API only). */
-  getChildOverview?: (code: string) => Promise<ParentChildView>;
+  /** Student: a chapter so far, in words (real API only: the mock runs lesson 1 alone). */
+  getMyOverview?: (chapterId?: string) => Promise<StudentOverview>;
+  /** Parent: the child behind a code, on a chapter (real API only). */
+  getChildOverview?: (code: string, chapterId?: string) => Promise<ParentChildView>;
   /**
    * Accounts (ACC-1, real API only): the login of the trial's student, parent and teacher. Each role logs in
    * once on a device and is kept (ACC-2): switching role needs no logout and, after the first PIN, no PIN.
@@ -75,8 +82,8 @@ export interface SessionApi {
     /** Forgets the current role's login (an expired token); the other roles stay kept. */
     logout(): void;
   };
-  /** Parent account: the linked child (real API only). */
-  getMyChild?: () => Promise<ParentChildView>;
+  /** Parent account: the linked child, on a chapter (real API only). */
+  getMyChild?: (chapterId?: string) => Promise<ParentChildView>;
   /** Teacher library (DOC-1, real API only): the documents the teacher uploads, the RAG's sources. */
   library?: {
     list(): Promise<TeacherDocument[]>;

@@ -523,12 +523,21 @@ export interface ProgressTopic {
   reason?: string | null;
 }
 
-/** GET /v1/students/me/overview: the chapter so far, across the student's sessions. */
+/** A chapter the tutor teaches, by the id the API takes in `?chapter=`. */
+export interface ChapterRef {
+  chapter_id: string;
+  title: string;
+}
+
+/** GET /v1/students/me/overview: a chapter so far, across the student's sessions. */
 export interface StudentOverview {
   student_display_name: string;
   /** The code the parent enters to follow this child (demo guardian link). */
   parent_code: string;
-  chapter: { chapter_id: string; title: string };
+  /** The chapter this view is about: the one asked for (`?chapter=`), else the first. */
+  chapter: ChapterRef;
+  /** Every chapter the tutor teaches, the first one first: what a student or a parent picks from. */
+  chapters: ChapterRef[];
   nodes: ProgressNode[];
   relations: KnowledgeRelation[];
   passed: number;

@@ -9,7 +9,7 @@ import { AlertIcon, BookIcon, CheckIcon, ChartIcon, UsersIcon } from "../../comp
 import { attentionText } from "../../components/labels";
 import { formatViDecimal } from "../../lib/viNumber";
 import { Heatmap } from "./analytics/Heatmap";
-import { columns, urgency } from "./analytics/helpers";
+import { columns, studentReportPath, urgency } from "./analytics/helpers";
 import { MisconceptionChart } from "./analytics/MisconceptionChart";
 import { zoneOf } from "./analytics/zones";
 import { ChapterTabs } from "./ChapterTabs";
@@ -192,7 +192,7 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
               {flagged.map((s) => (
                 <li key={s.student_id} className="rounded-2xl bg-rose-50/60 p-3 ring-1 ring-rose-200">
                   <Link
-                    to={`/teacher/students/${encodeURIComponent(s.student_id)}`}
+                    to={studentReportPath(s.student_id, overview.chapter.chapter_id)}
                     className="font-semibold text-brand-900 hover:underline"
                   >
                     {s.display_name}

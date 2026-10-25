@@ -2,13 +2,17 @@ import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiError, type SessionApi } from "../../api/client";
-import type { ParentChildView, StudentOverview } from "../../api/contract";
+import type { AuthUser, ParentChildView, StudentOverview } from "../../api/contract";
 import { renderApp, testApi } from "../../test/renderApp";
+
+const DECIMALS = { chapter_id: "math-g5-decimals", title: "Số thập phân" };
+const AREA = { chapter_id: "math-g5-area-triangle-trapezoid", title: "Diện tích hình tam giác, hình thang" };
 
 const OVERVIEW: StudentOverview = {
   student_display_name: "An",
   parent_code: "4ACA86",
-  chapter: { chapter_id: "math-g5-decimals", title: "Số thập phân" },
+  chapter: DECIMALS,
+  chapters: [DECIMALS, AREA],
   nodes: [
     {
       node_id: "FRAC",
@@ -116,7 +120,7 @@ describe("parent pages (PART 27.1)", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "Tình hình học của An" }),
     ).toBeInTheDocument();
-    expect(getChildOverview).toHaveBeenCalledWith("4ACA86");
+    expect(getChildOverview).toHaveBeenCalledWith("4ACA86", undefined); // no chapter: the server's first
   });
 
   it("says how well the child understands each topic in words, never as a score", async () => {
@@ -144,6 +148,66 @@ describe("parent pages (PART 27.1)", () => {
     expect(sessions).toHaveLength(3);
     expect(sessions[2]).toHaveTextContent("12 phút");
     expect(sessions[2]).toHaveTextContent("Phân số thập phân");
+  });
+
+  it("lets the parent pick the chapter, and keeps it in the link (REFORM 4.4)", async () => {
+    const getChildOverview = vi.fn((_code: string, chapter?: string) =>
+      Promise.resolve({
+        ...CHILD,
+        chapter: chapter === AREA.chapter_id ? AREA : DECIMALS,
+        passed: chapter === AREA.chapter_id ? 0 : 1,
+      }),
+    );
+    const { user } = renderApp("/parent/4ACA86", progressApi({ getChildOverview }));
+    const picker = await screen.findByRole("navigation", { name: "Chọn chương" });
+    const [first, second] = within(picker).getAllByRole("button");
+    expect(first).toHaveTextContent("Số thập phân");
+    expect(first).toHaveAttribute("aria-pressed", "true");
+    expect(second).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(second);
+    expect(await screen.findByText(/Chương Diện tích hình tam giác, hình thang/)).toBeInTheDocument();
+    expect(getChildOverview).toHaveBeenLastCalledWith("4ACA86", AREA.chapter_id);
+    expect(screen.getByRole("button", { name: AREA.title })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: DECIMALS.title })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("opens on the chapter named in the link", async () => {
+    const getChildOverview = vi.fn((_code: string, chapter?: string) =>
+      Promise.resolve({ ...CHILD, chapter: chapter === AREA.chapter_id ? AREA : DECIMALS }),
+    );
+    renderApp(`/parent/4ACA86?chapter=${AREA.chapter_id}`, progressApi({ getChildOverview }));
+    expect(await screen.findByText(/Chương Diện tích hình tam giác, hình thang/)).toBeInTheDocument();
+    expect(getChildOverview).toHaveBeenCalledWith("4ACA86", AREA.chapter_id);
+  });
+
+  it("offers no choice when the tutor teaches one chapter only", async () => {
+    const one = { ...CHILD, chapters: [DECIMALS] };
+    renderApp("/parent/4ACA86", progressApi({ getChildOverview: () => Promise.resolve(one) }));
+    await screen.findByRole("heading", { level: 1, name: "Tình hình học của An" });
+    expect(screen.queryByRole("navigation", { name: "Chọn chương" })).not.toBeInTheDocument();
+  });
+
+  it("follows the linked child of the parent account on the chapter picked (ACC-1)", async () => {
+    const parent: AuthUser = { user_id: "u-p", kind: "PARENT", display_name: "Mẹ An", child_id: "u-s" };
+    const getMyChild = vi.fn((chapter?: string) =>
+      Promise.resolve({ ...CHILD, chapter: chapter === AREA.chapter_id ? AREA : DECIMALS }),
+    );
+    const api = progressApi({
+      getMyChild,
+      auth: {
+        config: () => Promise.resolve({ mode: "accounts", accounts: [] }),
+        login: () => Promise.resolve(parent),
+        me: () => Promise.resolve(parent),
+        switchTo: () => true,
+        logout: () => undefined,
+      },
+    });
+    const { user } = renderApp("/parent", api);
+    await user.click(await screen.findByRole("button", { name: AREA.title }));
+    expect(await screen.findByText(/Chương Diện tích hình tam giác, hình thang/)).toBeInTheDocument();
+    expect(getMyChild).toHaveBeenNthCalledWith(1, undefined);
+    expect(getMyChild).toHaveBeenLastCalledWith(AREA.chapter_id);
   });
 
   it("explains an unknown code and offers to enter it again", async () => {

@@ -68,6 +68,11 @@ function browserStorage(): Storage | null {
   }
 }
 
+/** `?chapter=<id>` for the views that name a chapter; nothing when none is named (the first one). */
+function chapterQuery(chapterId: string | undefined): string {
+  return chapterId ? `?chapter=${encodeURIComponent(chapterId)}` : "";
+}
+
 function sleep(ms: number): Promise<void> {
   return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
 }
@@ -225,8 +230,10 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
   return {
     engine: "live",
 
-    async createDemoSession(input) {
-      const state = await request<SessionState>("POST", "/v1/sessions", studentHeaders(), input);
+    async createDemoSession({ student_display_name, chapter_id }) {
+      // The API calls the chapter to learn `lesson_id`; the server refuses an id it does not teach.
+      const body = { student_display_name, lesson_id: chapter_id };
+      const state = await request<SessionState>("POST", "/v1/sessions", studentHeaders(), body);
       return { session_id: state.session_id };
     },
 
@@ -263,14 +270,18 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       return request<SessionSummary[]>("GET", "/v1/sessions/mine", studentHeaders());
     },
 
-    getMyOverview() {
-      return request<StudentOverview>("GET", "/v1/students/me/overview", studentHeaders());
+    getMyOverview(chapterId) {
+      return request<StudentOverview>(
+        "GET",
+        `/v1/students/me/overview${chapterQuery(chapterId)}`,
+        studentHeaders(),
+      );
     },
 
-    getChildOverview(code) {
+    getChildOverview(code, chapterId) {
       return request<ParentChildView>(
         "GET",
-        `/v1/parents/children/${encodeURIComponent(code.trim())}`,
+        `/v1/parents/children/${encodeURIComponent(code.trim())}${chapterQuery(chapterId)}`,
         as(() => PARENT_HEADERS),
       );
     },
@@ -417,10 +428,10 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       },
     },
 
-    getMyChild() {
+    getMyChild(chapterId) {
       return request<ParentChildView>(
         "GET",
-        "/v1/parents/me/child",
+        `/v1/parents/me/child${chapterQuery(chapterId)}`,
         as(() => PARENT_HEADERS),
       );
     },
@@ -434,10 +445,9 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
     },
 
     getClassOverview(chapterId) {
-      const query = chapterId ? `?chapter=${encodeURIComponent(chapterId)}` : "";
       return request<ClassOverview>(
         "GET",
-        `/v1/teachers/class${query}`,
+        `/v1/teachers/class${chapterQuery(chapterId)}`,
         as(() => TEACHER_HEADERS),
       );
     },
@@ -452,10 +462,9 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
     },
 
     getStudentReport(studentId, chapterId) {
-      const query = chapterId ? `?chapter=${encodeURIComponent(chapterId)}` : "";
       return request<TeacherStudentView>(
         "GET",
-        `/v1/teachers/students/${encodeURIComponent(studentId)}${query}`,
+        `/v1/teachers/students/${encodeURIComponent(studentId)}${chapterQuery(chapterId)}`,
         as(() => TEACHER_HEADERS),
       );
     },

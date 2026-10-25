@@ -42,17 +42,23 @@ function Chip({ status }: { status: string }) {
   return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${s.tone}`}>{s.label}</span>;
 }
 
-/** A value the teacher may rewrite: shown as text, edited in place, saved as a decision. */
+/**
+ * A value the teacher may rewrite: shown as text, edited in place, saved as a decision. An empty value is
+ * not a decision the API takes ("an edit needs a value"): where a field may be left empty, `onClear` says
+ * what that means (the field goes back to its default); elsewhere an empty save changes nothing.
+ */
 function Editable({
   label,
   value,
   onSave,
+  onClear,
   multiline = false,
   hint,
 }: {
   label: string;
   value: string;
   onSave: (value: string) => void;
+  onClear?: () => void;
   multiline?: boolean;
   hint?: string;
 }) {
@@ -81,6 +87,7 @@ function Editable({
       onSubmit={(event) => {
         event.preventDefault();
         if (draft.trim()) onSave(draft.trim());
+        else if (value && onClear) onClear();
         setDraft(null);
       }}
     >
@@ -435,6 +442,7 @@ function VerifyReview({
         value={node.verify_prompt ?? ""}
         hint="Gia sư hỏi câu này khi con làm đúng một bài của tiết. Không ghi con số: câu dùng chung cho mọi bài. Để trống thì gia sư hỏi câu chung."
         onSave={(v) => actions.decide(target, "edit", v)}
+        onClear={() => actions.decide(target, "reject")}
       />
     </div>
   );

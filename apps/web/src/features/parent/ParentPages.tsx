@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
@@ -26,6 +26,7 @@ import {
 import { Mascot } from "../../components/Mascot";
 import { useAuth } from "../auth/authContext";
 import { formatViDateTime } from "../../lib/viNumber";
+import { ChapterPicker } from "../teaching/ChapterPicker";
 import { ProgressTrend } from "./ProgressTrend";
 
 const QUALITY_ORDER: Quality[] = [
@@ -48,7 +49,14 @@ export function ParentPage() {
 /** The parent account (ACC-1): the linked child at once, no code to type. */
 function MyChildPage() {
   const api = useApi();
-  const child = useQuery({ queryKey: ["my-child"], queryFn: () => api.getMyChild!(), retry: false });
+  const [params] = useSearchParams();
+  const chapter = params.get("chapter") ?? undefined;
+  const child = useQuery({
+    queryKey: ["my-child", chapter],
+    queryFn: () => api.getMyChild!(chapter),
+    placeholderData: keepPreviousData, // the page stays while another chapter loads
+    retry: false,
+  });
   let body: ReactNode;
   if (child.isPending) {
     body = <Notice>Đang tải tình hình học của con…</Notice>;
@@ -127,10 +135,13 @@ function CodePage() {
 export function ParentChildPage() {
   const api = useApi();
   const { code = "" } = useParams();
+  const [params] = useSearchParams();
+  const chapter = params.get("chapter") ?? undefined;
   const child = useQuery({
-    queryKey: ["child", code],
-    queryFn: () => api.getChildOverview!(code),
+    queryKey: ["child", code, chapter],
+    queryFn: () => api.getChildOverview!(code, chapter),
     enabled: api.getChildOverview !== undefined,
+    placeholderData: keepPreviousData, // the page stays while another chapter loads
     retry: false,
   });
 
@@ -179,6 +190,7 @@ function ChildView({ view }: { view: ParentChildView }) {
             Chương {view.chapter.title}
             {view.last_session_at ? ` · buổi gần nhất ${formatViDateTime(view.last_session_at)}` : ""}
           </p>
+          <ChapterPicker chapters={view.chapters} current={view.chapter.chapter_id} />
         </div>
         <Mascot mood={view.passed > 0 ? "celebrating" : "happy"} size={96} />
       </header>
