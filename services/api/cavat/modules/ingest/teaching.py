@@ -549,9 +549,14 @@ def build_plan(
                 pass_rule=PassRule(require_application=layer == "IMPLEMENT"),
             )
         )
-        sources[node_id] = [f"Giáo án, tiết {p.number}, trang {p.page}"] + [
-            f"Lý thuyết, {s.lesson} · {s.title or s.lesson_title}, trang {s.page}" for s in mine
-        ]
+        # An example box is a section of its own (``assign_sections``): four examples on one page would name
+        # that page four times. The review page lists each source once.
+        sources[node_id] = list(
+            dict.fromkeys(
+                [f"Giáo án, tiết {p.number}, trang {p.page}"]
+                + [f"Lý thuyết, {s.lesson} · {s.title or s.lesson_title}, trang {s.page}" for s in mine]
+            )
+        )
         lesson = lessons.setdefault(
             lesson_id,
             {"title": f"{p.lesson}: {mine[0].lesson_title if mine else p.title}", "nodes": [], "items": []},

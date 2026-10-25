@@ -171,6 +171,43 @@ def test_each_section_and_example_goes_to_the_period_it_is_about():
     assert titles == {1: ["So sánh 7,25 và 7,3"], 2: ["Xếp 6,08 ; 6,8 ; 5,99 từ bé đến lớn"]}
 
 
+# A rule and four worked examples on two pages: each example box is a section of its own for the assignment.
+THEORY_EXAMPLES = """[Trang 1]
+Lý thuyết · Số thập phân
+Bài 11 · So sánh các số thập phân
+GHI NHỚ · Cách so sánh hai số thập phân
+Bước 1. So sánh phần nguyên: số nào có phần nguyên lớn hơn thì lớn hơn.
+Bước 2. Phần nguyên bằng nhau thì so sánh lần lượt từng hàng của phần thập phân.
+VÍ DỤ · So sánh 7,25 và 7,3
+Phần nguyên cùng là 7. Viết 7,3 = 7,30. Hàng phần mười: 2 < 3 nên 7,25 < 7,3.
+VÍ DỤ · So sánh 4,5 và 4,05
+Phần nguyên cùng là 4. Hàng phần mười: 5 > 0 nên 4,5 > 4,05.
+VÍ DỤ · So sánh 9,1 và 9,10
+Viết 9,1 = 9,10 nên hai số bằng nhau.
+[Trang 2]
+Lý thuyết · Số thập phân
+VÍ DỤ · So sánh 6,2 và 6,19
+Hàng phần mười: 2 > 1 nên 6,2 > 6,19.
+"""
+
+
+def test_a_period_names_each_source_once_however_many_examples_it_has():
+    """REFORM-3: the review page listed one line per example box, the same page eleven times in a row."""
+    docs = [doc("BAI_GIANG", THEORY_EXAMPLES) if d.kind == "BAI_GIANG" else d for d in documents()]
+    plan = build_plan(
+        "math-g5-decimals", "Số thập phân", "STP", docs, build_bank("math-g5-decimals", "STP", docs)
+    )
+    first = plan.package.nodes[0]
+    assert len(first.worked_examples) == 4  # nothing is dropped: only the list of sources is short
+    assert plan.sources[first.id] == [
+        "Giáo án, tiết 1, trang 1",
+        "Lý thuyết, Bài 11 · So sánh các số thập phân, trang 1",
+        "Lý thuyết, Bài 11 · So sánh các số thập phân, trang 2",
+    ]
+    for node_id, lines in plan.sources.items():
+        assert len(lines) == len(set(lines)), node_id
+
+
 def test_the_plan_has_a_node_per_period_with_the_teachers_text_and_its_items():
     docs = documents()
     plan = build_plan(

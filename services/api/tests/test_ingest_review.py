@@ -171,6 +171,23 @@ def test_the_review_view_shows_the_chapter_its_sources_and_what_waits(client):
     assert client.get(f"{URL}/view", headers={"X-Demo-Student": "s"}).status_code in (401, 403)
 
 
+def test_the_review_shows_the_verdict_on_the_teachers_answer_not_on_the_documents(client):
+    """REFORM-3: a misread answer key is caught (the bank keeps that verdict), and once the teacher writes the
+    answer the page stops saying "đáp án mâu thuẫn" over an answer that now holds."""
+    client.post(f"{URL}/build", headers=TEACHER)
+    before = client.get(f"{URL}/view", headers=TEACHER).json()
+    assert next(i for i in before["left_out"] if i["item_id"] == "STP-PH02-3")["status"] == "CONFLICT"
+    decide(client, "item:STP-PH02-3/answer", "edit", "7,008")
+    note = client.get(f"{URL}/view", headers=TEACHER).json()["items"]["STP-PH02-3"]
+    assert note["status"] == "TEACHER" and note["findings"] == []
+    bank = client.get("/v1/teachers/item-banks/math-g5-decimals", headers=TEACHER).json()
+    assert next(i for i in bank["items"] if i["item_id"] == "STP-PH02-3")["status"] == "CONFLICT"
+    # An answer the teacher wrote that is still wrong shows what the checks found.
+    decide(client, "item:STP-PH02-3/answer", "edit", "7,05")
+    note = client.get(f"{URL}/view", headers=TEACHER).json()["items"]["STP-PH02-3"]
+    assert note["status"] == "TEACHER" and note["findings"]
+
+
 async def test_a_batch_of_decisions_is_checked_whole_then_written_once_with_its_reasons(
     tmp_path, monkeypatch
 ):

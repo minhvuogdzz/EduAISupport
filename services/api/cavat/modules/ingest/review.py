@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from dataclasses import asdict
 from typing import Any
 
 from cavat.core.pedagogy import HintLevel
@@ -112,6 +113,20 @@ def apply_item_overrides(
             draft.status = "REJECTED"
         out.append(draft)
     return out
+
+
+def item_as_taught(draft: dict[str, Any], decisions: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """The bank's item (as a dict) with the teacher's stem and answer, and the verdict of the checks on them.
+
+    The bank keeps what the documents say, a misread fraction in conflict included. What the teacher reads on
+    the review page is what is taught: once the teacher writes the answer (status TEACHER) the checks run on
+    that, and only the findings that still fail are shown. An item with no stem or answer of the teacher is
+    returned as it is."""
+    item_id = draft.get("item_id", "")
+    if not draft or not any(f"item:{item_id}/{part}" in decisions for part in ("stem", "answer")):
+        return draft
+    taught = apply_item_overrides([ItemDraft(**draft)], decisions)[0]
+    return asdict(taught) if taught.status == "TEACHER" else draft
 
 
 def apply_plan_decisions(plan: Plan, decisions: Mapping[str, Mapping[str, Any]]) -> None:

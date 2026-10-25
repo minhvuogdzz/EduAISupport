@@ -5,8 +5,14 @@ approve. Qwen writes; it never decides what is right:
 
 - a hint ladder H1 (TASK), H2 (CONCEPT), H3 (STRATEGY) for every practice item, from the rule, the steps
   and the mistakes of its own period. Each hint goes through the tutor's own validator (no answer leak, one
-  question at the end, numbers of the item, Vietnamese, the child called "con") and must use only the
-  mathematical terms of the item and the rule. A hint that fails is left out, never replaced;
+  question at the end, numbers of the item, Vietnamese, the child called "con") and must not teach a step the
+  item and the rule do not name. A hint that fails is left out, never replaced (a refused one is asked again
+  once, with its reason);
+- REFORM-3 (DI-72): the names the grade uses (dấu phẩy, phần nguyên, đáy...) and the places of a decimal (10,
+  100, 1000) and the 2 of an area formula are no new idea, a hint that asks about the exercise instead of its
+  data ("Đề bài yêu cầu con làm gì?", "… đúng không?") is refused, and the answer is never free: a number of
+  it that the item does not print ("mẫu số là 100" for 2/100) and the letter of a true/false answer ("ghi Đ")
+  are leaks;
 - for every period: a sample answer and the accepted short answers of its open questions, the key ideas of
   its retell (each phrasing in the words of the rule), and a question for an explanation without one. Their
   numbers and terms must come from the period's own text;
@@ -27,6 +33,7 @@ import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -40,11 +47,11 @@ from cavat.modules.content.lesson_package import HintTemplate, Item, LessonPacka
 from cavat.modules.ingest.teaching import Plan
 from cavat.modules.rag.bm25 import content_words
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, RenderContext
-from cavat.modules.tutor.validator import foreign_text, validate_message, wrong_address
+from cavat.modules.tutor.validator import foreign_text, grounded_values, validate_message, wrong_address
 
 DRAFTER_VERSION = "drafting/0.1.0"
 PROMPTS = Path(__file__).parent / "prompts"
-HINT_PROMPT, NODE_PROMPT = "draft-hints.v1.md", "draft-node.v1.md"
+HINT_PROMPT, NODE_PROMPT = "draft-hints.v2.md", "draft-node.v1.md"  # REFORM-3: v2 asks about the data
 VERIFY_PROMPT = "draft-verify.v1.md"  # FIX-3
 MAX_VERIFY_WORDS = 25
 VERIFY_LEAD = "Đúng rồi!"  # the tutor's praise before the "vì sao", as in the hand-written lessons
@@ -58,20 +65,49 @@ RETRY_NOTES = {
     "MULTIPLE_QUESTIONS": "chỉ được một câu hỏi",
     "NEW_MATH_TERM": "dùng thuật ngữ Toán không có trong đề hoặc quy tắc của bài",
     "UNGROUNDED_NUMBER": "dùng số không có trong đề của câu",
-    "ANSWER_LEAK": "đã nói ra đáp án",
+    "ANSWER_LEAK": "đã nói ra đáp án hoặc một phần của nó (kết quả, mẫu số, tử số, Đ hay S): bỏ phần đó đi",
     "TOO_LONG": "quá dài, tối đa 35 từ",
     "REPEATS": "trùng một gợi ý khác",
+    "GENERIC": "câu hỏi chung chung về đề (đề hỏi gì, con hiểu chưa): hỏi vào một dữ kiện cụ thể của đề",
 }
-# A formula's signs say the operations: "a × h : 2" is a multiplication and a division.
+# A formula's signs say the operations: "a × h : 2" is a multiplication and a division, "(a + b)" a sum.
 _SIGN_WORDS = {
-    "×": "nhân",
-    ":": "chia",
-    "+": "cộng",
-    "−": "trừ",
-    "-": "trừ",
+    "×": "nhân tích",
+    ":": "chia thương",
+    "+": "cộng tổng",
+    "−": "trừ hiệu",
+    "-": "trừ hiệu",
     "<": "bé hơn nhỏ hơn",
     ">": "lớn hơn",
 }
+# DI-72 (REFORM-3). A hint may name what the grade calls things without the item or the rule printing it
+# ("dấu phẩy", "phần nguyên", "xăng-ti-mét"): 136 + 39 hints were refused for that. The words of a step stay
+# bound to the sources: a hint that says "nhân với 100" teaches a way the period may not teach.
+STEP_TERMS = frozenset({"cộng", "trừ", "nhân", "chia", "gấp", "làm tròn", "tổng", "hiệu", "tích", "thương"})
+# Numbers a hint may say although the item does not print them: the places of a decimal in a question about
+# decimals and fractions, the 2 of "a × h : 2" in a question about an area. Never a number of the answer.
+BASE_TEN = frozenset({Fraction(10), Fraction(100), Fraction(1000)})
+HALF = frozenset({Fraction(2)})
+# A question about the exercise, not about its data: it fits every item, so it helps none (DI-72).
+_TAG_QUESTION = re.compile(r"(?:đúng|phải)\s+không\s*\?\s*$")
+_UNDERSTOOD = re.compile(
+    r"hiểu\s+(?:rõ\s+)?(?:đề|yêu cầu|bài|câu hỏi|chưa|không|chứ|chỗ trống)"
+    r"|biết\s+(?:đề|yêu cầu|câu hỏi|bài)\b[^?]*\b(?:gì|không|chưa)"
+    r"|(?:nhận ra|nhận thấy|thấy)\s+(?:đề|yêu cầu|chỗ trống)"
+    r"|đã\s+(?:đọc|hiểu)\s+(?:kỹ\s+)?(?:đề|yêu cầu)"
+)
+_ASKS_THE_TASK = re.compile(
+    r"\bđề(?:\s+bài)?\s+(?:đang\s+)?(?:yêu cầu|hỏi|muốn)(?:\s+con)?(?:\s+(?:làm|xác định|tìm|biết))?"
+    r"\s+(?:điều\s+)?gì\s*\?\s*$"
+)
+
+# A hint on a true/false statement that says which it is (DI-72): "Con ghi Đ", "câu này đúng".
+_TRUTH_LETTER = re.compile(r"\b(?:ghi|chọn|điền)\s+[“\"'‘]?[ĐS][”\"'’]?(?![\wà-ỹ])")
+_TRUTH_WORD = re.compile(
+    r"\b(?:đáp án|kết quả)\s+(?:là\s+)?(?:đúng|sai)\b"
+    r"|\b(?:câu|khẳng định|mệnh đề)\s+(?:này\s+|ấy\s+|đó\s+)?(?:là\s+)?(?:đúng|sai)\b(?!\s+hay)",
+    re.IGNORECASE,
+)
 
 HINT_SCHEMA = {
     "type": "object",
@@ -160,11 +196,13 @@ class Drafter:
         pause: float = 0.0,
         sleep: Callable[[float], None] = time.sleep,
         only: frozenset[str] | None = None,
+        hint_prompt: str = HINT_PROMPT,
     ):
         """``only``: the kinds of drafts that may call the model ("HINT", "NODE", "VERIFY"); the others
-        come from the cache only (FIX-3: draft the periods' "vì sao" without drafting the hints again)."""
+        come from the cache only (FIX-3: draft the periods' "vì sao" without drafting the hints again).
+        ``hint_prompt``: the prompt file of the hints (REFORM-3: v1 too, to compare it with v2)."""
         self.router, self.cache, self.pause, self.sleep = router, cache, pause, sleep
-        self.only = only
+        self.only, self.hint_prompt = only, hint_prompt
         self.calls = 0  # requests that reached the model (not the cache)
 
     def _ask(
@@ -225,7 +263,7 @@ class Drafter:
         for i, item in enumerate(items):
             if not item.hints and item.purpose != "EXIT":
                 by_node.setdefault(item.kc_ids[0], []).append(i)
-        prompt = prompt_text(HINT_PROMPT)
+        prompt = prompt_text(self.hint_prompt)
         for node_id, indexes in by_node.items():
             node = nodes[node_id]
             for start in range(0, len(indexes), BATCH):
@@ -280,7 +318,7 @@ class Drafter:
         again["SỬA LẠI"] = notes
         again["YÊU CẦU"] = (
             "Chỉ viết lại các gợi ý trong [SỬA LẠI] (đúng mã câu và bậc), sửa đúng lý do bị loại; "
-            "các bậc khác để chuỗi rỗng."
+            'các bậc khác để chuỗi rỗng. Gợi ý viết lại vẫn là một câu hỏi, kết thúc bằng đúng một dấu "?".'
         )
         data, model = self._ask(prompt, again, HINT_SCHEMA, 260 * len(refused))
         rewritten = {row.get("id"): row for row in data.get("items", []) if isinstance(row, dict)}
@@ -512,10 +550,73 @@ def _hint_codes(
     try:
         codes = [str(issue.code) for issue in validate_message(text, ctx).issues]
     except ValueError:  # an answer the tutor's validator cannot read: the hint is not checked, so not kept
-        codes = ["NOT_CHECKABLE"]
-    if terms_missing(terms_in(text), [item.stem, _node_text(node, full=True), _sign_words(item.stem)]):
+        return ["NOT_CHECKABLE"]
+    # A number nowhere in the item or the rule is refused, unless it is a free one (DI-72). A number of the
+    # answer is a leak, named below, not a number of nowhere.
+    secret = _secret_numbers(item)
+    if "UNGROUNDED_NUMBER" in codes:
+        known = grounded_values(ctx) | _terms_of_fractions(item.stem) | _free_numbers(item, node)
+        stray = [n.value for n in extract_numbers(text) if n.value not in known]
+        if all(v in secret for v in stray):
+            codes.remove("UNGROUNDED_NUMBER")
+    sources = [item.stem, _node_text(node, full=True), _sign_words(item.stem)]
+    if any(t in STEP_TERMS for t in terms_missing(terms_in(text), sources)):
         codes.append("NEW_MATH_TERM")
+    if generic_hint(text, level):
+        codes.append("GENERIC")
+    if "ANSWER_LEAK" not in codes and _tells_the_answer(text, item, secret):
+        codes.append("ANSWER_LEAK")
     return codes
+
+
+def _tells_the_answer(text: str, item: Item, secret: set[Fraction]) -> bool:
+    """What the tutor's validator does not see (DI-72): a number of a numeric answer that the item does not
+    print, wherever else the lesson prints it, and the "Đ" or "sai" of a true/false statement."""
+    if item.answer.type == "boolean":
+        return bool(_TRUTH_LETTER.search(text) or _TRUTH_WORD.search(" ".join(text.split())))
+    return bool(secret) and any(n.value in secret for n in extract_numbers(text))
+
+
+def _secret_numbers(item: Item) -> set[Fraction]:
+    """The numbers of a numeric answer that the item does not print (0 and 1 are in every decimal): telling
+    one tells part of the answer, its denominator for instance."""
+    if item.answer.type != "numeric":
+        return set()
+    printed = {n.value for n in extract_numbers(item.stem)} | _terms_of_fractions(item.stem)
+    return {n for n in _answer_numbers(item) - printed if n not in (0, 1)}
+
+
+def generic_hint(text: str, level: HintLevel) -> bool:
+    """A question about the exercise instead of its data ("Đề bài yêu cầu con làm gì?", "Con hiểu yêu cầu
+    chưa?"). H1 also refuses the confirmation tag ("…, đúng không?"): its job is to make the child look at the
+    first datum, and a tag asks for nothing (DI-72)."""
+    lowered = " ".join(text.lower().split())
+    if _UNDERSTOOD.search(lowered) or _ASKS_THE_TASK.search(lowered):
+        return True
+    return level == HintLevel.H1 and bool(_TAG_QUESTION.search(lowered))
+
+
+def _terms_of_fractions(text: str) -> set[Fraction]:
+    """The numerator and the denominator of a fraction the text prints ("tử số 7 và mẫu số 10" for 7/10): the
+    validator reads "7/10" as one number, and a hint that names the terms of the fraction the child reads says
+    nothing the item does not."""
+    return {Fraction(int(n)) for pair in re.findall(r"(\d+)\s*/\s*(\d+)", text) for n in pair}
+
+
+def _answer_numbers(item: Item) -> set[Fraction]:
+    """Every number the answer is made of: its value and, for a fraction, its numerator and denominator."""
+    text = _answer_text(item)
+    return {n.value for n in extract_numbers(text)} | _terms_of_fractions(text)
+
+
+def _free_numbers(item: Item, node: Node) -> set[Fraction]:
+    about = f"{item.stem} {node.name} {node.method.rule}".lower()
+    free: set[Fraction] = set()
+    if re.search(r"thập phân|phân số|\d\s*[,/]\s*\d", about):
+        free |= BASE_TEN
+    if re.search(r"diện tích|tam giác|hình thang", about):
+        free |= HALF
+    return free - _answer_numbers(item)
 
 
 def _sign_words(text: str) -> str:
