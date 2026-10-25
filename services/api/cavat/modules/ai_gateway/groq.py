@@ -26,6 +26,7 @@ from .base import (
     Usage,
     check_prompt_size,
     parse_reset_duration,
+    quota_limit,
 )
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
@@ -129,7 +130,12 @@ class GroqClient:
         if status == 429:
             reset_at = _reset_at(response.headers, now)
             self.quota.mark_exhausted(model, reset_at, now)
-            raise QuotaExceeded(f"rate limited: {_error_text(response)}", model=model, reset_at=reset_at)
+            raise QuotaExceeded(
+                f"rate limited: {_error_text(response)}",
+                model=model,
+                reset_at=reset_at,
+                limit=quota_limit(_error_text(response, 2000)),
+            )
         if status == 413:
             raise PromptTooLong(f"provider rejected request size: {_error_text(response)}", model=model)
         if status == 400 and _error_code(response) == "json_validate_failed":
@@ -194,7 +200,7 @@ def _error_code(response: httpx.Response) -> str | None:
     return code if isinstance(code, str) else None
 
 
-def _error_text(response: httpx.Response) -> str:
+def _error_text(response: httpx.Response, size: int = 200) -> str:
     message = _error_body(response).get("message")
     text = message if isinstance(message, str) else response.text
-    return text[:200]
+    return text[:size]

@@ -177,6 +177,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | DOCS-1 | BACKLOG theo đúng hiện trạng; bản REV-ECIT 2026 vào `docs/paper/rev-ecit-2026/` | Xong |
 | CFG-1 | Tên model bộ não ghi một chỗ (`GROQ_MODEL`); bỏ khóa `LLAMA_CLOUD_API_KEY`, `GEMINI_LIVE_MODEL`; nhãn model trong `make eval-baselines` theo model thật trả lời | Xong (PR #97) |
 | CFG-2 | Ghi mỗi lần gọi model vào sự kiện của buổi học: `MODEL_CALLED` (model, token thật, ước lượng) và `MODEL_FALLBACK` (Qwen → gpt-oss), ADR-032; đo lại ước lượng 3 ký tự/token trên prompt gia sư thật | Xong. Qwen 3,15 ký tự/token (ước lượng đếm dư 14%), gpt-oss-120b 2,76, gpt-oss-20b 2,07; 2 buổi mô phỏng, `docs/poc/free-tier-quota.md`. Còn: lưu nội dung lỗi 429 để phân biệt hạn mức phút/ngày |
+| CFG-3 | Mỗi lần thử ghi giới hạn mà 429 nêu (`ITPM`, `TPD`...) và số giây chờ; `make model-usage` báo token, model và 429 của các buổi học thật; `GROQ_API_KEY_EVAL` cho bài đo (ADR-032). Đo thật: Groq giới hạn token vào ở **7.000 mỗi phút** cho Qwen (trang Limits ghi 8.000) | Xong. Còn: cách Groq ghi 429 theo ngày chưa thấy; gói Developer đang tạm khóa nâng cấp |
 
 ### Việc còn mở
 

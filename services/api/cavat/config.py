@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # Gemini only for vision/OCR and the RAG vectors.
     groq_api_key: SecretStr | None = None
     groq_model: str = "qwen/qwen3.8-27b"
+    # CFG-3: a key of another Groq project for the evaluations, the simulated child and the batch drafts
+    # (`for_eval` in ``build_router``), so they spend that project's quota and not the child's. Unset: the
+    # same key as GROQ_API_KEY. Quota is per organization: a key of the same project changes nothing.
+    groq_api_key_eval: SecretStr | None = None
     groq_stt_model: str = "whisper-large-v3"
     # ADR-030 voice: the tutor's voice from VieNeu-TTS running locally (`make voice`); off or not running,
     # the browser reads with its own Vietnamese voice.

@@ -135,8 +135,8 @@ def judge(
 def run(only: set[str]) -> tuple[list[Row], str, int]:
     chapter = chapter_service.chapters()["math-g5-decimals"]
     order = chapter.topological_order()
-    tutor_router = build_router()
-    judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)})
+    tutor_router = build_router(for_eval=True)
+    judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)}, for_eval=True)
     index = asyncio.run(RagService(DEMO_SCHOOL_ID, chapter_service.chapters).current(InMemoryDatabase()))
     semantic = index.embedder.name if index.embedder else "off"
     cases = yaml.safe_load(DATASET.read_text(encoding="utf-8"))["cases"]

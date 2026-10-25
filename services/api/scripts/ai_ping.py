@@ -11,7 +11,7 @@ import zlib
 
 from cavat.config import get_settings
 from cavat.modules.ai_gateway.base import AIGatewayError, ChatMessage, ChatRequest, ModelClass
-from cavat.modules.ai_gateway.router import build_router
+from cavat.modules.ai_gateway.router import build_router, groq_key
 
 PING_SCHEMA = {
     "type": "object",
@@ -91,6 +91,9 @@ def main() -> int:
         print("Groq: SKIP (GROQ_API_KEY chưa đặt trong services/api/.env)")
     else:
         ok = ping_groq(router) and ok
+        if groq_key(settings, for_eval=True) != settings.groq_api_key:  # CFG-3: a key of its own for evals
+            print("Groq (khóa của bài đo, GROQ_API_KEY_EVAL):")
+            ok = ping_groq(build_router(settings, for_eval=True)) and ok
     if settings.gemini_api_key is None or not settings.gemini_api_key.get_secret_value():
         print("Gemini: SKIP (GEMINI_API_KEY chưa đặt trong services/api/.env)")
     else:

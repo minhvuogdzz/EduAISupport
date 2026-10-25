@@ -13,6 +13,8 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
+from pydantic import SecretStr
+
 from cavat.config import Settings, get_settings
 
 from .base import (
@@ -34,6 +36,7 @@ from .base import (
     Transcription,
     VisionProvider,
     VisionResult,
+    error_detail,
     estimate_prompt_tokens,
 )
 
@@ -64,6 +67,11 @@ class Attempt:
     model: str
     sent: bool  # False when skipped (known exhausted) or refused before sending
     error: str | None = None  # error class name, None on success
+    # CFG-3: the provider's words (without the organization id), the limit a 429 names (TPM, TPD, RPM, RPD)
+    # and the seconds until it frees up, when known: a minute limit and a day limit read differently.
+    detail: str = ""
+    limit: str | None = None
+    retry_after_s: float | None = None
 
 
 @dataclass(frozen=True)
@@ -84,6 +92,10 @@ _REASON_BY_ERROR: dict[type[AIGatewayError], FallbackReason] = {
     ModelUnavailable: FallbackReason.MODEL_UNAVAILABLE,
     InvalidModelOutput: FallbackReason.INVALID_OUTPUT,
 }
+
+
+def _seconds_until(moment: datetime | None, now: datetime) -> float | None:
+    return None if moment is None else round(max((moment - now).total_seconds(), 0.0), 1)
 
 
 class AIRouter:
@@ -129,18 +141,32 @@ class AIRouter:
             if calls_used + calls_made >= self.max_calls_per_session:
                 return ChatOutcome(None, FallbackReason.SESSION_CAP, calls_made, tuple(attempts))
             if self.quota.is_exhausted(model, self._clock()):
-                attempts.append(Attempt(model, sent=False, error=QuotaExceeded.__name__))
+                wait = _seconds_until(self.quota.reset_at(model), self._clock())
+                attempts.append(Attempt(model, sent=False, error=QuotaExceeded.__name__, retry_after_s=wait))
                 reason = FallbackReason.QUOTA_EXCEEDED
                 continue
             try:
                 result = self._chat.chat(request, model)
-            except PromptTooLong:
+            except PromptTooLong as exc:
                 # Every Groq model shares the same budget: no point trying the next one.
-                attempts.append(Attempt(model, sent=False, error=PromptTooLong.__name__))
+                attempts.append(
+                    Attempt(model, sent=False, error=PromptTooLong.__name__, detail=error_detail(str(exc)))
+                )
                 return ChatOutcome(None, FallbackReason.PROMPT_TOO_LONG, calls_made, tuple(attempts))
             except (QuotaExceeded, ModelUnavailable, InvalidModelOutput) as exc:
                 calls_made += 1
-                attempts.append(Attempt(model, sent=True, error=type(exc).__name__))
+                limit = exc.limit if isinstance(exc, QuotaExceeded) else None
+                reset = exc.reset_at if isinstance(exc, QuotaExceeded) else None
+                attempts.append(
+                    Attempt(
+                        model,
+                        sent=True,
+                        error=type(exc).__name__,
+                        detail=error_detail(str(exc)),
+                        limit=limit,
+                        retry_after_s=_seconds_until(reset, self._clock()),
+                    )
+                )
                 reason = _REASON_BY_ERROR[type(exc)]
                 continue
             calls_made += 1
@@ -250,19 +276,33 @@ def _embedding_name(provider: EmbeddingProvider | None) -> str | None:
     return getattr(provider, "model", None)
 
 
+def groq_key(settings: Settings, *, for_eval: bool = False) -> SecretStr | None:
+    """The Groq key of a router (CFG-3): ``GROQ_API_KEY_EVAL`` for evaluations and batch jobs when it is
+    set, else ``GROQ_API_KEY``. A key that is not set or empty is no key."""
+    eval_key = settings.groq_api_key_eval
+    key = eval_key if for_eval and eval_key is not None and eval_key.get_secret_value() else None
+    key = key or settings.groq_api_key
+    return key if key is not None and key.get_secret_value() else None
+
+
 def build_router(
-    settings: Settings | None = None, chains: Mapping[ModelClass, tuple[str, ...]] | None = None
+    settings: Settings | None = None,
+    chains: Mapping[ModelClass, tuple[str, ...]] | None = None,
+    *,
+    for_eval: bool = False,
 ) -> AIRouter:
     """Wire real adapters from settings. Missing keys leave the router in template-only mode.
 
     ``chains`` overrides the model chain of some classes (an eval can judge on a model with its own quota).
+    ``for_eval``: the router of an evaluation or a batch job, on ``GROQ_API_KEY_EVAL`` when it is set.
     """
     settings = settings or get_settings()
     groq = None
-    if settings.groq_api_key is not None and settings.groq_api_key.get_secret_value():
+    key = groq_key(settings, for_eval=for_eval)
+    if key is not None:
         from .groq import GroqClient
 
-        groq = GroqClient(settings.groq_api_key)
+        groq = GroqClient(key)
     vision = embeddings = None
     if settings.gemini_api_key is not None and settings.gemini_api_key.get_secret_value():
         from .gemini import GeminiEmbeddings, GeminiVision

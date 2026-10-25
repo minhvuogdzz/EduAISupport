@@ -321,7 +321,9 @@ def main() -> None:
     settings = get_settings()
     out = settings.storage_dir / "reports"
     out.mkdir(parents=True, exist_ok=True)
-    picks, spent, cached = ask(asked, build_router(), out / "eval-chooser-cache.json", args.pause)
+    picks, spent, cached = ask(
+        asked, build_router(for_eval=True), out / "eval-chooser-cache.json", args.pause
+    )
     meta = {"date": date.today().isoformat(), "collected": len(cases_all), "sessions": run}
     text = report(asked, picks, {**meta, "calls": spent, "cached": cached})
     REPORTS.mkdir(parents=True, exist_ok=True)

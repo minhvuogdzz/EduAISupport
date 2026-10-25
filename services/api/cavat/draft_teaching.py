@@ -40,7 +40,9 @@ async def main() -> None:
     # ONLY=VERIFY (FIX-3): only these kinds may call Qwen; the other drafts come from the cache, and what the
     # cache no longer has stays as it is in the stored plan.
     only = frozenset(k for k in sys.argv[1].split(",") if k) if len(sys.argv) > 1 and sys.argv[1] else None
-    drafter = Drafter(build_router(settings), settings.storage_dir / "cache" / "drafts", pause=8.0, only=only)
+    drafter = Drafter(
+        build_router(settings, for_eval=True), settings.storage_dir / "cache" / "drafts", pause=8.0, only=only
+    )
     database = db.get_db(settings)
     print(f"Database: {settings.mongodb_db}")
     for chapter_id in PREFIXES:

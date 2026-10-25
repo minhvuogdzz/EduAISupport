@@ -181,6 +181,11 @@ class ModelAttempt(_Payload):
     model: str
     sent: bool  # False: skipped (known out of quota) or refused before sending (prompt too long)
     error: str | None = None  # the gateway's error class; None: this model answered
+    # CFG-3: the provider's words without the organization id, the limit a 429 names (ITPM: input tokens per
+    # minute; TPD: tokens per day; RPM, RPD: requests) and the seconds until it frees up, when known.
+    detail: str = ""
+    limit: str | None = None
+    retry_after_s: float | None = Field(default=None, ge=0)
 
 
 class ModelCalled(_Payload):

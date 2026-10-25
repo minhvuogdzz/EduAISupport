@@ -138,8 +138,8 @@ def judge(router, item, said: str, intent: str, before: str, reply: str) -> dict
 
 def run() -> list[Turn]:
     chapter = load_chapter(CHAPTER)
-    tutor_router = build_router()
-    judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)})
+    tutor_router = build_router(for_eval=True)
+    judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)}, for_eval=True)
     turns: list[Turn] = []
     for role, item_id, messages in SCENARIOS:
         package = chapter.lesson_of(item_id)

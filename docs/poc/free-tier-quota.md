@@ -19,6 +19,16 @@ Hạn mức tính theo **tổ chức**, không theo khóa.
 - `response_format: json_schema` với `strict: true` hoạt động với Qwen trên Groq.
 - 200.000 token/ngày với khoảng 2.000 token mỗi lần gọi cho khoảng 100 lần gọi mỗi ngày, và với trần 15 lần gọi mỗi buổi cho khoảng **6–7 buổi học dùng LLM mỗi ngày**. Các buổi khác chạy bằng câu mẫu.
 
+## Groq đối chiếu với trang Limits và một lỗi 429 thật (2026-10-25, CFG-3)
+
+- **Trang Limits của console** (ảnh chủ dự án chụp) khớp bảng trên: `qwen/qwen3.8-27b`, `gpt-oss-120b`, `gpt-oss-20b` đều 30 request/phút, 1.000 request/ngày, 8.000 token/phút, **200.000 token/ngày** [FACT: số 200.000 nay đã xác nhận]. Whisper 20 request/phút, 2.000 request/ngày, 7.200 giây âm thanh/giờ, 28.800 giây/ngày. Mỗi model có hạn mức riêng. Trang ghi hạn mức là của tổ chức và chia được theo dự án (Projects).
+- **Lỗi 429 thật** (gửi liên tiếp 4 request, mỗi request 2.182 token vào, `max_completion_tokens` 5): ba request đầu qua, request thứ tư bị từ chối với nội dung "... on input tokens per minute (**ITPM**): **Limit 7000**, Used 6360, Requested 2182. Please try again in 13.2s", kèm header `retry-after: 14`. [FACT]
+  - Giới hạn theo phút áp lên **token vào là 7.000**, thấp hơn 8.000 của trang Limits. Header `x-ratelimit-remaining-tokens` thì tính trên 8.000 (còn 5.813 sau request đầu).
+  - Với prompt gia sư trung bình khoảng 1.100 token (lớn nhất 2.294), mỗi phút chạy được khoảng 6 lần gọi Qwen.
+  - Cách Groq ghi 429 theo ngày chưa thấy, giả định là "per day (TPD)" **[OPEN]**. Từ CFG-3 mỗi lần bị 429, sự kiện `MODEL_CALLED` ghi giới hạn nào và số giây chờ; `make model-usage` đọc lại.
+- **Gói Developer:** trang Billing ghi "Developer tier upgrades are temporarily unavailable due to high demand", nên chưa nâng cấp được **[FACT 2026-10-25]**. Gói này có hạn mức token cao hơn, spend limit, batch và flex tier.
+- **Khóa:** hạn mức tính theo tổ chức; tạo thêm khóa trong cùng dự án không tăng hạn mức. Để bài đo không ăn hạn mức của học sinh, tạo một dự án Groq riêng, đặt hạn mức của nó và đặt khóa của dự án đó vào `GROQ_API_KEY_EVAL` (bài đo, `make simulate`, `make draft-teaching` dùng khóa này).
+
 ## Gemini embedding (Hybrid RAG, đo 2026-10-07)
 
 - `gemini-embedding-001`, 768 chiều.

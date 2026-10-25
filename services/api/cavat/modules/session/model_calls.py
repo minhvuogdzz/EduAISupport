@@ -47,7 +47,17 @@ def model_call_events(calls: Iterable[ChatCall], item_attempt_id: str | None = N
             purpose=call.purpose,
             model=result.model if result is not None else None,
             fallback_reason=reason.value if reason is not None else None,
-            attempts=[ModelAttempt(model=a.model, sent=a.sent, error=a.error) for a in attempts],
+            attempts=[
+                ModelAttempt(
+                    model=a.model,
+                    sent=a.sent,
+                    error=a.error,
+                    detail=a.detail,
+                    limit=a.limit,
+                    retry_after_s=a.retry_after_s,
+                )
+                for a in attempts
+            ],
             prompt_tokens=result.usage.prompt_tokens if result is not None else 0,
             completion_tokens=result.usage.completion_tokens if result is not None else 0,
             estimated_tokens=call.estimated_tokens,
