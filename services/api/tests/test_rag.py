@@ -595,6 +595,50 @@ def test_a_definition_is_told_from_a_question_and_a_value(text, term, defines_it
     assert defines(text, term) is defines_it
 
 
+@pytest.mark.parametrize(
+    ("text", "term", "shape", "defines_it"),
+    [
+        # a term in the middle of a sentence is used, not defined
+        ("Bước 1: Hàng cần làm tròn là hàng đơn vị (chữ số 3).", "lam tron", None, False),
+        ("Diện tích hình thang có đáy 10 m, đáy 6 m, chiều cao 5 m là:", "chieu cao", None, False),
+        ("Bước 2: Đáy dài hơn là đáy lớn, đáy ngắn hơn là đáy bé.", "day lon", None, True),
+        # the shape the question names stays with the term
+        ("Đường cao của tam giác là đoạn thẳng kẻ từ một đỉnh.", "duong cao", "cua hinh thang", False),
+        (
+            "Hình thang ABCD. Đường cao của hình thang là đoạn vuông góc với hai đáy.",
+            "duong cao",
+            "cua hinh thang",
+            True,
+        ),
+        (
+            "Đáy và đường cao của tam giác. Độ dài đường cao gọi là chiều cao.",
+            "chieu cao",
+            "cua hinh thang",
+            False,
+        ),
+        ("Đáy và đường cao của tam giác. Độ dài đường cao gọi là chiều cao.", "chieu cao", None, True),
+        (
+            "Diện tích hình tam giác, hình thang. Độ dài đường cao gọi là chiều cao.",
+            "chieu cao",
+            "cua hinh thang",
+            True,
+        ),
+    ],
+)
+def test_a_definition_opens_its_sentence_and_keeps_the_shape_asked(text, term, shape, defines_it):
+    """RAG-6: the two faults of DI-50 found by the component ablation of RAG-5."""
+    from cavat.modules.rag.retrieve import defines
+
+    assert defines(text, term, shape) is defines_it
+
+
+def test_the_shape_of_a_definition_question_is_kept():
+    from cavat.modules.rag.retrieve import term_and_shape
+
+    assert term_and_shape("chiều cao của hình thang là gì") == ("chieu cao", "cua hinh thang")
+    assert term_and_shape("đường cao là gì vậy cô") == ("duong cao", None)
+
+
 def test_a_later_period_wins_only_when_it_is_clearly_closer():
     from cavat.modules.rag.retrieve import defined_term
 
