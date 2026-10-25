@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 from cavat.core.pedagogy import ActivityType, Move
+from cavat.modules.ai_gateway.base import Usage
 from cavat.modules.ingest.drafting import VERIFY_LEAD, Drafter, verify_codes
 from cavat.modules.ingest.review import ReviewError, apply_plan_decisions, check_decision
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, RenderContext
@@ -36,7 +37,8 @@ class Router:
             data = {"items": [{"id": t["id"], "hoi": self.asks.get(t["id"], "")} for t in payload["TIẾT"]]}
         else:
             data = {}
-        return SimpleNamespace(result=SimpleNamespace(data=data, model="qwen/qwen3.8-27b"), calls_made=1)
+        result = SimpleNamespace(data=data, model="qwen/qwen3.8-27b", usage=Usage(prompt_tokens=700))
+        return SimpleNamespace(result=result, calls_made=1)
 
 
 def period(plan, node_id):

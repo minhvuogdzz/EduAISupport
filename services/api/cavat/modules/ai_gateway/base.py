@@ -17,8 +17,9 @@ from typing import Any, Protocol
 
 # Groq free tier allows 8.000 token/minute; each call must stay <= 3.000 token (ADR-017).
 MAX_PROMPT_TOKENS = 3000
-# [ASSUME] Conservative estimate without a tokenizer: Vietnamese with diacritics tokenizes at
-# roughly 3 characters per token or worse, so 3 over-counts rather than under-counts.
+# Estimate without a tokenizer. CFG-2 measured it on 35 real tutor calls (docs/poc/free-tier-quota.md):
+# Qwen 3,15 characters per token, so 3 over-counts it by 14%; gpt-oss-120b 2,76 (about right) and
+# gpt-oss-20b 2,07 (under by 13%). Two simulated sessions only [ASSUME].
 CHARS_PER_TOKEN = 3
 MESSAGE_OVERHEAD_TOKENS = 4
 

@@ -57,6 +57,7 @@ class EventType(StrEnum):
     TUTOR_MESSAGE_SENT = "TUTOR_MESSAGE_SENT"
     OUTPUT_REJECTED = "OUTPUT_REJECTED"
     MODEL_FALLBACK = "MODEL_FALLBACK"
+    MODEL_CALLED = "MODEL_CALLED"
     SAFETY_FLAGGED = "SAFETY_FLAGGED"
     # voice
     VOICE_UTTERANCE = "VOICE_UTTERANCE"
@@ -165,10 +166,39 @@ class OutputRejected(_Payload):
 
 
 class ModelFallback(_Payload):
+    """CFG-2: the chain of a model class moved on (ADR-017, blueprint PART 12.6): ``from_model`` did not
+    answer and ``to_model`` was tried next. Written after the command's other events
+    (``session/model_calls.py``), never replayed."""
+
     model_class: str
     from_model: str
     to_model: str
     reason: Literal["QUOTA", "UNAVAILABLE", "INVALID_OUTPUT", "TIMEOUT", "BLOCKED"]
+    purpose: str = ""  # the request's schema name, as in MODEL_CALLED
+
+
+class ModelAttempt(_Payload):
+    model: str
+    sent: bool  # False: skipped (known out of quota) or refused before sending (prompt too long)
+    error: str | None = None  # the gateway's error class; None: this model answered
+
+
+class ModelCalled(_Payload):
+    """CFG-2: one call of the AI gateway during a session command: the model that answered, the tokens the
+    provider counted, and what the gateway estimated before sending (``ai_gateway/base.py``, the cap of
+    3.000 tokens). Written after the command's other events, never replayed."""
+
+    model_class: str
+    purpose: str  # the request's schema name: tutor_turn, reading, move_choice, grounded_turn
+    model: str | None = None  # None: no model answered, the caller used its own fallback
+    fallback_reason: str | None = None  # the router's FallbackReason when no model answered
+    attempts: list[ModelAttempt] = Field(default_factory=list)
+    prompt_tokens: int = Field(default=0, ge=0)  # counted by the provider; 0 when no model answered
+    completion_tokens: int = Field(default=0, ge=0)
+    estimated_tokens: int = Field(default=0, ge=0)  # estimate_prompt_tokens, checked against the cap
+    prompt_chars: int = Field(default=0, ge=0)  # characters of the messages
+    schema_chars: int = Field(default=0, ge=0)  # characters of the JSON schema sent with them
+    messages: int = Field(default=0, ge=0)
 
 
 class ItemResolved(_Payload):
@@ -374,6 +404,7 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.TUTOR_MESSAGE_SENT: TutorMessageSent,
     EventType.OUTPUT_REJECTED: OutputRejected,
     EventType.MODEL_FALLBACK: ModelFallback,
+    EventType.MODEL_CALLED: ModelCalled,
     EventType.ITEM_RESOLVED: ItemResolved,
     EventType.RETELL_JUDGED: RetellJudged,
     EventType.NODE_DECISION: NodeDecisionMade,

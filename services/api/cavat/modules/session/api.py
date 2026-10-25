@@ -31,7 +31,7 @@ from cavat import db
 from cavat.config import get_settings
 from cavat.core.events import EventType
 from cavat.core.repository import utc_now
-from cavat.modules.ai_gateway.router import AIRouter, build_router
+from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
 from cavat.modules.identity.api import AuthError, demo_mode, identity_from, register_auth, require
@@ -41,6 +41,7 @@ from cavat.modules.library import api as library_api
 from cavat.modules.rag import api as rag_api
 from cavat.modules.rag.service import RagService
 from cavat.modules.session import chapter_service, progress, service, teacher_view
+from cavat.modules.session.model_calls import model_call_events
 from cavat.modules.session.repository import (
     DuplicateCommand,
     EventRepository,
@@ -940,7 +941,9 @@ async def _command(
     if item_attempt_id is not None and item_attempt_id != current:
         raise ApiError(409, "STALE_ITEM", "this item is no longer the current one")
 
-    router = tutor_router()
+    shared = tutor_router()
+    # CFG-2: the model calls of this command, written down with its events (MODEL_CALLED, MODEL_FALLBACK)
+    router = RecordingRouter(shared) if shared is not None else None
     if chapter_service.is_chapter(session):
         content: Any = _chapter(session.lesson_id, session.lesson_version)
         persona = content.package.persona
@@ -976,6 +979,8 @@ async def _command(
         step = await run_in_threadpool(apply, **kwargs)  # the model call blocks; keep the event loop free
     except service.CommandNotAllowed as exc:
         raise ApiError(409, "COMMAND_NOT_ALLOWED_IN_ACTIVITY", f"{exc} is not allowed now") from exc
+    if router is not None:
+        step.events.extend(model_call_events(router.calls, current))
     repo = _repo(database)
     try:
         saved = await repo.commit(

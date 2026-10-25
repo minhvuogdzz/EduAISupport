@@ -27,6 +27,25 @@ Hạn mức tính theo **tổ chức**, không theo khóa.
 - Hạn mức theo ngày chưa thấy trên AI Studio **[OPEN]**.
 - **Hệ quả:** RAG gom lô khi dựng chỉ mục và lưu đệm mọi vector, nên mỗi đoạn và mỗi câu chỉ gọi một lần. Lúc học, mỗi câu học sinh hỏi tốn một request. Gặp 429 thì lượt đó chạy bằng từ khóa và cấu trúc.
 
+## Token thật của prompt gia sư (đo 2026-10-25, CFG-2, ADR-032)
+
+Nguồn: `make simulate` với `--measure` (học sinh mô phỏng chạy qua API thật, database trong bộ nhớ, Qwen thật), mỗi chương một buổi, đủ 15 lần gọi của trần. Mỗi lần gọi là một sự kiện `MODEL_CALLED` có số token Groq tính (`usage`), ước lượng của gateway và số ký tự. Số liệu thô: `var/storage/reports/model-calls.jsonl` (không commit).
+
+**Mẫu nhỏ:** 35 lần gọi, 2 buổi, một con mô phỏng. Chỉ để kiểm tra ước lượng, chưa đủ để hiệu chỉnh.
+
+| Model | Số lần | Ký tự lời nhắn / token thật | Ước lượng / thật (TB, nhỏ nhất–lớn nhất) | Prompt thật lớn nhất |
+|---|---|---|---|---|
+| `qwen/qwen3.8-27b` | 11 | 3,15 (2,85–3,24) | 1,14 (1,06–1,34) | 1.976 |
+| `openai/gpt-oss-120b` | 8 | 2,76 (2,49–2,85) | 0,97 (0,92–0,99) | 2.294 |
+| `openai/gpt-oss-20b` | 4 | 2,07 (1,83–2,38) | 0,87 (0,84–0,88) | 785 |
+
+**Đọc kết quả:**
+- Với Qwen, 3 ký tự/token **đếm dư** 14% (không lần nào đếm thiếu). Với gpt-oss-120b gần đúng, với gpt-oss-20b **đếm thiếu** khoảng 13%. Các lần gọi ngắn (`reading`, `move_choice`) tách ra ít ký tự/token hơn, vì phần lời nhắn cố định chiếm nhiều.
+- Hồi quy `token = a + b × ký tự` trên Qwen: b = 0,2996 (tức 3,34 ký tự/token), a ≈ 60 token. Schema JSON chỉ có 3 kích thước nên không tách được phần của nó **[OPEN]**.
+- Giữ `CHARS_PER_TOKEN = 3` (an toàn cho Qwen, bộ não chính). Prompt thật lớn nhất 2.294 token, dưới trần 3.000.
+- Một lần gọi Qwen tốn trung bình 1.126 token (cả prompt và kết quả), thấp hơn con số ~2.000 ở trên. Một buổi 15 lần gọi tốn 13.000–16.000 token, nên 200.000 token/ngày đủ cho khoảng **12–15 buổi dùng LLM mỗi ngày** nếu chỉ tính Qwen (trước đây ước 6–7) **[ASSUME: 2 buổi]**.
+- 12/35 lần gọi không model nào trả lời (`quota_exceeded`); 8 lần Groq trả 429 và 28 lần bị bỏ qua vì router biết model đang hết hạn mức. Con mô phỏng trả lời liên tục nên chạm hạn mức theo phút; trẻ thật chậm hơn. Nội dung lỗi 429 chưa được lưu nên chưa phân biệt được hạn mức phút và ngày **[OPEN]**.
+
 ## Gemini (chỉ dùng cho ảnh/OCR hình học và giọng nói)
 
 Hạn mức tính theo **project**, nên tạo thêm khóa trong cùng project **không** tăng hạn mức.
