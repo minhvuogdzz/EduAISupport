@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from cavat.core.pedagogy import ActivityType, Move
-from cavat.modules.content.lesson_package import load_lesson_package
+from cavat.modules.content.lesson_package import CompareAnswer, NumericAnswer, load_lesson_package
 from cavat.modules.tutor.contracts import (
     ItemState,
     MessageValidator,
@@ -72,6 +72,76 @@ def test_answer_leak_detected(item_id, text):
 )
 def test_no_answer_leak(item_id, text):
     assert LEAK not in codes(text, item_id)
+
+
+def fraction_ctx(answer, stem, move=Move.HINT):
+    """A copy of GP-01 whose answer is written as fractions: what a chapter built from the teacher's
+    documents asks ("0,7 = ……" answers 7/10)."""
+    item = PKG.item("GP-01").model_copy(update={"answer": answer, "stem": stem, "leak_patterns": []})
+    state = ItemState(item_id=item.id, activity=ActivityType.GUIDED_PRACTICE)
+    return RenderContext(decision=PolicyDecision(move=move), item=item, package=PKG, state=state)
+
+
+FRACTION_KEY = NumericAnswer(type="numeric", value="7/10", form="fraction")
+FRACTION_STEM = "Viết 0,7 dưới dạng phân số thập phân: 0,7 = ……"
+FRACTION_PAIR = CompareAnswer(type="compare", left="3/7", right="7/10")
+FRACTION_PAIR_STEM = "Điền dấu >, < hoặc = vào chỗ chấm: 3/7 … 7/10"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Đáp án là 7/10. Con thử viết lại nhé?",  # REFORM 4.4: a fraction is one number, not "7"
+        "Kết quả bằng 7/10 đó. Con thử lại nhé?",
+        "Đáp án là 7 / 10, con viết lại nhé?",  # spaces around the bar
+        "Vậy x = 7/10. Con kiểm tra lại nhé?",
+        "Đáp án là 70/100. Con rút gọn được không?",  # the same value, written bigger
+    ],
+)
+def test_a_fraction_answer_is_a_leak(text):
+    result = VALIDATE(text, fraction_ctx(FRACTION_KEY, FRACTION_STEM))
+    assert LEAK in result.codes, text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Con viết 0,7 thành phân số có mẫu số là 10 nhé?",  # no statement of the answer
+        "Đáp án là 7. Con thử lại nhé?",  # 7 is not 7/10 (it used to be read as "7" in "7/10" too)
+        "Đáp án là 3/10. Con thử lại nhé?",  # another fraction
+        "Con nhớ 7/10 đọc là bảy phần mười, còn 0,7 viết thế nào?",  # says the number, not "the answer is"
+    ],
+)
+def test_a_fraction_that_is_not_the_answer_is_no_leak(text):
+    result = VALIDATE(text, fraction_ctx(FRACTION_KEY, FRACTION_STEM))
+    assert LEAK not in result.codes, text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Ta có 3/7 bé hơn 7/10. Con điền dấu nào?",
+        "Số 7/10 > 3/7 nhé. Con điền dấu nào?",
+        "Vì 3/7 < 7/10 nên con điền dấu bé nhé?",
+        "Ta có 3 / 7 nhỏ hơn 7 / 10 đó. Con điền dấu nào?",
+    ],
+)
+def test_a_relation_between_fractions_is_a_leak(text):
+    result = VALIDATE(text, fraction_ctx(FRACTION_PAIR, FRACTION_PAIR_STEM))
+    assert LEAK in result.codes, text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Giữa 3/7 và 7/10, phân số nào lớn hơn?",  # a question does not tell
+        "Ta có 3/7 > 1/7 vì cùng mẫu số thì tử số lớn hơn lớn hơn. Con điền dấu nào?",  # another pair
+        "Con quy đồng 3/7 và 7/10 trước nhé?",
+    ],
+)
+def test_no_leak_between_fractions_that_are_not_the_pair(text):
+    result = VALIDATE(text, fraction_ctx(FRACTION_PAIR, FRACTION_PAIR_STEM))
+    assert LEAK not in result.codes, text
 
 
 def test_full_explanation_may_state_the_answer():

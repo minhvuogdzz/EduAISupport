@@ -36,7 +36,7 @@ from cavat.modules.tutor.contracts import (
 MOVES_AFTER_SOLVED = frozenset({Move.VERIFY, Move.CONFIRM_ADVANCE})
 MOVES_SKIPPING_LEAK_CHECK = MOVES_ALLOWED_TO_REVEAL | MOVES_AFTER_SOLVED
 
-_NUM = r"\d+(?:[.,]\d+)?"
+_NUM = r"\d+(?:\s*/\s*\d+|[.,]\d+)?"
 _UNIT = r"(?:\s*(?:xăng-ti-mét|ki-lô-gam|mét|lít|giây|cm|kg|m|g|l)\b)?"
 _RELATIONS: dict[str, Callable[[Fraction, Fraction], bool]] = {
     "lớn hơn hoặc bằng": operator.ge,

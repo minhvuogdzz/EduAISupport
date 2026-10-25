@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from cavat.core.vi_text import fold
+from cavat.core.vi_text import fold, normalize
 
 WEB_VERSION = "web-lookup/0.1.0"
 ALLOWED_HOSTS = ("vi.wikipedia.org",)  # DI-51: the only source; a new one is an owner's decision
@@ -64,7 +64,8 @@ def eligible(question: str) -> bool:
     """A question the tutor may look up for a child: short, no contact data, none of the unsafe topics."""
     if len(question) > MAX_QUESTION_CHARS or _CONTACT.search(question):
         return False
-    folded = f" {fold(question)} "
+    # lower case and no marks first: "MA TÚY" and "SEX?" are the words of the list, as the child typed them
+    folded = f" {fold(normalize(question))} "
     return not any(f" {word} " in folded for word in UNSAFE)
 
 
