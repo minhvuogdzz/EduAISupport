@@ -17,6 +17,7 @@ warm-up item (N-WARMUP). The teaching state (what was taught, asked, decided) is
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import datetime
@@ -119,6 +120,7 @@ def chapter_sources() -> dict[str, tuple[Chapter, Path]]:
 _published: dict[str, dict[str, Chapter]] = {}
 _current: dict[str, str] = {}
 _loaded: set[tuple[int, str] | int] = set()
+_locks: dict[tuple[int, str] | int, asyncio.Lock] = {}
 
 
 def build_chapter(package: dict, lessons: dict) -> Chapter:
@@ -147,18 +149,29 @@ def register_published(
 
 
 async def load_published(database: Any, school_id: str) -> None:
-    """Read the published plans of this database once (the first request that needs a chapter)."""
+    """Read the published plans of this database once (the first request that needs a chapter).
+
+    REFORM-1: the database is marked read only once every plan is registered, and a request that comes
+    while another one reads waits for it. Marked before the read, a second request at the start of a session
+    went on with the chapter file; a read that failed was never tried again."""
     key = _database_key(database)
     if key in _loaded:
         return
     from cavat.modules.ingest.repository import TeachingPlanRepository
 
-    _loaded.add(key)
-    for plan in await TeachingPlanRepository(database, school_id).list_published():
-        for version, snap in plan.published.items():
-            register_published(
-                plan.chapter_id, version, snap["package"], snap["lessons"], current=version == plan.current
-            )
+    async with _locks.setdefault(key, asyncio.Lock()):
+        if key in _loaded:
+            return
+        for plan in await TeachingPlanRepository(database, school_id).list_published():
+            for version, snap in plan.published.items():
+                register_published(
+                    plan.chapter_id,
+                    version,
+                    snap["package"],
+                    snap["lessons"],
+                    current=version == plan.current,
+                )
+        _loaded.add(key)
 
 
 def _database_key(database: Any) -> tuple[int, str] | int:

@@ -1,10 +1,12 @@
 """Runtime settings, read from environment variables and services/api/.env."""
 
+from __future__ import annotations
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API_DIR = Path(__file__).resolve().parents[1]
@@ -36,9 +38,13 @@ class Settings(BaseSettings):
     # limited the next one reads (INGEST-1: the owner's 18 documents need 31 pages read by Gemini).
     gemini_vision_fallbacks: tuple[str, ...] = ("gemini-2.5-flash", "gemini-3.5-flash-lite")
     gemini_embedding_model: str = "gemini-embedding-001"  # Hybrid RAG vectors (plan v1 5.5.2)
-    # Hard cap on LLM calls per session; above it the tutor runs on approved templates only.
-    max_llm_calls_per_session: int = 15
-    # "template": approved sentences only (default). "llm": Qwen phrases hints, templates as fallback.
+    # Hard cap on LLM calls per session; above it the tutor runs on approved templates only. DI-68 (REFORM-1):
+    # 40, from 15. A Qwen call spends 1.126 token on average (prompt and output, measured 2026-10-25; the
+    # prompt <= 3.000, reasoning off): a full session about 45.000 of the 200.000 token a day of a Groq
+    # project, at worst (2.600 a call) 104.000 (docs/poc/free-tier-quota.md).
+    max_llm_calls_per_session: int = 40
+    # "template": approved sentences only. "llm": Qwen phrases the moves, templates as fallback. REFORM-1:
+    # unset, it is "llm" when a Groq key is set and "template" without one (the tests blank the key).
     tutor_renderer: Literal["template", "llm"] = "template"
     # AUTO-1 (ADR-031): with the LLM tutor, Qwen picks one of the moves the policy allows on a turn;
     # "policy" keeps the policy's own move (the ablation of AUTO-1).
@@ -52,6 +58,13 @@ class Settings(BaseSettings):
     auth_mode: Literal["accounts", "demo"] = "accounts"
     # Key that signs login tokens. Unset: a random key per process (every restart logs everyone out).
     auth_secret: SecretStr | None = None
+
+    @model_validator(mode="after")
+    def _renderer_from_key(self) -> Settings:
+        if "tutor_renderer" not in self.model_fields_set:
+            key = self.groq_api_key.get_secret_value().strip() if self.groq_api_key else ""
+            self.tutor_renderer = "llm" if key else "template"
+        return self
 
 
 @lru_cache

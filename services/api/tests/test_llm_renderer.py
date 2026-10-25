@@ -18,7 +18,13 @@ from cavat.modules.tutor.contracts import (
     PolicyDecision,
     RenderContext,
 )
-from cavat.modules.tutor.llm_renderer import ANCHOR_SLACK, TEMPLATE_ONLY_MOVES, LLMRenderer, word_cap
+from cavat.modules.tutor.llm_renderer import (
+    ANCHOR_SLACK,
+    TEMPLATE_ONLY_MOVES,
+    LLMRenderer,
+    beyond_anchor,
+    word_cap,
+)
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
@@ -264,7 +270,7 @@ def test_a_message_that_repeats_an_earlier_tutor_turn_is_rejected():
             Move.HINT,
             {"level": HintLevel.H3, "target": HintTarget.CONCEPT},
             "Con thử đổi 0,25 mét và 0,3 mét ra xăng-ti-mét nhé. Đổi xong rồi con xem đoạn nào dài hơn?",
-            ("KEY_IDEA_MISSING", "NEW_MATH_TERM"),
+            ("KEY_IDEA_MISSING",),
             "KEY_IDEA_MISSING (bỏ mất ý chính",
         ),
         # Asked "con làm thế nào?", the model gave a hint instead (an anchor with no mathematical term).
@@ -272,8 +278,8 @@ def test_a_message_that_repeats_an_earlier_tutor_turn_is_rejected():
             Move.PROBE,
             {},
             "Con thử nhìn lại chữ số hàng phần mười của hai số xem sao nhé?",
-            ("OFF_ANCHOR", "NEW_MATH_TERM"),
-            "OFF_ANCHOR (không bám câu mẫu",
+            ("OFF_ANCHOR",),
+            "OFF_ANCHOR (không làm đúng mục tiêu",
         ),
     ],
 )
@@ -287,13 +293,98 @@ def test_a_message_that_drifts_from_the_anchor_is_rejected(move, decision, drift
     assert note in user_prompt(fake, 1)
 
 
-@pytest.mark.parametrize("move", [Move.VERIFY, Move.TEACH_BACK, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION])
-def test_lesson_content_moves_are_said_with_the_template(move):
+@pytest.mark.parametrize(
+    ("move", "decision"),
+    [
+        (Move.FULL_EXPLANATION, {"level": HintLevel.H7, "target": HintTarget.STEP}),
+        (Move.CONFIRM_ADVANCE, {}),
+        (Move.VERIFY, {}),  # the item's own "vì sao" after a right answer
+        (Move.VERIFY, {"reason_codes": ("VERIFY_BEFORE_HINT",)}),  # FIX-2: after a wrong answer
+    ],
+)
+def test_lesson_content_moves_are_said_with_the_template(move, decision):
     """Seen with real Qwen output: asked to VERIFY a correct answer, it sent the student back to a hint."""
     renderer, fake = make([turn(GOOD_HINT)])
-    ctx = ctx_for("GP-01", move, "<", level=HintLevel.H6, target=HintTarget.STEP)
+    ctx = ctx_for("GP-01", move, "<", **decision)
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
     assert fake.calls == [] and renderer.calls_used == 0
+
+
+# REFORM-1 (Task 1.3): the moves that answer an unclear or empty reply are said by Qwen too.
+@pytest.mark.parametrize(
+    ("move", "decision", "said", "reply"),
+    [
+        (
+            Move.ASK_CONFIRM,
+            {},
+            "ki",
+            "Cô chưa hiểu chữ “ki” của con. Con muốn điền dấu nào giữa 0,25 và 0,3?",
+        ),
+        (Move.TEACH_BACK, {}, "<", "Con điền đúng rồi đó. Con kể cô nghe con đã so sánh hai số thế nào nhé?"),
+        (
+            Move.VERIFY,
+            {"reason_codes": ("ASK_AGAIN",)},
+            "là sao cô",
+            "Cô hỏi con cách con nghĩ ra dấu đó thôi. Vì sao 0,25 bé hơn 0,3 hả con?",
+        ),
+        (
+            Move.WORKED_GUIDANCE,
+            {"level": HintLevel.H6, "target": HintTarget.STEP},
+            "con không biết",
+            "Không sao, mình cùng làm nhé. Phần nguyên đều là 0, ở hàng phần mười 0,25 có chữ số 2, "
+            "còn 0,3 có chữ số 3. Vậy con điền dấu nào?",
+        ),
+    ],
+)
+def test_moves_that_answer_an_unclear_reply_are_said_by_the_model(move, decision, said, reply):
+    renderer, fake = make([turn(reply)])
+    msg = renderer.render(ctx_for("GP-01", move, said, **decision))
+    assert (msg.text, msg.source) == (reply, "LLM") and len(fake.calls) == 1
+
+
+def test_worked_guidance_still_may_not_give_the_last_step():
+    leak = "Ở hàng phần mười 0,25 có chữ số 2, còn 0,3 có chữ số 3, nên 0,25 < 0,3. Con thấy chưa?"
+    renderer, fake = make([turn(leak), turn(leak)])
+    ctx = ctx_for("GP-01", Move.WORKED_GUIDANCE, "con không biết", level=HintLevel.H6, target=HintTarget.STEP)
+    assert renderer.render(ctx) == TEMPLATE.render(ctx) and len(fake.calls) == 2
+    assert all("ANSWER_LEAK" in codes for codes in renderer.last_trace.rejected)
+
+
+# REFORM-1 (Task 1.2, DI-67): the anchor is what the turn must do, not words to keep.
+def test_the_model_may_answer_the_childs_question_in_its_own_terms():
+    """The owner's session: anchor "quay lại câu đang làm", the child asked what a word means. The answer
+    used the child's term and was replaced by the template (NEW_MATH_TERM, OFF_ANCHOR)."""
+    reply = "Hàng phần mười là chữ số đứng ngay sau dấu phẩy. Ở 0,25 và 0,3, chữ số hàng phần mười là mấy?"
+    renderer, fake = make([turn(reply)])
+    msg = renderer.render(ctx_for("GP-01", Move.REDIRECT, "hàng phần mười là gì cô"))
+    assert (msg.text, msg.source) == (reply, "LLM") and renderer.last_trace.rejected == ()
+
+
+def test_one_term_of_the_anchor_keeps_its_idea():
+    """H2 CONCEPT anchor with six terms (phần nguyên, bằng nhau, so sánh, hàng, phần mười, phần trăm): v5
+    asked for 60% of them."""
+    reply = "Con nhìn chữ số ngay sau dấu phẩy của hai số trước nhé. Ở hàng phần mười, số nào lớn hơn?"
+    renderer, fake = make([turn(reply)])
+    msg = renderer.render(
+        ctx_for("GP-01", Move.HINT, "con không biết", level=HintLevel.H2, target=HintTarget.CONCEPT)
+    )
+    assert (msg.text, msg.source) == (reply, "LLM")
+
+
+def test_the_bases_of_the_decimal_system_and_the_worked_steps_numbers_are_allowed():
+    """The validator's UNGROUNDED_NUMBER still asks every number to be in the lesson (validator.py)."""
+    ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
+    anchor = TEMPLATE.render(ctx).text
+    said = "Một phần 10 hay 100 hay 1000 đều được. Ở hàng phần mười, con so sánh chữ số 2 và 3 nhé?"
+    assert beyond_anchor(said, ctx, anchor) == []
+    assert beyond_anchor("Con so sánh 0,25 với 0,7 nhé?", ctx, anchor) == ["0,7"]
+
+
+def test_a_number_from_nowhere_is_still_rejected():
+    reply = "Con thử so sánh 0,25 với 0,7 trước nhé, rồi so sánh 0,25 và 0,30 được không?"
+    renderer, fake = make([turn(reply), turn(reply)])
+    renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3))
+    assert all("BEYOND_ANCHOR" in codes for codes in renderer.last_trace.rejected)
 
 
 # DI-60 (LLM-1): the S1 sessions rejected 16 of 20 drafts, all for form. The cap follows the anchor, and two
@@ -339,21 +430,23 @@ def test_a_draft_cut_short_is_not_patched_with_a_question():
     assert renderer.render(ctx) == TEMPLATE.render(ctx) and len(fake.calls) == 2
 
 
-# DI-61 (LLM-2): the 15 calls of a session go to explanations, hints and pulling back to the lesson.
+# DI-61 (LLM-2), DI-68 (REFORM-1): 40 calls a session; EXPLAIN and REDIRECT may use every one, every other
+# move leaves them the last fifth (8 calls). PROBE and NUDGE no longer stop at the first third.
 @pytest.mark.parametrize(
     ("move", "decision", "used", "calls"),
     [
-        (Move.PROBE, {}, 4, 1),  # the first third of the cap
-        (Move.PROBE, {}, 5, 0),
-        (Move.HINT, HINT_H3, 11, 1),  # hints leave the last fifth to explanations and redirects
-        (Move.HINT, HINT_H3, 12, 0),
-        (Move.REDIRECT, {}, 14, 1),  # these may use every call
-        (Move.EXPLAIN, {}, 14, 1),
+        (Move.PROBE, {}, 20, 1),  # v5 stopped PROBE at a third of the cap
+        (Move.PROBE, {}, 31, 1),
+        (Move.PROBE, {}, 32, 0),
+        (Move.HINT, HINT_H3, 31, 1),
+        (Move.HINT, HINT_H3, 32, 0),
+        (Move.REDIRECT, {}, 39, 1),
+        (Move.EXPLAIN, {}, 39, 1),
     ],
 )
 def test_the_session_calls_are_kept_for_the_moves_that_need_them(move, decision, used, calls):
     renderer, fake = make(
-        [turn(GOOD_HINT if move == Move.HINT else GOOD_PROBE)] * 2, max_calls=15, calls_used=used
+        [turn(GOOD_HINT if move == Move.HINT else GOOD_PROBE)] * 2, max_calls=40, calls_used=used
     )
     renderer.render(ctx_for("GP-01", move, "cô ơi con thích đá bóng", **decision))
     assert (len(fake.calls) > 0) == (calls > 0)
