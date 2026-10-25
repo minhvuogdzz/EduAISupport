@@ -107,7 +107,7 @@ def test_a_fraction_answer_is_a_leak(text):
     "text",
     [
         "Con viết 0,7 thành phân số có mẫu số là 10 nhé?",  # no statement of the answer
-        "Đáp án là 7. Con thử lại nhé?",  # 7 is not 7/10 (it used to be read as "7" in "7/10" too)
+        "Đáp án là 7. Con thử lại nhé?",  # 7 is not 7/10
         "Đáp án là 3/10. Con thử lại nhé?",  # another fraction
         "Con nhớ 7/10 đọc là bảy phần mười, còn 0,7 viết thế nào?",  # says the number, not "the answer is"
     ],
@@ -115,6 +115,15 @@ def test_a_fraction_answer_is_a_leak(text):
 def test_a_fraction_that_is_not_the_answer_is_no_leak(text):
     result = VALIDATE(text, fraction_ctx(FRACTION_KEY, FRACTION_STEM))
     assert LEAK not in result.codes, text
+
+
+def test_a_fraction_is_not_its_numerator():
+    """ "Đáp án là 7/10" says 7/10: for an item whose answer is the number 7 it is no leak (it was read as 7)."""
+    key = NumericAnswer(type="numeric", value="7")
+    result = VALIDATE("Đáp án là 7/10. Con thử lại nhé?", fraction_ctx(key, "Viết 7 thành số tự nhiên: ……"))
+    assert LEAK not in result.codes
+    result = VALIDATE("Đáp án là 7. Con thử lại nhé?", fraction_ctx(key, "Viết 7 thành số tự nhiên: ……"))
+    assert LEAK in result.codes  # and the number itself is still one
 
 
 @pytest.mark.parametrize(
