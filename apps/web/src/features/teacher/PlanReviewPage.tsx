@@ -314,7 +314,8 @@ function NodeReview({
         <div>
           <h2 className="text-lg font-bold">{node.name}</h2>
           <ul className="mt-1 text-xs text-slate-600">
-            {(plan.sources[node.node_id] ?? []).map((s) => (
+            {/* each source line once: the same line twice would also be two <li> with one React key */}
+            {[...new Set(plan.sources[node.node_id] ?? [])].map((s) => (
               <li key={s}>{s}</li>
             ))}
           </ul>

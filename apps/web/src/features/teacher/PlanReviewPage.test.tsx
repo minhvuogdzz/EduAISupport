@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { SessionApi } from "../../api/client";
 import type { TeachingPlanReview } from "../../api/contract";
@@ -124,6 +124,19 @@ describe("PlanReviewPage (INGEST-4)", () => {
     expect(screen.getByText("đáp án đã kiểm")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Phát hành cho gia sư dạy" })).toBeDisabled();
     expect(screen.getByText("Còn 1 việc trước khi phát hành")).toBeInTheDocument();
+  });
+
+  it("lists each source of a period once, however often the plan repeats it (REFORM 4.3)", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const lecture = "Lý thuyết, Bài 25 · Vì sao diện tích tam giác bằng a × h : 2?, trang 2";
+    const review = plan({ sources: { "STP-T04": [lecture, lecture, "Giáo án, tiết 4, trang 3", lecture] } });
+    renderApp("/teacher/plans/math-g5-decimals", plansApi(review).api);
+    await screen.findByRole("heading", { name: "So sánh hai số thập phân" });
+    expect(screen.getAllByText(lecture)).toHaveLength(1);
+    expect(screen.getAllByText("Giáo án, tiết 4, trang 3")).toHaveLength(1);
+    // two <li> with the same key make React keep a stale one: nothing of the kind is reported
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
   });
 
   it("records the teacher's decisions: approve a period, approve or rewrite a hint, fix a misread answer", async () => {
