@@ -190,8 +190,9 @@ def test_r_deescalate() -> None:
             hint_targets=[HintTarget.STEP, HintTarget.STEP],
         )
     )
-    assert (d.move, d.target, d.level) == (Move.HINT, HintTarget.STEP, H2)
-    assert d.rule_ids == ("R-DEESCALATE",)
+    # REFORM-2 (DI-67): a right step leads on to the next rung (it used to step back and repeat the question)
+    assert (d.move, d.target, d.level) == (Move.HINT, HintTarget.STEP, HintLevel(4))
+    assert d.rule_ids == ("R-DEESCALATE",) and "STEP_PRAISE" in d.reason_codes
 
 
 def test_r_frustration() -> None:

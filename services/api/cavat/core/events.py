@@ -302,7 +302,9 @@ class MessageRead(_Payload):
 
     item_id: str
     turn: int  # the item loop's student turn the reading was made on
-    label: Literal["ANSWER", "ASKS_ABOUT", "ASK_TASK", "DONT_KNOW", "OFF_TOPIC", "AFFECT", "OTHER"]
+    label: Literal[
+        "ANSWER", "STEP_ANSWER", "ASKS_ABOUT", "ASK_TASK", "DONT_KNOW", "OFF_TOPIC", "AFFECT", "OTHER"
+    ]
     focus: str = ""
     answer: str = ""
     source: Literal["RULE", "LLM"]

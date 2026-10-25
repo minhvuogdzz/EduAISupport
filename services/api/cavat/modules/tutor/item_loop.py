@@ -71,7 +71,7 @@ from cavat.modules.tutor.contracts import (
 )
 from cavat.modules.tutor.llm_renderer import word_cap
 from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, accept, decide, options
-from cavat.modules.tutor.reader import ContextReader
+from cavat.modules.tutor.reader import ContextReader, rule_step_reading
 from cavat.modules.tutor.renderer import PHRASES, TemplateRenderer, counter_example, ladder_top
 
 # DI, approved by the owner on 2026-10-01: hard stop for one item. Every policy path ends well before
@@ -102,6 +102,7 @@ _UNPRODUCTIVE = frozenset({Outcome.WRONG, Outcome.UNPARSEABLE, Outcome.NO_RESPON
 # CTX-1: what a reading in context turns a message into (an ANSWER is graded by the checker instead).
 _READ_OUTCOME = {
     "ASKS_ABOUT": Outcome.ASKS_ABOUT,
+    "STEP_ANSWER": Outcome.PARTIAL,
     "ASK_TASK": Outcome.CLARIFY_REQUEST,
     "DONT_KNOW": Outcome.HELP_REQUEST,
     "OFF_TOPIC": Outcome.OFF_TOPIC,
@@ -259,7 +260,9 @@ class ItemTutor:
             return self._on_reason(text, seconds)
 
         check = self._check(text)
-        if self.reader is not None and self._unclear(check, text):
+        if self._step_candidate(check):
+            check = self._read_step(check, text)
+        elif self.reader is not None and self._unclear(check, text):
             check = self._read(check, text)
         if self.phase == Phase.AWAITING_CHOICE and check.outcome in _HELP and self._offer is not None:
             # The student took the offered hint: deliver what the policy offered (level and target).
@@ -283,6 +286,42 @@ class ItemTutor:
             # Several misconceptions predict this answer: attribute none (no COGNITIVE_CONFLICT).
             check = replace(check, misconception_id=None, misconception_confidence=0.0)
         return check
+
+    def _step_candidate(self, check: CheckResult) -> bool:
+        """A wrong answer, undiagnosed, to an item the tutor already gave a hint on (DI-67)."""
+        return (
+            check.outcome == Outcome.WRONG
+            and check.misconception_id is None
+            and bool(self.state.hint_levels)
+            and isinstance(self.item.answer, NumericAnswer)
+        )
+
+    def _read_step(self, check: CheckResult, text: str) -> CheckResult:
+        """REFORM-2 (2.1): the answer to the small question of the hint is a step, not a wrong answer. The
+        reading is recorded (MESSAGE_READ) like the model's, so the session replays the same."""
+        reading = rule_step_reading(text, self.item.stem, self.last_tutor)
+        if reading is None:
+            return check
+        self._emit(
+            EventType.MESSAGE_READ,
+            MessageRead(
+                item_id=self.item.id,
+                turn=self._turns,
+                label="STEP_ANSWER",
+                answer=reading.answer,
+                source="RULE",
+            ),
+        )
+        return self._step(check, text)
+
+    @staticmethod
+    def _step(check: CheckResult, text: str) -> CheckResult:
+        return CheckResult(
+            Outcome.PARTIAL,
+            normalized=text.strip(),
+            correct_answer=check.correct_answer,
+            detail={"partial_reason": "STEP_CORRECT", "read": "STEP_ANSWER"},
+        )
 
     @staticmethod
     def _unclear(check: CheckResult, text: str) -> bool:
@@ -313,6 +352,9 @@ class ItemTutor:
         if reading.label == "ANSWER" and reading.answer:
             graded = self._check(reading.answer)
             return graded if graded.outcome in GRADED_OUTCOMES else check
+        if reading.label == "STEP_ANSWER":
+            numeric = isinstance(self.item.answer, NumericAnswer)
+            return self._step(check, text) if numeric and self.state.hint_levels else check
         outcome = _READ_OUTCOME.get(reading.label)
         if outcome is None:
             return check

@@ -373,7 +373,13 @@ def _with_asked_form(spec: NumericAnswer, stem: str) -> NumericAnswer:
     return spec.model_copy(update={"form": "decimal"})
 
 
-def _check_numeric(spec: NumericAnswer, text: str) -> CheckResult:
+def _echoes_stem(n: ParsedNumber, stem: str) -> bool:
+    """The student wrote a number exactly as the stem gives it ("9/10" for "Viết phân số 9/10 thành...")."""
+    squeeze = lambda x: re.sub(r"\s", "", x)  # noqa: E731
+    return squeeze(n.text) in squeeze(normalize_text(stem))
+
+
+def _check_numeric(spec: NumericAnswer, text: str, stem: str = "") -> CheckResult:
     target = parse_literal(spec.value)
     t = normalize_text(text)
     nums = extract_numbers(t)
@@ -395,7 +401,12 @@ def _check_numeric(spec: NumericAnswer, text: str) -> CheckResult:
         )
     if n.value == target.value and not _written_as_asked(spec.form, n, target):
         detail = {"form": spec.form, "written": n.text}
-        return CheckResult(Outcome.WRONG, normalized=n.text, correct_answer=spec.value, detail=detail)
+        if _echoes_stem(n, stem):
+            # Saying back a number of the task is not a step towards its answer: still wrong (REFORM-2).
+            return CheckResult(Outcome.WRONG, normalized=n.text, correct_answer=spec.value, detail=detail)
+        # REFORM-2 (DI-67): the right value in the other form (3/10 for 0,3) is a step, not a wrong answer.
+        detail = {**detail, "partial_reason": "EQUIVALENT_FORM", "student_value": n.text}
+        return CheckResult(Outcome.PARTIAL, normalized=n.text, correct_answer=spec.value, detail=detail)
     if n.value == target.value:
         normalized = n.text if spec.form == "fraction" else format_vi(n.value)
         return CheckResult(Outcome.CORRECT, normalized=normalized, correct_answer=spec.value)
@@ -469,7 +480,8 @@ def _check_facts(spec: OpenAnswer, text: str) -> CheckResult:
         if -1 in spots or spots != sorted(spots):
             missing.append("order")
     if facts.pairs:
-        clauses = [c for c in re.split(r"[,;.\n]|\bcon\b", folded) if c.strip()]  # folded: "còn" is "con"
+        # Split on "còn", read before folding: the pronoun "con" ("bao C con thấy là nhẹ nhất") is no break.
+        clauses = [fold(c) for c in re.split(r"[,;.\n]|(?<!\w)còn(?!\w)", t.lower()) if c.strip()]
         for word, name in facts.pairs:
             said = said or _has(folded, name)
             if not any(_has(c, word) and _has(c, name) for c in clauses):
@@ -627,7 +639,7 @@ def _check_spec(item: Item, text: str, pkg: LessonPackage) -> CheckResult:
     if isinstance(spec, NumericAnswer):
         # GRADE-1: "không phẩy chín", "0 phẩy 9" are numbers (a child types or says them, voice live too);
         # the form the stem asks for counts when the item does not say it ("viết … dưới dạng số thập phân").
-        return _check_numeric(_with_asked_form(spec, item.stem), spoken_to_digits(text))
+        return _check_numeric(_with_asked_form(spec, item.stem), spoken_to_digits(text), item.stem)
     if isinstance(spec, ChoiceAnswer):
         return _check_choice(item.stem, spec, text)
     if isinstance(spec, BooleanAnswer):

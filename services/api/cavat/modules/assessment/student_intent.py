@@ -18,7 +18,8 @@ from cavat.core.pedagogy import Outcome
 from cavat.core.vi_text import fold
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 
-INTENT_VERSION = "student-intent/0.2.0"  # 0.2.0: more teen code, keyword dumps (conductor)
+# 0.2.1: REFORM-2, "là gì", "ra sao", "viết sao" ask; 0.2.0: more teen code, keyword dumps (conductor)
+INTENT_VERSION = "student-intent/0.2.1"
 
 # Short forms as children type them, token by token. Only used to read the intent: answers are parsed
 # from the raw text. DI-32: "k", "v", "r" stand alone only in this sense in a lesson about decimals.
@@ -355,6 +356,8 @@ _TAIL = r"(?:\s+(?:a|vay|the|ha|nhi|co|oi))*\W*$"
 _ENDING_RE = re.compile(
     r"\b(?:la sao|the nao|nhu nao|ra sao|bao nhieu|duoc khong|dung khong|phai khong|khong|chua|gi)" + _TAIL
 )
+# REFORM-2 (DI-69): two words are enough when they are the question itself ("là gì", "ra sao", "viết sao").
+_SHORT_QUESTION_RE = re.compile(r"^(?:\w+\s+)?(?:la gi|ra sao|viet sao|nhu nao|the nao)" + _TAIL)
 _NEGATION_END_RE = re.compile(r"\b(?:thi|cung|van|deu|lai)\s+(?:khong|chua)\W*$")
 _PARTICLE_RE = re.compile(r"\s(?:à|hả|nhỉ)(?:\s+(?:cô|ạ))*\W*$")
 
@@ -371,6 +374,8 @@ def asks_question(text: str) -> bool:
     # negation ("bỏ số 0 ở giữa thì không", "con cũng chưa") says something: it asks nothing (0.2.0).
     if _NEGATION_END_RE.search(folded):
         return False
+    if len(folded.split()) <= 3 and _SHORT_QUESTION_RE.match(folded):
+        return True
     return len(folded.split()) >= 3 and bool(_ENDING_RE.search(folded))
 
 

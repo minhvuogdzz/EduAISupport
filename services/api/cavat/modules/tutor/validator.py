@@ -314,7 +314,11 @@ _PRAISE_OPENING = re.compile(r"^\W*(đúng rồi|chính xác|giỏi lắm|tuyệ
 def wrong_praise(text: str, ctx: RenderContext) -> str | None:
     """The opening praise of a turn that follows an answer that is not right, if any (FIX-2)."""
     d = ctx.decision
-    after_wrong = d.move in _NOT_AFTER_CORRECT or "VERIFY_BEFORE_HINT" in d.reason_codes
+    after_wrong = (
+        d.move in _NOT_AFTER_CORRECT
+        or "VERIFY_BEFORE_HINT" in d.reason_codes
+        or "EXPLAIN_AND_ADVANCE" in d.reason_codes  # the child could not explain (REFORM-2, DI-68)
+    )
     if not after_wrong or "STEP_CORRECT_AFTER_HINT" in d.reason_codes:
         return None
     m = _PRAISE_OPENING.search(normalize_text(text))
