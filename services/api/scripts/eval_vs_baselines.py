@@ -323,8 +323,8 @@ def main() -> None:
     settings = get_settings()
     if not settings.groq_api_key or not settings.gemini_api_key:
         sys.exit("GROQ_API_KEY and GEMINI_API_KEY are needed in services/api/.env")
-    router = build_router()
-    judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)})
+    router = build_router(for_eval=True)
+    judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)}, for_eval=True)
     gemini = GeminiChat(settings.gemini_api_key, models=GEMINI_MODELS)
 
     def b1(history):

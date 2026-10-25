@@ -48,3 +48,9 @@
 - Ước lượng token đo lại được trên prompt thật. Kết quả nằm ở `docs/poc/free-tier-quota.md`, mục "Token thật của prompt gia sư".
 - Sự kiện chỉ chứa tên model, số đếm và nhãn lý do. Không có prompt, không có lời của con.
 - Các lời gọi ngoài buổi học chưa được ghi theo cách này: đọc ảnh, tạo vector, bài đo.
+
+## Bổ sung CFG-3 (2026-10-25)
+
+1. **Mỗi lần thử ghi lý do hết hạn mức.** `ModelAttempt` có thêm `detail` (lời của nhà cung cấp, đã bỏ mã tổ chức, tối đa 200 ký tự), `limit` (giới hạn mà 429 nêu: `ITPM` token vào mỗi phút, `TPD` token mỗi ngày, `RPM`, `RPD`) và `retry_after_s` (số giây tới khi hết, nếu biết). Một lần gửi bị bỏ qua vì đã biết model hết hạn mức cũng ghi số giây còn phải chờ. Nhờ đó phân biệt được hạn mức theo phút (chờ một phút) với theo ngày (chờ tới hôm sau). Các trường chỉ thêm, có giá trị mặc định (sự kiện cũ vẫn đọc được).
+2. **`make model-usage`** (`scripts/model_usage.py`, `session/model_usage.py`) đọc `MODEL_CALLED` và `MODEL_FALLBACK` của các buổi học thật trong database của `.env` và in cho từng buổi: số lần gọi, token vào và ra, model nào viết, mỗi 429 thuộc giới hạn nào, số lần xuống chuỗi, và ký tự mỗi token thật. Chỉ đọc, không ghi (quy tắc 11).
+3. **`GROQ_API_KEY_EVAL`** (tùy chọn): khóa của một dự án Groq khác cho các bài đo, `make simulate` và `make draft-teaching` (`build_router(for_eval=True)`). Khi bỏ trống, mọi thứ dùng `GROQ_API_KEY` như trước. Hạn mức tính theo tổ chức nên khóa thứ hai của cùng dự án không đổi gì; muốn tách phải đặt hạn mức riêng cho dự án đó ở trang Limits.

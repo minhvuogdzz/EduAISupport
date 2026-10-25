@@ -27,6 +27,7 @@ from fractions import Fraction
 
 from cavat.config import get_settings
 from cavat.main import app
+from cavat.modules.ai_gateway.router import build_router, groq_key
 from cavat.modules.assessment.math_checker import parse_literal
 from cavat.modules.session import chapter_service
 from cavat.modules.session.api import account_name, student_identity
@@ -364,6 +365,17 @@ def _in_memory(settings, student: str | None = None, templates_only: bool = True
     return memory
 
 
+def _on_eval_key(settings) -> None:
+    """CFG-3: with GROQ_API_KEY_EVAL set, the simulated child's model calls spend that key's quota, not the
+    quota of the key the real students use."""
+    from cavat.modules.session import api as session_api
+
+    if groq_key(settings, for_eval=True) == settings.groq_api_key or settings.tutor_renderer != "llm":
+        return
+    router = build_router(settings, for_eval=True)
+    session_api.tutor_router = lambda: router
+
+
 class _Calls:
     """AUTO-2: what each model call of the measured sessions gave, counted in this process (the router's
     ``fallback_reason`` is not in any event): per session, ``model class:reason`` ("ok" when the model
@@ -554,6 +566,8 @@ def main() -> None:
             CALLS.install()
     elif not args.write:
         sys.exit("Thêm --write để ghi thật (CLAUDE.md quy tắc 11: chỉ khi chủ dự án yêu cầu), hoặc --memory.")
+    if not args.memory:
+        _on_eval_key(settings)
     app.dependency_overrides[student_identity] = lambda: args.student_id
     app.dependency_overrides[account_name] = lambda: args.name
     made = {}

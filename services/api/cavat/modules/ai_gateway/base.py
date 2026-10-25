@@ -99,11 +99,20 @@ class AIGatewayError(Exception):
 
 
 class QuotaExceeded(AIGatewayError):
-    """Provider rate limit hit (HTTP 429). ``reset_at`` is when the quota frees up, if known."""
+    """Provider rate limit hit (HTTP 429). ``reset_at`` is when the quota frees up, if known; ``limit`` is
+    the limit the provider names: ITPM (input tokens per minute), TPM, TPD (tokens per day), RPM, RPD."""
 
-    def __init__(self, message: str, *, model: str | None = None, reset_at: datetime | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        model: str | None = None,
+        reset_at: datetime | None = None,
+        limit: str | None = None,
+    ) -> None:
         super().__init__(message, model=model)
         self.reset_at = reset_at
+        self.limit = limit
 
 
 class ModelUnavailable(AIGatewayError):
@@ -146,6 +155,23 @@ class VisionProvider(Protocol):
 
 class EmbeddingProvider(Protocol):
     def embed(self, texts: list[str], *, task: str) -> list[list[float]]: ...
+
+
+# Groq names the limit in brackets: "... on input tokens per minute (ITPM): Limit 7000, Used 6360 ..." (seen
+# 2026-10-25); the day limits are worded alike [ASSUME].
+_LIMIT_KIND = re.compile(r"\(((?:I|O)?(?:TP|RP)[MD])\)")
+_ORGANIZATION = re.compile(r"\s+in organization `[^`]*`")
+
+
+def quota_limit(message: str) -> str | None:
+    """The limit a Groq 429 names (ITPM, OTPM, TPM, TPD, RPM, RPD...), or None when the text names none."""
+    found = _LIMIT_KIND.search(message)
+    return found.group(1) if found else None
+
+
+def error_detail(message: str, size: int = 200) -> str:
+    """A provider error as the session log keeps it (CFG-3): without the organization id, cut short."""
+    return _ORGANIZATION.sub("", message)[:size]
 
 
 def estimate_tokens(text: str) -> int:

@@ -113,7 +113,7 @@ def grade_v2(chapter, cases) -> dict[str, list[bool]]:
     settings = get_settings()
     calls = {
         "B1": lambda: GeminiChat(settings.gemini_api_key, models=ev.GEMINI_MODELS).chat(request).text,
-        "B2": lambda: ev.qwen_text(build_router(), request),
+        "B2": lambda: ev.qwen_text(build_router(for_eval=True), request),
     }
     for system, call in calls.items():
         if system in cache:
