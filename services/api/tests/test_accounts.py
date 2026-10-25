@@ -103,8 +103,9 @@ def test_wrong_pins_pause_the_account():
 def test_the_web_lists_the_three_accounts_and_only_a_right_pin_logs_in(client):
     config = client.get("/v1/auth/config").json()
     assert config["mode"] == "accounts"
-    assert config["student_signup"] is True  # students come in by name, not by a fixed card
+    assert config["student_signup"] is True  # children also make their own accounts
     assert [(a["kind"], a["display_name"]) for a in config["accounts"]] == [
+        ("STUDENT", "Minh"),
         ("PARENT", "Mẹ Minh"),
         ("TEACHER", "Cô Lan"),
     ]
@@ -147,54 +148,82 @@ def test_five_wrong_pins_pause_the_login(client):
     assert locked.status_code == 429
 
 
-def student_by_name(client, name: str):
-    return client.post("/v1/auth/student", json={"name": name})
+def register(client, username: str, passcode: str = "4321"):
+    return client.post("/v1/auth/student/register", json={"username": username, "passcode": passcode})
 
 
-def test_a_student_comes_in_by_name_and_finds_the_same_history_again(client):
-    first = student_by_name(client, "  Nguyễn  Bảo An ")
-    assert first.status_code == 200, first.text
-    user = first.json()["user"]
+def child_login(client, username: str, passcode: str = "4321", role: str | None = None):
+    body = {"login_name": username, "pin": passcode, **({"role": role} if role else {})}
+    return client.post("/v1/auth/login", json=body)
+
+
+def bearer(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_a_child_makes_an_account_and_comes_back_with_the_same_pair(client):
+    made = register(client, "  Nguyễn  Bảo An ")
+    assert made.status_code == 200, made.text
+    user = made.json()["user"]
     assert (user["kind"], user["display_name"]) == ("STUDENT", "An")  # the given name only (rule 8)
-    headers = {"Authorization": f"Bearer {first.json()['token']}"}
-    created = client.post("/v1/sessions", json={"student_display_name": "x"}, headers=headers)
+    created = client.post(
+        "/v1/sessions", json={"student_display_name": "x"}, headers=bearer(made.json()["token"])
+    )
     assert created.status_code == 201, created.text
 
-    # Back after a crash, from another device, with other capitals and accents: the same student.
-    again = student_by_name(client, "nguyen bao an").json()
-    assert again["user"]["user_id"] == user["user_id"]
-    other = {"Authorization": f"Bearer {again['token']}"}
-    assert [s["session_id"] for s in client.get("/v1/sessions/mine", headers=other).json()] == [
-        created.json()["session_id"]
-    ]
+    # Back after a crash, from another device, other capitals and accents: the same student and history.
+    again = child_login(client, "nguyen bao an")
+    assert again.status_code == 200, again.text
+    assert again.json()["user"]["user_id"] == user["user_id"]
+    mine = client.get("/v1/sessions/mine", headers=bearer(again.json()["token"])).json()
+    assert [s["session_id"] for s in mine] == [created.json()["session_id"]]
 
-    # Another child is another student with an empty history; the teacher sees both.
-    second = student_by_name(client, "Trần Bảo Anh").json()
-    assert second["user"]["user_id"] != user["user_id"]
-    mine = {"Authorization": f"Bearer {second['token']}"}
-    assert client.get("/v1/sessions/mine", headers=mine).json() == []
-    identity_api._guard.succeeded("giaovien")  # the pause test above leaves this login locked
-    teacher = login(client, "giaovien")
-    names = {s["display_name"] for s in client.get("/v1/teachers/class", headers=teacher).json()["students"]}
-    assert "An" in names
+    # A wrong passcode does not open it; another child has an empty history of their own.
+    assert child_login(client, "nguyen bao an", "0000").status_code == 401
+    other = register(client, "Trần Bình", "8765").json()
+    assert other["user"]["user_id"] != user["user_id"]
+    assert client.get("/v1/sessions/mine", headers=bearer(other["token"])).json() == []
 
 
-def test_a_name_never_opens_another_role_and_the_fixed_student_keeps_the_history(client):
-    # The fixed student of `make accounts` is found by its name, with its own account.
-    fixed = student_by_name(client, "minh").json()
-    fixed_me = client.get("/v1/auth/me", headers=login(client, "hocsinh")).json()
-    assert fixed["user"]["user_id"] == fixed_me["user_id"]
-    # Names of the other roles make students, never the parent or the teacher.
-    for name in ("giaovien", "Mẹ Minh", "phuhuynh"):
-        body = student_by_name(client, name).json()
-        assert body["user"]["kind"] == "STUDENT"
-        assert body["user"]["user_id"] != fixed_me["user_id"]
-    assert (
-        client.get("/v1/teachers/class", headers={"Authorization": f"Bearer {body['token']}"}).status_code
-        == 403
-    )
+def test_the_parent_shares_the_childs_account(client):
+    made = register(client, "Bảo An").json()
+    created = client.post("/v1/sessions", json={"student_display_name": "x"}, headers=bearer(made["token"]))
+    assert created.status_code == 201
+    # The login also gives the parent's token; the same pair opens the parent role on another device.
+    parent = bearer(made["parent_token"])
+    view = client.get("/v1/parents/me/child", headers=parent)
+    assert view.status_code == 200, view.text
+    assert view.json()["student_display_name"] == "An" and view.json()["sessions"]["total"] == 1
+    asked = child_login(client, "bao an", role="PARENT").json()
+    assert (asked["user"]["kind"], asked["user"]["child_id"]) == ("PARENT", made["user"]["user_id"])
+    # The parent's token is not the child's: it has no lessons, and the child's has no parent view.
+    assert client.get("/v1/sessions/mine", headers=parent).status_code == 403
+    assert client.get("/v1/parents/me/child", headers=bearer(made["token"])).status_code == 403
 
 
-@pytest.mark.parametrize("name", ["", "   ", "!!!", "a" * 41])
-def test_an_empty_or_odd_name_is_refused(client, name):
-    assert student_by_name(client, name).status_code in (422, 400)
+def test_the_old_fixed_student_keeps_the_history_by_name_or_login(client):
+    old = login(client, "hocsinh")  # the old PIN login of `make accounts` still works
+    by_login = child_login(client, "hocsinh", PINS["hocsinh"]).json()
+    by_name = child_login(client, "minh", PINS["hocsinh"]).json()  # its name, as a child types it
+    assert by_login["user"]["user_id"] == by_name["user"]["user_id"]
+    assert client.get("/v1/auth/me", headers=old).json()["user_id"] == by_name["user"]["user_id"]
+    # The old parent and the teacher open as before, and a child's form cannot open the teacher.
+    assert child_login(client, "phuhuynh", PINS["phuhuynh"], role="PARENT").json()["user"]["kind"] == "PARENT"
+    identity_api._guard.succeeded("giaovien")
+    assert child_login(client, "giaovien", PINS["giaovien"], role="PARENT").status_code == 403
+    assert login(client, "giaovien")
+
+
+def test_a_taken_or_reserved_username_is_refused(client):
+    assert register(client, "Bảo An").status_code == 200
+    assert register(client, "bao  an", "9999").status_code == 409  # the same name, other spelling
+    for name in ("minh", "Minh", "hocsinh", "giaovien", "phuhuynh"):  # the old student and the fixed logins
+        assert register(client, name).status_code == 409, name
+
+
+@pytest.mark.parametrize(
+    ("username", "passcode"),
+    [("", "4321"), ("   ", "4321"), ("!!!", "4321"), ("a" * 41, "4321"), ("Lan", "12"), ("Lan", "abcd")],
+)
+def test_an_odd_username_or_passcode_is_refused(client, username, passcode):
+    assert register(client, username, passcode).status_code in (422, 400)

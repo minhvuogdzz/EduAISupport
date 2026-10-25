@@ -15,9 +15,50 @@ from cavat.main import app
 from cavat.modules.session.api import get_database
 
 
+async def _trial_accounts(database: InMemoryDatabase) -> None:
+    """``CAVAT_MEMORY_ACCOUNTS=1``: the fixed accounts of `make accounts` (student Vuong, a parent, a teacher;
+    every PIN 2468) in the in-memory database only, to try the login without Atlas."""
+    from cavat.modules.identity.accounts import FIXED_LOGINS, hash_pin
+    from cavat.modules.identity.repository import User, UserRepository
+    from cavat.modules.session.service import DEMO_SCHOOL_ID
+
+    repo = UserRepository(database, DEMO_SCHOOL_ID)
+    student = await repo.save(
+        User(
+            school_id=DEMO_SCHOOL_ID,
+            kind="STUDENT",
+            login_name=FIXED_LOGINS["STUDENT"],
+            display_name="Vuong",
+            grade=5,
+            pin_hash=hash_pin("2468"),
+        )
+    )
+    await repo.save(
+        User(
+            school_id=DEMO_SCHOOL_ID,
+            kind="PARENT",
+            login_name=FIXED_LOGINS["PARENT"],
+            display_name="Phụ huynh Vuong",
+            pin_hash=hash_pin("2468"),
+            child_id=student.id,
+        )
+    )
+    await repo.save(
+        User(
+            school_id=DEMO_SCHOOL_ID,
+            kind="TEACHER",
+            login_name=FIXED_LOGINS["TEACHER"],
+            display_name="Giáo viên Vuong",
+            pin_hash=hash_pin("2468"),
+        )
+    )
+
+
 def main() -> None:
     database = InMemoryDatabase()
     asyncio.run(ensure_indexes(database))
+    if os.environ.get("CAVAT_MEMORY_ACCOUNTS") == "1":
+        asyncio.run(_trial_accounts(database))
     app.dependency_overrides[get_database] = lambda: database
     uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("CAVAT_API_PORT", "8000")))
 

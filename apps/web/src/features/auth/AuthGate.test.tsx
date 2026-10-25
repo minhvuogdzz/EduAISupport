@@ -8,56 +8,63 @@ import { renderApp, testApi } from "../../test/renderApp";
 const CONFIG: AuthConfig = {
   mode: "accounts",
   student_signup: true,
-  accounts: [
-    { kind: "PARENT", login_name: "phuhuynh", display_name: "Mẹ Minh" },
-    { kind: "TEACHER", login_name: "giaovien", display_name: "Cô Lan" },
-  ],
+  accounts: [{ kind: "TEACHER", login_name: "giaovien", display_name: "Cô Lan" }],
 };
 
-const USERS: Record<string, AuthUser> = {
-  hocsinh: { user_id: "u-s", kind: "STUDENT", display_name: "Minh", child_id: null },
-  phuhuynh: { user_id: "u-p", kind: "PARENT", display_name: "Mẹ Minh", child_id: "u-s" },
-  giaovien: { user_id: "u-t", kind: "TEACHER", display_name: "Cô Lan", child_id: null },
-};
+const TEACHER: AuthUser = { user_id: "u-t", kind: "TEACHER", display_name: "Cô Lan", child_id: null };
+const OLD_STUDENT: AuthUser = { user_id: "u-old", kind: "STUDENT", display_name: "Vuong", child_id: null };
 
 /**
- * The mock API with the accounts of ACC-1: PIN 2468 for everyone; `loggedIn` starts a session. Like the
- * real client, it keeps the login of each role (ACC-2); `logins` counts the PINs typed.
+ * The mock API with the accounts: the teacher (PIN 2468), the old student "vuong" (PIN 2468) and the children
+ * who register. Like the real client, it keeps the login of each role (ACC-2); a child's login also keeps the
+ * parent role of the same account. `logins` counts the sign-ins typed.
  */
-function accountsApi(loggedIn: string | null = null): SessionApi & { logins: string[]; signIns: string[] } {
+function accountsApi(loggedIn: "teacher" | null = null): SessionApi & { logins: string[] } {
+  const accounts = new Map<string, { user: AuthUser; code: string }>([
+    ["giaovien", { user: TEACHER, code: "2468" }],
+    ["vuong", { user: OLD_STUDENT, code: "2468" }],
+  ]);
   const kept = new Map<AccountKind, AuthUser>();
-  let current: AuthUser | null = loggedIn ? USERS[loggedIn] : null;
+  let current: AuthUser | null = loggedIn ? TEACHER : null;
   if (current) kept.set(current.kind, current);
   const logins: string[] = [];
-  const signIns: string[] = [];
+  const parentOf = (child: AuthUser): AuthUser => ({
+    user_id: child.user_id,
+    kind: "PARENT",
+    display_name: `Phụ huynh của ${child.display_name}`,
+    child_id: child.user_id,
+  });
+  const enter = (user: AuthUser, role?: AccountKind): AuthUser => {
+    if (user.kind === "STUDENT") kept.set("PARENT", parentOf(user));
+    const shown = user.kind === "STUDENT" && role === "PARENT" ? parentOf(user) : user;
+    kept.set(shown.kind, shown);
+    current = shown;
+    return shown;
+  };
   return {
     ...testApi(),
     logins,
-    signIns,
     auth: {
       config: () => Promise.resolve(CONFIG),
-      login: (name, pin) => {
+      login: (name, pin, role) => {
         logins.push(name);
-        if (pin !== "2468" || !USERS[name]) {
-          return Promise.reject(new ApiError(401, "NOT_SESSION_OWNER", "wrong PIN"));
+        const found = accounts.get(name.trim().toLowerCase());
+        if (!found || found.code !== pin) {
+          return Promise.reject(new ApiError(401, "NOT_SESSION_OWNER", "wrong"));
         }
-        current = USERS[name];
-        kept.set(current.kind, current);
-        return Promise.resolve(current);
+        return Promise.resolve(enter(found.user, role));
       },
-      signInStudent: (name) => {
-        signIns.push(name);
-        // The same name finds the same student again (the server keys it without accents or capitals).
-        const key = name.trim().toLowerCase();
+      register: (username, passcode) => {
+        const key = username.trim().toLowerCase();
+        if (accounts.has(key)) return Promise.reject(new ApiError(409, "INVALID_STATE", "taken"));
         const user: AuthUser = {
           user_id: `u-${key}`,
           kind: "STUDENT",
-          display_name: name.trim().split(" ").at(-1)!,
+          display_name: username.trim().split(" ").at(-1)!,
           child_id: null,
         };
-        current = user;
-        kept.set("STUDENT", user);
-        return Promise.resolve(user);
+        accounts.set(key, { user, code: passcode });
+        return Promise.resolve(enter(user));
       },
       me: () =>
         current ? Promise.resolve(current) : Promise.reject(new ApiError(401, "NOT_SESSION_OWNER", "log in")),
@@ -67,101 +74,152 @@ function accountsApi(loggedIn: string | null = null): SessionApi & { logins: str
         return user !== undefined;
       },
       logout: () => {
-        if (current) kept.delete(current.kind);
+        if (current) {
+          const child = current.kind === "STUDENT" || current.kind === "PARENT";
+          kept.delete(current.kind);
+          if (child) {
+            kept.delete("STUDENT");
+            kept.delete("PARENT");
+          }
+        }
         current = null;
       },
     },
   };
 }
 
-describe("login of the trial accounts (ACC-1)", () => {
-  it("asks a student for the name, and a parent for the PIN", async () => {
-    const api = accountsApi();
-    const { user } = renderApp("/student", api);
+const rolesNav = () => screen.findByRole("navigation", { name: "Vai trò" });
+
+describe("accounts: children make their own, the parent shares it, the teacher is fixed", () => {
+  it("makes a child's account with a username and a passcode written twice", async () => {
+    const { user } = renderApp("/student", accountsApi());
     expect(await screen.findByRole("heading", { name: "CAVAT · Gia sư Toán lớp 5" })).toBeInTheDocument();
     for (const role of ["Học sinh", "Phụ huynh", "Giáo viên"])
       expect(screen.getByText(role)).toBeInTheDocument();
 
-    // The student role is open at first: a name, no PIN.
-    expect(screen.queryByLabelText("Mã PIN")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Vào học" })).toBeDisabled();
-    await user.type(screen.getByLabelText(/^Tên của con/), "Nguyễn Bảo An");
-    await user.click(screen.getByRole("button", { name: "Vào học" }));
+    await user.click(screen.getByRole("button", { name: "Lần đầu học? Tạo tài khoản mới" }));
+    const submit = screen.getByRole("button", { name: "Tạo tài khoản và vào học" });
+    await user.type(screen.getByLabelText("Tên đăng nhập"), "Nguyễn Bảo An");
+    await user.type(screen.getByLabelText("Tạo mã bí mật"), "4321");
+    await user.type(screen.getByLabelText("Nhập lại mã bí mật"), "4300");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Hai lần nhập mã chưa giống nhau.");
+    expect(submit).toBeDisabled();
+    await user.clear(screen.getByLabelText("Nhập lại mã bí mật"));
+    await user.type(screen.getByLabelText("Nhập lại mã bí mật"), "4321");
+    await user.click(submit);
+
     expect(await screen.findByRole("heading", { level: 1, name: /Chào An/ })).toBeInTheDocument();
-    expect(api.signIns).toEqual(["Nguyễn Bảo An"]);
-    const roles = screen.getByRole("navigation", { name: "Vai trò" });
+    const roles = await rolesNav();
     expect(within(roles).getByRole("button", { name: "Học sinh" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("refuses a wrong PIN for the parent and opens the parent's area with the right one", async () => {
-    const { user } = renderApp("/parent", accountsApi());
-    await user.click(await screen.findByText("Phụ huynh"));
-    await user.type(screen.getByLabelText("Mã PIN"), "1111");
-    await user.click(screen.getByRole("button", { name: "Mở" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Mã PIN chưa đúng.");
-    await user.clear(screen.getByLabelText("Mã PIN"));
-    await user.type(screen.getByLabelText("Mã PIN"), "2468");
-    await user.click(screen.getByRole("button", { name: "Mở" }));
-    const roles = await screen.findByRole("navigation", { name: "Vai trò" });
-    expect(within(roles).getByRole("button", { name: "Phụ huynh" })).toHaveAttribute("aria-current", "page");
+  it("refuses a taken username and says to choose another", async () => {
+    const { user } = renderApp("/student", accountsApi());
+    await user.click(await screen.findByRole("button", { name: "Lần đầu học? Tạo tài khoản mới" }));
+    await user.type(screen.getByLabelText("Tên đăng nhập"), "Vuong");
+    await user.type(screen.getByLabelText("Tạo mã bí mật"), "4321");
+    await user.type(screen.getByLabelText("Nhập lại mã bí mật"), "4321");
+    await user.click(screen.getByRole("button", { name: "Tạo tài khoản và vào học" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("có bạn khác dùng rồi");
   });
 
-  it("lets another child take the device: 'Đổi bạn khác' forgets the student, not the other roles", async () => {
-    const api = accountsApi("hocsinh");
-    const { user } = renderApp("/student", api);
-    await user.click(await screen.findByRole("button", { name: "Đổi bạn khác" }));
-    expect(await screen.findByLabelText(/^Tên của con/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/^Tên của con/), "Trần Bình");
+  it("comes back with the same username and passcode, and a wrong passcode does not open it", async () => {
+    const { user } = renderApp("/student", accountsApi());
+    await user.type(await screen.findByLabelText("Tên đăng nhập"), "Vuong");
+    await user.type(screen.getByLabelText("Mã bí mật"), "1111");
     await user.click(screen.getByRole("button", { name: "Vào học" }));
-    expect(await screen.findByRole("heading", { level: 1, name: /Chào Bình/ })).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("chưa đúng");
+    await user.clear(screen.getByLabelText("Mã bí mật"));
+    await user.type(screen.getByLabelText("Mã bí mật"), "2468");
+    await user.click(screen.getByRole("button", { name: "Vào học" }));
+    // The old student of the trial opens with its name and old PIN.
+    expect(await screen.findByRole("heading", { level: 1, name: /Chào Vuong/ })).toBeInTheDocument();
+  });
+
+  it("opens the parent role of the same account with no second login", async () => {
+    const api = accountsApi();
+    const { user } = renderApp("/student", api);
+    await user.type(await screen.findByLabelText("Tên đăng nhập"), "Vuong");
+    await user.type(screen.getByLabelText("Mã bí mật"), "2468");
+    await user.click(screen.getByRole("button", { name: "Vào học" }));
+    await screen.findByRole("heading", { level: 1, name: /Chào Vuong/ });
+
+    await user.click(within(await rolesNav()).getByRole("button", { name: "Phụ huynh" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      await within(await rolesNav()).findByRole("button", { name: "Phụ huynh", current: "page" }),
+    ).toBeInTheDocument();
+    expect(api.logins).toEqual(["Vuong"]);
+  });
+
+  it("opens the parent role on a new device with the child's username and passcode", async () => {
+    const { user } = renderApp("/parent", accountsApi());
+    await user.click(await screen.findByText("Phụ huynh"));
+    expect(screen.getByText(/dùng chung tài khoản với con/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Tên đăng nhập"), "Vuong");
+    await user.type(screen.getByLabelText("Mã bí mật"), "2468");
+    await user.click(screen.getByRole("button", { name: "Mở" }));
+    expect(
+      await within(await rolesNav()).findByRole("button", { name: "Phụ huynh", current: "page" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the teacher on the fixed PIN login", async () => {
+    const { user } = renderApp("/teacher", accountsApi());
+    await user.click(await screen.findByText("Giáo viên"));
+    expect(screen.queryByLabelText("Tên đăng nhập")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Mã PIN"), "2468");
+    await user.click(screen.getByRole("button", { name: "Mở" }));
+    expect(
+      await within(await rolesNav()).findByRole("button", { name: "Giáo viên", current: "page" }),
+    ).toBeInTheDocument();
   });
 
   it("sends an account to its own area", async () => {
-    renderApp("/teacher", accountsApi("phuhuynh"));
-    const roles = await screen.findByRole("navigation", { name: "Vai trò" });
-    expect(within(roles).getByRole("button", { name: "Phụ huynh" })).toHaveAttribute("aria-current", "page");
-    expect(within(roles).getByRole("button", { name: "Giáo viên" })).not.toHaveAttribute("aria-current");
+    renderApp("/student", accountsApi("teacher"));
+    const roles = await rolesNav();
+    expect(within(roles).getByRole("button", { name: "Giáo viên" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("switches role without logging out: a PIN the first time on this device, then one click", async () => {
-    const api = accountsApi("hocsinh");
+  it("switches to the teacher with a PIN the first time, then one click", async () => {
+    const api = accountsApi();
     const { user } = renderApp("/student", api);
-    const roles = await screen.findByRole("navigation", { name: "Vai trò" });
+    await user.type(await screen.findByLabelText("Tên đăng nhập"), "Vuong");
+    await user.type(screen.getByLabelText("Mã bí mật"), "2468");
+    await user.click(screen.getByRole("button", { name: "Vào học" }));
+    await screen.findByRole("heading", { level: 1, name: /Chào Vuong/ });
 
-    await user.click(within(roles).getByRole("button", { name: "Giáo viên" }));
+    await user.click(within(await rolesNav()).getByRole("button", { name: "Giáo viên" }));
     const dialog = await screen.findByRole("dialog", { name: "Mở vai Giáo viên" });
-    expect(dialog).toHaveTextContent("Cô Lan");
     await user.type(within(dialog).getByLabelText("Mã PIN"), "2468");
     await user.click(within(dialog).getByRole("button", { name: "Mở" }));
-    expect(
-      await within(await screen.findByRole("navigation", { name: "Vai trò" })).findByRole("button", {
-        name: "Giáo viên",
-        current: "page",
-      }),
-    ).toBeInTheDocument();
-    expect(api.logins).toEqual(["giaovien"]);
+    await within(await rolesNav()).findByRole("button", { name: "Giáo viên", current: "page" });
 
-    // Back to the student and to the teacher again: both kept, no PIN asked.
-    await user.click(
-      within(screen.getByRole("navigation", { name: "Vai trò" })).getByRole("button", { name: "Học sinh" }),
-    );
-    expect(await screen.findByRole("heading", { level: 1, name: /Chào Minh/ })).toBeInTheDocument();
-    await user.click(
-      within(screen.getByRole("navigation", { name: "Vai trò" })).getByRole("button", { name: "Giáo viên" }),
-    );
-    expect(
-      await within(await screen.findByRole("navigation", { name: "Vai trò" })).findByRole("button", {
-        name: "Giáo viên",
-        current: "page",
-      }),
-    ).toBeInTheDocument();
+    await user.click(within(await rolesNav()).getByRole("button", { name: "Học sinh" }));
+    expect(await screen.findByRole("heading", { level: 1, name: /Chào Vuong/ })).toBeInTheDocument();
+    await user.click(within(await rolesNav()).getByRole("button", { name: "Giáo viên" }));
+    await within(await rolesNav()).findByRole("button", { name: "Giáo viên", current: "page" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(api.logins).toEqual(["giaovien"]);
+    expect(api.logins).toEqual(["Vuong", "giaovien"]);
+  });
+
+  it("lets another child take the device: 'Đổi tài khoản' forgets the child, student and parent", async () => {
+    const { user } = renderApp("/student", accountsApi());
+    await user.type(await screen.findByLabelText("Tên đăng nhập"), "Vuong");
+    await user.type(screen.getByLabelText("Mã bí mật"), "2468");
+    await user.click(screen.getByRole("button", { name: "Vào học" }));
+    await user.click(await screen.findByRole("button", { name: "Đổi tài khoản" }));
+    expect(await screen.findByLabelText("Tên đăng nhập")).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: "Lần đầu học? Tạo tài khoản mới" }));
+    await user.type(screen.getByLabelText("Tên đăng nhập"), "Trần Bình");
+    await user.type(screen.getByLabelText("Tạo mã bí mật"), "5678");
+    await user.type(screen.getByLabelText("Nhập lại mã bí mật"), "5678");
+    await user.click(screen.getByRole("button", { name: "Tạo tài khoản và vào học" }));
+    expect(await screen.findByRole("heading", { level: 1, name: /Chào Bình/ })).toBeInTheDocument();
   });
 
   it("keeps the mock API open without a login, as the one demo student", async () => {
     renderApp("/student", testApi());
     expect(await screen.findByRole("heading", { level: 1, name: /Chào An/ })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Con tên là gì?")).not.toBeInTheDocument();
   });
 });

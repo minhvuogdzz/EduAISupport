@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useState, type ChangeEvent, type ReactNode } from "react";
 import { Navigate, useNavigate } from "react-router";
 
 import { useApi } from "../../api/apiContext";
@@ -93,11 +93,11 @@ function LoginPage({ config }: { config: AuthConfig }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const signup = config.student_signup === true;
-  // The students come in by name; the parent and the teacher keep their PIN.
-  const roles: AccountKind[] = [
-    ...(signup ? (["STUDENT"] as const) : []),
-    ...config.accounts.map((a) => a.kind).filter((kind) => kind !== "STUDENT" || !signup),
-  ];
+  // A child's account serves the student and the parent; the teacher is the fixed account with its PIN.
+  const hasTeacher = config.accounts.some((a) => a.kind === "TEACHER");
+  const roles: AccountKind[] = signup
+    ? ["STUDENT", "PARENT", ...(hasTeacher ? (["TEACHER"] as const) : [])]
+    : config.accounts.map((a) => a.kind);
   const [role, setRole] = useState<AccountKind | null>(signup ? "STUDENT" : null);
   const account = config.accounts.find((a) => a.kind === role);
   const onLoggedIn = (user: AuthUser) => {
@@ -144,8 +144,10 @@ function LoginPage({ config }: { config: AuthConfig }) {
                 </label>
               ))}
             </fieldset>
-            {role === "STUDENT" && signup && <StudentNameForm onLoggedIn={onLoggedIn} />}
-            {role && role !== "STUDENT" && account && (
+            {signup && (role === "STUDENT" || role === "PARENT") && (
+              <ChildForm key={role} role={role} onLoggedIn={onLoggedIn} />
+            )}
+            {role && !(signup && (role === "STUDENT" || role === "PARENT")) && account && (
               <PinForm key={role} accounts={[account]} onLoggedIn={onLoggedIn} />
             )}
           </>
@@ -156,52 +158,125 @@ function LoginPage({ config }: { config: AuthConfig }) {
 }
 
 /**
- * A student comes in by typing their name: the first time makes the account, later times (a crash, another
- * device) find the same student and the same history again. There is no PIN for children.
+ * A child's account: a username and a passcode. The first time the child makes it ("Tạo tài khoản mới"),
+ * later times they type the same pair, on any device. The parent opens the same account (role PARENT), so
+ * the parent types the child's pair too. The old trial student opens with its name and old PIN.
  */
-export function StudentNameForm({ onLoggedIn }: { onLoggedIn: (user: AuthUser) => void }) {
+export function ChildForm({
+  role,
+  onLoggedIn,
+}: {
+  role: "STUDENT" | "PARENT";
+  onLoggedIn: (user: AuthUser) => void;
+}) {
   const api = useApi();
-  const [name, setName] = useState("");
-  const signIn = useMutation({
-    mutationFn: () => api.auth!.signInStudent(name.trim()),
+  const [creating, setCreating] = useState(false);
+  const [username, setUsername] = useState("");
+  const [passcode, setPasscode] = useState("");
+  const [again, setAgain] = useState("");
+  const mismatch = creating && again !== "" && again !== passcode;
+  const enter = useMutation({
+    mutationFn: () =>
+      creating
+        ? api.auth!.register(username.trim(), passcode)
+        : api.auth!.login(username.trim(), passcode, role),
     onSuccess: onLoggedIn,
   });
+  const status = enter.error instanceof ApiError ? enter.error.status : null;
+  const error = !enter.isError
+    ? null
+    : status === 429
+      ? "Nhập sai nhiều lần quá, đợi 5 phút rồi thử lại nhé."
+      : status === 409
+        ? "Tên đăng nhập này có bạn khác dùng rồi. Con chọn tên khác nhé."
+        : status === 422
+          ? "Tên đăng nhập cần có chữ, mã bí mật gồm 4 đến 8 chữ số."
+          : creating
+            ? "Chưa tạo được tài khoản. Con thử lại nhé."
+            : "Tên đăng nhập hoặc mã bí mật chưa đúng.";
+  const ready =
+    username.trim() !== "" && passcode.length >= 4 && (!creating || again === passcode) && !enter.isPending;
+  const digits = (set: (value: string) => void) => (event: ChangeEvent<HTMLInputElement>) =>
+    set(event.target.value.replace(/\D/g, ""));
   return (
     <form
       className="mt-4 flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        if (name.trim()) signIn.mutate();
+        if (ready) enter.mutate();
       }}
     >
+      {role === "PARENT" && (
+        <p className="text-sm text-slate-700">
+          Phụ huynh dùng chung tài khoản với con: nhập tên và mã của con.
+        </p>
+      )}
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-semibold">Tên của con</span>
+        <span className="text-sm font-semibold">Tên đăng nhập</span>
         <input
           type="text"
-          autoComplete="off"
+          autoComplete="username"
           autoFocus
           maxLength={40}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Ví dụ: Nguyễn Bảo An"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          placeholder="Ví dụ: Bảo An"
           className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg focus:border-brand-600"
         />
-        <span className="text-xs text-slate-600">
-          Lần sau con gõ đúng tên này để học tiếp, cô vẫn nhớ con học đến đâu.
-        </span>
       </label>
-      {signIn.isError && (
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-semibold">{creating ? "Tạo mã bí mật" : "Mã bí mật"}</span>
+        <input
+          type="password"
+          inputMode="numeric"
+          autoComplete={creating ? "new-password" : "current-password"}
+          maxLength={8}
+          value={passcode}
+          onChange={digits(setPasscode)}
+          className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-lg tracking-[0.3em] focus:border-brand-600"
+        />
+      </label>
+      {creating && (
+        <span className="text-xs text-slate-600">Từ 4 đến 8 chữ số. Con nhớ mã này để vào lần sau.</span>
+      )}
+      {creating && (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold">Nhập lại mã bí mật</span>
+          <input
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            maxLength={8}
+            value={again}
+            onChange={digits(setAgain)}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-lg tracking-[0.3em] focus:border-brand-600"
+          />
+        </label>
+      )}
+      {(error || mismatch) && (
         <p role="alert" className="text-sm font-medium text-rose-700">
-          Chưa vào được. Con kiểm tra lại tên rồi thử lại nhé.
+          {mismatch ? "Hai lần nhập mã chưa giống nhau." : error}
         </p>
       )}
       <button
         type="submit"
-        disabled={!name.trim() || signIn.isPending}
+        disabled={!ready}
         className="rounded-xl bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
       >
-        Vào học
+        {creating ? "Tạo tài khoản và vào học" : role === "PARENT" ? "Mở" : "Vào học"}
       </button>
+      {role === "STUDENT" && (
+        <button
+          type="button"
+          onClick={() => {
+            setCreating(!creating);
+            enter.reset();
+          }}
+          className="min-h-11 rounded-xl text-sm font-semibold text-brand-800 hover:bg-white/60"
+        >
+          {creating ? "Mình đã có tài khoản" : "Lần đầu học? Tạo tài khoản mới"}
+        </button>
+      )}
     </form>
   );
 }
