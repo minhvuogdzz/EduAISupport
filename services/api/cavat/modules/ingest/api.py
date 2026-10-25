@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from cavat.modules.ingest.repository import ItemBankRepository, TeachingPlanRepository
-from cavat.modules.ingest.review import ReviewError, publish_blockers, review_state
+from cavat.modules.ingest.review import ReviewError, item_as_taught, publish_blockers, review_state
 from cavat.modules.ingest.service import (
     PREFIXES,
     cached_drafter,
@@ -55,7 +55,7 @@ def review_view(plan: Any, bank: Any) -> dict[str, Any]:
     bank_items = {i["item_id"]: i for i in (bank.items if bank else [])}
 
     def item_note(item_id: str) -> dict[str, Any]:
-        draft = bank_items.get(item_id, {})
+        draft = item_as_taught(bank_items.get(item_id, {}), plan.decisions)
         return {
             "status": draft.get("status", ""),
             "findings": [f for f in draft.get("findings", []) if not f.get("ok")],

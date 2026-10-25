@@ -15,7 +15,7 @@ from cavat.modules.assessment.vi_words import decimal_from_words
 from cavat.modules.ingest.build import build_bank
 from cavat.modules.ingest.parse import options_of, parse_blocks, split_parts
 from cavat.modules.ingest.plan import parse_periods
-from cavat.modules.ingest.verify import check_item, round_to
+from cavat.modules.ingest.verify import check_item, normalize_units, round_to
 from cavat.modules.library.repository import PageReadRecord, TeacherDocument
 
 EXERCISES = """[Trang 1]
@@ -222,6 +222,81 @@ def test_each_answer_is_checked_against_its_question(stem, answer, ok):
     assert all(f.ok for f in findings) == ok, findings
 
 
+AREA_STEM = "Tam giác đáy 6 dm, chiều cao 5 dm. Tính diện tích: S = ……"
+
+
+@pytest.mark.parametrize(
+    ("answer", "ok"),
+    [
+        ("15 dm²", True),
+        ("S = 6 × 5 : 2 = 15 dm2", True),
+        ("15 dm^2", True),
+        ("15 đề-xi-mét vuông", True),
+        ("1500 cm²", True),
+        ("1500 cm2", True),  # the same area in another unit: right, and was flagged as a conflict
+        ("1500 xăng-ti-mét vuông", True),
+        ("15 cm²", False),
+        ("15 cm2", False),  # a wrong unit that was read as a bare 15 and approved
+        ("15 xăng-ti-mét vuông", False),
+        ("S = 6 × 5 : 2 = 15 cm2", False),
+    ],
+)
+def test_an_area_unit_is_read_however_the_document_writes_it(answer, ok):
+    """REFORM-3: "cm2", "dm^2", "… vuông" were not units, so the answer was a bare number in the unit of the
+    question's lengths: a right answer in another unit was a conflict and a wrong unit passed."""
+    findings = check_item(AREA_STEM, answer)
+    assert any(f.check == "AREA" for f in findings), findings
+    assert all(f.ok for f in findings) == ok, findings
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "27,067 km\n 2\n15,2 cm\n 3",  # an answer key: the "2" is the number of the next question
+        "2. S = 76 dm², chiều cao 6 cm\n3. Tính",
+        "5 m 2 dm = …… m",  # a measure of two units
+        "đường cao AH = 7 cm vuông góc với BC; đường cao DM vuông góc với BC",
+    ],
+)
+def test_a_text_that_only_looks_like_a_squared_unit_is_left_alone(text):
+    assert normalize_units(text) == text
+
+
+def test_the_spelled_out_units_are_symbols():
+    assert normalize_units("Một mét vuông có bao nhiêu đề-xi-mét vuông? Tính theo xăng-ti-mét vuông") == (
+        "Một m² có bao nhiêu dm²? Tính theo cm²"
+    )
+    assert normalize_units("hai héc-ta") == "hai ha" and normalize_units("12 cm2, 3 m^2") == "12 cm², 3 m²"
+
+
+UNIT_CONTEXT = "Chọn đơn vị diện tích thích hợp (cm², dm², m²) điền vào chỗ chấm:"
+
+
+@pytest.mark.parametrize(
+    ("stem", "answer", "ok"),
+    [
+        ("Cánh buồm hình tam giác đáy 6 dm, cao 5 dm có diện tích 15 ……", "dm²", True),
+        ("Cánh buồm hình tam giác đáy 6 dm, cao 5 dm có diện tích 15 ……", "dm2", True),
+        ("Cánh buồm hình tam giác đáy 6 dm, cao 5 dm có diện tích 15 ……", "cm²", False),
+        ("Cánh buồm hình tam giác đáy 6 dm, cao 5 dm có diện tích 15 ……", "m²", False),
+        ("Mảnh vườn hình thang, đáy 12 m và 8 m, cao 5 m, có diện tích 50 ……", "m²", True),
+        ("Mảnh vườn hình thang, đáy 12 m và 8 m, cao 5 m, có diện tích 50 ……", "dm²", False),
+        ("Sân trường có diện tích 800 ……", "m", False),  # a length unit for an area, whatever the lengths
+    ],
+)
+def test_an_area_unit_is_chosen_for_the_area_the_lengths_make(stem, answer, ok):
+    findings = check_item(stem, answer, context=UNIT_CONTEXT)
+    assert findings, "no check applied"
+    assert all(f.ok for f in findings) == ok, findings
+
+
+def test_a_unit_that_only_real_life_can_choose_is_not_verified():
+    """ "Con tem có diện tích 6 …… / cm²": nothing in the question computes it. The key is a unit offered, and
+    that is all that can be said, so the item stays for the teacher (UNCHECKED), not VERIFIED."""
+    assert check_item("Con tem hình chữ nhật có diện tích 6 ……", "cm²", context=UNIT_CONTEXT) == []
+    assert check_item("Sân trường có diện tích 800 ……", "m²", context=UNIT_CONTEXT) == []
+
+
 def test_a_relation_written_in_an_answer_must_hold():
     assert not all(f.ok for f in check_item("Tính diện tích.", "S = 12 × 7 : 2 = 44 cm²"))
     assert all(f.ok for f in check_item("Tính diện tích.", "S = 120 × 80 : 2 = 4800 cm² = 0,48 m²"))
@@ -271,6 +346,57 @@ def test_the_bank_pairs_documents_places_items_in_periods_and_marks_disputed_rea
     assert all(i.status in ("VERIFIED", "DISPUTED") for i in bank.values()), {
         k: (i.status, i.findings) for k, i in bank.items() if i.status not in ("VERIFIED", "DISPUTED")
     }
+
+
+CONVERSIONS = """Phần 1 · Kiểm tra hiểu
+1
+Viết các số thập phân sau thành phân số thập phân (không rút gọn):
+a) 0,3 = ……
+b) 0,07 = ……
+c) 0,125 = ……
+d) 0,04 = ……
+"""
+
+CONVERSIONS_KEY = """Phần 1 · Kiểm tra hiểu
+Câu | Đáp án và lời giải ngắn
+1 | a) 3/10 | b) 7/100 | c) 125/1000 | d) 4/100
+"""
+
+CONVERSIONS_MISREAD = CONVERSIONS_KEY.replace("a) 3/10 | b) 7/100", "a) 8/10 | b) 1/100")
+
+
+def test_each_part_of_a_question_is_checked_with_its_own_answer():
+    """REFORM-3 looked for a mix-up of the parts "a)", "b)"…: there is none. A fraction misread in the key
+    (8/10 for 0,3) is a conflict of that part alone, with that part's numbers in the finding."""
+    exercises = doc("BAI_TAP", CONVERSIONS)
+    right = {
+        i.item_id: i
+        for i in build_bank(
+            "math-g5-decimals", "STP", [exercises, doc("DAP_AN", CONVERSIONS_KEY, answers_for=exercises.id)]
+        )
+    }
+    assert [(k, i.answer, i.status) for k, i in right.items()] == [
+        ("STP-BT-01a", "3/10", "VERIFIED"),
+        ("STP-BT-01b", "7/100", "VERIFIED"),
+        ("STP-BT-01c", "125/1000", "VERIFIED"),
+        ("STP-BT-01d", "4/100", "VERIFIED"),
+    ]
+    misread = {
+        i.item_id: i
+        for i in build_bank(
+            "math-g5-decimals",
+            "STP",
+            [exercises, doc("DAP_AN", CONVERSIONS_MISREAD, answers_for=exercises.id)],
+        )
+    }
+    assert [(k, i.status) for k, i in misread.items()] == [
+        ("STP-BT-01a", "CONFLICT"),
+        ("STP-BT-01b", "CONFLICT"),
+        ("STP-BT-01c", "VERIFIED"),
+        ("STP-BT-01d", "VERIFIED"),
+    ]
+    assert misread["STP-BT-01a"].findings[0]["detail"] == "0,3 = 8/10"
+    assert misread["STP-BT-01b"].findings[0]["detail"] == "0,07 = 1/100"
 
 
 async def test_the_teacher_builds_and_reads_the_bank_a_student_cannot():

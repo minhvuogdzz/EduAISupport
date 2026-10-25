@@ -3,7 +3,10 @@
 Rebuilds each chapter's plan (``make teaching-plan``), then asks Qwen for the hint ladders of the practice
 items and for the answers, accepted phrasings and key ideas of each period; every draft goes through the
 checks of ``ingest.drafting`` and only what passes enters the plan, which stays a DRAFT for the teacher.
-Uses the free-tier quota (about 60 requests for the two chapters, cached on disk: building again is free).
+Uses the free-tier quota, cached on disk: building again is free, and a run the quota stops goes on from
+the cache the next day. With ``draft-hints.v2.md`` the hints of the two chapters are about 116 requests (1 500
+prompt tokens each, 190 000 in all, and the answers): more than the 200 000 tokens a day of the free tier, so
+set GROQ_API_KEY_EVAL (another Groq project) or let it run over two days (REFORM-3).
 Writes the database of services/api/.env. Nothing runs it at startup or in a test.
 """
 
