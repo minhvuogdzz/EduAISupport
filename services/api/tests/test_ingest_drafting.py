@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
+from cavat.modules.ai_gateway.base import Usage
 from cavat.modules.ingest.build import build_bank
 from cavat.modules.ingest.drafting import Drafter, summary
 from cavat.modules.ingest.teaching import build_plan
@@ -27,7 +28,7 @@ class ScriptedRouter:
             data = {"items": [{"id": row["id"], **self.hints.get(row["id"], {})} for row in payload["CÂU"]]}
         else:
             data = self.node
-        result = SimpleNamespace(data=data, model="qwen/qwen3.8-27b")
+        result = SimpleNamespace(data=data, model="qwen/qwen3.8-27b", usage=Usage(prompt_tokens=900))
         return SimpleNamespace(result=result, calls_made=1)
 
 
@@ -99,3 +100,6 @@ def test_a_second_build_costs_no_request(tmp_path):
     again = Drafter(router, tmp_path)
     again.draft(plan_and_bank())
     assert asked > 0 and len(router.requests) == asked and again.calls == 0
+    # CFG-2: each kept draft carries the tokens the provider counted for it
+    kept = [json.loads(p.read_text(encoding="utf-8")) for p in tmp_path.glob("*.json")]
+    assert kept and all(k["usage"]["prompt_tokens"] == 900 for k in kept)

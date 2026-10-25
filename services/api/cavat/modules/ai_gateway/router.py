@@ -6,10 +6,12 @@ session never stops because of a provider. Callers never pick a model name (rule
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import Any
 
 from cavat.config import Settings, get_settings
 
@@ -32,6 +34,7 @@ from .base import (
     Transcription,
     VisionProvider,
     VisionResult,
+    estimate_prompt_tokens,
 )
 
 DEFAULT_MAX_LLM_CALLS_PER_SESSION = 15
@@ -199,6 +202,48 @@ class AIRouter:
         if self._vision is None:
             raise ModelUnavailable("no vision provider configured")
         return self._vision.describe_with(model, image_bytes, prompt, mime_type=mime_type)
+
+
+@dataclass(frozen=True)
+class ChatCall:
+    """One ``chat`` as ``RecordingRouter`` saw it (CFG-2); the session writes it down as MODEL_CALLED."""
+
+    model_class: ModelClass
+    purpose: str  # the request's schema name (tutor_turn, reading, move_choice, grounded_turn)
+    outcome: ChatOutcome
+    estimated_tokens: int  # what the provider adapter checks against MAX_PROMPT_TOKENS before sending
+    prompt_chars: int  # characters of the messages
+    schema_chars: int  # characters of the JSON schema (0 without one)
+    messages: int
+
+
+class RecordingRouter:
+    """The router of one session command (CFG-2): every call goes to the shared router, which remembers
+    which models are out of quota, and each ``chat`` is kept so the session can write down which model
+    answered and the tokens the provider counted. Everything else is the shared router's."""
+
+    def __init__(self, router: AIRouter) -> None:
+        self._router = router
+        self.calls: list[ChatCall] = []
+
+    def chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
+        outcome = self._router.chat(model_class, request, calls_used=calls_used)
+        schema = "" if request.json_schema is None else json.dumps(request.json_schema, ensure_ascii=False)
+        self.calls.append(
+            ChatCall(
+                model_class=model_class,
+                purpose=request.schema_name,
+                outcome=outcome,
+                estimated_tokens=estimate_prompt_tokens(request),
+                prompt_chars=sum(len(m.content) for m in request.messages),
+                schema_chars=len(schema),
+                messages=len(request.messages),
+            )
+        )
+        return outcome
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._router, name)
 
 
 def _embedding_name(provider: EmbeddingProvider | None) -> str | None:

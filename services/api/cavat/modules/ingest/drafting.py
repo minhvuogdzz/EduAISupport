@@ -192,8 +192,10 @@ class Drafter:
         if outcome.result is None or outcome.result.data is None:
             return {}, ""
         self.cache.mkdir(parents=True, exist_ok=True)
+        result = outcome.result
+        usage = asdict(result.usage)  # CFG-2: the tokens the provider counted
         kept.write_text(
-            json.dumps({"data": outcome.result.data, "model": outcome.result.model}, ensure_ascii=False)
+            json.dumps({"data": result.data, "model": result.model, "usage": usage}, ensure_ascii=False)
         )
         return outcome.result.data, outcome.result.model
 

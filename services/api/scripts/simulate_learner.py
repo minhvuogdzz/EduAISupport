@@ -408,13 +408,16 @@ CALLS = _Calls()
 def _measure(memory, session_ids: list[str]) -> None:
     """LLM-1: who wrote each tutor turn of the sessions this run made, and why model drafts were rejected;
     AUTO-1: the moves Qwen picked (policy move -> played move); AUTO-2: the session's model calls, why a turn
-    fell back to a template, hints, how each item was solved and the periods stopped unpassed."""
+    fell back to a template, hints, how each item was solved and the periods stopped unpassed. CFG-2: the
+    model of each call, the tokens Groq counted and each step down the chain, from the events; every
+    MODEL_CALLED is also kept in var/storage/reports/model-calls.jsonl to check the token estimate."""
     import asyncio
     from collections import Counter
 
     async def read() -> list[dict]:
         return await memory["learning_sessions"].find({"_id": {"$in": session_ids}}).to_list(None)
 
+    kept: list[dict] = []
     for doc in asyncio.run(read()):
         events = doc.get("events", [])
         sources = Counter(
@@ -430,7 +433,10 @@ def _measure(memory, session_ids: list[str]) -> None:
         picks = [e["payload"] for e in events if e["event_type"] == "MOVE_CHOSEN"]  # AUTO-1
         hints = [e["payload"]["hint_level"] for e in events if e["event_type"] == "HINT_DELIVERED"]
         items = [e["payload"] for e in events if e["event_type"] == "ITEM_RESOLVED"]
+        calls = [e["payload"] for e in events if e["event_type"] == "MODEL_CALLED"]  # CFG-2
+        moved = [e["payload"] for e in events if e["event_type"] == "MODEL_FALLBACK"]
         sid = doc["_id"]
+        kept += [{"session_id": sid, **c} for c in calls]
         print(
             json.dumps(
                 {
@@ -454,6 +460,16 @@ def _measure(memory, session_ids: list[str]) -> None:
                     "router": dict(CALLS.router[sid]),
                     "groq_429": CALLS.refused[sid],
                     "renderer": dict(CALLS.renderer[sid]),
+                    "model_calls": dict(
+                        Counter(f"{c['purpose']}:{c['model'] or c['fallback_reason']}" for c in calls)
+                    ),
+                    "tokens": [
+                        sum(c["prompt_tokens"] for c in calls),
+                        sum(c["completion_tokens"] for c in calls),
+                    ],
+                    "fallbacks": dict(
+                        Counter(f"{m['from_model']}->{m['to_model']}:{m['reason']}" for m in moved)
+                    ),
                     "hints": len(hints),
                     "hint_levels": dict(sorted(Counter(hints).items())),
                     "max_hint_level": max(hints, default=0),
@@ -467,6 +483,10 @@ def _measure(memory, session_ids: list[str]) -> None:
                 ensure_ascii=False,
             )
         )
+    out = get_settings().storage_dir / "reports" / "model-calls.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("".join(json.dumps(c, ensure_ascii=False) + "\n" for c in kept), encoding="utf-8")
+    print(f"{len(kept)} lần gọi model -> {out}")
 
 
 def _write_back(settings, memory, session_ids: list[str]) -> None:
