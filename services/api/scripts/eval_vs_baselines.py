@@ -33,7 +33,7 @@ import yaml
 from cavat.config import REPO_ROOT, get_settings
 from cavat.core.events import EventType
 from cavat.core.pedagogy import ActivityType, Outcome
-from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, ModelClass
+from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, ChatResult, ModelClass
 from cavat.modules.ai_gateway.gemini import GeminiChat
 from cavat.modules.ai_gateway.router import build_router
 from cavat.modules.assessment.math_checker import check_answer, classify_intent
@@ -48,7 +48,6 @@ from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import singles_out_choice, validate_message
 from eval_hard_students import CHAPTER, JUDGE_MODEL, SCENARIOS, judge
 
-CAVAT_MODEL = "qwen/qwen3.8-27b + policy"
 GEMINI_MODELS = ("gemini-3.8-flash", "gemini-2.5-flash", "gemini-3.5-flash-lite")
 PAUSE_S = 10  # Qwen: 8 000 tokens a minute
 GEMINI_PAUSE_S = 14  # Gemini: 5 requests a minute
@@ -194,7 +193,8 @@ def cavat_tutor(router) -> list[Reply]:
                     said,
                     turn.text,
                     before,
-                    model="qwen/qwen3.8-27b + policy",
+                    # CFG-1: the brain configured in GROQ_MODEL (EVAL-4 ran gpt-oss-120b under a Qwen label)
+                    model=f"{get_settings().groq_model} + policy",
                     source=source,
                 )
             )
@@ -242,11 +242,16 @@ def grading(router, gemini) -> dict[str, list[bool]]:
     return got
 
 
-def qwen_text(router, request: ChatRequest) -> str:
+def qwen_reply(router, request: ChatRequest) -> ChatResult:
+    """The brain's answer; ``.model`` says which model of the chain wrote it (a 429 moves to gpt-oss)."""
     outcome = router.chat(ModelClass.TUTOR_REASONING, request, calls_used=0)
     if outcome.result is None:
         raise RuntimeError(f"Qwen did not answer ({outcome.fallback_reason})")
-    return outcome.result.text
+    return outcome.result
+
+
+def qwen_text(router, request: ChatRequest) -> str:
+    return qwen_reply(router, request).text
 
 
 def report(replies: list[Reply], graded: dict[str, list[bool]]) -> str:
@@ -327,7 +332,8 @@ def main() -> None:
         return result.model, result.text
 
     def b2(history):
-        return "qwen/qwen3.8-27b", qwen_text(router, ChatRequest(messages=history, max_output_tokens=400))
+        result = qwen_reply(router, ChatRequest(messages=history, max_output_tokens=400))
+        return result.model, result.text
 
     systems = (sys.argv[sys.argv.index("--systems") + 1] if "--systems" in sys.argv else "B1,B2,C").split(",")
     replies = [

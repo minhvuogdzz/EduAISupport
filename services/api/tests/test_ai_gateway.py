@@ -341,6 +341,22 @@ def test_build_router_reads_chain_and_cap_from_settings():
     assert judge.chain(ModelClass.TUTOR_REASONING) == (QWEN, GPT_OSS)
 
 
+def test_groq_model_setting_heads_every_chat_chain():
+    # CFG-1: the brain is named once (GROQ_MODEL); the chains only add the fallbacks.
+    assert AIRouter().chain(ModelClass.TUTOR_REASONING)[0] == Settings.model_fields["groq_model"].default
+    router = build_router(Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), groq_model="qwen/next"))
+    for model_class in (ModelClass.TUTOR_REASONING, ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE):
+        assert router.chain(model_class)[0] == "qwen/next"
+
+
+def test_env_example_lists_only_settings_the_app_reads():
+    # CFG-1: .env is read with extra="ignore", so keys no code reads (LlamaCloud, Gemini Live) went unnoticed.
+    template = (Path(__file__).resolve().parents[1] / ".env.example").read_text(encoding="utf-8")
+    keys = re.findall(r"^([A-Z][A-Z0-9_]*)=", template, flags=re.MULTILINE)
+    assert "GROQ_MODEL" in keys
+    assert [key for key in keys if key.lower() not in Settings.model_fields] == []
+
+
 def test_router_delegates_stt_and_vision():
     stt = FakeSpeechToText(["không phẩy hai lăm"])
     vision = FakeVision(["Hình chữ nhật dài 5 cm, rộng 3 cm."])

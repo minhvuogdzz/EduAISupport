@@ -2,6 +2,8 @@
 
 **Trạng thái:** Đã chốt (quyết định của chủ dự án, 2026-10-01). Thay mục "mặc định" của TUTOR_REASONING trong PART 12.1 và ADR-016.
 
+**Cập nhật 2026-10-25 (CFG-1):** giọng nói đi theo ADR-030 (Whisper trên Groq, giọng cô VieNeu-TTS chạy local), nên Gemini chỉ còn đọc ảnh/OCR và tạo vector cho Hybrid RAG. Bỏ hai khóa cấu hình không còn code nào đọc: `LLAMA_CLOUD_API_KEY` và `GEMINI_LIVE_MODEL`. Tên model bộ não chỉ ghi một chỗ là `GROQ_MODEL` (`cavat/config.py`); chuỗi dự phòng của router đọc tên đó.
+
 ## Quyết định
 
 | Model class | Mặc định | Dự phòng |
@@ -11,8 +13,8 @@
 | EVAL_JUDGE và học sinh ảo dạng LLM | Groq (Qwen hoặc gpt-oss-120b) | — |
 | STT tiếng Việt | `whisper-large-v3` trên Groq | Web Speech API của trình duyệt |
 | VISION_OCR (ảnh hình học, đề bài chụp) | `gemini-3.8-flash` | — |
-| REALTIME_VOICE (English Speaking) | `gemini-3.8-live` | Cascade: Whisper + Qwen + TTS trình duyệt |
-| TTS | `SpeechSynthesis` của trình duyệt | `gemini-3.8-flash-tts` (10 req/ngày) |
+| ~~REALTIME_VOICE (English Speaking)~~ | **bỏ (D-T9):** English ra khỏi demo; giọng nói tiếng Việt theo ADR-030 | — |
+| TTS_VI (giọng cô, ADR-030) | VieNeu-TTS chạy local | `SpeechSynthesis` của trình duyệt |
 | Phân tích tài liệu giáo viên (PDF/PPTX) | ~~LlamaParse (LlamaCloud)~~ **bỏ (ADR-018, D-T11):** tự đọc PDF và tự dựng bố cục | Gemini vision cho trang scan và hình vẽ |
 | EMBEDDING (Hybrid RAG, ADR-018) | Model embedding đa ngôn ngữ của Gemini, tên trong cấu hình | Chỉ dùng từ khóa và cấu trúc đồ thị; model chạy local ở Mốc 2 nếu cần |
 

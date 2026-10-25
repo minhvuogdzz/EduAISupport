@@ -35,9 +35,11 @@ from .base import (
 )
 
 DEFAULT_MAX_LLM_CALLS_PER_SESSION = 15
+# The tutor brain is named once, in the settings (GROQ_MODEL); the chains only add the fallbacks.
+DEFAULT_TUTOR_MODEL: str = Settings.model_fields["groq_model"].default
 
 
-def default_chat_chains(primary: str = "qwen/qwen3.8-27b") -> dict[ModelClass, tuple[str, ...]]:
+def default_chat_chains(primary: str = DEFAULT_TUTOR_MODEL) -> dict[ModelClass, tuple[str, ...]]:
     return {
         ModelClass.TUTOR_REASONING: (primary, "openai/gpt-oss-120b"),
         ModelClass.LIGHTWEIGHT: (primary, "openai/gpt-oss-20b"),
