@@ -23,7 +23,7 @@ export function ChapterPicker({ chapters, current }: { chapters: ChapterRef[]; c
             next.set("chapter", c.chapter_id);
             setParams(next, { replace: true });
           }}
-          className={`min-h-11 rounded-full px-5 text-base font-semibold ${
+          className={`min-h-11 rounded-full px-5 py-2 text-center text-base leading-snug font-semibold ${
             c.chapter_id === selected
               ? "bg-brand-700 text-white"
               : "bg-white text-brand-900 ring-1 ring-brand-200 hover:bg-brand-50"
