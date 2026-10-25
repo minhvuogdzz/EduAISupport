@@ -261,7 +261,8 @@ def test_numeric_isomorphic_item():
 
 
 def test_a_decimal_fraction_is_written_as_asked():
-    """ "0,475 = ……" asks 475/1000: the same value written back as 0,475, or reduced to 19/40, is wrong."""
+    """ "0,475 = ……" asks 475/1000: the same value as 0,475 or reduced to 19/40 is not the answer asked
+    for, but it is no wrong answer either: a step (PARTIAL, EQUIVALENT_FORM; REFORM-2, DI-67)."""
     item = PKG.item("GP-07b").model_copy(
         update={"answer": NumericAnswer(type="numeric", value="475/1000", form="fraction")}
     )
@@ -269,11 +270,12 @@ def test_a_decimal_fraction_is_written_as_asked():
     assert check_answer(item, "dạ là 475 / 1000 ạ", PKG).outcome is CORRECT
     for text in ("0,475", "19/40"):
         result = check_answer(item, text, PKG)
-        assert result.outcome is WRONG and result.correct_answer == "475/1000"
+        assert result.outcome is Outcome.PARTIAL and result.correct_answer == "475/1000"
+        assert result.detail["partial_reason"] == "EQUIVALENT_FORM"
     assert check_answer(item, "47/100", PKG).outcome is WRONG
     item = item.model_copy(update={"answer": NumericAnswer(type="numeric", value="0,49", form="decimal")})
     assert check_answer(item, "0,49", PKG).outcome is CORRECT
-    assert check_answer(item, "49/100", PKG).outcome is WRONG
+    assert check_answer(item, "49/100", PKG).outcome is Outcome.PARTIAL
 
 
 # --------------------------------------------------------------------------- choice (GP-08, GP-10)

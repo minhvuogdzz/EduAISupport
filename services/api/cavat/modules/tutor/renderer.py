@@ -22,7 +22,9 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-TEMPLATE_VERSION = "template-renderer.v7"  # v7: FIX-6, the counterexample is tied to the item and varies
+# v8: REFORM-2, EXPLAIN_AND_ADVANCE says the approved explanation, the rule answers "lý thuyết là gì",
+#     punctuation no longer hides a word; v7: FIX-6, the counterexample is tied to the item and varies
+TEMPLATE_VERSION = "template-renderer.v8"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -40,6 +42,10 @@ PHRASES: dict[str, str] = {
     "teach_back": "{S} thử giảng lại cho {t} cách làm câu này bằng lời của {s} được không?",
     "close_item": "Mình dừng câu này ở đây nhé. {S} đã cố gắng suy nghĩ rất chăm chỉ.",
     "move_on": "Mình sang câu tiếp theo nhé.",  # ADR-019: solved, the "vì sao" skipped (draft wording)
+    # REFORM-2 (DI-68, drafted for the owner's review): the child could not say why; the tutor says it.
+    "explain_and_advance": (
+        "{T} giải thích ngắn gọn để {s} nhớ nhé: {explanation} Bây giờ mình sang câu tiếp theo nhé!"
+    ),
     "explain_lead": "{T} nói rõ hơn nhé:",  # CTX-1 (draft wording): before a sentence of approved content
     # FIX-6 (drafted, approved on the owner's authority): a counterexample is about other numbers, so the
     # child is told why it comes now ("không liên quan tới đề", the judge said of it on 2026-10-21).
@@ -52,6 +58,8 @@ PHRASES: dict[str, str] = {
 # feeling is acknowledged, "là sao?" is answered, "không biết" is met with calm, off-topic talk is
 # parked. Socratic still: the move's hint and its single question follow.
 LEADS: dict[str, tuple[str, ...]] = {
+    # REFORM-2 (DI-67, drafted for the owner's review): the child answered the step the hint asked.
+    "STEP_PRAISE": ("Đúng rồi, bước này {s} làm đúng!", "Chính xác! {S} đang đi đúng hướng rồi."),
     "ANSWER_DEMAND": (
         "{T} chưa nói đáp án ngay đâu, vì {s} tự tìm ra sẽ nhớ lâu hơn.",
         "Mình cùng làm để {s} tự tìm ra nhé, như vậy {s} sẽ nhớ lâu hơn.",
@@ -75,6 +83,7 @@ LEADS: dict[str, tuple[str, ...]] = {
 }
 # The counter that picks the variant: the same words are not said twice in a row (anti-loop, replayable).
 _LEAD_COUNTER = {
+    "STEP_PRAISE": "attempt_no",
     "ANSWER_DEMAND": "help_requests",
     "NEGATIVE_AFFECT": "affect_signals",
     "CLARIFY": "clarify_requests",
@@ -84,6 +93,7 @@ _LEAD_COUNTER = {
     "OFF_TOPIC": "off_topic_turns",
 }
 _LEAD_ORDER = (
+    "STEP_PRAISE",
     "ANSWER_DEMAND",
     "NEGATIVE_AFFECT",
     "CLARIFY",
@@ -111,9 +121,20 @@ def _cap(word: str) -> str:
     return word[:1].upper() + word[1:]
 
 
-def _say(ctx: RenderContext, key: str) -> str:
+def _say(ctx: RenderContext, key: str, **extra: str) -> str:
     t, s = ctx.persona.tutor_self, ctx.persona.student_address
-    return PHRASES[key].format(T=_cap(t), t=t, S=_cap(s), s=s)
+    return PHRASES[key].format(T=_cap(t), t=t, S=_cap(s), s=s, **extra)
+
+
+def _words_of(text: str) -> set[str]:
+    """The folded words of a text without its punctuation: "mẫu," and "1000." are "mau" and "1000"."""
+    return set(re.findall(r"\w+", fold(text)))
+
+
+def approved_explanation(item: Item) -> str | None:
+    """The item's approved account of why the answer is right, as one passage (REFORM-2)."""
+    text = item.explanation or " ".join(item.worked_solution)
+    return " ".join(text.split()) or None
 
 
 def _msg(text: str, source: MessageSource, hint_ref: str | None = None) -> RenderedMessage:
@@ -289,7 +310,7 @@ _SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
 
 def covering_sentence(focus: str | None, evidence: tuple[str, ...]) -> str | None:
     """The sentence of the approved passages that shares the most words with what the child asks about."""
-    wanted = {fold(w) for w in (focus or "").split() if len(w) > 1}
+    wanted = {w for w in _words_of(focus or "") if len(w) > 1}
     if not wanted:
         return None
     best, best_score = None, 0
@@ -298,7 +319,7 @@ def covering_sentence(focus: str | None, evidence: tuple[str, ...]) -> str | Non
             sentence = sentence.strip()
             if len(sentence.split()) < 4 or sentence.endswith("?"):
                 continue
-            score = len(wanted & {fold(w) for w in sentence.split()})
+            score = len(wanted & _words_of(sentence))
             if score > best_score:
                 best, best_score = sentence, score
     return best
@@ -312,8 +333,8 @@ def _explain(ctx: RenderContext) -> RenderedMessage:
     approved passages that does, with the item asked again; else that hint anyway.
     """
     hint = _hint(ctx)
-    wanted = {fold(w) for w in (ctx.focus or "").split()}
-    if wanted & {fold(w) for w in hint.text.split()} or not ctx.evidence:
+    wanted = _words_of(ctx.focus or "")
+    if wanted & _words_of(hint.text) or not ctx.evidence:
         return _msg(f"{_say(ctx, 'explain_lead')} {hint.text}", hint.source, hint.hint_ref)
     sentence = covering_sentence(ctx.focus, ctx.evidence)
     if sentence is None:
@@ -340,7 +361,42 @@ def _verify(ctx: RenderContext) -> RenderedMessage:
     if "ASK_AGAIN" in ctx.decision.reason_codes:
         # Asked once more after "là sao?" or off-topic talk: the answer was already praised (DI-38).
         msg = _msg(_PRAISE_RE.sub("", msg.text), msg.source, msg.hint_ref)
-    return msg
+    return _with_rule(ctx, msg)
+
+
+def _with_rule(ctx: RenderContext, msg: RenderedMessage) -> RenderedMessage:
+    """REFORM-2 (2.2): "lý thuyết là gì" in reply to "vì sao" is answered with the approved rule first."""
+    if "CLARIFY" not in ctx.decision.reason_codes or ctx.item.explanation is None:
+        return msg
+    rule = _SENTENCE_END.split(" ".join(ctx.item.explanation.split()))[0]
+    if len(rule.split()) + len(msg.text.split()) > ctx.max_words:
+        return msg
+    return _msg(f"{rule} {msg.text}", "TEMPLATE", msg.hint_ref)
+
+
+def _teach_back(ctx: RenderContext) -> RenderedMessage:
+    return _with_rule(ctx, _msg(_say(ctx, "teach_back"), "TEMPLATE"))
+
+
+def _confirm_advance(ctx: RenderContext) -> RenderedMessage:
+    if "EXPLAIN_AND_ADVANCE" in ctx.decision.reason_codes:
+        explanation = approved_explanation(ctx.item)
+        if explanation is not None:
+            return _msg(_say(ctx, "explain_and_advance", explanation=explanation), "TEMPLATE")
+        return _msg(_say(ctx, "move_on"), "TEMPLATE")
+    return _msg(_say(ctx, "confirm_advance"), "TEMPLATE")
+
+
+def _close_item(ctx: RenderContext) -> RenderedMessage:
+    d = ctx.decision
+    if d.resolution in (None, ItemResolution.UNRESOLVED):
+        return _msg(_say(ctx, "close_item"), "TEMPLATE")
+    talk = {"OFF_TOPIC", "CLARIFY", "NEGATIVE_AFFECT"}.intersection(d.reason_codes)
+    if "NO_EXPLANATION" in d.reason_codes and not talk and (explanation := approved_explanation(ctx.item)):
+        # The child could not or would not explain ("không biết", silence): the approved explanation, then
+        # on. Talk outside the lesson keeps its own lead (ADR-019) and the plain move on.
+        return _msg(_say(ctx, "explain_and_advance", explanation=explanation), "TEMPLATE")
+    return _msg(_say(ctx, "move_on"), "TEMPLATE")
 
 
 def _worked_guidance(ctx: RenderContext) -> RenderedMessage:
@@ -376,17 +432,12 @@ _RENDERERS: dict[Move, Callable[[RenderContext], RenderedMessage]] = {
     Move.OFFER_CHOICE: _fixed("offer_choice"),
     Move.ASK_CONFIRM: _fixed("ask_confirm"),
     Move.VERIFY: _verify,
-    Move.CONFIRM_ADVANCE: _fixed("confirm_advance"),
+    Move.CONFIRM_ADVANCE: _confirm_advance,
     Move.WORKED_GUIDANCE: _worked_guidance,
     Move.FULL_EXPLANATION: _full_explanation,
-    Move.TEACH_BACK: _fixed("teach_back"),
+    Move.TEACH_BACK: _teach_back,
     Move.EXPLAIN: _explain,
-    Move.CLOSE_ITEM: lambda ctx: _msg(
-        _say(
-            ctx, "close_item" if ctx.decision.resolution in (None, ItemResolution.UNRESOLVED) else "move_on"
-        ),
-        "TEMPLATE",
-    ),
+    Move.CLOSE_ITEM: _close_item,
 }
 
 

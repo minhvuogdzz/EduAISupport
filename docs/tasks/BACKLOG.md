@@ -172,6 +172,7 @@ Chủ dự án chạy thử và chỉ ra: giao diện chữ quá to; gia sư ch�
 | VERIFY-1 | Hỏi "vì sao" theo việc con đã vững kiến thức chưa: luôn hỏi sau câu đúng đầu tiên trên kiến thức trong buổi và khi mức nắm vững < 0,6, còn lại giữ mẫu 30% (DI-65, `hint-policy/0.10.0`) | Xong 2026-10-22 |
 | PRIOR-1 | Gia sư của từng câu đọc snapshot Student Model (mức nắm vững, độ tin cậy, mức phụ thuộc gợi ý) để R-STRONG-PRIOR và R-WEAK-PRIOR chạy được trong buổi học (DI-66) | Xong 2026-10-22 |
 | PRIOR-3 | Đo từng điều kiện của hai luật: không có lỗi nối dây. R-STRONG-PRIOR cần bằng chứng của tiết trải qua hai buổi cách nhau ≥ 3 ngày (DI-11), có test chứng minh luật chạy trong buổi học. R-WEAK-PRIOR cần lỗi sai điển hình ở lần sai đầu đúng lúc con đang yếu (DI-66) | Xong 2026-10-25. Chủ dự án giữ DI-11 (2026-10-25), ghi vào phần hạn chế của luận văn |
+| REFORM-2 | Chấm đúng bước trung gian và dạng tương đương (3/10 cho 0,3), tiến bậc thay vì lùi, câu hỏi ngắn không dấu hỏi, không khen "Đúng rồi!" khi con chưa giải thích được (DI-67, DI-68, DI-69) | Xong 2026-10-25 |
 | LLM-1 | Lần kiểm cuối dùng trần từ theo câu mẫu, lời đã duyệt không còn bị thay bằng câu chung chung; sửa tại chỗ hai lỗi hình thức (DI-60) | Xong (PR #73) |
 | LLM-2 | Dành lượt gọi Qwen cho giải thích, gợi ý, kéo về bài; giữ trần 15 (DI-61) | Xong (PR #74) |
 | DOCS-1 | BACKLOG theo đúng hiện trạng; bản REV-ECIT 2026 vào `docs/paper/rev-ecit-2026/` | Xong |

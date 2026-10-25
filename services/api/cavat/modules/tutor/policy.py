@@ -35,7 +35,9 @@ from cavat.core.pedagogy import (
 )
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-POLICY_VERSION = "hint-policy/0.10.0"  # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
+# 0.11.0: REFORM-2 (DI-67, DI-68), a right step advances, no praise without an explanation
+# 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
+POLICY_VERSION = "hint-policy/0.11.0"
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -54,6 +56,8 @@ _TARGET_FOR_ERROR: dict[ErrorClass, HintTarget] = {
 # DI, approved by the owner on 2026-10-01: silence after H6 also means "H6 không hiệu quả", so the student
 # gets the full explanation and is asked to retell it, instead of nudges until the turn limit.
 _STALLED = frozenset({Outcome.WRONG, Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND, Outcome.NO_RESPONSE})
+
+STEP_ADVANCE_TOP = HintLevel.H5  # DI-67: a right step leads to the next hint, never to the worked steps
 
 # Replies to a "vì sao" or teach-back question that carry no explanation.
 _NO_EXPLANATION = frozenset(
@@ -332,11 +336,15 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
             move=Move.ASK_CONFIRM, reason_codes=("NEEDS_CONFIRMATION",), rule_ids=("R-ASK-CONFIRM",)
         )
     if outcome == Outcome.PARTIAL and st.hint_levels:
+        # REFORM-2 (DI-67): the child answered the question of the hint (a step, or the right value in the
+        # other form). That is progress: the next rung leads to the next step, up to H5, and the tutor says
+        # so. It used to step back a rung, which asked the same question again. The assessment cap applies
+        # after this rule (R-ASSESS-CAP).
         return PolicyDecision(
             move=Move.HINT,
-            level=_clamp(st.hint_levels[-1] - 1, cfg.max_hint_level),
+            level=_clamp(min(st.hint_levels[-1] + 1, STEP_ADVANCE_TOP), cfg.max_hint_level),
             target=st.hint_targets[-1] if st.hint_targets else HintTarget.STEP,
-            reason_codes=("STEP_CORRECT_AFTER_HINT", "FADING"),
+            reason_codes=("STEP_CORRECT_AFTER_HINT", "STEP_PRAISE"),
             rule_ids=("R-DEESCALATE",),
         )
     if outcome in (Outcome.WRONG, Outcome.PARTIAL):
@@ -505,6 +513,15 @@ def _after_explanation(st: ItemState, outcome: Outcome | None) -> PolicyDecision
             resolution, reasons = ItemResolution.UNRESOLVED, ("NO_EXPLANATION", "NOT_SOLVED")
         return PolicyDecision(
             move=Move.CLOSE_ITEM, resolution=resolution, reason_codes=reasons, rule_ids=(rule,)
+        )
+    if st.last_explanation_vague:
+        # REFORM-3.2 (DI-68): asked once more and the child still says nothing of this item ("không", "ki",
+        # "vì con làm theo quy tắc"). No "Đúng rồi!": the tutor says the approved explanation and goes on.
+        return PolicyDecision(
+            move=Move.CONFIRM_ADVANCE,
+            resolution=resolution,
+            reason_codes=("EXPLAIN_AND_ADVANCE",),
+            rule_ids=(rule,),
         )
     return PolicyDecision(
         move=Move.CONFIRM_ADVANCE,
