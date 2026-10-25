@@ -188,6 +188,38 @@ describe("PlanReviewPage (INGEST-4)", () => {
     );
   });
 
+  it("takes an emptied why question as removing it: the tutor asks the general one (REFORM 4.4)", async () => {
+    const base = plan();
+    const node = {
+      ...base.content.nodes[0],
+      verify_prompt: "Đúng rồi! Vì sao con so sánh phần nguyên trước?",
+    };
+    const { api, decisions } = plansApi(plan({ content: { ...base.content, nodes: [node] } }));
+    const { user } = renderApp("/teacher/plans/math-g5-decimals", api);
+    await user.click(await screen.findByRole("button", { name: "Sửa câu hỏi vì sao" }));
+    await user.clear(screen.getByRole("textbox", { name: "Câu hỏi vì sao" }));
+    await user.click(screen.getByRole("button", { name: "Lưu" }));
+
+    // the API takes no empty edit ("an edit needs a value"): the same decision as "Loại câu hỏi vì sao"
+    await waitFor(() =>
+      expect(decisions).toEqual([
+        { target: "node:STP-T04/verify/prompt", action: "reject", value: undefined },
+      ]),
+    );
+  });
+
+  it("changes nothing when a field without a default is emptied, or the why question was empty", async () => {
+    const { api, decisions } = plansApi();
+    const { user } = renderApp("/teacher/plans/math-g5-decimals", api);
+    await user.click(await screen.findByRole("button", { name: "Sửa câu hỏi vì sao" })); // it has no text
+    await user.click(screen.getByRole("button", { name: "Lưu" }));
+    await user.click(screen.getByRole("button", { name: "Sửa quy tắc" }));
+    await user.clear(screen.getByRole("textbox", { name: "Quy tắc" }));
+    await user.click(screen.getByRole("button", { name: "Lưu" }));
+    expect(screen.getByText("Quy tắc:", { exact: false })).toBeInTheDocument(); // back to the text view
+    expect(decisions).toEqual([]);
+  });
+
   it("publishes once nothing waits", async () => {
     const ready = plan({ review: { approved_nodes: ["STP-T04"], waiting_nodes: [], blockers: [] } });
     const { api, published } = plansApi(ready);

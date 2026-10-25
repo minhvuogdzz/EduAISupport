@@ -245,16 +245,28 @@ class RetellView(BaseModel):
     score: float
     ideas_found: int
     ideas_total: int
+    purpose: Literal["RETELL", "RECALL"] = "RETELL"  # RECALL: a node learnt before, asked again (DI-52)
+
+
+class ConductedView(BaseModel):
+    """What the conductor found in a message before the loop read it (``teaching/conductor.py``)."""
+
+    raw: str  # the words as the child typed them
+    signals: list[str] = []  # TEENCODE, EMOJI, STRETCHED, LONG, KEYWORD_DUMP...
+    route: Literal["PASS", "UNSTICK"] = "PASS"  # UNSTICK: the next hint followed instead of the same words
 
 
 class StudentAnnotation(BaseModel):
-    kind: Literal["ANSWER", "STEP", "EXPLANATION", "MESSAGE", "HINT_REQUEST", "CHOICE"]
+    # UNSTICK: the hint the conductor gave itself (no message of the child behind it)
+    kind: Literal["ANSWER", "STEP", "EXPLANATION", "MESSAGE", "HINT_REQUEST", "CHOICE", "UNSTICK"]
     outcome: str | None
     normalized_answer: str | None
     misconception: MisconceptionView | None
     retell: RetellView | None = None
     safety: bool = False  # the child's words raised a safety flag (DI-41 or the model): for the teacher
     read: dict[str, str] | None = None  # CTX-1: how an unclear message was read (label, focus, source)
+    conducted: ConductedView | None = None  # the message as typed, and what the conductor made of it
+    voice: bool = False  # ADR-030: the child said it; the words are what speech-to-text heard
 
 
 class TeachAnnotation(BaseModel):
@@ -262,8 +274,9 @@ class TeachAnnotation(BaseModel):
     node_id: str | None
     rule_ids: list[str]
     reason_codes: list[str]
-    # RAG-2: TEMPLATE (approved text), LLM (Qwen, checked against its sources), EXTRACT (a passage verbatim)
-    source: Literal["TEMPLATE", "LLM", "EXTRACT"] = "TEMPLATE"
+    # RAG-2: TEMPLATE (approved text), LLM (Qwen, checked against its sources), EXTRACT (a passage verbatim);
+    # WEB-1: the answer rests on the trusted web source (DI-51)
+    source: Literal["TEMPLATE", "LLM", "EXTRACT", "WEB"] = "TEMPLATE"
     sources: list[str] = []  # titles of the passages the words rest on
     rejected: list[list[str]] = []  # check codes of each refused model output
     grounded: bool | None = None  # a question of the child: did the passages ground it
@@ -437,7 +450,8 @@ class StudentOverviewView(BaseModel):
 
     student_display_name: str
     parent_code: str
-    chapter: ChapterRef
+    chapter: ChapterRef  # the chapter this view is about (``?chapter=``, the default one without it)
+    chapters: list[ChapterRef]  # every chapter the tutor teaches, the default one first: what to pick from
     nodes: list[ProgressNode]
     relations: list[RelationView]
     passed: int
@@ -1145,42 +1159,63 @@ async def make_choice(
     )
 
 
-def _chapter_overview(sessions: list[LearningSession], student_id: str, today: date) -> dict[str, Any]:
-    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
+def _named_chapter(chapter_id: str | None) -> Chapter:
+    """The chapter a view is about (``?chapter=``), the default one when none is named. The caller names a
+    chapter the tutor teaches, nothing else: the lesson plan, the model and the activity stay the server's."""
+    chapter_id = chapter_id or chapter_service.DEFAULT_CHAPTER_ID
+    if chapter_id not in chapter_service.chapters():
+        raise ApiError(404, "NOT_FOUND", f"no chapter {chapter_id!r}")
+    return _chapter(chapter_id)
+
+
+def _chapter_refs() -> list[dict[str, str]]:
+    """The chapters the tutor teaches, the default one first: what a student or a parent picks from."""
+    refs = [{"chapter_id": cid, "title": c.package.title} for cid, c in chapter_service.chapters().items()]
+    return sorted(
+        refs, key=lambda ref: (ref["chapter_id"] != chapter_service.DEFAULT_CHAPTER_ID, ref["chapter_id"])
+    )
+
+
+def _chapter_overview(
+    chapter: Chapter, sessions: list[LearningSession], student_id: str, today: date
+) -> dict[str, Any]:
     own = [s for s in sessions if s.student_id == student_id]
     view = progress.overview(chapter, own, today)
-    return {**view, "parent_code": progress.parent_code(student_id)}
+    return {**view, "parent_code": progress.parent_code(student_id), "chapters": _chapter_refs()}
 
 
 @students.get("/me/overview", response_model=StudentOverviewView)
-async def my_overview(database: Database, student: Student, today: Today):
-    """Student: the chapter so far, across sessions: topics in words, streak, what to practise."""
+async def my_overview(database: Database, student: Student, today: Today, chapter: str | None = None):
+    """Student: a chapter so far (``?chapter=``, the default one without it), across sessions: topics in
+    words, streak, what to practise."""
+    named = _named_chapter(chapter)
     sessions = await _repo(database).list_for_student(student)
-    return _chapter_overview(sessions, student, today)
+    return _chapter_overview(named, sessions, student, today)
 
 
 @parents.get("/me/child", response_model=ParentChildView)
-async def my_child(database: Database, child: LinkedChild, today: Today):
+async def my_child(database: Database, child: LinkedChild, today: Today, chapter: str | None = None):
     """Parent account: the linked child's progress (ACC-1), with no code to type."""
-    return await _child_view(database, child, today)
+    return await _child_view(database, child, today, _named_chapter(chapter))
 
 
 @parents.get("/children/{code}", response_model=ParentChildView)
-async def child_overview(code: str, database: Database, parent: Parent, today: Today):
+async def child_overview(
+    code: str, database: Database, parent: Parent, today: Today, chapter: str | None = None
+):
     """Parent: the child's progress in plain words, the trend over four weeks and how to help at home."""
+    named = _named_chapter(chapter)
     repo = _repo(database)
     wanted = code.strip().upper()
     student_id = next((s for s in await repo.student_ids() if progress.parent_code(s) == wanted), None)
     if student_id is None:
         raise ApiError(404, "NOT_FOUND", "no student has this code")
-    return await _child_view(database, student_id, today)
+    return await _child_view(database, student_id, today, named)
 
 
-async def _child_view(database: Any, student_id: str, today: date) -> dict[str, Any]:
-    repo = _repo(database)
-    chapter = _chapter(chapter_service.DEFAULT_CHAPTER_ID)
-    own = await repo.list_for_student(student_id)
-    view = _chapter_overview(own, student_id, today)
+async def _child_view(database: Any, student_id: str, today: date, chapter: Chapter) -> dict[str, Any]:
+    own = await _repo(database).list_for_student(student_id)
+    view = _chapter_overview(chapter, own, student_id, today)
     practise = view["to_practise"] or [n for n in view["nodes"] if not n["passed"]][:1]
     return {
         **view,
@@ -1188,14 +1223,6 @@ async def _child_view(database: Any, student_id: str, today: date) -> dict[str, 
         "home_tips": progress.home_tips(chapter, practise),
         "session_list": progress.sessions_list(chapter, own),
     }
-
-
-def _teacher_chapter(chapter_id: str | None) -> Any:
-    """The chapter a teacher's view is about (``?chapter=``), the default one when none is named."""
-    chapter_id = chapter_id or chapter_service.DEFAULT_CHAPTER_ID
-    if chapter_id not in chapter_service.chapters():
-        raise ApiError(404, "NOT_FOUND", f"no chapter {chapter_id!r}")
-    return _chapter(chapter_id)
 
 
 @teachers.get("/taught-chapters", response_model=list[ChapterRef])
@@ -1209,7 +1236,7 @@ async def taught_chapters(teacher: Teacher):
 @teachers.get("/class", response_model=ClassOverviewView)
 async def class_view(database: Database, teacher: Teacher, today: Today, chapter: str | None = None):
     """Teacher: the class on the chapter, replayed from every student's sessions (rule 3)."""
-    chapter = _teacher_chapter(chapter)
+    chapter = _named_chapter(chapter)
     enrolled = await _enrolled(database)
     by_student: dict[str, list[LearningSession]] = {}
     for session in await _repo(database).list_lesson(chapter.package.chapter_id):
@@ -1235,7 +1262,7 @@ async def teacher_student(
     student_id: str, database: Database, teacher: Teacher, today: Today, chapter: str | None = None
 ):
     """Teacher: one student on the chapter (``?chapter=``), with every KC in detail."""
-    chapter = _teacher_chapter(chapter)
+    chapter = _named_chapter(chapter)
     enrolled = await _enrolled(database)
     if enrolled is not None and student_id not in enrolled:
         raise ApiError(404, "NOT_FOUND", "no student account has this id")

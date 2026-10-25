@@ -170,7 +170,12 @@ def test_the_teacher_transcript_shows_the_rules_and_the_retell_verdict(client):
     assert teach[0]["kind"] == "NODE" and teach[0]["rule_ids"] == ["N-NEXT"]
     assert any(t["kind"] == "THEORY" and t["rule_ids"] == ["N-RETEACH"] for t in teach)
     retell = next(t for t in turns if t["student"] and t["student"].get("retell"))
-    assert retell["student"]["retell"] == {"score": 0.0, "ideas_found": 0, "ideas_total": 3}
+    assert retell["student"]["retell"] == {
+        "score": 0.0,
+        "ideas_found": 0,
+        "ideas_total": 3,
+        "purpose": "RETELL",
+    }
     assert transcript["session"]["progress"] == {"items_done": 0, "items_total": 7}
 
 

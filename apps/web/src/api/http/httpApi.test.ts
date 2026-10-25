@@ -149,6 +149,38 @@ describe("createHttpApi", () => {
     expect(calls[0].body).toEqual({ student_display_name: "An" });
   });
 
+  it("names the chapter in the student's and the parent's views and in a new session (REFORM 4.4)", async () => {
+    const { api, calls } = client({
+      "GET /v1/students/me/overview": () => ({ body: { chapter: { chapter_id: "first" } } }),
+      "GET /v1/students/me/overview?chapter=second": () => ({ body: { chapter: { chapter_id: "second" } } }),
+      "GET /v1/parents/children/4ACA86?chapter=second%2F2": () => ({ body: { parent: "code" } }),
+      "GET /v1/parents/me/child": () => ({ body: { parent: "account" } }),
+      "GET /v1/parents/me/child?chapter=second": () => ({ body: { parent: "account 2" } }),
+      "POST /v1/sessions": () => ({ status: 201, body: BEFORE }),
+    });
+
+    await api.getMyOverview?.(); // no chapter: no query, the server answers with its first
+    await api.getMyOverview?.("second");
+    await api.getChildOverview?.(" 4ACA86 ", "second/2"); // the code is trimmed, the chapter escaped
+    await api.getMyChild?.();
+    await api.getMyChild?.("second");
+    await api.createDemoSession({ student_display_name: "An", chapter_id: "second" });
+    await api.createDemoSession({ student_display_name: "An" });
+
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
+      "GET /v1/students/me/overview",
+      "GET /v1/students/me/overview?chapter=second",
+      "GET /v1/parents/children/4ACA86?chapter=second%2F2",
+      "GET /v1/parents/me/child",
+      "GET /v1/parents/me/child?chapter=second",
+      "POST /v1/sessions",
+      "POST /v1/sessions",
+    ]);
+    // the chapter goes to the API as the lesson to learn; no model, no activity is ever sent
+    expect(calls[5].body).toEqual({ student_display_name: "An", lesson_id: "second" });
+    expect(calls[6].body).toEqual({ student_display_name: "An" });
+  });
+
   it("returns the ack, then streams only the new tutor turns and the new state", async () => {
     let reads = 0;
     const { api, calls } = client({
@@ -223,7 +255,9 @@ describe("createHttpApi", () => {
       "GET /v1/sessions/s%2F1/transcript": () => ({ body: { session: {}, segments: [] } }),
       "GET /v1/sessions/s%2F1/report": () => ({ body: { nodes: [] } }),
       "GET /v1/teachers/class": () => ({ body: { students: [] } }),
+      "GET /v1/teachers/class?chapter=area": () => ({ body: { students: ["area"] } }),
       "GET /v1/teachers/students/a%2Fb": () => ({ body: { nodes: [] } }),
+      "GET /v1/teachers/students/a%2Fb?chapter=area": () => ({ body: { nodes: ["area"] } }),
     });
 
     await expect(api.listSessions()).resolves.toEqual([]);
@@ -231,7 +265,9 @@ describe("createHttpApi", () => {
     await expect(api.getReport?.("s/1")).resolves.toEqual({ nodes: [] });
     await expect(api.getClassOverview?.()).resolves.toEqual({ students: [] });
     await expect(api.getStudentReport?.("a/b")).resolves.toEqual({ nodes: [] });
-    expect(calls).toHaveLength(5);
+    await expect(api.getClassOverview?.("area")).resolves.toEqual({ students: ["area"] });
+    await expect(api.getStudentReport?.("a/b", "area")).resolves.toEqual({ nodes: ["area"] });
+    expect(calls).toHaveLength(7);
     for (const call of calls) {
       expect(call.headers["X-Demo-Teacher"]).toBeTruthy();
       expect(call.headers["X-Demo-Student"]).toBeUndefined();

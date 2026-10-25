@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
 import { DEMO_STUDENT_NAME } from "../../api/http/httpApi";
@@ -19,6 +19,7 @@ import {
 import { LIFECYCLE_LABEL, minutesText, QUALITY_TONE, studentWords } from "../../components/labels";
 import { Mascot } from "../../components/Mascot";
 import { formatViDateTime } from "../../lib/viNumber";
+import { ChapterPicker } from "../teaching/ChapterPicker";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
 import { readLastSessionId, rememberSession } from "./lastSession";
 
@@ -27,11 +28,14 @@ const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 /**
  * The student's home: a greeting, how the chapter is going (in words, never scores: PART 27.1), what
  * to practise, the week, the code for the parent and every past session. A given name starts a session
- * (temporary demo identity, until T12 adds class code + PIN).
+ * (temporary demo identity, until T12 adds class code + PIN). With several chapters the student picks
+ * one (`?chapter=`, the first without it): the progress shown and the new session are that chapter's.
  */
 export function StudentStartPage() {
   const api = useApi();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const asked = params.get("chapter") ?? undefined;
   const [lastSessionId] = useState(readLastSessionId);
 
   const last = useQuery({
@@ -44,17 +48,21 @@ export function StudentStartPage() {
   // Every session of this student is kept with its whole conversation (the real API stores them).
   const history = useQuery({ queryKey: ["my-sessions"], queryFn: () => api.listMySessions(), retry: false });
   const overview = useQuery({
-    queryKey: ["my-overview"],
-    queryFn: () => api.getMyOverview!(),
+    queryKey: ["my-overview", asked],
+    queryFn: () => api.getMyOverview!(asked),
     enabled: api.getMyOverview !== undefined,
+    placeholderData: keepPreviousData, // the page stays while another chapter loads
     retry: false,
   });
   const { user } = useAuth();
   // The trial has one student (ACC-1, ACC-2): the account's name, else the demo student's. Never typed.
   const name = user?.display_name || overview.data?.student_display_name || DEMO_STUDENT_NAME;
+  const chapters = overview.data?.chapters ?? [];
+  const chapter = asked ?? overview.data?.chapter.chapter_id;
 
   const start = useMutation({
-    mutationFn: (studentName: string) => api.createDemoSession({ student_display_name: studentName }),
+    mutationFn: (studentName: string) =>
+      api.createDemoSession({ student_display_name: studentName, chapter_id: chapter }),
     onSuccess: ({ session_id }) => {
       rememberSession(session_id);
       void navigate(`/student/sessions/${session_id}`);
@@ -76,6 +84,17 @@ export function StudentStartPage() {
                   ? `Chương ${overview.data.chapter.title}: con đã qua ${overview.data.passed}/${overview.data.total} bài.`
                   : "Cô sẵn sàng học cùng con rồi!"}
               </p>
+              {overview.data && (
+                <ChapterPicker chapters={chapters} current={overview.data.chapter.chapter_id} />
+              )}
+              {overview.isError && asked && (
+                <p role="alert" className="mt-4 text-lg text-red-700">
+                  Chưa có chương này.{" "}
+                  <Link to="/student" className="font-semibold underline">
+                    Về chương đầu
+                  </Link>
+                </p>
+              )}
               {resumable && (
                 <div className="mt-4 rounded-2xl bg-white/80 p-4 ring-1 ring-gold/40">
                   <p className="text-lg">
@@ -83,6 +102,9 @@ export function StudentStartPage() {
                     {resumable.progress.items_done}/{resumable.progress.items_total}{" "}
                     {resumable.teaching ? "bài" : "câu"}).
                   </p>
+                  {chapters.length > 1 && (
+                    <p className="text-base text-slate-600">{resumable.lesson.title}</p>
+                  )}
                   <Link
                     to={`/student/sessions/${resumable.session_id}`}
                     className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-lg font-semibold text-white hover:bg-brand-800"

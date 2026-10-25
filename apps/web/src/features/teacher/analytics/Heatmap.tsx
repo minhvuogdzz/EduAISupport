@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import type { ClassOverview, ClassStudent, MasteryCell, TeacherNode } from "../../../api/contract";
 import { AlertIcon } from "../../../components/icons";
 import { formatViDecimal } from "../../../lib/viNumber";
-import { columns } from "./helpers";
+import { columns, studentReportPath } from "./helpers";
 import { cellNumber, ZONES, zoneOf } from "./zones";
 
 type Order = "name" | "low" | "attention";
@@ -112,7 +112,7 @@ export function Heatmap({ overview }: { overview: ClassOverview }) {
                 <tr key={s.student_id}>
                   <th scope="row" className="px-2 text-left font-normal">
                     <Link
-                      to={`/teacher/students/${encodeURIComponent(s.student_id)}`}
+                      to={studentReportPath(s.student_id, overview.chapter.chapter_id)}
                       className="inline-flex items-center gap-1.5 font-semibold text-brand-900 hover:underline"
                     >
                       {s.display_name}
@@ -136,7 +136,9 @@ export function Heatmap({ overview }: { overview: ClassOverview }) {
                     const cell = cells.get(n.node_id);
                     return (
                       <td key={n.node_id} className="p-0">
-                        {cell && <Cell student={s} node={n} cell={cell} />}
+                        {cell && (
+                          <Cell student={s} node={n} cell={cell} chapterId={overview.chapter.chapter_id} />
+                        )}
                       </td>
                     );
                   })}
@@ -183,12 +185,22 @@ export function Heatmap({ overview }: { overview: ClassOverview }) {
   );
 }
 
-function Cell({ student, node, cell }: { student: ClassStudent; node: TeacherNode; cell: MasteryCell }) {
+function Cell({
+  student,
+  node,
+  cell,
+  chapterId,
+}: {
+  student: ClassStudent;
+  node: TeacherNode;
+  cell: MasteryCell;
+  chapterId: string;
+}) {
   const text = cellText(student.display_name, node.name, cell);
   const tone = cell.mastery === null ? "bg-slate-100 text-slate-400" : zoneOf(cell.mastery).cell;
   return (
     <Link
-      to={`/teacher/students/${encodeURIComponent(student.student_id)}?node=${encodeURIComponent(node.node_id)}`}
+      to={studentReportPath(student.student_id, chapterId, node.node_id)}
       aria-label={text}
       title={text}
       className={`relative flex h-12 min-w-12 items-center justify-center rounded-lg text-base font-bold tabular-nums hover:ring-2 hover:ring-sky-500 ${tone} ${

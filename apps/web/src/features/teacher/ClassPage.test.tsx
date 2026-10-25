@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import type { SessionApi } from "../../api/client";
+import { ApiError, type SessionApi } from "../../api/client";
 import type {
   ClassOverview,
   Dimension,
@@ -239,7 +239,8 @@ describe("class dashboard (PART 27.1, khung Toán §45, §46, §28)", () => {
     });
     expect(passed).toHaveClass("bg-emerald-300");
     expect(passed).toHaveTextContent("82");
-    expect(passed).toHaveAttribute("href", `/teacher/students/an?node=${FRAC}`);
+    // the report opens on the chapter of this class view (REFORM 4.4), on the KC of the cell
+    expect(passed).toHaveAttribute("href", `/teacher/students/an?chapter=math-g5-decimals&node=${FRAC}`);
     const unsure = within(table).getByRole("link", {
       name: /An, Khái niệm số thập phân: M 61.*chưa đủ dữ liệu/,
     });
@@ -254,6 +255,29 @@ describe("class dashboard (PART 27.1, khung Toán §45, §46, §28)", () => {
     ).toHaveTextContent("–");
     const classRow = within(table).getByRole("rowheader", { name: "Cả lớp (§45)" }).closest("tr")!;
     expect(classRow).toHaveTextContent("582 em611 em–0 em");
+  });
+
+  it("opens a student's report on the chapter of the class view, not on the first one", async () => {
+    const area = {
+      chapter_id: "math-g5-area-triangle-trapezoid",
+      title: "Diện tích hình tam giác, hình thang",
+    };
+    const getStudentReport = vi.fn((id: string, chapter?: string) =>
+      id === "bao" && chapter ? Promise.resolve(BAO) : Promise.reject(new Error("unknown")),
+    );
+    const api: SessionApi = {
+      ...teacherApi(),
+      getClassOverview: () => Promise.resolve({ ...CLASS, chapter: area }),
+      getStudentReport,
+    };
+    const { user } = renderApp(`/teacher?chapter=${area.chapter_id}`, api);
+    const table = await screen.findByRole("table", { name: /Bản đồ nhiệt học sinh và bài/ });
+    const name = within(within(table).getByRole("rowheader", { name: /^Bảo/ })).getByRole("link");
+    expect(name).toHaveAttribute("href", `/teacher/students/bao?chapter=${area.chapter_id}`);
+    await user.click(name);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Học sinh Bảo" })).toBeInTheDocument();
+    expect(getStudentReport).toHaveBeenCalledWith("bao", area.chapter_id);
   });
 
   it("sorts the students with the lowest score first", async () => {
@@ -282,7 +306,7 @@ describe("class dashboard (PART 27.1, khung Toán §45, §46, §28)", () => {
     const attention = screen.getByRole("region", { name: "Học sinh cần chú ý" });
     expect(within(attention).getByRole("link", { name: "Bảo" })).toHaveAttribute(
       "href",
-      "/teacher/students/bao",
+      "/teacher/students/bao?chapter=math-g5-decimals",
     );
     expect(attention).toHaveTextContent("Lặp lại lỗi “Quên chữ số 0 giữ chỗ” (2 lần)");
     // SAFE-1: a worrying message comes first and opens the session where it was said
@@ -350,6 +374,19 @@ describe("student report for the teacher (khung Toán §23, §24, §27, §43, §
     expect(summary).toHaveTextContent("Điểm yếu: Lập luận (30,2), Làm đúng (52,5)");
     expect(summary).toHaveTextContent("Rủi ro: Phân số thập phân");
     expect(summary).toHaveTextContent("✕ Còn yếu: Phân số thập phân");
+  });
+
+  it("keeps the chapter on the way back to the class when the student has no session on it", async () => {
+    const api: SessionApi = {
+      ...teacherApi(),
+      getStudentReport: () => Promise.reject(new ApiError(404, "NOT_FOUND", "no session on the chapter")),
+    };
+    renderApp("/teacher/students/bao?chapter=math-g5-area-triangle-trapezoid", api);
+    expect(await screen.findByText(/Em này chưa học buổi nào của chương\./)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Về bảng theo dõi lớp" })).toHaveAttribute(
+      "href",
+      "/teacher?chapter=math-g5-area-triangle-trapezoid",
+    );
   });
 
   it("opens on the KC of the link with its §57 detail, and switches KC from the groups", async () => {

@@ -45,6 +45,14 @@ async def index():
         ("súng bắn thế nào", False),  # a topic left to adults
         ("con gọi cô số 0912345678 nhé", False),  # contact data never leaves the app
         ("vì sao " * 40, False),  # too long
+        ("MA TÚY là gì", False),  # capitals are the same word
+        ("Ma Tuý là gì ạ", False),
+        ("SEX?", False),  # so is a mark stuck to it
+        ("sex, là gì!", False),
+        ("Bia, rượu là gì?", False),  # and a mark inside a two-word topic
+        ("SÚNG BẮN THẾ NÀO???", False),
+        ("SỐ NGUYÊN TỐ LÀ GÌ?", True),  # the same cleaning lets a safe question through
+        ("Nước sôi ở bao nhiêu độ vậy cô?!", True),
     ],
 )
 def test_only_a_safe_short_question_may_be_looked_up(question, ok):
