@@ -76,6 +76,8 @@ export interface SessionApi {
     config(): Promise<AuthConfig>;
     /** Logs in and makes that account the current one. */
     login(loginName: string, pin: string): Promise<AuthUser>;
+    /** A student comes in by name: a new name makes the account, a known one finds its history again. */
+    signInStudent(name: string): Promise<AuthUser>;
     me(): Promise<AuthUser>;
     /** Makes the kept login of this role the current one; false when this role never logged in here. */
     switchTo(kind: AccountKind): boolean;

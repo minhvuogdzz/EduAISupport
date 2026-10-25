@@ -5,6 +5,7 @@ from cavat.core.memory_db import InMemoryDatabase
 from cavat.db import ensure_indexes
 from cavat.main import app
 from cavat.modules.identity import accounts
+from cavat.modules.identity import api as identity_api
 from cavat.modules.identity.accounts import (
     Identity,
     LoginGuard,
@@ -102,8 +103,8 @@ def test_wrong_pins_pause_the_account():
 def test_the_web_lists_the_three_accounts_and_only_a_right_pin_logs_in(client):
     config = client.get("/v1/auth/config").json()
     assert config["mode"] == "accounts"
+    assert config["student_signup"] is True  # students come in by name, not by a fixed card
     assert [(a["kind"], a["display_name"]) for a in config["accounts"]] == [
-        ("STUDENT", "Minh"),
         ("PARENT", "Mẹ Minh"),
         ("TEACHER", "Cô Lan"),
     ]
@@ -144,3 +145,56 @@ def test_five_wrong_pins_pause_the_login(client):
         client.post("/v1/auth/login", json={"login_name": "giaovien", "pin": "1111"})
     locked = client.post("/v1/auth/login", json={"login_name": "giaovien", "pin": PINS["giaovien"]})
     assert locked.status_code == 429
+
+
+def student_by_name(client, name: str):
+    return client.post("/v1/auth/student", json={"name": name})
+
+
+def test_a_student_comes_in_by_name_and_finds_the_same_history_again(client):
+    first = student_by_name(client, "  Nguyễn  Bảo An ")
+    assert first.status_code == 200, first.text
+    user = first.json()["user"]
+    assert (user["kind"], user["display_name"]) == ("STUDENT", "An")  # the given name only (rule 8)
+    headers = {"Authorization": f"Bearer {first.json()['token']}"}
+    created = client.post("/v1/sessions", json={"student_display_name": "x"}, headers=headers)
+    assert created.status_code == 201, created.text
+
+    # Back after a crash, from another device, with other capitals and accents: the same student.
+    again = student_by_name(client, "nguyen bao an").json()
+    assert again["user"]["user_id"] == user["user_id"]
+    other = {"Authorization": f"Bearer {again['token']}"}
+    assert [s["session_id"] for s in client.get("/v1/sessions/mine", headers=other).json()] == [
+        created.json()["session_id"]
+    ]
+
+    # Another child is another student with an empty history; the teacher sees both.
+    second = student_by_name(client, "Trần Bảo Anh").json()
+    assert second["user"]["user_id"] != user["user_id"]
+    mine = {"Authorization": f"Bearer {second['token']}"}
+    assert client.get("/v1/sessions/mine", headers=mine).json() == []
+    identity_api._guard.succeeded("giaovien")  # the pause test above leaves this login locked
+    teacher = login(client, "giaovien")
+    names = {s["display_name"] for s in client.get("/v1/teachers/class", headers=teacher).json()["students"]}
+    assert "An" in names
+
+
+def test_a_name_never_opens_another_role_and_the_fixed_student_keeps_the_history(client):
+    # The fixed student of `make accounts` is found by its name, with its own account.
+    fixed = student_by_name(client, "minh").json()
+    fixed_me = client.get("/v1/auth/me", headers=login(client, "hocsinh")).json()
+    assert fixed["user"]["user_id"] == fixed_me["user_id"]
+    # Names of the other roles make students, never the parent or the teacher.
+    for name in ("giaovien", "Mẹ Minh", "phuhuynh"):
+        body = student_by_name(client, name).json()
+        assert body["user"]["kind"] == "STUDENT"
+        assert body["user"]["user_id"] != fixed_me["user_id"]
+    assert (
+        client.get("/v1/teachers/class", headers={"Authorization": f"Bearer {body['token']}"}).status_code
+        == 403
+    )
+
+
+@pytest.mark.parametrize("name", ["", "   ", "!!!", "a" * 41])
+def test_an_empty_or_odd_name_is_refused(client, name):
+    assert student_by_name(client, name).status_code in (422, 400)

@@ -16,8 +16,10 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import time
+import unicodedata
 from dataclasses import dataclass
 from typing import Literal
 
@@ -29,12 +31,32 @@ PARENT_LOGIN = "phuhuynh"
 TEACHER_LOGIN = "giaovien"
 FIXED_LOGINS: dict[Kind, str] = {"STUDENT": STUDENT_LOGIN, "PARENT": PARENT_LOGIN, "TEACHER": TEACHER_LOGIN}
 
+STUDENT_PREFIX = "hs-"  # login names of the students who signed up by name; the fixed logins never start so
+NAME_MAX = 40  # characters of a typed name
+
 TOKEN_TTL_S = 7 * 24 * 3600  # DI: a week, the trial runs on one family computer
 PIN_MIN, PIN_MAX = 4, 8  # digits
 MAX_FAILURES = 5  # wrong PINs in a row before a pause
 LOCK_S = 300.0  # DI: five minutes
 
 _SCRYPT = {"n": 2**14, "r": 8, "p": 1, "dklen": 32}
+
+
+def name_slug(name: str) -> str:
+    """The key of a typed name: no accents, lower case, words joined by "-" ("Bảo An" -> "bao-an").
+
+    The same child typing the name with other capitals, accents or spaces is the same student."""
+    plain = unicodedata.normalize("NFD", name.replace("đ", "d").replace("Đ", "D"))
+    plain = "".join(c for c in plain if unicodedata.category(c) != "Mn")
+    return "-".join(re.findall(r"[a-z0-9]+", plain.lower()))
+
+
+def clean_name(name: str) -> str | None:
+    """The typed name with single spaces, or None when it is empty, too long or has no letter."""
+    cleaned = " ".join(name.split())
+    if not cleaned or len(cleaned) > NAME_MAX or not name_slug(cleaned):
+        return None
+    return cleaned
 
 
 def valid_pin(pin: str) -> bool:

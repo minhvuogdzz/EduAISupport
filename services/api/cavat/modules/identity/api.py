@@ -15,16 +15,20 @@ from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel, Field
 
 from cavat.config import get_settings
+from cavat.core.repository import AlreadyExists
 from cavat.modules.identity.accounts import (
     FIXED_LOGINS,
+    STUDENT_PREFIX,
     Identity,
     LoginGuard,
+    clean_name,
     issue_token,
+    name_slug,
     read_token,
     valid_pin,
     verify_pin,
 )
-from cavat.modules.identity.repository import UserRepository
+from cavat.modules.identity.repository import User, UserRepository
 
 auth = APIRouter(prefix="/v1/auth", tags=["auth"])
 _guard = LoginGuard()
@@ -78,11 +82,16 @@ class AccountView(BaseModel):
 class AuthConfig(BaseModel):
     mode: Literal["accounts", "demo"]
     accounts: list[AccountView]
+    student_signup: bool = False  # students come in by typing their name: no fixed student card
 
 
 class LoginBody(BaseModel):
     login_name: str = Field(min_length=1, max_length=40)
     pin: str = Field(min_length=1, max_length=12)
+
+
+class StudentBody(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
 
 
 class IdentityView(BaseModel):
@@ -106,6 +115,25 @@ def _view(identity: Identity) -> dict[str, Any]:
     }
 
 
+async def _create_student(repo: UserRepository, name: str) -> User:
+    """A new student account. The full typed name only forms the login key; the display name, the only one
+    ever sent to an AI (CLAUDE.md rule 8), is the given name (the last word, as `make accounts` does)."""
+    user = User(
+        school_id=repo.school_id,
+        kind="STUDENT",
+        login_name=STUDENT_PREFIX + name_slug(name),
+        display_name=name.split()[-1],
+        grade=5,
+    )
+    try:
+        return await repo.create(user)
+    except AlreadyExists:  # two first visits at once: the other one won
+        found = await repo.get_by_login(user.login_name)
+        if found is None:
+            raise
+        return found
+
+
 def register_auth(router_database_dependency: Any, school_id: str) -> APIRouter:
     """The auth routes, on the same database dependency and school as the session API."""
     database_dependency = Depends(router_database_dependency)
@@ -118,10 +146,12 @@ def register_auth(router_database_dependency: Any, school_id: str) -> APIRouter:
         repo = UserRepository(database, school_id)
         found = []
         for kind, login in FIXED_LOGINS.items():
+            if kind == "STUDENT":  # students sign in by name below
+                continue
             user = await repo.get_by_login(login)
             if user is not None and user.kind == kind and user.status == "ACTIVE":
                 found.append({"kind": kind, "login_name": login, "display_name": user.display_name})
-        return {"mode": "accounts", "accounts": found}
+        return {"mode": "accounts", "accounts": found, "student_signup": True}
 
     @auth.post("/login", response_model=LoginResult)
     async def login(body: LoginBody, database: Any = database_dependency):
@@ -143,6 +173,35 @@ def register_auth(router_database_dependency: Any, school_id: str) -> APIRouter:
             raise AuthError(401, "NOT_SESSION_OWNER", "wrong account or PIN")
         _guard.succeeded(login_name)
         identity = Identity(user.id, user.kind, user.display_name, user.child_id)  # type: ignore[arg-type]
+        return {"token": issue_token(identity, signing_secret()), "user": _view(identity)}
+
+    @auth.post("/student", response_model=LoginResult)
+    async def student(body: StudentBody, database: Any = database_dependency):
+        """A student comes in by name: the first time the name makes the account, later it finds it again.
+
+        There is no PIN (the trial's children are given a link, not a secret): the same name on any
+        device is the same student and the same history. Only the STUDENT kind can be made or found here,
+        so a name can never open the parent or the teacher."""
+        if demo_mode():
+            raise AuthError(409, "INVALID_STATE", "the demo mode has no accounts")
+        name = clean_name(body.name)
+        if name is None:
+            raise AuthError(422, "VALIDATION_ERROR", "please type the name of the student")
+        repo = UserRepository(database, school_id)
+        user = await repo.get_by_login(STUDENT_PREFIX + name_slug(name))
+        if user is None:  # the fixed trial student (`make accounts`) keeps its history under its name
+            fixed = await repo.get_by_login(FIXED_LOGINS["STUDENT"])
+            if (
+                fixed is not None
+                and fixed.kind == "STUDENT"
+                and name_slug(fixed.display_name) == name_slug(name)
+            ):
+                user = fixed
+        if user is None:
+            user = await _create_student(repo, name)
+        if user.kind != "STUDENT" or user.status != "ACTIVE":
+            raise AuthError(403, "NOT_SESSION_OWNER", "this student cannot come in")
+        identity = Identity(user.id, "STUDENT", user.display_name, None)
         return {"token": issue_token(identity, signing_secret()), "user": _view(identity)}
 
     @auth.get("/me", response_model=IdentityView)

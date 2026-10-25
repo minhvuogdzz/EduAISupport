@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
 import type { AccountKind } from "../api/contract";
-import { PinForm } from "../features/auth/AuthGate";
+import { PinForm, StudentNameForm } from "../features/auth/AuthGate";
 import { homeOf, ROLE_LABEL, ROLES, roleOfPath, useAuth } from "../features/auth/authContext";
 import { Mascot } from "./Mascot";
 import { MockBanner } from "./MockBanner";
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function RoleSwitcher({ current }: { current: AccountKind | null }) {
-  const { user, accounts, switchTo, loggedIn } = useAuth();
+  const { user, accounts, switchTo, loggedIn, changeStudent, studentSignup } = useAuth();
   const navigate = useNavigate();
   const [asking, setAsking] = useState<AccountKind | null>(null);
   const nameOf = (kind: AccountKind) => accounts.find((a) => a.kind === kind)?.display_name;
@@ -92,9 +92,23 @@ function RoleSwitcher({ current }: { current: AccountKind | null }) {
           );
         })}
       </nav>
+      {user?.kind === "STUDENT" && (
+        <button
+          type="button"
+          onClick={() => {
+            changeStudent();
+            void navigate("/");
+          }}
+          title={`Đang học: ${user.display_name}`}
+          className="min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+        >
+          Đổi bạn khác
+        </button>
+      )}
       {asking && (
         <PinDialog
           kind={asking}
+          studentSignup={studentSignup}
           account={accounts.find((a) => a.kind === asking)}
           onClose={() => setAsking(null)}
           onDone={(kind) => {
@@ -113,7 +127,9 @@ function PinDialog({
   account,
   onClose,
   onDone,
+  studentSignup,
 }: {
+  studentSignup: boolean;
   kind: AccountKind;
   account: { kind: AccountKind; login_name: string; display_name: string } | undefined;
   onClose: () => void;
@@ -136,7 +152,12 @@ function PinDialog({
         <h2 id="switch-title" className="text-lg font-bold">
           Mở vai {ROLE_LABEL[kind]}
         </h2>
-        {account ? (
+        {kind === "STUDENT" && studentSignup ? (
+          <>
+            <p className="mt-1 text-sm text-slate-600">Con gõ tên để vào học.</p>
+            <StudentNameForm onLoggedIn={() => onDone(kind)} />
+          </>
+        ) : account ? (
           <>
             <p className="mt-1 text-sm text-slate-600">
               Lần đầu mở vai này trên máy, nhập mã PIN của {account.display_name}. Lần sau chỉ cần bấm.

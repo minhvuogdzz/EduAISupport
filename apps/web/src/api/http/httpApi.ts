@@ -313,6 +313,18 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
         store();
         return result.user;
       },
+      async signInStudent(name) {
+        const result = await request<{ token: string; user: AuthUser }>(
+          "POST",
+          "/v1/auth/student",
+          {},
+          { name },
+        );
+        tokens = { ...tokens, STUDENT: result.token };
+        current = "STUDENT";
+        store();
+        return result.user;
+      },
       me() {
         const current = token();
         if (!current) return Promise.reject(new ApiError(401, "NOT_SESSION_OWNER", "please log in"));
