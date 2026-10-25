@@ -461,7 +461,7 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
-- **DI-67, câu mẫu là mục tiêu của lượt, không phải chữ phải giữ (REFORM-1, `llm-renderer.v6`, `tutor-prompt.v4`, 2026-10-25):**
+- **DI-70, câu mẫu là mục tiêu của lượt, không phải chữ phải giữ (REFORM-1, `llm-renderer.v6`, `tutor-prompt.v4`, 2026-10-25):**
   - **Vấn đề:** chủ dự án thử thật thấy gia sư "nói toàn câu mẫu". Kiểm lại buổi học trong bằng chứng (đọc `cavat_dev`, không ghi): ngày 25/10 cả 39/39 lời gia sư là câu mẫu, vì buổi học bắt đầu từ 07/10 đã dùng 16 lần gọi, vượt trần 15. Ngoài ra, kể cả còn lượt gọi, lời Qwen bị thay bằng câu mẫu khi dùng thuật ngữ Toán ngoài câu mẫu (`NEW_MATH_TERM`), dù con vừa hỏi đúng thuật ngữ đó.
   - **Luật mới:**
     - Prompt gọi câu đã duyệt là `[MỤC TIÊU LƯỢT NÀY]`: câu đầu đáp thẳng lời con, câu sau dẫn theo mục tiêu, kết bằng đúng một câu hỏi.
@@ -471,14 +471,14 @@ Chạy song song từ Mốc 1:
     - `BEYOND_ANCHOR` cho phép 10, 100, 1000 và số trong các bước giải của câu. `UNGROUNDED_NUMBER` của validator vẫn đòi mọi số có trong bài.
     - Model diễn đạt thêm ASK_CONFIRM, WORKED_GUIDANCE, TEACH_BACK, và VERIFY khi hỏi lại sau "là sao" (`ASK_AGAIN`). VERIFY "vì sao" của câu, CONFIRM_ADVANCE, FULL_EXPLANATION, câu kiểm tra cuối bài vẫn dùng câu mẫu.
     - Giữ nguyên các chốt: `ANSWER_LEAK` (cả bước cuối của WORKED_GUIDANCE), `SINGLES_OUT_CHOICE`, `WRONG_PRAISE`, `ECHOES_CHILD`, xưng hô cô–con, một câu hỏi. Đáp án câu kiểm tra vẫn không vào prompt.
-- **DI-68, trần 40 lần gọi model mỗi buổi (REFORM-1, 2026-10-25):**
+- **DI-71, trần 40 lần gọi model mỗi buổi (REFORM-1, 2026-10-25):**
   - **Tính theo hạn mức Groq (`docs/poc/free-tier-quota.md`):**
     - Một lần gọi Qwen tốn trung bình 1.126 token (prompt và kết quả), prompt thật lớn nhất 2.294 token, dưới trần 3.000 của gateway, tắt suy luận.
     - Một buổi đủ 40 lần gọi tốn khoảng 45.000 token, xấu nhất khoảng 104.000, trong 200.000 token/ngày của một project. Vậy một ngày chạy được khoảng 4 buổi dùng hết trần, xấu nhất 1–2 buổi.
     - Theo phút: hạn mức thật là 7.000 token vào mỗi phút, tức khoảng 3 lần gọi Qwen. Lượt dồn dập thì router chuyển sang gpt-oss-120b, rồi gpt-oss-20b (mỗi model có hạn mức riêng), cuối cùng dùng câu mẫu.
   - **Chia lượt gọi (sửa DI-61):** EXPLAIN và REDIRECT được dùng hết trần. Mọi nước đi khác chừa 1/5 cuối (8 lượt) cho hai nước đi đó. PROBE và NUDGE không còn dừng ở 1/3 trần. Bộ chọn nước đi vẫn dùng nửa đầu trần (DI-62).
   - **Mặc định:** không đặt `TUTOR_RENDERER` thì có `GROQ_API_KEY` là `llm`, không có là `template`.
-  - **Đo bằng Qwen thật** (`simulate_learner.py --measure`, chương Số thập phân, một học sinh mô phỏng mới, 30 lượt, bộ nhớ, không ghi gì; trước là `main` 028a08f, sau là nhánh này):
+  - **Đo bằng Qwen thật** (`simulate_learner.py --measure`, chương Số thập phân, một học sinh mô phỏng mới, 30 lượt, bộ nhớ, không ghi gì; trước là `main` 028a08f, sau là nhánh này trước khi rebase lên REFORM-2 #105):
 
     | | Trước | Sau |
     |---|---|---|

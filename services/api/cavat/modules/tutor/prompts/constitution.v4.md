@@ -1,5 +1,5 @@
 <!--
-Tutor Constitution v4 (L1, blueprint PART 14.2; ADR-019, ADR-022; REFORM-1, DI-67, 2026-10-25).
+Tutor Constitution v4 (L1, blueprint PART 14.2; ADR-019, ADR-022; REFORM-1, DI-70, 2026-10-25).
 Thay đổi so với v3 (chủ dự án thử thật thấy gia sư "nói toàn câu mẫu"):
 - [MỤC TIÊU LƯỢT NÀY] thay [CÂU MẪU]: câu giáo viên duyệt là mục tiêu sư phạm của lượt (làm gì, mức gợi ý nào),
   không phải từ ngữ phải giữ; được dùng thuật ngữ Toán con vừa hỏi;

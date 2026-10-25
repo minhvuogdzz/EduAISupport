@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # limited the next one reads (INGEST-1: the owner's 18 documents need 31 pages read by Gemini).
     gemini_vision_fallbacks: tuple[str, ...] = ("gemini-2.5-flash", "gemini-3.5-flash-lite")
     gemini_embedding_model: str = "gemini-embedding-001"  # Hybrid RAG vectors (plan v1 5.5.2)
-    # Hard cap on LLM calls per session; above it the tutor runs on approved templates only. DI-68 (REFORM-1):
+    # Hard cap on LLM calls per session; above it the tutor runs on approved templates only. DI-71 (REFORM-1):
     # 40, from 15. A Qwen call spends 1.126 token on average (prompt and output, measured 2026-10-25; the
     # prompt <= 3.000, reasoning off): a full session about 45.000 of the 200.000 token a day of a Groq
     # project, at worst (2.600 a call) 104.000 (docs/poc/free-tier-quota.md).

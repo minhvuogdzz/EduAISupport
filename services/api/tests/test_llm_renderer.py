@@ -350,7 +350,7 @@ def test_worked_guidance_still_may_not_give_the_last_step():
     assert all("ANSWER_LEAK" in codes for codes in renderer.last_trace.rejected)
 
 
-# REFORM-1 (Task 1.2, DI-67): the anchor is what the turn must do, not words to keep.
+# REFORM-1 (Task 1.2, DI-70): the anchor is what the turn must do, not words to keep.
 def test_the_model_may_answer_the_childs_question_in_its_own_terms():
     """The owner's session: anchor "quay lại câu đang làm", the child asked what a word means. The answer
     used the child's term and was replaced by the template (NEW_MATH_TERM, OFF_ANCHOR)."""
@@ -430,7 +430,7 @@ def test_a_draft_cut_short_is_not_patched_with_a_question():
     assert renderer.render(ctx) == TEMPLATE.render(ctx) and len(fake.calls) == 2
 
 
-# DI-61 (LLM-2), DI-68 (REFORM-1): 40 calls a session; EXPLAIN and REDIRECT may use every one, every other
+# DI-61 (LLM-2), DI-71 (REFORM-1): 40 calls a session; EXPLAIN and REDIRECT may use every one, every other
 # move leaves them the last fifth (8 calls). PROBE and NUDGE no longer stop at the first third.
 @pytest.mark.parametrize(
     ("move", "decision", "used", "calls"),

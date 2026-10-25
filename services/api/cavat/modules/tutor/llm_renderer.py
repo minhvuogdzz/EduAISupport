@@ -9,7 +9,7 @@ when it asks again after "là sao?" (``ASK_AGAIN``).
 
 For an LLM move the renderer calls the gateway (``ModelClass.TUTOR_REASONING``, strict JSON), runs the
 output validator, retries once with the rejection codes, then falls back to the template. The template for
-the move is the *anchor*: what the teacher approved this turn to do (DI-67, REFORM-1: the pedagogical
+the move is the *anchor*: what the teacher approved this turn to do (DI-70, REFORM-1: the pedagogical
 intent, not words to keep; v2 made the model keep 60% of the anchor's words and v3-v5 its mathematical
 terms, and the owner saw a tutor that "answers by a template, not by the context"). Checks beyond the
 validator, each one from a real Qwen output:
@@ -80,11 +80,11 @@ LLM_MOVES = frozenset(
     }
 )
 TEMPLATE_ONLY_MOVES = frozenset(Move) - LLM_MOVES
-# DI-61 (LLM-2), DI-68 (REFORM-1): the session's model calls go where the wording matters most. EXPLAIN and
+# DI-61 (LLM-2), DI-71 (REFORM-1): the session's model calls go where the wording matters most. EXPLAIN and
 # REDIRECT may use every call; every other move leaves them the last fifth of the cap. v5 also stopped PROBE
 # and NUDGE at a third of the cap of 15: with 40 calls they no longer fall silent after five.
 TOP_MOVES = frozenset({Move.EXPLAIN, Move.REDIRECT})
-# DI-67: moves that only ask how the child thinks; a mathematical term from outside the sources is a hint.
+# DI-70: moves that only ask how the child thinks; a mathematical term from outside the sources is a hint.
 ASK_ONLY_MOVES = frozenset({Move.PROBE, Move.NUDGE})
 MAX_ATTEMPTS = 2  # the first call and one retry carrying the rejection codes
 BEYOND_ANCHOR = "BEYOND_ANCHOR"
@@ -94,7 +94,7 @@ KEY_IDEA_MISSING = "KEY_IDEA_MISSING"
 # DI-42: for an anchor without a mathematical term ("Con đang nghĩ đến đâu rồi?"), the share of its words a
 # message must keep. A message about something else keeps under 0,3 (v2 asked 0,6 of every anchor).
 MIN_ANCHOR_COVERAGE = 0.3
-# DI-67: numbers a message may always use: the bases of the decimal system (a tenth is one of 10 parts).
+# DI-70: numbers a message may always use: the bases of the decimal system (a tenth is one of 10 parts).
 DECIMAL_BASES = ("10", "100", "1000")
 # DI-60: words a model message may add to its anchor when the anchor is already near the cap.
 ANCHOR_SLACK = 15
@@ -118,7 +118,7 @@ def beyond_anchor(text: str, ctx: RenderContext, anchor: str) -> list[str]:
     Decimals are compared as written ("0,30" is new next to "0,3": rewriting it is a hint step);
     other numbers by value.
     """
-    sources = [*_sources(ctx, anchor), *ctx.item.worked_solution, *DECIMAL_BASES]  # DI-67
+    sources = [*_sources(ctx, anchor), *ctx.item.worked_solution, *DECIMAL_BASES]  # DI-70
     allowed = [n for s in sources for n in extract_numbers(s)]
     written = {n.text for n in allowed}
     values = {n.value for n in allowed}
@@ -142,7 +142,7 @@ def _sources(ctx: RenderContext, anchor: str) -> list[str]:
 
 
 def idea_codes(text: str, ctx: RenderContext, anchor: str) -> tuple[str, ...]:
-    """DI-67: the message does what the anchor asks for this turn, in its own words.
+    """DI-70: the message does what the anchor asks for this turn, in its own words.
 
     An anchor with mathematical terms: at least one of them kept (the hint's idea and level). An anchor
     without any ("Mình quay lại câu đang làm nhé"): a share of its words, or talk about the item (one of its

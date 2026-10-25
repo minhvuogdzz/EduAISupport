@@ -28,6 +28,6 @@ def test_the_renderer_follows_the_groq_key(monkeypatch, env, renderer):
 
 
 def test_a_session_may_call_the_model_forty_times(monkeypatch):
-    """DI-68: 40 calls of 1.126 token on average are 45.000 of the 200.000 token a day of a Groq project."""
+    """DI-71: 40 calls of 1.126 token on average are 45.000 of the 200.000 token a day of a Groq project."""
     assert settings(monkeypatch).max_llm_calls_per_session == 40
     assert settings(monkeypatch, MAX_LLM_CALLS_PER_SESSION="15").max_llm_calls_per_session == 15

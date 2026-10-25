@@ -3,7 +3,7 @@
 A request has two messages. The system message is static and cache-friendly: the tutor constitution (L1)
 and the subject module (L2), both versioned files in ``prompts/``. The user message holds only what this
 turn needs (ADR-017: load the current item, not the whole lesson package): the current item, the approved
-sentence for this move as the turn's pedagogical intent (L3; REFORM-1, DI-67: what to do, not words to
+sentence for this move as the turn's pedagogical intent (L3; REFORM-1, DI-70: what to do, not words to
 keep), the last turns of the item, the student's latest message and the turn directive (L5). The request
 stays <= 3.000 token by the gateway's estimate (Groq: 8.000 token/minute).
 
