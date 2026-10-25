@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router";
 
 import type { AccountKind } from "../api/contract";
-import { PinForm } from "../features/auth/AuthGate";
+import { ChildForm, PinForm } from "../features/auth/AuthGate";
 import { homeOf, ROLE_LABEL, ROLES, roleOfPath, useAuth } from "../features/auth/authContext";
 import { Mascot } from "./Mascot";
 import { MockBanner } from "./MockBanner";
@@ -60,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function RoleSwitcher({ current }: { current: AccountKind | null }) {
-  const { user, accounts, switchTo, loggedIn } = useAuth();
+  const { user, accounts, switchTo, loggedIn, changeStudent, studentSignup } = useAuth();
   const navigate = useNavigate();
   const [asking, setAsking] = useState<AccountKind | null>(null);
   const nameOf = (kind: AccountKind) => accounts.find((a) => a.kind === kind)?.display_name;
@@ -92,9 +93,23 @@ function RoleSwitcher({ current }: { current: AccountKind | null }) {
           );
         })}
       </nav>
+      {studentSignup && (user?.kind === "STUDENT" || user?.kind === "PARENT") && (
+        <button
+          type="button"
+          onClick={() => {
+            changeStudent();
+            void navigate("/");
+          }}
+          title={`Đang dùng: ${user.display_name}`}
+          className="min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+        >
+          Đổi tài khoản
+        </button>
+      )}
       {asking && (
         <PinDialog
           kind={asking}
+          studentSignup={studentSignup}
           account={accounts.find((a) => a.kind === asking)}
           onClose={() => setAsking(null)}
           onDone={(kind) => {
@@ -113,7 +128,9 @@ function PinDialog({
   account,
   onClose,
   onDone,
+  studentSignup,
 }: {
+  studentSignup: boolean;
   kind: AccountKind;
   account: { kind: AccountKind; login_name: string; display_name: string } | undefined;
   onClose: () => void;
@@ -124,7 +141,8 @@ function PinDialog({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  return (
+  // In the body: the header's backdrop blur would make "fixed" relative to the header.
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
       <section
         role="dialog"
@@ -136,7 +154,9 @@ function PinDialog({
         <h2 id="switch-title" className="text-lg font-bold">
           Mở vai {ROLE_LABEL[kind]}
         </h2>
-        {account ? (
+        {(kind === "STUDENT" || kind === "PARENT") && studentSignup ? (
+          <ChildForm role={kind} onLoggedIn={() => onDone(kind)} />
+        ) : account ? (
           <>
             <p className="mt-1 text-sm text-slate-600">
               Lần đầu mở vai này trên máy, nhập mã PIN của {account.display_name}. Lần sau chỉ cần bấm.
@@ -156,6 +176,7 @@ function PinDialog({
           Đóng
         </button>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

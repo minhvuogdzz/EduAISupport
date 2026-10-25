@@ -10,17 +10,23 @@ export interface AuthState {
   user: AuthUser | null;
   /** The trial's accounts (accounts mode); empty without accounts. */
   accounts: AuthConfig["accounts"];
+  /** Students come in by typing their name (no fixed student account). */
+  studentSignup: boolean;
   /** Makes this role current with its kept login. False: it never logged in on this device, a PIN is needed. */
   switchTo: (kind: AccountKind) => boolean;
   /** After a PIN login from the role switcher: the new account is current, every query starts again. */
   loggedIn: () => void;
+  /** Student accounts only: forget this student on this device so another child can type their name. */
+  changeStudent: () => void;
 }
 
 export const AuthContext = createContext<AuthState>({
   user: null,
   accounts: [],
+  studentSignup: false,
   switchTo: () => true,
   loggedIn: () => {},
+  changeStudent: () => {},
 });
 
 export function useAuth(): AuthState {

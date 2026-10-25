@@ -756,6 +756,8 @@ export type AccountKind = "STUDENT" | "PARENT" | "TEACHER";
 export interface AuthConfig {
   mode: "accounts" | "demo";
   accounts: { kind: AccountKind; login_name: string; display_name: string }[];
+  /** Students come in by typing their name (no fixed student account, no PIN). */
+  student_signup?: boolean;
 }
 
 /** The logged-in account (POST /v1/auth/login, GET /v1/auth/me). */
