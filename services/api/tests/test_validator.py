@@ -118,7 +118,7 @@ def test_a_fraction_that_is_not_the_answer_is_no_leak(text):
 
 
 def test_a_fraction_is_not_its_numerator():
-    """ "Đáp án là 7/10" says 7/10: for an item whose answer is the number 7 it is no leak (it was read as 7)."""
+    # "Đáp án là 7/10" says 7/10, so for an item whose answer is the number 7 it is no leak (it read "7")
     key = NumericAnswer(type="numeric", value="7")
     result = VALIDATE("Đáp án là 7/10. Con thử lại nhé?", fraction_ctx(key, "Viết 7 thành số tự nhiên: ……"))
     assert LEAK not in result.codes
