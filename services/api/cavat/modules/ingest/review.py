@@ -7,7 +7,10 @@ applied on top, so fixing a misread answer key or rewording a hint is never lost
   and its right answer, as the teacher writes them. An item whose answer the teacher wrote is taught
   (status TEACHER) even when the documents' answer was disputed or in conflict; the checks still run and
   their findings are shown;
-- ``hint:<item>:H<n>``: approve, reject or edit (the text) one hint;
+- ``hint:<item>:H<n>``: approve, reject or edit (the text) one hint. An approval or a rejection is made on
+  the text the teacher read and counts for that text only (REFORM-3b, DI-74): when Qwen drafts the item
+  again and says something else, the new hint is neither approved nor rejected until someone reads it. An
+  edit is the teacher's own words and stays;
 - ``item:<id>/stage``: put an item at another stage of its period (checks, completion, practice, transfer);
 - ``item:<id>/facts``: what a right answer to an open question must say (``KeyFacts``, DI-48), when the
   key does not let the builder read it;
@@ -92,6 +95,112 @@ def check_decision(target: str, action: str, value: Any) -> None:
             )
 
 
+_HINT_TARGET = re.compile(r"hint:(.+):H(\d)")
+_NAMED_IN_REASON = re.compile(r"\[Nội dung:\s*(.*?)\]\s*$", re.DOTALL)
+
+
+def hint_target(target: str) -> tuple[str, int] | None:
+    """(item id, level) of a ``hint:<item>:H<n>`` target, else None."""
+    m = _HINT_TARGET.fullmatch(target)
+    return (m.group(1), int(m.group(2))) if m else None
+
+
+def same_text(a: str, b: str) -> bool:
+    return " ".join(a.split()) == " ".join(b.split())
+
+
+def decided_text(decision: Mapping[str, Any]) -> str | None:
+    """The text an approval or a rejection of a hint was made on, None when the decision names none.
+
+    ``text`` is recorded by every decision since REFORM-3b. The decisions of 2026-10-12 carry it elsewhere: an
+    approval has the text read in ``value``, a rejection names it in its reason ("[Nội dung: …]")."""
+    for key in ("text", "value"):
+        found = decision.get(key)
+        if isinstance(found, str) and found.strip():
+            return found
+    if m := _NAMED_IN_REASON.search(str(decision.get("reason") or "")):
+        return m.group(1)
+    return None
+
+
+def counts_for(decision: Mapping[str, Any], text: str) -> bool:
+    """Whether an approval or a rejection of a hint counts for ``text``. One that names no text approves
+    nothing and rejects what is there (a rejection only hides a hint, an approval vouches for unread text)."""
+    named = decided_text(decision)
+    if named is None:
+        return decision.get("action") == "reject"
+    return same_text(named, text)
+
+
+def _shown_hints(lessons: Mapping[str, Any]) -> dict[tuple[str, int], str]:
+    """The hint text of each (item, level) in the lessons of a stored plan."""
+    return {
+        (item["id"], int(h["level"])): h["text"]
+        for lesson in lessons.values()
+        for item in lesson.get("items", [])
+        for h in item.get("hints", [])
+    }
+
+
+def _drafted_hints(drafts: list[dict[str, Any]]) -> dict[tuple[str, int], str]:
+    """The text Qwen last drafted for each (item, level) that passed the checks, shown or not (a rejected hint
+    is no longer in the lessons)."""
+    out: dict[tuple[str, int], str] = {}
+    for d in drafts:
+        if d.get("kind") == "HINT" and d.get("ok"):
+            item_id, _, level = d["target"].removesuffix(":retry").rpartition(":H")
+            out[(item_id, int(level))] = d["text"]
+    return out
+
+
+def hint_text_now(
+    lessons: Mapping[str, Any], drafts: list[dict[str, Any]], item_id: str, level: int
+) -> str | None:
+    """What the teacher saw at this level of this item in the stored plan."""
+    return _shown_hints(lessons).get((item_id, level)) or _drafted_hints(drafts).get((item_id, level))
+
+
+def bind_hint_decisions(
+    decisions: Mapping[str, Mapping[str, Any]], lessons: Mapping[str, Any], drafts: list[dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """The decisions with ``text`` filled in on every approval and rejection of a hint that has none.
+
+    Run on the stored plan before it is rebuilt, so a decision made before REFORM-3b is bound to the words it
+    was made on and not to whatever Qwen drafts next. A decision that names no text takes the text the plan
+    showed (a rejected hint: the text last drafted); one with nothing to take stays unbound."""
+    shown, drafted = _shown_hints(lessons), _drafted_hints(drafts)
+    out = {target: dict(d) for target, d in decisions.items()}
+    for target, d in out.items():
+        key = hint_target(target)
+        if key is None or d.get("action") not in ("approve", "reject") or d.get("text"):
+            continue
+        order = (shown, drafted) if d["action"] == "approve" else (drafted, shown)
+        text = decided_text(d) or next((src[key] for src in order if key in src), None)
+        if text:
+            d["text"] = text
+    return out
+
+
+def effective_decisions(
+    lessons: Mapping[str, Any], decisions: Mapping[str, Mapping[str, Any]]
+) -> dict[str, Mapping[str, Any]]:
+    """The decisions the pages should show: an approval of words the plan no longer says is gone (the page
+    offers "Duyệt" again), and so is a rejection of words that are not the ones shown. The stored decisions
+    are not touched: they are the record of what the teacher decided."""
+    shown = _shown_hints(lessons)
+    out: dict[str, Mapping[str, Any]] = {}
+    for target, d in decisions.items():
+        key = hint_target(target)
+        if key is not None and d.get("action") in ("approve", "reject"):
+            text = shown.get(key)
+            if d["action"] == "approve" and (text is None or not counts_for(d, text)):
+                continue
+            if d["action"] == "reject" and text is not None and not counts_for(d, text):
+                continue
+        out[target] = d
+    return out
+
+
 def apply_item_overrides(
     drafts: list[ItemDraft], decisions: Mapping[str, Mapping[str, Any]]
 ) -> list[ItemDraft]:
@@ -137,7 +246,7 @@ def apply_plan_decisions(plan: Plan, decisions: Mapping[str, Mapping[str, Any]])
             hints = []
             for hint in item.hints:
                 decision = decisions.get(f"hint:{item.id}:H{int(hint.level)}", {})
-                if decision.get("action") == "reject":
+                if decision.get("action") == "reject" and counts_for(decision, hint.text):
                     continue
                 if decision.get("action") == "edit":
                     hint = hint.model_copy(update={"text": str(decision["value"])})
