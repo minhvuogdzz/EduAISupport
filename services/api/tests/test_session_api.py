@@ -289,13 +289,13 @@ def llm_router(monkeypatch, fake):
 
 
 class RewordingModel(FakeChatModel):
-    """A model that does its job: it rewords the approved sentence ([CÂU MẪU]) of the prompt."""
+    """A model that does its job: it rewords the approved sentence ([MỤC TIÊU LƯỢT NÀY]) of the prompt."""
 
     PREFIXES = ("Minh ơi, ", "Con nghe cô nhé, ")
 
     def chat(self, request, model):
         lines = request.messages[-1].content.splitlines()
-        anchor = lines[next(i for i, line in enumerate(lines) if line.startswith("[CÂU MẪU]")) + 1]
+        anchor = lines[next(i for i, line in enumerate(lines) if line.startswith("[MỤC TIÊU LƯỢT NÀY]")) + 1]
         prefix = self.PREFIXES[len(self.calls) % len(self.PREFIXES)]
         message = f"{prefix}{anchor[0].lower()}{anchor[1:]}"
         self._queues[None].append(reply(message, safety_flag=len(self.calls) == 1))

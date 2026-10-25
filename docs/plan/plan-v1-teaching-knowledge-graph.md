@@ -461,6 +461,37 @@ Chạy song song từ Mốc 1:
   - câu trả lời tối đa 50 từ, câu nối tối đa 25 từ;
   - câu trích dự phòng phải phủ ít nhất 50% câu hỏi;
   - câu nối phải gắn ý cho con (cả khi gọi con bằng tên).
+- **DI-70, câu mẫu là mục tiêu của lượt, không phải chữ phải giữ (REFORM-1, `llm-renderer.v6`, `tutor-prompt.v4`, 2026-10-25):**
+  - **Vấn đề:** chủ dự án thử thật thấy gia sư "nói toàn câu mẫu". Kiểm lại buổi học trong bằng chứng (đọc `cavat_dev`, không ghi): ngày 25/10 cả 39/39 lời gia sư là câu mẫu, vì buổi học bắt đầu từ 07/10 đã dùng 16 lần gọi, vượt trần 15. Ngoài ra, kể cả còn lượt gọi, lời Qwen bị thay bằng câu mẫu khi dùng thuật ngữ Toán ngoài câu mẫu (`NEW_MATH_TERM`), dù con vừa hỏi đúng thuật ngữ đó.
+  - **Luật mới:**
+    - Prompt gọi câu đã duyệt là `[MỤC TIÊU LƯỢT NÀY]`: câu đầu đáp thẳng lời con, câu sau dẫn theo mục tiêu, kết bằng đúng một câu hỏi.
+    - Bỏ `NEW_MATH_TERM`.
+    - `KEY_IDEA_MISSING`: chỉ cần giữ ít nhất một thuật ngữ Toán của câu mẫu (trước: 60%, hoặc tất cả khi câu mẫu có 1–2 thuật ngữ).
+    - `OFF_ANCHOR` (câu mẫu không có thuật ngữ): đạt khi giữ 30% từ của câu mẫu, hoặc lời nói về câu đang làm (có thuật ngữ Toán hay số của đề). Riêng PROBE và NUDGE, chỉ hỏi con nghĩ thế nào, nên thuật ngữ ngoài nguồn vẫn bị chặn vì đó là gợi ý.
+    - `BEYOND_ANCHOR` cho phép 10, 100, 1000 và số trong các bước giải của câu. `UNGROUNDED_NUMBER` của validator vẫn đòi mọi số có trong bài.
+    - Model diễn đạt thêm ASK_CONFIRM, WORKED_GUIDANCE, TEACH_BACK, và VERIFY khi hỏi lại sau "là sao" (`ASK_AGAIN`). VERIFY "vì sao" của câu, CONFIRM_ADVANCE, FULL_EXPLANATION, câu kiểm tra cuối bài vẫn dùng câu mẫu.
+    - Giữ nguyên các chốt: `ANSWER_LEAK` (cả bước cuối của WORKED_GUIDANCE), `SINGLES_OUT_CHOICE`, `WRONG_PRAISE`, `ECHOES_CHILD`, xưng hô cô–con, một câu hỏi. Đáp án câu kiểm tra vẫn không vào prompt.
+- **DI-71, trần 40 lần gọi model mỗi buổi (REFORM-1, 2026-10-25):**
+  - **Tính theo hạn mức Groq (`docs/poc/free-tier-quota.md`):**
+    - Một lần gọi Qwen tốn trung bình 1.126 token (prompt và kết quả), prompt thật lớn nhất 2.294 token, dưới trần 3.000 của gateway, tắt suy luận.
+    - Một buổi đủ 40 lần gọi tốn khoảng 45.000 token, xấu nhất khoảng 104.000, trong 200.000 token/ngày của một project. Vậy một ngày chạy được khoảng 4 buổi dùng hết trần, xấu nhất 1–2 buổi.
+    - Theo phút: hạn mức thật là 7.000 token vào mỗi phút, tức khoảng 3 lần gọi Qwen. Lượt dồn dập thì router chuyển sang gpt-oss-120b, rồi gpt-oss-20b (mỗi model có hạn mức riêng), cuối cùng dùng câu mẫu.
+  - **Chia lượt gọi (sửa DI-61):** EXPLAIN và REDIRECT được dùng hết trần. Mọi nước đi khác chừa 1/5 cuối (8 lượt) cho hai nước đi đó. PROBE và NUDGE không còn dừng ở 1/3 trần. Bộ chọn nước đi vẫn dùng nửa đầu trần (DI-62).
+  - **Mặc định:** không đặt `TUTOR_RENDERER` thì có `GROQ_API_KEY` là `llm`, không có là `template`.
+  - **Đo bằng Qwen thật** (`simulate_learner.py --measure`, chương Số thập phân, một học sinh mô phỏng mới, 30 lượt, bộ nhớ, không ghi gì; trước là `main` 028a08f, sau là nhánh này trước khi rebase lên REFORM-2 #105):
+
+    | | Trước | Sau |
+    |---|---|---|
+    | Lời gia sư ở câu hỏi do model viết | 1/33 | 4/31 |
+    | Lượt không gọi model vì nước đi chỉ dùng câu mẫu | 27 | 25 |
+    | Lời model bị kiểm chặn, thay câu mẫu | 3 | 2 |
+    | Lượt hết trần | 2 | 0 |
+    | Lần gọi model trong buổi | 15 | 19 |
+    | Lần Groq trả 429 | 3 | 3 |
+    | Lời giảng bài (vòng 7 bước) là câu mẫu | 18/18 | 18/18 |
+
+  - **Đọc kết quả:** phần lớn lời vẫn là câu mẫu, vì phần lớn lượt rơi vào các nước đi chỉ dùng câu mẫu (mở câu, khen đúng, hỏi "gợi ý hay tự thử") và lời giảng bài của vòng dạy (`teaching/loop.py`). Hai phần này nằm ngoài REFORM-1. Mẫu nhỏ: một buổi, một con mô phỏng **[cần kiểm tra]**.
+  - **Còn mở:** số lần gọi của buổi học (`llm_calls`) không về 0 khi con học tiếp buổi cũ vào ngày khác. "0/7 bài" trong bằng chứng là do buổi học bắt đầu ngày 07/10 với bản chương `0.1.1`, trước khi kế hoạch được phát hành ngày 19/10; buổi học giữ bản lúc bắt đầu để dựng lại được. Đây không phải race. Race của `load_published` có thật trong code và đã được sửa.
 - **DI-66, gia sư của từng câu đọc Student Model (PRIOR-1, 2026-10-22):**
   - **Vấn đề:** blueprint 05 và 25.3 cho chính sách đọc snapshot của Student Model ("đóng băng đầu session, cập nhật cục bộ trong session") cho R-STRONG-PRIOR và R-WEAK-PRIOR. Nhưng buổi học chưa bao giờ truyền snapshot cho gia sư của từng câu, nên cả hai luật [FACT] này chưa từng chạy trong buổi học.
   - **Thay đổi:** khi mở một câu, buổi học dựng `StudentSnapshot` từ projection của các sự kiện tính tới quyết định mở câu, gồm cả các buổi trước:

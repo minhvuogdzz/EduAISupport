@@ -1,25 +1,31 @@
 """LLM renderer (T06b): Qwen phrases the policy's move, approved templates stay the safety net (ADR-017).
 
-The model only words PROBE, HINT, COGNITIVE_CONFLICT, NUDGE and REDIRECT (``LLM_MOVES``). Every other move
-is said with the approved template, word for word, and so is every move on an assessment (EXIT) item: the
-model must not add help to a test, and the reply to a correct answer, the worked steps and the full
-explanation are lesson content.
+The model words the moves of ``LLM_MOVES``. Every other move is said with the approved template, word for
+word, and so is every move on an assessment (EXIT) item: the model must not add help to a test, and the
+praise of a correct answer, the item's own "vì sao" and the full explanation are lesson content.
+REFORM-1 (llm-renderer.v6) added the moves that answer an unclear or empty reply: ASK_CONFIRM,
+WORKED_GUIDANCE (the last step still may not be said: the validator's ANSWER_LEAK), TEACH_BACK, and VERIFY
+when it asks again after "là sao?" (``ASK_AGAIN``).
 
 For an LLM move the renderer calls the gateway (``ModelClass.TUTOR_REASONING``, strict JSON), runs the
 output validator, retries once with the rejection codes, then falls back to the template. The template for
-the move is the *anchor*: the idea the teacher approved for this turn (CTX-1, llm-renderer.v3: the model
-answers what the child just said in its own words; v2 made it keep 60% of the anchor's words, and the owner
-saw a tutor that "answers by a template, not by the context"). Checks beyond the validator, each one from a
-real Qwen output:
+the move is the *anchor*: what the teacher approved this turn to do (DI-70, REFORM-1: the pedagogical
+intent, not words to keep; v2 made the model keep 60% of the anchor's words and v3-v5 its mathematical
+terms, and the owner saw a tutor that "answers by a template, not by the context"). Checks beyond the
+validator, each one from a real Qwen output:
 
-- ``BEYOND_ANCHOR``: a number that is not in the stem, the anchor, the tutor's last message, the passages
-  or what the student said (an H2 question came back as the H4 step "0,3 viết thành 0,30");
+- ``BEYOND_ANCHOR``: a number that is not in the stem, the anchor, the tutor's last message, the passages,
+  the item's worked steps or what the student said, other than 10, 100 and 1000 (an H2 question came back
+  as the H4 step "0,3 viết thành 0,30");
 - ``REPEATS_PREVIOUS``: an earlier tutor turn of the item copied word for word;
-- ``KEY_IDEA_MISSING``: fewer than ``KEY_TERMS`` of the anchor's mathematical terms kept (all of them when it
-  has one or two): the idea and the level of the hint live in its terms (asked for the H3 concept hint,
-  the model reworded the earlier counter-example instead);
-- ``NEW_MATH_TERM``: a mathematical term none of those sources uses (a step or a rule of another level);
-- ``OFF_ANCHOR``: for an anchor with no mathematical term, fewer than ``MIN_ANCHOR_COVERAGE`` of its words.
+- ``KEY_IDEA_MISSING``: none of the anchor's mathematical terms kept: the idea and the level of the hint
+  live in its terms (asked for the H3 concept hint, the model reworded the earlier counter-example);
+- ``OFF_ANCHOR``: for an anchor with no mathematical term, fewer than ``MIN_ANCHOR_COVERAGE`` of its words,
+  unless the message answers a mathematical term the child used (asked "con làm thế nào?", the model gave
+  a hint instead).
+
+v5's ``NEW_MATH_TERM`` (no mathematical term outside the sources) is gone: the child asks "mẫu như nào"
+next to an anchor without "mẫu số", and the answer was replaced by the template.
 
 LLM-1 (llm-renderer.v4, DI-60), from the S1 sessions where 16 of 20 drafts were rejected, all for form:
 
@@ -58,29 +64,38 @@ from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, build_request
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import singles_out_choice
 
-LLM_RENDERER_VERSION = "llm-renderer.v5"
+LLM_RENDERER_VERSION = "llm-renderer.v6"
 LLM_MOVES = frozenset(
-    {Move.PROBE, Move.HINT, Move.COGNITIVE_CONFLICT, Move.NUDGE, Move.REDIRECT, Move.EXPLAIN}
+    {
+        Move.PROBE,
+        Move.HINT,
+        Move.COGNITIVE_CONFLICT,
+        Move.NUDGE,
+        Move.REDIRECT,
+        Move.EXPLAIN,
+        Move.ASK_CONFIRM,
+        Move.WORKED_GUIDANCE,
+        Move.TEACH_BACK,
+        Move.VERIFY,  # only when it asks again (``ASK_AGAIN``), see ``_template_only``
+    }
 )
 TEMPLATE_ONLY_MOVES = frozenset(Move) - LLM_MOVES
-# DI-61 (LLM-2): the session's model calls go where the wording matters most. The owner chose (2026-10-16)
-# to keep the cap of 15 and spend it on explanations, hints after a wrong answer and pulling back to the
-# lesson. EXPLAIN and REDIRECT may use every call; HINT and COGNITIVE_CONFLICT leave the last fifth of the
-# cap to them; PROBE and NUDGE (the approved "con làm thế nào" says it well) only use the first third.
+# DI-61 (LLM-2), DI-71 (REFORM-1): the session's model calls go where the wording matters most. EXPLAIN and
+# REDIRECT may use every call; every other move leaves them the last fifth of the cap. v5 also stopped PROBE
+# and NUDGE at a third of the cap of 15: with 40 calls they no longer fall silent after five.
 TOP_MOVES = frozenset({Move.EXPLAIN, Move.REDIRECT})
-HINT_MOVES_LLM = frozenset({Move.HINT, Move.COGNITIVE_CONFLICT})
+# DI-70: moves that only ask how the child thinks; a mathematical term from outside the sources is a hint.
+ASK_ONLY_MOVES = frozenset({Move.PROBE, Move.NUDGE})
 MAX_ATTEMPTS = 2  # the first call and one retry carrying the rejection codes
 BEYOND_ANCHOR = "BEYOND_ANCHOR"
 REPEATS_PREVIOUS = "REPEATS_PREVIOUS"
 OFF_ANCHOR = "OFF_ANCHOR"
 KEY_IDEA_MISSING = "KEY_IDEA_MISSING"
-NEW_MATH_TERM = "NEW_MATH_TERM"
 # DI-42: for an anchor without a mathematical term ("Con đang nghĩ đến đâu rồi?"), the share of its words a
 # message must keep. A message about something else keeps under 0,3 (v2 asked 0,6 of every anchor).
 MIN_ANCHOR_COVERAGE = 0.3
-# DI-42: share of the anchor's mathematical terms a message must keep ("mẫu số đặc biệt là 10, 100 hay 1000"
-# answers "mẫu như nào" without saying "phân số thập phân" again).
-KEY_TERMS = 0.6
+# DI-70: numbers a message may always use: the bases of the decimal system (a tenth is one of 10 parts).
+DECIMAL_BASES = ("10", "100", "1000")
 # DI-60: words a model message may add to its anchor when the anchor is already near the cap.
 ANCHOR_SLACK = 15
 _REPAIRABLE = frozenset({ValidationCode.MISSING_QUESTION, ValidationCode.WRONG_ADDRESS})
@@ -103,7 +118,8 @@ def beyond_anchor(text: str, ctx: RenderContext, anchor: str) -> list[str]:
     Decimals are compared as written ("0,30" is new next to "0,3": rewriting it is a hint step);
     other numbers by value.
     """
-    allowed = [n for s in _sources(ctx, anchor) for n in extract_numbers(s)]
+    sources = [*_sources(ctx, anchor), *ctx.item.worked_solution, *DECIMAL_BASES]  # DI-70
+    allowed = [n for s in sources for n in extract_numbers(s)]
     written = {n.text for n in allowed}
     values = {n.value for n in allowed}
     return [
@@ -126,18 +142,22 @@ def _sources(ctx: RenderContext, anchor: str) -> list[str]:
 
 
 def idea_codes(text: str, ctx: RenderContext, anchor: str) -> tuple[str, ...]:
-    """CTX-1: the anchor's idea kept (its mathematical terms), nothing mathematical added."""
-    codes: list[str] = []
+    """DI-70: the message does what the anchor asks for this turn, in its own words.
+
+    An anchor with mathematical terms: at least one of them kept (the hint's idea and level). An anchor
+    without any ("Mình quay lại câu đang làm nhé"): a share of its words, or talk about the item (one of its
+    numbers or a mathematical term). Terms the anchor does not use are allowed (the child's question decides
+    them), except in PROBE and NUDGE: those ask how the child thinks, and a term from elsewhere is a hint."""
+    words = terms_in(text)
+    if ctx.decision.move in ASK_ONLY_MOVES and terms_missing(words, _sources(ctx, anchor)):
+        return (OFF_ANCHOR,)
     key = terms_in(anchor)
     if key:
-        kept = len(key) - len(terms_missing(key, [text]))
-        if kept < len(key) and (len(key) <= 2 or kept / len(key) < KEY_TERMS):
-            codes.append(KEY_IDEA_MISSING)
-    elif anchor_coverage(text, anchor) < MIN_ANCHOR_COVERAGE:
-        codes.append(OFF_ANCHOR)
-    if terms_missing(terms_in(text), _sources(ctx, anchor)):
-        codes.append(NEW_MATH_TERM)
-    return tuple(codes)
+        return (KEY_IDEA_MISSING,) if len(terms_missing(key, [text])) == len(key) else ()
+    if anchor_coverage(text, anchor) >= MIN_ANCHOR_COVERAGE or words:
+        return ()
+    item_numbers = {n.value for s in (ctx.item.stem, ctx.item.rephrase or "") for n in extract_numbers(s)}
+    return () if any(n.value in item_numbers for n in extract_numbers(text)) else (OFF_ANCHOR,)
 
 
 def word_cap(ctx: RenderContext, anchor: str) -> int:
@@ -171,6 +191,16 @@ def repair(text: str, codes: Sequence[str], ctx: RenderContext, anchor: str) -> 
             return None
         out = f"{out.rstrip()} {sentences[-1]}"
     return out if out != text else None
+
+
+def _template_only(ctx: RenderContext) -> bool:
+    """Said with the approved template: a test item, a move of lesson content, and VERIFY unless it asks
+    again after "là sao?" (the item's own "vì sao" is the teacher's question; FIX-2's VERIFY after a wrong
+    answer is the approved probe)."""
+    move = ctx.decision.move
+    if ctx.item.is_assessment or move in TEMPLATE_ONLY_MOVES:
+        return True
+    return move == Move.VERIFY and "ASK_AGAIN" not in ctx.decision.reason_codes
 
 
 @dataclass(frozen=True)
@@ -223,7 +253,7 @@ class LLMRenderer:
         if ctx.item.id != self._history_item:
             self._history, self._history_item = [], ctx.item.id
         fallback = self._template.render(ctx)
-        if ctx.decision.move in TEMPLATE_ONLY_MOVES or ctx.item.is_assessment:
+        if _template_only(ctx):
             message = fallback
             self.last_trace = RenderTrace(ctx.decision.move, fallback.source)
         elif not self._may_call(ctx.decision.move):
@@ -242,9 +272,7 @@ class LLMRenderer:
         cap = getattr(self._router, "max_calls_per_session", DEFAULT_MAX_LLM_CALLS_PER_SESSION)
         if move in TOP_MOVES or self.calls_used >= cap:
             return True  # the router enforces the cap itself and says so ("session_cap")
-        if move in HINT_MOVES_LLM:
-            return self.calls_used < cap - cap // 5
-        return self.calls_used < max(1, cap // 3)
+        return self.calls_used < cap - cap // 5
 
     def _repeats(self, text: str) -> bool:
         """The model copied a tutor turn of this item word for word (seen with real Qwen output: a level 3
