@@ -26,7 +26,7 @@ from cavat.modules.ai_gateway.base import (
 from cavat.modules.ai_gateway.fake import FakeChatModel, FakeSpeechToText, FakeVision, ScriptExhausted
 from cavat.modules.ai_gateway.gemini import GeminiVision
 from cavat.modules.ai_gateway.groq import GroqClient
-from cavat.modules.ai_gateway.router import AIRouter, FallbackReason, build_router
+from cavat.modules.ai_gateway.router import AIRouter, FallbackReason, build_router, default_chat_chains
 from google.genai import errors as genai_errors
 from google.genai import types as genai_types
 from pydantic import SecretStr
@@ -34,6 +34,9 @@ from pydantic import SecretStr
 FAKE_KEY = "gsk_test_not_a_real_key_123"
 QWEN = "qwen/qwen3.8-27b"
 GPT_OSS = "openai/gpt-oss-120b"
+# BRAIN-1 (ADR-034): the tutor's default chain has three Groq models now (gpt-oss-120b, gpt-oss-20b,
+# Qwen); the fallback tests keep their two-model story (Qwen, then gpt-oss-120b) by naming that chain.
+TWO_MODELS = {**default_chat_chains(), ModelClass.TUTOR_REASONING: (QWEN, GPT_OSS)}
 SCHEMA = {
     "type": "object",
     "properties": {"utterance": {"type": "string"}},
@@ -273,7 +276,7 @@ def test_429_falls_back_to_gpt_oss():
             GPT_OSS: [httpx.Response(200, json=_completion('{"utterance": "Thử lại nhé."}', GPT_OSS))],
         }
     )
-    router = AIRouter(chat_provider=_groq(rec))
+    router = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS)
 
     outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
 
@@ -286,7 +289,7 @@ def test_429_falls_back_to_gpt_oss():
 
 def test_429_on_whole_chain_tells_caller_to_use_template():
     rec = Recorder({QWEN: [_rate_limited()], GPT_OSS: [_rate_limited()]})
-    router = AIRouter(chat_provider=_groq(rec))
+    router = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS)
 
     outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
 
@@ -307,14 +310,16 @@ def test_server_error_falls_back_then_template_on_invalid_output():
             GPT_OSS: [httpx.Response(200, json=_completion("oops"))],
         }
     )
-    outcome = AIRouter(chat_provider=_groq(rec)).chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    outcome = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS).chat(
+        ModelClass.TUTOR_REASONING, _request(), calls_used=0
+    )
     assert outcome.use_template and outcome.fallback_reason is FallbackReason.INVALID_OUTPUT
     assert [a.error for a in outcome.attempts] == ["ModelUnavailable", "InvalidModelOutput"]
 
 
 def test_too_long_prompt_goes_to_template_without_any_request():
     rec = Recorder({QWEN: [], GPT_OSS: []})
-    outcome = AIRouter(chat_provider=_groq(rec)).chat(
+    outcome = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS).chat(
         ModelClass.TUTOR_REASONING, _request("Một câu rất dài. " * 1000), calls_used=0
     )
     assert outcome.use_template and outcome.fallback_reason is FallbackReason.PROMPT_TOO_LONG
@@ -333,7 +338,7 @@ def test_session_cap_stops_llm_calls():
 
 def test_session_cap_reached_mid_chain():
     fake = FakeChatModel({QWEN: [QuotaExceeded("429", model=QWEN)], GPT_OSS: [{"utterance": "b"}]})
-    outcome = AIRouter(chat_provider=fake, max_calls_per_session=15).chat(
+    outcome = AIRouter(chat_provider=fake, max_calls_per_session=15, chains=TWO_MODELS).chat(
         ModelClass.TUTOR_REASONING, _request(), calls_used=14
     )
     assert outcome.fallback_reason is FallbackReason.SESSION_CAP
@@ -353,7 +358,7 @@ def test_no_api_key_means_template_only_mode():
 def test_build_router_reads_chain_and_cap_from_settings():
     settings = Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), max_llm_calls_per_session=7)
     router = build_router(settings)
-    assert router.chain(ModelClass.TUTOR_REASONING) == (QWEN, GPT_OSS)
+    assert router.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
     assert router.chain(ModelClass.LIGHTWEIGHT) == (QWEN, "openai/gpt-oss-20b")
     assert router.max_calls_per_session == 7
     with pytest.raises(ValueError):
@@ -361,14 +366,16 @@ def test_build_router_reads_chain_and_cap_from_settings():
     # An eval judges on a model with its own quota; the other classes keep their chain (TQ-2).
     judge = build_router(settings, chains={ModelClass.EVAL_JUDGE: (GPT_OSS,)})
     assert judge.chain(ModelClass.EVAL_JUDGE) == (GPT_OSS,)
-    assert judge.chain(ModelClass.TUTOR_REASONING) == (QWEN, GPT_OSS)
+    assert judge.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
 
 
-def test_groq_model_setting_heads_every_chat_chain():
-    # CFG-1: the brain is named once (GROQ_MODEL); the chains only add the fallbacks.
-    assert AIRouter().chain(ModelClass.TUTOR_REASONING)[0] == Settings.model_fields["groq_model"].default
+def test_groq_model_setting_heads_the_fallback_chains_and_ends_the_tutors():
+    # CFG-1: the model is named once (GROQ_MODEL). BRAIN-1 (ADR-034): the tutor speaks with the gpt-oss models
+    # first and GROQ_MODEL (Qwen) is the last of its chain; the other chains still start with it.
+    assert AIRouter().chain(ModelClass.TUTOR_REASONING)[-1] == Settings.model_fields["groq_model"].default
     router = build_router(Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), groq_model="qwen/next"))
-    for model_class in (ModelClass.TUTOR_REASONING, ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE):
+    assert router.chain(ModelClass.TUTOR_REASONING)[-1] == "qwen/next"
+    for model_class in (ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE):
         assert router.chain(model_class)[0] == "qwen/next"
 
 
@@ -517,3 +524,95 @@ def test_no_vendor_sdk_or_url_outside_ai_gateway():
             if any(p.search(text) for p in VENDOR_PATTERNS):
                 offenders.append(str(path.relative_to(REPO_ROOT)))
     assert offenders == []
+
+
+# --- BRAIN-1 (ADR-034): models of two vendors in one chain --------------------------------------
+
+
+def _gemini_answer(text: str):
+    return genai_types.GenerateContentResponse(
+        candidates=[
+            genai_types.Candidate(
+                content=genai_types.Content(role="model", parts=[genai_types.Part(text=text)])
+            )
+        ]
+    )
+
+
+def test_a_model_that_takes_no_reasoning_effort_is_sent_none():
+    """Qwen: "none"; gpt-oss: "low"; any other model on Groq does not take the field at all."""
+    model = "meta-llama/llama-4-scout-17b-16e-instruct"
+    rec = Recorder({model: [httpx.Response(200, json=_completion('{"utterance": "x"}', model))]})
+    _groq(rec).chat(_request(), model)
+    assert "reasoning_effort" not in json.loads(rec.requests[0].content)
+
+
+def test_tutor_models_is_one_line_that_sets_the_chain():
+    from cavat.modules.ai_gateway.router import default_chat_chains, parse_models
+
+    assert parse_models(" openai/gpt-oss-120b, gemini-3.5-flash ,, openai/gpt-oss-120b") == (
+        "openai/gpt-oss-120b",
+        "gemini-3.5-flash",
+    )
+    chains = default_chat_chains(QWEN, parse_models("gemini-3.5-flash,qwen/qwen3.8-27b"))
+    assert chains[ModelClass.TUTOR_REASONING] == ("gemini-3.5-flash", QWEN)
+    # BRAIN-1: the measured default order; GROQ_MODEL (Qwen) is the last of the three Groq models
+    assert default_chat_chains(QWEN)[ModelClass.TUTOR_REASONING] == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
+    assert chains[ModelClass.INTENT_AGENT] == default_chat_chains(QWEN)[ModelClass.INTENT_AGENT]
+
+
+def test_gemini_chat_with_one_model_asks_for_json_and_parses_it():
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+
+    fake = _FakeGenaiClient(_gemini_answer('{"utterance": "Chào con"}'))
+    result = GeminiChat("key", client=fake).chat_with(_request(), "gemini-3.5-flash")
+    assert result.data == {"utterance": "Chào con"} and result.model == "gemini-3.5-flash"
+    config = fake.models.kwargs["config"]
+    assert config.response_mime_type == "application/json"
+    assert "additionalProperties" not in config.response_json_schema
+
+
+def test_gemini_chat_with_raises_the_gateways_errors():
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+
+    quota = genai_errors.APIError(429, {"error": {"code": 429, "message": "quota"}})
+    with pytest.raises(QuotaExceeded):
+        GeminiChat("key", client=_FakeGenaiClient(quota)).chat_with(_request(), "gemini-3.5-flash")
+    with pytest.raises(InvalidModelOutput):
+        GeminiChat("key", client=_FakeGenaiClient(_gemini_answer("not json"))).chat_with(
+            _request(), "gemini-3.5-flash"
+        )
+
+
+def test_the_dispatcher_sends_each_name_to_its_vendor_and_rests_a_gemini_that_is_out_of_quota():
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+    from cavat.modules.ai_gateway.router import ChatDispatcher
+
+    groq = FakeChatModel([{"utterance": "từ Groq"}, {"utterance": "lại từ Groq"}])
+    quota = genai_errors.APIError(429, {"error": {"code": 429, "message": "quota"}})
+    gemini = GeminiChat("key", client=_FakeGenaiClient(quota))
+    dispatcher = ChatDispatcher(groq, gemini)
+    router = AIRouter(
+        chat_provider=dispatcher,
+        chains={ModelClass.TUTOR_REASONING: ("gemini-3.5-flash", GPT_OSS)},
+    )
+
+    outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+
+    assert outcome.result is not None and outcome.result.model == GPT_OSS
+    assert [a.error for a in outcome.attempts] == ["QuotaExceeded", None]
+    assert dispatcher.quota.is_exhausted("gemini-3.5-flash")  # rests; the next turn does not send to it
+    again = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert again.attempts[0].sent is False
+
+
+def test_the_dispatcher_without_a_key_for_a_vendor_falls_through():
+    from cavat.modules.ai_gateway.router import ChatDispatcher
+
+    groq = FakeChatModel([{"utterance": "ok"}])
+    router = AIRouter(
+        chat_provider=ChatDispatcher(groq, None),
+        chains={ModelClass.TUTOR_REASONING: ("gemini-3.5-flash", GPT_OSS)},
+    )
+    outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert outcome.result is not None and outcome.attempts[0].error == "ModelUnavailable"

@@ -22,7 +22,6 @@ from cavat.modules.tutor.llm_renderer import (
     ANCHOR_SLACK,
     TEMPLATE_ONLY_MOVES,
     LLMRenderer,
-    beyond_anchor,
     word_cap,
 )
 from cavat.modules.tutor.renderer import TemplateRenderer
@@ -31,7 +30,9 @@ from cavat.modules.tutor.validator import validate_message
 LESSON = Path(__file__).resolve().parents[3] / "docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml"
 PKG = load_lesson_package(LESSON)
 TEMPLATE = TemplateRenderer()
-QWEN, GPT_OSS = default_chat_chains()[ModelClass.TUTOR_REASONING]
+# BRAIN-1: the tutor's chain is gpt-oss-120b, gpt-oss-20b, Qwen; QWEN and GPT_OSS name its first two
+CHAIN = default_chat_chains()[ModelClass.TUTOR_REASONING]
+QWEN, GPT_OSS = CHAIN[:2]
 LLM_MOVES = [m for m in Move if m not in TEMPLATE_ONLY_MOVES]
 HINT_H3 = {"level": HintLevel.H3, "target": HintTarget.STRATEGY}
 
@@ -140,19 +141,17 @@ def test_output_without_a_message_is_rejected_as_empty():
 
 
 def test_429_uses_the_template_at_once():
-    renderer, fake = make(
-        {QWEN: [QuotaExceeded("429", model=QWEN)], GPT_OSS: [QuotaExceeded("429", model=GPT_OSS)]}
-    )
+    renderer, fake = make({model: [QuotaExceeded("429", model=model)] for model in CHAIN})
     ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
-    assert [model for model, _ in fake.calls] == [QWEN, GPT_OSS]  # the router's chain, no retry after it
+    assert [model for model, _ in fake.calls] == list(CHAIN)  # the router's chain, no retry after it
     assert renderer.last_trace.fallback_reason == "quota_exceeded"
-    assert renderer.calls_used == 2
+    assert renderer.calls_used == len(CHAIN)
 
 
 def test_known_exhausted_quota_uses_the_template_without_any_call():
     renderer, fake = make([])
-    for model in (QWEN, GPT_OSS):
+    for model in CHAIN:
         fake.quota.mark_exhausted(model, reset_at=None)
     ctx = ctx_for("GP-01", Move.PROBE, "0,25 > 0,3")
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
@@ -208,7 +207,7 @@ def test_recent_turns_of_the_item_go_into_the_next_prompt():
     renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3))
     second = user_prompt(fake, 1)
     assert "Học sinh: 0,25 > 0,3" in second and f"Gia sư: {GOOD_PROBE}" in second
-    assert second.index("[HỘI THOẠI GẦN ĐÂY]") < second.index("[HỌC SINH VỪA NÓI]")
+    assert second.index("[HỘI THOẠI GẦN ĐÂY]") < second.index("[CON VỪA NÓI]")
     renderer.render(ctx_for("GP-02", Move.PROBE, "con chọn A"))
     assert "[HỘI THOẠI GẦN ĐÂY]" not in user_prompt(fake, 2)  # a new item starts a new conversation
 
@@ -230,18 +229,16 @@ def test_exit_items_never_call_the_model(move):
     assert not fake.calls and msg.source != "LLM" and renderer.calls_used == 0
 
 
-def test_a_message_that_goes_beyond_the_anchor_is_rejected():
-    """Real Qwen output for an H2 question: it passed the validator but gave away the H4 step."""
-    ctx = ctx_for(
-        "GP-01", Move.HINT, "0,25 > 0,3 vì 25 lớn hơn 3", level=HintLevel.H2, target=HintTarget.CONCEPT
-    )
-    raised = "Con viết 0,3 thành 0,30 nhé. Bây giờ con so sánh hàng phần mười của hai số này xem sao?"
-    assert validate_message(raised, ctx).ok
-    renderer, fake = make([turn(raised), turn(ON_ANCHOR_H2)])
+def test_a_new_example_is_free_when_its_arithmetic_is_true_and_refused_when_it_is_not():
+    """BRAIN-1 (D): the keyword and number checks of v8 are gone; what is checked is that a claim is true."""
+    ctx = ctx_for("GP-01", Move.HINT, "con không biết", level=HintLevel.H2, target=HintTarget.CONCEPT)
+    wrong = "Con nhìn hàng phần mười nhé: 0,7 < 0,5 nên số 0,5 bé hơn. Còn 0,25 và 0,3 thì sao con?"
+    true = "Con nhìn hàng phần mười nhé: 0,5 < 0,7 nên số 0,5 bé hơn. Còn 0,25 và 0,3 thì sao con?"
+    renderer, fake = make([turn(wrong), turn(true)])
     msg = renderer.render(ctx)
-    assert msg.source == "LLM" and "0,30" not in msg.text
-    assert "BEYOND_ANCHOR" in renderer.last_trace.rejected[0] and len(renderer.last_trace.rejected) == 1
-    assert "BEYOND_ANCHOR" in fake.calls[1][1].messages[1].content
+    assert (msg.text, msg.source) == (true, "LLM")
+    assert renderer.last_trace.rejected == (("WRONG_MATH",),)
+    assert "WRONG_MATH (có phép tính hoặc so sánh sai)" in fake.calls[1][1].messages[1].content
 
 
 def test_a_message_that_repeats_an_earlier_tutor_turn_is_rejected():
@@ -261,49 +258,26 @@ def test_a_message_that_repeats_an_earlier_tutor_turn_is_rejected():
     assert "REPEATS_PREVIOUS" in fake.calls[2][1].messages[1].content
 
 
-@pytest.mark.parametrize(
-    ("move", "decision", "drift", "codes", "note"),
-    [
-        # Asked for the CONCEPT hint, the model reworded the counter-example it had given before: the hint's
-        # terms are gone (the idea) and units the sources never used came in (another hint).
-        (
-            Move.HINT,
-            {"level": HintLevel.H3, "target": HintTarget.CONCEPT},
-            "Con thử đổi 0,25 mét và 0,3 mét ra xăng-ti-mét nhé. Đổi xong rồi con xem đoạn nào dài hơn?",
-            ("KEY_IDEA_MISSING",),
-            "KEY_IDEA_MISSING (bỏ mất ý chính",
-        ),
-        # Asked "con làm thế nào?", the model gave a hint instead (an anchor with no mathematical term).
-        (
-            Move.PROBE,
-            {},
-            "Con thử nhìn lại chữ số hàng phần mười của hai số xem sao nhé?",
-            ("OFF_ANCHOR",),
-            "OFF_ANCHOR (không làm đúng mục tiêu",
-        ),
-    ],
-)
-def test_a_message_that_drifts_from_the_anchor_is_rejected(move, decision, drift, codes, note):
-    """Real Qwen outputs: they pass the validator, but they do not say what the move asked for."""
-    ctx = ctx_for("GP-01", move, "cho con gợi ý", **decision)
-    assert validate_message(drift, ctx).ok
-    renderer, fake = make([turn(drift), turn(drift)])
-    assert renderer.render(ctx) == TEMPLATE.render(ctx)
-    assert renderer.last_trace.rejected == (codes, codes)
-    assert note in user_prompt(fake, 1)
+def test_the_first_why_names_what_the_child_wrote_and_cannot_ask_about_the_comma_after_9_over_10():
+    """The owner's session (2026-10-26): a child answered 9/10 and was asked why they put the comma."""
+    ctx = ctx_for("GP-01", Move.VERIFY, "9/10", reason_codes=("CORRECT",))
+    comma = "Con giải thích cho cô vì sao con đặt dấu phẩy ở chỗ đó được không?"
+    named = "Con viết 9/10. Con nói cho cô nghe vì sao mẫu số lại là 10 vậy con?"
+    renderer, fake = make([turn(comma), turn(named)])
+    msg = renderer.render(ctx)
+    assert (msg.text, msg.source) == (named, "LLM")
+    assert renderer.last_trace.rejected == (("OFF_TARGET",),)
+    assert "OFF_TARGET" in fake.calls[1][1].messages[1].content
 
 
 @pytest.mark.parametrize(
     ("move", "decision"),
     [
-        (Move.FULL_EXPLANATION, {"level": HintLevel.H7, "target": HintTarget.STEP}),
-        (Move.CLOSE_ITEM, {}),
-        (Move.VERIFY, {}),  # the item's own "vì sao" after a right answer
-        (Move.VERIFY, {"reason_codes": ("VERIFY_BEFORE_HINT",)}),  # FIX-2: after a wrong answer
+        (Move.CLOSE_ITEM, {}),  # the item ends unresolved: the fixed words of calm
+        (Move.CLOSE_ITEM, {"reason_codes": ("NO_EXPLANATION", "OFF_TOPIC")}),  # talk keeps its own lead
     ],
 )
-def test_lesson_content_moves_are_said_with_the_template(move, decision):
-    """Seen with real Qwen output: asked to VERIFY a correct answer, it sent the student back to a hint."""
+def test_fixed_words_are_said_with_the_template(move, decision):
     renderer, fake = make([turn(GOOD_HINT)])
     ctx = ctx_for("GP-01", move, "<", **decision)
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
@@ -371,20 +345,10 @@ def test_one_term_of_the_anchor_keeps_its_idea():
     assert (msg.text, msg.source) == (reply, "LLM")
 
 
-def test_the_bases_of_the_decimal_system_and_the_worked_steps_numbers_are_allowed():
-    """The validator's UNGROUNDED_NUMBER still asks every number to be in the lesson (validator.py)."""
-    ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
-    anchor = TEMPLATE.render(ctx).text
-    said = "Một phần 10 hay 100 hay 1000 đều được. Ở hàng phần mười, con so sánh chữ số 2 và 3 nhé?"
-    assert beyond_anchor(said, ctx, anchor) == []
-    assert beyond_anchor("Con so sánh 0,25 với 0,7 nhé?", ctx, anchor) == ["0,7"]
-
-
-def test_a_number_from_nowhere_is_still_rejected():
+def test_a_number_from_nowhere_is_allowed_when_it_is_not_a_false_claim():
     reply = "Con thử so sánh 0,25 với 0,7 trước nhé, rồi so sánh 0,25 và 0,30 được không?"
-    renderer, fake = make([turn(reply), turn(reply)])
-    renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3))
-    assert all("BEYOND_ANCHOR" in codes for codes in renderer.last_trace.rejected)
+    renderer, _ = make([turn(reply)])
+    assert renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)).source == "LLM"
 
 
 # DI-60 (LLM-1): the S1 sessions rejected 16 of 20 drafts, all for form. The cap follows the anchor, and two
@@ -393,23 +357,21 @@ NO_QUESTION_HINT = "Con thử viết 0,3 thành 0,30 để hai số cùng có ha
 EM_HINT = GOOD_HINT.replace("Con thử", "Em thử").replace("rồi con", "rồi em")
 
 
-def test_a_missing_final_question_gets_the_anchors_question():
-    renderer, fake = make([turn(NO_QUESTION_HINT)])
-    ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
-    anchor_question = TEMPLATE.render(ctx).text.split(". ")[-1]
-    assert anchor_question.endswith("?")
-    msg = renderer.render(ctx)
-    assert msg.source == "LLM" and msg.text == f"{NO_QUESTION_HINT} {anchor_question}"
-    assert len(fake.calls) == 1 and renderer.last_trace.rejected == ()
-
-
-def test_the_child_called_em_gets_the_lessons_word():
-    renderer, fake = make([turn(EM_HINT)])
+def test_a_hint_without_its_question_is_asked_again_with_the_reason():
+    renderer, fake = make([turn(NO_QUESTION_HINT), turn(GOOD_HINT)])
     msg = renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3))
-    assert (msg.text, msg.source) == (GOOD_HINT, "LLM") and len(fake.calls) == 1
+    assert (msg.text, msg.source) == (GOOD_HINT, "LLM")
+    assert renderer.last_trace.rejected == (("MISSING_QUESTION",),)
 
 
-def test_no_repair_when_another_check_fails():
+def test_the_child_called_em_is_refused_then_asked_again():
+    renderer, fake = make([turn(EM_HINT), turn(GOOD_HINT)])
+    msg = renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3))
+    assert (msg.text, msg.source) == (GOOD_HINT, "LLM") and len(fake.calls) == 2
+    assert renderer.last_trace.rejected == (("WRONG_ADDRESS",),)
+
+
+def test_a_leak_is_refused_twice_and_the_template_is_said():
     leaky = LEAK.replace("Con thấy chưa?", "Em thấy chưa?")
     renderer, fake = make([turn(leaky), turn(leaky)])
     ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
@@ -482,15 +444,17 @@ def test_moving_on_asks_nothing():
     assert all("ASKS_ON_ADVANCE" in codes for codes in renderer.last_trace.rejected)
 
 
-def test_an_explanation_the_child_could_not_give_gets_a_lead_then_the_approved_text():
-    """REFORM-2 (DI-68): no praise; the approved explanation follows word for word."""
+def test_an_explanation_the_child_could_not_give_is_taught_again_with_the_childs_numbers():
+    """REFORM-2 (DI-68) then BRAIN-1: no praise, and not the approved text read out: the model explains."""
     ctx = ctx_for("GP-01", Move.CONFIRM_ADVANCE, "ki", reason_codes=("EXPLAIN_AND_ADVANCE",))
-    approved = TEMPLATE.render(ctx).text
-    lead = "Cô chưa hiểu chữ “ki” của con, không sao đâu."
-    renderer, fake = make([turn(lead)])
+    taught = (
+        "Cô nói lại cho dễ hiểu nhé. Hàng phần mười của 0,25 là 2, của 0,3 là 3, mà 2 < 3. "
+        "Mình sang câu sau nhé!"
+    )
+    renderer, fake = make([turn(taught)])
     msg = renderer.render(ctx)
-    assert (msg.text, msg.source) == (f"{lead} {approved}", "LLM")
-    assert '"lead_only":true' in user_prompt(fake, 0)
+    assert (msg.text, msg.source) == (taught, "LLM")
+    assert "chính số của câu" in user_prompt(fake, 0)  # the job: teach again with the numbers of the question
     praised = "Đúng rồi, con cố gắng lắm."
     renderer, fake = make([turn(praised), turn(praised)])
     assert renderer.render(ctx) == TEMPLATE.render(ctx)

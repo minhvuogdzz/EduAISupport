@@ -71,6 +71,7 @@ from cavat.modules.content.lesson_package import (
     OrderAnswer,
 )
 from cavat.modules.rag.bm25 import content_words
+from cavat.modules.tutor.brain import BRAIN_MAX_WORDS, math_errors
 from cavat.modules.tutor.chooser import MoveChooser, situation
 from cavat.modules.tutor.contracts import (
     ItemState,
@@ -82,8 +83,11 @@ from cavat.modules.tutor.contracts import (
     RenderedMessage,
     StudentSnapshot,
     TurnTrigger,
+    ValidationCode,
+    ValidationIssue,
+    ValidationResult,
 )
-from cavat.modules.tutor.llm_renderer import word_cap
+from cavat.modules.tutor.llm_renderer import teaches_again, word_cap
 from cavat.modules.tutor.policy import (
     DEFAULT_CONFIG,
     ItemFacts,
@@ -755,6 +759,9 @@ class ItemTutor:
                 source=msg.source,
                 words=len(msg.text.split()),
                 attempts_to_pass_validator=attempts,
+                model=(getattr(self.renderer, "last_trace", None) and self.renderer.last_trace.model)
+                if msg.source == "LLM"
+                else None,
             ),
         )
         self.phase = self._next_phase(d)
@@ -798,9 +805,16 @@ class ItemTutor:
 
     def _render(self, d: PolicyDecision, student_text: str | None) -> tuple[RenderedMessage, int]:
         explaining = d.move == Move.EXPLAIN
+        # BRAIN-1 (C2): a child who answered right and could not say why is taught again, with the approved
+        # passages on the item's own question as one more ground
+        reteaching = teaches_again(d)
+        focus = self._focus if explaining else (self.item.stem if reteaching else None)
         evidence = (
-            tuple(self.explainer(self._focus or "", self.last_tutor)) if explaining and self.explainer else ()
+            tuple(self.explainer(focus or "", self.last_tutor))
+            if (explaining or reteaching) and self.explainer
+            else ()
         )
+        graded = self._last_graded
         asking = d.move == Move.ASK_CONFIRM
         ctx = RenderContext(
             decision=d,
@@ -814,6 +828,8 @@ class ItemTutor:
             evidence=evidence,
             guessed_meaning=self._guess if asking else None,
             clarification=self._clarification if asking else None,
+            check=graded,
+            solved=graded is not None and graded.outcome == Outcome.CORRECT,
         )
         if ctx.clarification and (codes := self._refused(ctx.clarification, ctx)):
             # REFORM-5: the reader's question did not pass; the template asks (DI-77). The record keeps it.
@@ -828,8 +844,16 @@ class ItemTutor:
         anchor = TemplateRenderer().render(ctx).text
         for attempt in (1, 2):
             msg = self.renderer.render(ctx)
-            cap = word_cap(ctx, anchor) if msg.source == "LLM" else len(msg.text.split())
-            result = self.validator(msg.text, replace(ctx, max_words=max(ctx.max_words, cap)))
+            if msg.source == "LLM":
+                # the model's words were checked by the brain (its arithmetic, its length): here the validator
+                # runs again, with the numbers left to the arithmetic check and the cap of a spoken turn
+                cap = max(word_cap(ctx, anchor), BRAIN_MAX_WORDS)
+                final = replace(ctx, max_words=cap, free_numbers=True)
+            else:
+                final = replace(ctx, max_words=max(ctx.max_words, len(msg.text.split())))
+            result = self.validator(msg.text, final)
+            if result.ok and msg.source == "LLM" and math_errors(msg.text):
+                result = ValidationResult((ValidationIssue(ValidationCode.UNGROUNDED_NUMBER, "WRONG_MATH"),))
             if result.ok:
                 return msg, attempt
             self._emit(

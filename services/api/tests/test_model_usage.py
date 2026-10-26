@@ -25,13 +25,22 @@ from cavat.modules.ai_gateway.base import (
     quota_limit,
 )
 from cavat.modules.ai_gateway.groq import GroqClient
-from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, build_router, groq_key
+from cavat.modules.ai_gateway.router import (
+    AIRouter,
+    RecordingRouter,
+    build_router,
+    default_chat_chains,
+    groq_key,
+)
 from cavat.modules.session import model_usage
 from cavat.modules.session.model_calls import model_call_events
 from pydantic import SecretStr
 
 NOW = datetime(2026, 10, 25, 9, 0, tzinfo=UTC)
 QWEN, GPT_OSS = "qwen/qwen3.8-27b", "openai/gpt-oss-120b"
+# BRAIN-1 (ADR-034): the tutor's default chain has three Groq models now (gpt-oss-120b, gpt-oss-20b,
+# Qwen); the fallback tests keep their two-model story (Qwen, then gpt-oss-120b) by naming that chain.
+TWO_MODELS = {**default_chat_chains(), ModelClass.TUTOR_REASONING: (QWEN, GPT_OSS)}
 # The minute limit as Groq worded it on 2026-10-25 (the organization id is made up here); the day limit is
 # worded alike [ASSUME].
 MINUTE = (
@@ -88,7 +97,9 @@ class MinuteLimitedQwen:
 
 
 def test_each_attempt_says_which_limit_and_for_how_long():
-    router = RecordingRouter(AIRouter(chat_provider=MinuteLimitedQwen(), clock=lambda: NOW))
+    router = RecordingRouter(
+        AIRouter(chat_provider=MinuteLimitedQwen(), chains=TWO_MODELS, clock=lambda: NOW)
+    )
     router.chat(ModelClass.TUTOR_REASONING, request(), calls_used=0)
     router.chat(ModelClass.TUTOR_REASONING, request(), calls_used=1)  # Qwen is known out now: not sent again
     first, second = (e.payload for e in model_call_events(router.calls) if e.event_type == "MODEL_CALLED")
@@ -111,7 +122,7 @@ class Qwen:
 
 
 def session(sid: str, provider, calls: int = 2, created: datetime = NOW) -> dict:
-    router = RecordingRouter(AIRouter(chat_provider=provider, clock=lambda: NOW))
+    router = RecordingRouter(AIRouter(chat_provider=provider, chains=TWO_MODELS, clock=lambda: NOW))
     for _ in range(calls):
         router.chat(ModelClass.TUTOR_REASONING, request(), calls_used=0)
     events = [
@@ -186,7 +197,7 @@ def test_the_router_of_an_evaluation_is_built_on_the_eval_key():
     heard = {}
     for name, flag in (("students", False), ("eval", True)):
         router = build_router(both, for_eval=flag)
-        heard[name] = router._chat._http.headers["authorization"]
+        heard[name] = router._chat._groq._http.headers["authorization"]
     assert heard == {"students": "Bearer gsk_students", "eval": "Bearer gsk_eval"}
     only_eval = settings(groq_api_key_eval=SecretStr("gsk_eval"), tts="off")
     assert build_router(only_eval, for_eval=True)._chat is not None
