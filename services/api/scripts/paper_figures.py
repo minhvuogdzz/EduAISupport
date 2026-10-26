@@ -1222,13 +1222,13 @@ def signed(x: float, nd: int = 3) -> str:
 def tab_components() -> None:
     """RAG-5: one component left out of the configuration that runs, paired by question."""
     comp = RAG["stats"]["components"]
-    v2, pooled = comp["published_holdout_v2"], comp["published_holdout_v3"]
+    v2, pooled = comp["published_holdout_v3"], comp["published_holdout_v4"]
     out = [
         r"\footnotesize",
         r"\begin{tabular}{@{}lrrrr@{}}",
         r"\toprule",
-        rf"Bỏ thành phần & \multicolumn{{2}}{{c}}{{v2 ($n={v2['production']['n']}$)}}"
-        rf" & \multicolumn{{2}}{{c}}{{v3 ($n={pooled['production']['n']}$)}} \\",
+        rf"Bỏ thành phần & \multicolumn{{2}}{{c}}{{v3 ($n={v2['production']['n']}$)}}"
+        rf" & \multicolumn{{2}}{{c}}{{v4 ($n={pooled['production']['n']}$)}} \\",
         r"\cmidrule(lr){2-3}\cmidrule(lr){4-5}",
         r" & $\Delta$MRR [KTC 95\%] & $p$ & $\Delta$MRR [KTC 95\%] & $p$ \\",
         r"\midrule",

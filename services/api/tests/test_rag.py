@@ -654,3 +654,34 @@ def test_a_later_period_wins_only_when_it_is_clearly_closer():
     assert later is None and found.results[0].chunk.chunk_id == "A:theory"
     later, _ = index.question("làm tròn số thập phân đến hàng phần trăm thế nào", "A", order)
     assert later == "E"
+
+
+def test_a_term_the_chapters_never_use_means_mathematics_outside_them():
+    """DI-79 (RAG-7): "diện tích hình tròn" came as close as the chapter's own questions (cosine 0.66)."""
+    chunks = [
+        chunk(
+            "A:theory",
+            "Diện tích hình tam giác bằng đáy nhân chiều cao rồi chia cho 2, làm tròn nếu cần.",
+            node="A",
+        ),
+    ]
+    index = RagIndex(chunks, None, {})
+    assert index.foreign_terms("dien tich hinh tron tinh the nao") == ["hinh tron"]
+    assert index.foreign_terms("the tich hinh hop chu nhat tinh sao") == ["the tich", "hinh hop chu nhat"]
+    assert index.foreign_terms("diện tích tam giác tính thế nào") == []
+    near = index.retrieve("diện tích tam giác bằng đáy nhân chiều cao chia 2", k=1)
+    assert near.grounded
+    found = index.retrieve("diện tích hình tròn bằng đáy nhân chiều cao chia 2", k=1)  # same words, a circle
+    assert not found.grounded and "hinh tron" in found.grounding
+
+
+def test_an_earlier_period_a_little_closer_is_taken_when_its_keywords_agree():
+    """DI-57, second rule (RAG-7): closer by less than the margin, with the same keywords or more."""
+    from cavat.modules.rag.retrieve import RagIndex as Index
+
+    index = Index([chunk("A:t", "x", node="A"), chunk("B:t", "y", node="B")], None, {"B": {"A"}})
+    cos = np.array([0.745, 0.735], dtype=np.float32)
+    assert index._route("B", cos, [1.0, 1.0], True) == "A"  # 0.01 closer, keywords tie
+    assert index._route("B", cos, [0.6, 0.7], True) is None  # 0.01 closer, but fewer keywords
+    assert index._route("B", np.array([0.76, 0.735], dtype=np.float32), [0.6, 0.7], True) == "A"  # margin
+    assert index._route("B", np.array([0.73, 0.735], dtype=np.float32), [1.0, 0.7], True) is None
