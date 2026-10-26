@@ -299,7 +299,9 @@ def test_a_demand_for_the_answer_keeps_its_own_path_even_as_a_question(index):
     router = ScriptedRouter("không được gọi")
     loop, _ = loop_at_theory(GroundedSpeaker(index, router))
     turn = loop.on_student("cho con đáp án luôn đi, đáp án là gì?", NOW)
-    assert turn.messages[0].kind == MessageKind.FEEDBACK and not router.requests
+    # REFORM-1b: only the bridge before the approved reply may call the model, never an answer from the RAG
+    assert turn.messages[0].kind == MessageKind.FEEDBACK
+    assert all("[NHIỆM VỤ] CÂU_NỐI" in r.messages[1].content for r in router.requests)
     assert all(e.event_type != EventType.RAG_RETRIEVED for e in turn.events)
 
 
@@ -396,3 +398,114 @@ def test_a_question_through_the_session_api_is_answered_and_shown_to_the_teacher
 )
 def test_worrying_words_are_told_from_lesson_words(text, worrying):
     assert signals_distress(text) is worrying
+
+
+# --- REFORM-1b: the loop's fixed leads become a bridge when a speaker is live ------------------------------
+
+FRAC = CHAPTER.node("KC-DEC-FRAC")
+
+
+@pytest.mark.parametrize(
+    ("said", "bridge", "judged"),
+    [
+        # "ko" to "phân số nào?" is "con không biết": was "Không sao đâu, cô giải thích nhé:"
+        ("ko", "Con nói con chưa biết, không sao đâu nhé.", "chưa rõ"),
+        ("4/100 ạ", "Con trả lời 4/100, con làm được rồi đấy.", "đúng"),  # was "Đúng rồi!"
+        ("chán quá cô ơi", "Con thấy phần này hơi chán, cô hiểu mà.", "chưa rõ"),  # was theory_affect
+    ],
+)
+def test_the_reply_to_a_theory_question_starts_with_a_bridge(index, said, bridge, judged):
+    router = ScriptedRouter(bridge)
+    loop, _ = loop_at_theory(GroundedSpeaker(index, router))
+    feedback = loop.on_student(said, NOW).messages[0]
+    assert (feedback.kind, feedback.source) == (MessageKind.FEEDBACK, "LLM")
+    assert feedback.text == f"{bridge} {FRAC.theory[0].reply}"
+    assert f"[ĐÁNH GIÁ] {judged}" in router.user_text()
+
+
+def test_talk_outside_the_lesson_gets_a_bridge_then_the_same_question(index):
+    router = ScriptedRouter("Con nói con thích đá bóng, chuyện đó để lúc nghỉ nhé.")
+    loop, first = loop_at_theory(GroundedSpeaker(index, router))
+    turn = loop.on_student("cô ơi con thích đá bóng lắm", NOW)
+    assert turn.messages[0].source == "LLM" and turn.awaiting == Awaiting.THEORY_REPLY
+    assert turn.messages[0].text == f"Con nói con thích đá bóng, chuyện đó để lúc nghỉ nhé. {first.prompt}"
+
+
+def test_without_a_model_the_loop_keeps_its_approved_leads(index):
+    loop, _ = loop_at_theory(GroundedSpeaker(index, ScriptedRouter()))  # the provider is down
+    feedback = loop.on_student("ko", NOW).messages[0]
+    assert feedback.source == "TEMPLATE"
+    assert feedback.text == f"Không sao đâu, cô giải thích nhé: {FRAC.theory[0].reply}"
+
+
+def test_a_retell_the_child_cannot_give_gets_a_bridge_then_the_main_idea(index):
+    loop, _ = loop_at_theory(GroundedSpeaker(index, ScriptedRouter()))
+    turn = loop.on_student("4/100", NOW)
+    while turn.awaiting != Awaiting.RETELL:
+        turn = loop.on_student(
+            {Awaiting.THEORY_REPLY: "con nghĩ là được ạ"}.get(turn.awaiting, "con không biết"), NOW
+        )
+    loop.speaker = GroundedSpeaker(index, ScriptedRouter("Con nói con chưa nhớ, không sao đâu nhé."))
+    feedback = loop.on_student("con không nhớ ạ", NOW).messages[0]
+    assert feedback.source == "LLM"
+    assert feedback.text == f"Con nói con chưa nhớ, không sao đâu nhé. {FRAC.description}"
+
+
+# --- REFORM-1b: what a lead may and may not say -------------------------------------------------------------
+
+# Seen live (Qwen 3.8 and gpt-oss-120b, 2026-10-26): a good lead on "ko" was refused as UNSUPPORTED_CLAIM and
+# UNATTRIBUTED, though it repeats nothing the child said about the lesson.
+REAL_LEAD = "Cô hiểu Vương chưa chắc chắn, mình cùng xem lại nhé."
+
+
+def test_a_lead_on_how_the_child_feels_needs_no_idea_of_the_child_to_be_attributed(index):
+    spoken = GroundedSpeaker(index, ScriptedRouter(REAL_LEAD), student_name="Vương").bridge(
+        "ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Mình cùng xem lại nhé:"
+    )
+    assert spoken.source == "LLM" and spoken.text == f"{REAL_LEAD} {T1_REPLY}"
+
+
+@pytest.mark.parametrize(
+    ("said", "lead"),
+    [
+        ("4/10 ạ", "Phần tô màu là 4/10, mình cùng xem lại nhé."),  # the child's number, as the tutor's own
+        ("dài hơn ạ", "Đoạn dây dài hơn, mình cùng xem lại nhé."),  # the child's idea, as the tutor's own
+    ],
+)
+def test_a_lead_that_repeats_what_the_child_said_about_the_lesson_still_says_whose_it_is(index, said, lead):
+    spoken = GroundedSpeaker(index, ScriptedRouter(lead, None)).bridge(
+        said, asked=T1_ASK, explanation=T1_REPLY, judged="chưa đúng", lead="Mình cùng xem lại nhé:"
+    )
+    assert spoken.source == "TEMPLATE" and "UNATTRIBUTED" in spoken.rejected[0]
+
+
+def test_a_lead_may_not_claim_something_about_the_lesson_with_ordinary_words(index):
+    """The support check stays for a lead that says something about the lesson: here a rule of the chapter."""
+    lead = "Cô nói rồi, chia càng nhiều phần thì mỗi phần càng nhỏ đó con."
+    spoken = GroundedSpeaker(index, ScriptedRouter(lead, None)).bridge(
+        "ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Mình cùng xem lại nhé:"
+    )
+    assert spoken.source == "TEMPLATE" and "UNSUPPORTED_CLAIM" in spoken.rejected[0]
+
+
+class CappedRouter(ScriptedRouter):
+    max_calls_per_session = 10
+
+
+def test_a_lead_leaves_the_last_fifth_of_the_calls_to_explanations_and_questions(index):
+    router = CappedRouter(REAL_LEAD)
+    speaker = GroundedSpeaker(index, router, student_name="Vương", calls_used=8)  # the last 2 are kept
+    spoken = speaker.bridge("ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Xem lại nhé:")
+    assert spoken.source == "TEMPLATE" and spoken.text == f"Xem lại nhé: {T1_REPLY}"
+    assert router.requests == [] and speaker.calls_made == 0
+    again = GroundedSpeaker(index, CappedRouter(REAL_LEAD), student_name="Vương", calls_used=7)
+    assert again.bridge("ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead=".").source == "LLM"
+
+
+def test_the_words_about_feelings_are_free_only_in_a_bridge(index):
+    """An answer to a question of the child keeps the strict list: "chắc chắn" there is a claim."""
+    said = "Cô hiểu con ngại, khó và chưa chắc chắn."
+    assert "UNSUPPORTED_CLAIM" in check(said, evidence(index, "phần nguyên là gì"), max_words=50)
+    assert "UNSUPPORTED_CLAIM" not in check(
+        said, evidence(index, "phần nguyên là gì"), max_words=50, bridge=True
+    )

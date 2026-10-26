@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
@@ -52,7 +52,7 @@ from cavat.modules.ai_gateway.base import (
     ModelClass,
     estimate_prompt_tokens,
 )
-from cavat.modules.ai_gateway.router import AIRouter
+from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.assessment.math_terms import terms_in, terms_missing
 from cavat.modules.assessment.student_intent import asks_question, expand_short_forms
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
@@ -67,7 +67,7 @@ from cavat.modules.tutor.validator import (
     wrong_address,
 )
 
-GROUNDED_VERSION = "grounded-speech/0.2.2"
+GROUNDED_VERSION = "grounded-speech/0.3.0"  # 0.3.0: REFORM-1b, DI-81
 PROMPT_FILE = "grounded.v1.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -87,6 +87,13 @@ TUTOR_TALK = frozenset(
     "dung chua xem thu that ra lai nua cau tra loi noi nghi cung nhe day dau oi nao tot lam gang vay ay do "
     "nay kia se dang da van nhung nen neu khi de rang bi tu ban em hoc bai minh hay qua roi phai y dieu "
     "chi moi luc nay vua cach giup cho ca nhau ghi nho dap thay kiem tra giu".split()
+)
+# DI-81 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa chắc chắn", "con thấy
+# chán", "cô hiểu con ngại"): feelings, doubt, effort, calm. Only a bridge may use them without evidence: an
+# answer to a question of the child keeps the strict list above.
+BRIDGE_TALK = frozenset(
+    "biet hieu kho khan chac chan ro ngai vui thich buon met lo ke chuyen muon cham nhanh ky nhan doan "
+    "cam on thoai mai".split()
 )
 _NUMBER = re.compile(r"^[\d.,/]+$")
 _SENTENCE = re.compile(r"(?<=[.!?…])\s+")
@@ -134,13 +141,13 @@ class Evidence:
 
     texts: tuple[str, ...]
 
-    def support(self, message: str) -> float:
+    def support(self, message: str, talk: frozenset[str] = TUTOR_TALK) -> float:
         """Share of the message's distinct content words that occur in the evidence (1.0 when none)."""
         have = set(_words(" ".join(self.texts)))
         words = [
             w
             for w in dict.fromkeys(_words(message))
-            if w not in FILLER and w not in TUTOR_TALK and not _NUMBER.match(w)
+            if w not in FILLER and w not in talk and not _NUMBER.match(w)
         ]
         return sum(w in have for w in words) / len(words) if words else 1.0
 
@@ -166,8 +173,10 @@ def check(
     max_words: int,
     forbid: Sequence[str] = (),
     student_address: str = "con",
+    bridge: bool = False,
 ) -> tuple[str, ...]:
-    """Why a message the model wrote may not be said (empty: it may)."""
+    """Why a message the model wrote may not be said (empty: it may). ``bridge``: DI-81, a sentence on the
+    child, which may use the words of ``BRIDGE_TALK`` without evidence."""
     if not message.strip():
         return ("EMPTY",)
     codes: list[str] = []
@@ -184,7 +193,7 @@ def check(
         codes.append("UNGROUNDED_NUMBER")
     if evidence.new_terms(message):
         codes.append("NEW_MATH_TERM")
-    if evidence.support(message) < CLAIM_SUPPORT:
+    if evidence.support(message, TUTOR_TALK | BRIDGE_TALK if bridge else TUTOR_TALK) < CLAIM_SUPPORT:
         codes.append("UNSUPPORTED_CLAIM")
     if any(re.search(p, lowered) for p in PII_PATTERNS):
         codes.append("PII_REQUEST")
@@ -195,6 +204,18 @@ def check(
             codes.append("REPEATS_EXPLANATION")
             break
     return tuple(codes)
+
+
+def repeats_idea(lead: str, said: str, lesson: str) -> bool:
+    """DI-81: whether a lead repeats something the child said about the lesson: one of the child's numbers, or
+    a word of the lesson's own text that the child used. Only then must it say whose idea it is (a wrong idea
+    repeated without it reads as the tutor's). "ko" or "chán quá cô ơi" are not ideas about the lesson."""
+    said = expand_short_forms(said)
+    said_numbers = {n.value for n in extract_numbers(said)}
+    if any(n.value in said_numbers for n in extract_numbers(lead)):
+        return True
+    ideas = {fold(w) for w in content_words(said)} - TUTOR_TALK - BRIDGE_TALK
+    return bool(ideas & set(_words(lesson)) & set(_words(lead)))
 
 
 @dataclass(frozen=True)
@@ -388,6 +409,8 @@ class GroundedSpeaker:
     def bridge(self, student_text: str, *, asked: str, explanation: str, judged: str, lead: str) -> Spoken:
         """One sentence on what the child said, then ``explanation`` word for word. ``judged``: "đúng",
         "chưa đúng" or "chưa rõ"; ``lead``: the template sentence used when the model cannot be."""
+        if not self._may_bridge():
+            return Spoken(f"{lead} {explanation}", "TEMPLATE")
         evidence = self._evidence([asked, explanation], student_text)
         lines = [
             "[NHIỆM VỤ] CÂU_NỐI",
@@ -409,7 +432,9 @@ class GroundedSpeaker:
             MAX_BRIDGE_WORDS,
             forbid=(explanation,),
             attribution=attribution,
+            needs_attribution=lambda said: repeats_idea(said, student_text, f"{asked} {explanation}"),
             no_praise=judged != "đúng",
+            bridge=True,
         )
         if text:
             return Spoken(f"{text} {explanation}", "LLM", (), rejected, flagged, refused)
@@ -417,13 +442,21 @@ class GroundedSpeaker:
 
     # ------------------------------------------------------------------ helpers
 
+    def _may_bridge(self) -> bool:
+        """DI-81: a bridge is wording, not help. As the renderer's moves other than EXPLAIN and REDIRECT
+        (DI-61), it leaves the last fifth of the session's calls to explanations and to the child's
+        questions."""
+        cap = getattr(self.router, "max_calls_per_session", DEFAULT_MAX_LLM_CALLS_PER_SESSION)
+        return self.calls_used + self.calls_made < cap - cap // 5
+
     def _address(self) -> str:
         line = f'[XƯNG HÔ] Gia sư xưng "{self.t}", gọi học sinh là "{self.s}".'
         return f"{line} Tên gọi của học sinh: {self.name}." if self.name else line
 
     def _evidence(self, texts: Sequence[str], student_text: str) -> Evidence:
         """The passages, the child's words and the child's given name (the tutor may call the child by it)."""
-        return Evidence((*texts, student_text, self.name or ""))
+        # "ko" is "không": the short forms the child types count as the words they stand for (REFORM-1b)
+        return Evidence((*texts, student_text, expand_short_forms(student_text), self.name or ""))
 
     def _ask_model(
         self,
@@ -432,7 +465,9 @@ class GroundedSpeaker:
         max_words: int,
         forbid: Sequence[str] = (),
         attribution: Sequence[str] = (),
+        needs_attribution: Callable[[str], bool] | None = None,
         no_praise: bool = False,
+        bridge: bool = False,
     ) -> tuple[str | None, tuple[tuple[str, ...], ...], bool, tuple[str, ...]]:
         """The model's words once they pass ``check``; "" when the model wrote nothing (the passages do not
         answer, as the prompt asks it to say); None when there is no usable output (no gateway, quota, cap,
@@ -467,9 +502,13 @@ class GroundedSpeaker:
             text = " ".join(message.split()) if isinstance(message, str) else ""
             if not text:
                 return "", tuple(rejected), flagged, tuple(refused)
-            codes = check(text, evidence, max_words=max_words, forbid=forbid)
+            codes = check(text, evidence, max_words=max_words, forbid=forbid, bridge=bridge)
             lowered = normalize_text(text)
-            if attribution and not any(a in lowered for a in attribution):
+            if (
+                attribution
+                and not any(a in lowered for a in attribution)
+                and (needs_attribution is None or needs_attribution(text))
+            ):
                 codes = (*codes, "UNATTRIBUTED")
             if no_praise and any(p in lowered for p in _PRAISE_RIGHT):
                 codes = (*codes, "CONTRADICTS_JUDGEMENT")

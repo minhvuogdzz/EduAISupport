@@ -297,7 +297,7 @@ def test_a_message_that_drifts_from_the_anchor_is_rejected(move, decision, drift
     ("move", "decision"),
     [
         (Move.FULL_EXPLANATION, {"level": HintLevel.H7, "target": HintTarget.STEP}),
-        (Move.CONFIRM_ADVANCE, {}),
+        (Move.CLOSE_ITEM, {}),
         (Move.VERIFY, {}),  # the item's own "vì sao" after a right answer
         (Move.VERIFY, {"reason_codes": ("VERIFY_BEFORE_HINT",)}),  # FIX-2: after a wrong answer
     ],
@@ -452,3 +452,55 @@ def test_the_session_calls_are_kept_for_the_moves_that_need_them(move, decision,
     assert (len(fake.calls) > 0) == (calls > 0)
     if calls == 0:
         assert renderer.last_trace.fallback_reason == "call_budget"
+
+
+# REFORM-1b (DI-81): opening an item, praising a right answer and offering a hint or another try.
+def test_the_offer_of_a_hint_or_another_try_is_said_by_the_model_and_keeps_both_choices():
+    good = "Không sao đâu con, câu này hơi khó. Con muốn cô gợi ý thêm hay con tự thử lại một lần nữa?"
+    one_choice = "Không sao đâu con. Con có muốn cô gợi ý thêm không?"
+    renderer, fake = make([turn(good)])
+    msg = renderer.render(ctx_for("GP-01", Move.OFFER_CHOICE, "con không biết"))
+    assert (msg.text, msg.source) == (good, "LLM")
+    renderer, fake = make([turn(one_choice), turn(one_choice)])
+    ctx = ctx_for("GP-01", Move.OFFER_CHOICE, "con không biết")
+    assert renderer.render(ctx) == TEMPLATE.render(ctx)
+    assert all("CHOICE_MISSING" in codes for codes in renderer.last_trace.rejected)
+
+
+def test_a_right_answer_is_praised_for_what_the_child_did():
+    praise = "Đúng rồi, con so sánh từ hàng phần mười nên ra dấu bé hơn. Mình sang câu tiếp theo nhé!"
+    renderer, fake = make([turn(praise)])
+    msg = renderer.render(ctx_for("GP-01", Move.CONFIRM_ADVANCE, "vì 2 bé hơn 3 ở hàng phần mười"))
+    assert (msg.text, msg.source) == (praise, "LLM")
+
+
+def test_moving_on_asks_nothing():
+    asks = "Đúng rồi, con làm cẩn thận lắm. Con sẵn sàng sang câu tiếp chưa?"
+    renderer, fake = make([turn(asks), turn(asks)])
+    ctx = ctx_for("GP-01", Move.CONFIRM_ADVANCE, "vì 2 bé hơn 3")
+    assert renderer.render(ctx) == TEMPLATE.render(ctx)
+    assert all("ASKS_ON_ADVANCE" in codes for codes in renderer.last_trace.rejected)
+
+
+def test_an_explanation_the_child_could_not_give_gets_a_lead_then_the_approved_text():
+    """REFORM-2 (DI-68): no praise; the approved explanation follows word for word."""
+    ctx = ctx_for("GP-01", Move.CONFIRM_ADVANCE, "ki", reason_codes=("EXPLAIN_AND_ADVANCE",))
+    approved = TEMPLATE.render(ctx).text
+    lead = "Cô chưa hiểu chữ “ki” của con, không sao đâu."
+    renderer, fake = make([turn(lead)])
+    msg = renderer.render(ctx)
+    assert (msg.text, msg.source) == (f"{lead} {approved}", "LLM")
+    assert '"lead_only":true' in user_prompt(fake, 0)
+    praised = "Đúng rồi, con cố gắng lắm."
+    renderer, fake = make([turn(praised), turn(praised)])
+    assert renderer.render(ctx) == TEMPLATE.render(ctx)
+    assert all("WRONG_PRAISE" in codes for codes in renderer.last_trace.rejected)
+
+
+def test_an_item_is_opened_with_its_stem_and_no_call():
+    """The item loop opens an item with no message of the child, and the CONFIRM_ADVANCE before it already
+    says the move on (a lead for PRESENT never fired in the measured sessions: 24 opens, none with words)."""
+    renderer, fake = make([turn("không được gọi")])
+    assert Move.PRESENT in TEMPLATE_ONLY_MOVES
+    assert renderer.render(ctx_for("GP-01", Move.PRESENT, "chán quá cô ơi")).text == PKG.item("GP-01").stem
+    assert fake.calls == []
