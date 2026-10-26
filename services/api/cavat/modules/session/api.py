@@ -34,6 +34,7 @@ from cavat.core.repository import utc_now
 from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
+from cavat.modules.figures import api as figures_api
 from cavat.modules.identity.api import AuthError, demo_mode, identity_from, register_auth, require
 from cavat.modules.identity.repository import UserRepository
 from cavat.modules.ingest import api as ingest_api
@@ -794,6 +795,25 @@ def parent_identity(
     return require(identity_from(authorization), "PARENT").user_id
 
 
+def viewer_kind(
+    authorization: Annotated[str | None, Header()] = None,
+    x_demo_student: Annotated[str | None, Header()] = None,
+    x_demo_teacher: Annotated[str | None, Header()] = None,
+    x_demo_parent: Annotated[str | None, Header()] = None,
+) -> str:
+    """Who looks at a picture of a question (FIG-1): the teacher, a student or a parent."""
+    if demo_mode():
+        for kind, header in (
+            ("TEACHER", x_demo_teacher),
+            ("STUDENT", x_demo_student),
+            ("PARENT", x_demo_parent),
+        ):
+            if header:
+                return kind
+        raise ApiError(401, "NOT_SESSION_OWNER", "an X-Demo-* header is required")
+    return identity_from(authorization).kind
+
+
 def linked_child(authorization: Annotated[str | None, Header()] = None) -> str:
     """The child linked to the parent account (guardian link, ACC-1)."""
     if demo_mode():
@@ -1351,6 +1371,15 @@ def register(app: FastAPI) -> None:
     )
     app.include_router(rag_api.build_router(get_database, teacher_identity, lambda: _rag_service))
     app.include_router(ingest_api.build_router(get_database, teacher_identity, service.DEMO_SCHOOL_ID))
+    app.include_router(
+        figures_api.build_router(
+            get_database,
+            teacher_identity,
+            viewer_kind,
+            service.DEMO_SCHOOL_ID,
+            lambda: get_settings().storage_dir,
+        )
+    )
     app.include_router(voice_api.build_router(student_identity, lambda: _shared_router()))
     published = [Depends(published_chapters)]  # INGEST-4: the teacher's published plans
     app.include_router(router, dependencies=published)

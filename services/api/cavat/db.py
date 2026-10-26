@@ -41,6 +41,7 @@ def repository_classes() -> tuple[type, ...]:
     """Every repository, one per collection. Imported lazily so modules never import this file."""
     from cavat.modules.assessment.repository import EvidenceRepository
     from cavat.modules.content.repository import LessonRepository
+    from cavat.modules.figures.repository import FigureRepository
     from cavat.modules.identity.repository import UserRepository
     from cavat.modules.ingest.repository import ItemBankRepository, TeachingPlanRepository
     from cavat.modules.learner.repository import StudentKCStateRepository
@@ -68,6 +69,7 @@ def repository_classes() -> tuple[type, ...]:
         DocumentRepository,
         ItemBankRepository,
         TeachingPlanRepository,
+        FigureRepository,
     )
 
 

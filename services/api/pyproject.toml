@@ -19,6 +19,8 @@ dependencies = [
   "python-multipart>=0.0.9",  # file uploads (DOC-1)
   "pypdf>=5.0",  # text of the teacher's PDF documents (DOC-1); scans go to Gemini OCR
   "numpy>=1.26",  # cosine of the Hybrid RAG vectors (RAG-1); no vector database
+  "pypdfium2>=4.30",  # find the figures of a PDF page from its vector drawing and cut them (FIG-1, ADR-034)
+  "pillow>=10",  # the cut figure as a PNG, and the teacher's own picture checked and shrunk (FIG-1)
 ]
 
 [project.optional-dependencies]
