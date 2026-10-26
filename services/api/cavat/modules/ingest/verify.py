@@ -10,7 +10,11 @@ wrong question. Each check below recomputes what it can from the question and co
 - a comparison "8,3 …… 8,29" is answered with the true sign, an order with the same numbers in order;
 - "x is a natural number with 2,9 < x < 5,1", the digit place and value, "gồm 17 đơn vị, 1 phần mười…";
 - the area of a triangle or a trapezoid, and the height or base from the area;
+- the unit of an area ("diện tích 15 ……" answered "dm²"): an area unit, one of those offered, and the one the
+  lengths of the question make (DI-73);
 - a multiple-choice answer names an option, and a true/false answer the truth of a numeric statement.
+
+Units are read as the documents write them (``normalize_units``, DI-73): "cm²", "cm2", "xăng-ti-mét vuông".
 
 A check that does not apply says nothing; an item no check applies to stays UNCHECKED for the teacher.
 """
@@ -53,6 +57,38 @@ _NUM = r"\d{1,3}(?: \d{3})+(?![\d/,])|\d+(?:[.,]\d+)*(?:\s*/\s*\d+)?"
 _MIXED = r"\d+\s+\d+/\d+"
 # One measure: "3 m 5 dm", "2 kg 350 g", "5 m² 25 dm²", "1,2 m", or a bare number "0,25", "3 5/10", "7/10".
 MEASURE = re.compile(rf"(?:(?:{_NUM})\s*{_UNIT}(?:\s+(?:{_NUM})\s*{_UNIT})*|{_MIXED}|{_NUM})")
+_LENGTH_WORDS = {
+    "mi-li-mét": "mm",
+    "xăng-ti-mét": "cm",
+    "đề-xi-mét": "dm",
+    "đề-ca-mét": "dam",
+    "héc-tô-mét": "hm",
+    "ki-lô-mét": "km",
+    "mét": "m",
+}
+_NOT_AFTER_LETTER = r"(?<![^\W\d_])"
+# "cm2", "cm^2". Not "cm" and a "2" on the next line or after a space: in the answer keys that "2" is the
+# number of the next question, or the first figure of a measure of two units ("15 cm 2 mm").
+_SQUARED = re.compile(rf"{_NOT_AFTER_LETTER}(mm|cm|dm|dam|hm|km|m)(?:\s*\^\s*2|2(?!\d))")
+# "mét vuông", "xăng-ti-mét vuông". Not "cm vuông": after a length that is "vuông góc" (perpendicular).
+_SQUARE_WORD = re.compile(
+    rf"{_NOT_AFTER_LETTER}({'|'.join(sorted(map(re.escape, _LENGTH_WORDS), key=len, reverse=True))})"
+    r"\s+vuông\b(?!\s+góc)",
+    re.IGNORECASE,
+)
+
+
+def normalize_units(text: str) -> str:
+    """Area units written as ``UNITS`` knows them: "15 dm2", "15 dm^2" and "15 đề-xi-mét vuông" are "15 dm²";
+    "héc-ta" is "ha".
+
+    A squared unit not read was a bare number in the unit of the question's lengths: a right answer in
+    another unit ("1500 cm2" for 15 dm²) was a conflict and a wrong unit ("15 cm2") was approved."""
+    text = _SQUARED.sub(lambda m: f"{m.group(1).lower()}²", text)
+    text = _SQUARE_WORD.sub(lambda m: f"{_LENGTH_WORDS.get(m.group(1).lower(), m.group(1).lower())}²", text)
+    return re.sub(r"(?<![^\W\d_])héc-ta(?!\w)", "ha", text, flags=re.IGNORECASE)
+
+
 _RELATION = re.compile(r"\s*(<|>|=|≠|≈)\s*")
 _PLACES = {
     "hàng nghìn": -3,
@@ -74,7 +110,8 @@ class Quantity:
 
 @dataclass(frozen=True)
 class Finding:
-    check: str  # RELATION | CONVERSION | ROUNDING | COMPARE | ORDER | RANGE | PLACE | COMPOSE | AREA | CHOICE
+    # RELATION | CONVERSION | ROUNDING | COMPARE | ORDER | RANGE | PLACE | COMPOSE | AREA | CHOICE | UNIT
+    check: str
     ok: bool
     detail: str
 
@@ -616,6 +653,42 @@ def _area_terms(stem: str) -> dict[str, str]:
     return out
 
 
+_AREA_UNIT = "|".join(sorted((u for u, (dim, _) in UNITS.items() if dim == "area"), key=len, reverse=True))
+
+
+def check_unit_choice(stem: str, answer: str, context: str = "") -> list[Finding]:
+    """ "Chọn đơn vị diện tích thích hợp (cm², dm², m²)": "… có diện tích 15 ……" answered "dm²".
+
+    The key must be an area unit and one of those offered. When the question gives the lengths that make the
+    area (a triangle's base and height, a trapezoid's bases and height), the number it prints must be that
+    area in the unit of the key. A unit only real life can choose (a stamp, a school yard) has no such check
+    and says nothing: the item stays for the teacher, it is not verified (DI-73)."""
+    text = f"{context} {stem}"
+    blank = re.search(rf"({_NUM})\s*(?:…+|\.{{2,}})\s*$", stem)
+    given = re.sub(r"\(.*?\)", "", answer.splitlines()[0]).strip().rstrip(".;") if answer else ""
+    if not blank or "đơn vị" not in text.lower() or given not in UNITS:
+        return []
+    if "diện tích" in text.lower() and UNITS[given][0] != "area":
+        return [Finding("UNIT", False, f"{given} không phải đơn vị diện tích")]
+    group = re.search(rf"\(([^()]*(?:{_AREA_UNIT})[^()]*)\)", text)
+    offered = re.findall(rf"(?<![\w²])({_AREA_UNIT})(?![\w²])", group.group(1)) if group else []
+    if len(offered) >= 2 and given not in offered:
+        return [Finding("UNIT", False, f"{given} không nằm trong {', '.join(offered)}")]
+    if UNITS[given][0] != "area" or not re.search(r"tam giác|hình thang", stem, re.IGNORECASE):
+        return []
+    lengths = {k: evaluate(v) for k, v in _area_terms(stem).items()}
+    a, b, h = (lengths.get(k) for k in ("a", "b", "h"))
+    trapezoid = "hình thang" in stem.lower()
+    if a is None or h is None or (trapezoid and b is None) or (b is not None and not trapezoid):
+        return []
+    printed = number(blank.group(1))
+    if printed is None:
+        return []
+    area = Quantity(printed * UNITS[given][1], "area", given)
+    expected = (a.value + (b.value if b else 0)) * h.value / 2
+    return _compare(expected, area, [a, h] + ([b] if b else []), squared=True)
+
+
 def check_choice(options: dict[str, str], answer: str) -> list[Finding]:
     """A multiple-choice answer names an option; the value it repeats is that option's."""
     m = re.match(r"\s*([A-D])\b", answer)
@@ -662,6 +735,8 @@ def check_item(
 ) -> list[Finding]:
     """Every check that applies to this question and its answer."""
     findings: list[Finding] = []
+    stem, answer, context, question = (normalize_units(t) for t in (stem, answer, context, question))
+    options = {k: normalize_units(v) for k, v in options.items()} if options else options
     stem = " ".join(stem.split())
     context = " ".join(context.split())
     findings += check_relations(answer)
@@ -696,6 +771,7 @@ def check_item(
     findings += check_digit_x(stem, answer)
     if "diện tích" in f"{context} {stem}".lower() or re.search(r"\bS\s*=", stem):
         findings += check_area(stem, answer, context)
+    findings += check_unit_choice(stem, answer, context)
     if findings and all(f.ok for f in findings):  # an answer the other checks verified
         # What a check computed (a relation or a comparison only repeats the answer's own numbers), and the
         # value the answer gives when a computing check confirmed it.

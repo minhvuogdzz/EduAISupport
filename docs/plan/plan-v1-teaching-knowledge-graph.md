@@ -492,6 +492,58 @@ Chạy song song từ Mốc 1:
 
   - **Đọc kết quả:** phần lớn lời vẫn là câu mẫu, vì phần lớn lượt rơi vào các nước đi chỉ dùng câu mẫu (mở câu, khen đúng, hỏi "gợi ý hay tự thử") và lời giảng bài của vòng dạy (`teaching/loop.py`). Hai phần này nằm ngoài REFORM-1. Mẫu nhỏ: một buổi, một con mô phỏng **[cần kiểm tra]**.
   - **Còn mở:** số lần gọi của buổi học (`llm_calls`) không về 0 khi con học tiếp buổi cũ vào ngày khác. "0/7 bài" trong bằng chứng là do buổi học bắt đầu ngày 07/10 với bản chương `0.1.1`, trước khi kế hoạch được phát hành ngày 19/10; buổi học giữ bản lúc bắt đầu để dựng lại được. Đây không phải race. Race của `load_published` có thật trong code và đã được sửa.
+- **DI-72, bộ kiểm gợi ý soạn từ tài liệu (REFORM-3, 4.2, `draft-hints.v2.md`, `ingest/drafting.py`, 2026-10-26):**
+  - **Vấn đề:** trang duyệt phương án hiện hàng loạt H1 sáo rỗng ("Con đã đọc đề và nhận ra ..., đúng không?", "Đề bài yêu cầu con làm gì?") và nhiều H2, H3 "chưa có". Đọc lại bản soạn đã lưu (phát lại từ bộ đệm đĩa, bộ nhớ, 0 lần gọi, không ghi `cavat_dev`): 450 gợi ý được nhận ở Số thập phân, 329 ở Diện tích; trong 277 H1 được nhận, 92 (33%) là câu sáo rỗng. Lý do loại: `NEW_MATH_TERM` 136 + 39, `UNGROUNDED_NUMBER` 77 + 3, `MISSING_QUESTION` 60 + 63, `MULTIPLE_QUESTIONS` 25, `EMPTY` 21, `ANSWER_LEAK` 2. Phần lớn `NEW_MATH_TERM` là tên gọi của lớp 5 mà đề không in ("dấu phẩy", "phần nguyên", "độ dài", "mét"); `UNGROUNDED_NUMBER` nhiều nhất là 10 và 1000 (16 và 15 lần), rồi mẫu số, tử số của phân số đề đã in.
+  - **Prompt v2:** H1 hỏi thẳng vào dữ kiện đầu tiên của đề; H2 nối dữ kiện với quy tắc; H3 chỉ một phép tính hay bước biến đổi, không nêu kết quả cuối. Liệt kê các câu sáo rỗng bị cấm, hai ví dụ trên đề giả, một đoạn riêng cho câu Đúng/Sai (mẫu thử đầu cho thấy gợi ý hỏi như thể khẳng định sai là đúng). Prompt lớn nhất của một lô 6 câu: 2.234 token ước lượng (trần 3.000).
+  - **Bộ kiểm:**
+    - `NEW_MATH_TERM` chỉ còn cho từ chỉ bước (cộng, trừ, nhân, chia, gấp, làm tròn, tổng, hiệu, tích, thương): nói "nhân với 100" là dạy một cách làm mà tiết có thể không dạy. Dấu của công thức (+, ×...) đưa theo cả tên kết quả (tổng, tích).
+    - `UNGROUNDED_NUMBER`: 10, 100, 1000 tự do trong câu về số thập phân và phân số, 2 tự do trong câu về diện tích; tử số và mẫu số của phân số đề in cũng có căn cứ (validator đọc "7/10" là một số).
+    - **Đáp án không bao giờ tự do** (`ANSWER_LEAK`): số của đáp án số mà đề không in (mẫu số 100 của 2/100, kết quả), dù bài khác trong tiết có in số đó; với câu Đúng/Sai, chữ "Đ", "S" hay lời "câu này đúng". Validator của gia sư không thấy hai trường hợp này.
+    - `GENERIC`: câu hỏi về bài thay vì về dữ kiện ("Đề bài yêu cầu con làm gì?", "con hiểu yêu cầu chưa?"); riêng H1 còn bác câu kết bằng "đúng không?".
+    - Lần viết lại nhắc giữ dấu hỏi và gọi tên lỗi lộ một phần đáp án.
+  - **Ngưỡng là DI** vì hai khung đánh giá không nói gì về gợi ý do model soạn: danh sách từ chỉ bước, ba hằng 10/100/1000 và 2, mẫu câu sáo rỗng, và việc một số của đáp án không được nói.
+  - **Đo với Qwen thật** (mẫu 36 câu không đọc trước, 18 mỗi chương, chọn theo băm mã câu; lượt đầu, mỗi ô cùng một chính sách; bộ nhớ, không ghi gì):
+
+    | | Bộ kiểm cũ | Bộ kiểm mới |
+    |---|---|---|
+    | Prompt v1 (câu đã lưu) | 14/36 câu đủ H1–H3, 76/108 gợi ý | 12/36, 70/108 |
+    | Prompt v2 | 22/36, 89/108 | **30/36, 102/108** |
+
+    - Cả hai thay đổi đều cần: bộ kiểm mới một mình không giúp vì H1 sáo rỗng và thiếu dấu hỏi vẫn bị loại; prompt mới một mình không giúp vì bộ kiểm cũ loại 15 gợi ý vì từ vựng lớp 5.
+    - Thêm một lần viết lại: 32/36 câu đủ ba bậc, 104/108 gợi ý. Bản cô đang thấy (v1, bộ kiểm cũ, có viết lại) trên cùng 36 câu: 29/36, 101/108, nhưng 15/36 H1 là câu sáo rỗng (v2: 0/36), và 90/108 gợi ý có đúng một dấu hỏi cuối (v2: 108/108).
+    - Phát lại cả hai chương bằng câu v1 đã lưu với bộ kiểm mới (lượt đầu): số câu đủ ba bậc 48 → 51 (Số thập phân, 184 câu), 65 → 55 (Diện tích, 118 câu); `NEW_MATH_TERM` 97 → 30 và 28 → 3; 60 + 35 gợi ý sáo rỗng bị loại; bộ kiểm lộ đáp án mới loại thêm 11 gợi ý ở Số thập phân và không loại thêm gợi ý nào ở Diện tích.
+    - Bốn gợi ý đang có trong bản soạn cũ nói ra mẫu số hay cả đáp án và bộ kiểm mới sẽ loại: `STP-BT-02b:H2`, `STP-BT-02d:H2`, `STP-PH01-4:H2`, `STP-PH02-6:H3` (câu cuối đã bị bác bằng quyết định ủy quyền ngày 12/10).
+  - **Giới hạn:** mỗi mẫu 36 câu, một lần chạy, nhiệt độ 0,2, một phần gợi ý do `gpt-oss-120b` viết khi Qwen hết hạn mức. Prompt đổi một lần sau mẫu thứ nhất; bộ kiểm lộ đáp án và lần viết lại chỉnh sau khi đọc mẫu thứ hai, nên mẫu thứ hai chưa phải mẫu giữ riêng cho hai chỗ đó. Không bộ kiểm nào chấm được Toán của một gợi ý: trong hai mẫu có một bước sai (`STP-PH07-7`: thêm số 0 vào cuối), một gợi ý đổi đơn vị sai chiều (`DTTGHT-PH07-6`) và một H2 nói sang đơn vị đề không dùng (`STP-PH08-2`), nên giáo viên đọc vẫn là cổng cuối. Câu đổi số thập phân sang phân số (`STP-BT-02c`, `STP-BT-02d`, `STP-PH01-4`, `STP-PH01-6`): model hai lần liền nói ra mẫu số, bộ kiểm loại, H3 để giáo viên viết.
+- **DI-73, đơn vị diện tích trong bộ kiểm đáp án và trang duyệt (REFORM-3, 4.3, `ingest/verify.py`, `ingest/review.py`, 2026-10-26):**
+  - **Đọc lại ba lỗi của kế hoạch cải tổ trên bản sao trong bộ nhớ (kế hoạch đoán sai hai trong ba nguyên nhân):**
+    - `STP-BT-02a`, `STP-BT-02b`, `STP-PH01-3` báo "mâu thuẫn" là **kết luận đúng** của bộ kiểm. Bảng đáp án đọc nhầm phân số (hai lần đọc của Gemini không khớp ở `6/100`, `9/10`, `9/100`) và phiếu mất tử số của phân số (đề còn "10 = ……"). Chủ dự án ủy quyền đã sửa bằng quyết định (đáp án, đề) và các câu được dạy với bản sửa, nhưng trang duyệt vẫn đọc kết luận của tài liệu trong ngân hàng câu: nhãn đỏ và "Bộ kiểm: 0,9 = 7/10" nằm cạnh đáp án đã sửa. Cắt ý a), b), c), d) không sai (có test).
+    - `DTTGHT-BT-10a`, `10b`, `10c` "chưa kiểm được" vì câu chọn đơn vị không có gì để tính, và nằm ở "Câu chưa được dạy" vì giáo án không có tiết nào làm câu 10, không phải vì bộ kiểm.
+    - Dòng nguồn lặp: mỗi hộp ví dụ là một mục riêng khi gán cho tiết nên một mục có nhiều ví dụ cùng trang tên trang đó nhiều lần (`DTTGHT-T04`: 3 lần, `STP-T11`: 2 lần). Danh sách dài ở `DTTGHT-T01` trong PDF không có trong bản lưu (2 dòng); các dòng đó giống dòng của `DTTGHT-T04` và `DTTGHT-T08`, nhiều khả năng do `<li key={s}>` của trang duyệt (`PlanReviewPage.tsx`) giữ lại dòng của tiết khác khi hai dòng trùng khóa.
+  - **Thay đổi:**
+    - Trang duyệt tính kết luận trên đề và đáp án cô đã viết (`item_as_taught`): trạng thái `TEACHER`, chỉ hiện kiểm chứng còn sai. Ngân hàng câu vẫn giữ kết luận của tài liệu.
+    - `plan.sources` mỗi nguồn một dòng.
+    - Đơn vị diện tích viết "cm2", "cm^2", "xăng-ti-mét vuông", "héc-ta" được đọc như "cm²", "ha". Không chuẩn hóa "cm 2" hay "cm vuông": đó là số thứ tự câu sau số đo, hay "vuông góc". Trước đây "1500 cm2" đúng bị báo mâu thuẫn và "15 cm2" sai được duyệt.
+    - Câu chọn đơn vị (`check_unit_choice`): đáp án phải là đơn vị diện tích trong các đơn vị đề đưa; nếu đề cho độ dài đủ tính (đáy, chiều cao của tam giác hay hình thang) thì số in trong đề phải đúng bằng diện tích đó theo đơn vị của đáp án. Con tem, sân trường: chỉ đời thực chọn được, bộ kiểm không nói gì và câu vẫn "chưa kiểm được" (không "xanh giả").
+  - **Đo** (dựng lại trong bộ nhớ từ bản sao tài liệu, so với ngân hàng đang lưu):
+
+    | | Số thập phân (234 câu) | Diện tích (155 câu) |
+    |---|---|---|
+    | Đã kiểm | 224 → 224 | 125 → **126** |
+    | Xem lại lời giải | 3 → 3 | 1 → 1 |
+    | Mâu thuẫn / số đọc chưa chắc | 2 + 1 → 2 + 1 | 0 → 0 |
+    | Chưa kiểm được | 4 → 4 | 29 → **28** |
+
+    Chỉ `DTTGHT-BT-10b` đổi (6 dm × 5 dm : 2 = 15 dm²). Trang duyệt của Số thập phân: câu đỏ 3 → 0, 23 câu hiện "cô đã sửa". Tài liệu hiện có không viết "cm2" nên chuẩn hóa không đổi câu nào; test chứng minh nó chặn kiểu duyệt nhầm.
+- **DI-74, duyệt và bác một gợi ý là duyệt và bác chữ cô đã đọc (REFORM-3b, `ingest/review.py`, 2026-10-26):**
+  - **Vấn đề:** quyết định `hint:<câu>:H<bậc>` gắn với câu và bậc, không gắn với chữ. Khi Qwen soạn lại câu và nói điều khác, lời duyệt cũ hiện "đã duyệt" trên gợi ý chưa ai đọc, và lời bác cũ lặng lẽ bỏ gợi ý mới cùng bậc. Đo trên bản sao quyết định đã lưu (đọc `cavat_dev`, không ghi): 793 quyết định (Số thập phân 410 duyệt + 50 bác, Diện tích 302 + 31). Dựng lại bằng bộ đệm hiện có (không soạn lại), 13 gợi ý đang bị bỏ vì lời bác của một gợi ý **khác** cùng bậc: `STP-BT-13:H2`, `STP-BT-13:H3`, `STP-BT-29:H1`, `STP-BT-34:H1`, `STP-PH05-7:H3`, `STP-PH05-8:H1`, `STP-PH05-8:H3`, `DTTGHT-BT-09a:H2`, `DTTGHT-BT-09b:H2`, `DTTGHT-BT-09c:H2`, `DTTGHT-BT-09c:H3`, `DTTGHT-BT-30b:H3`, `DTTGHT-PH01-7:H2`. Năm chỗ "H2/H3 chưa có" ở `DTTGHT-T01` trong PDF trang duyệt (09a, 09b, 09c hai bậc, PH01-7) là loại này, không do bộ kiểm.
+  - **Luật:**
+    - Lời duyệt hay bác chỉ tính cho chữ của gợi ý lúc cô quyết định (so sau khi bỏ khoảng trắng thừa).
+    - `decide_many` ghi thêm `text`: chữ đi kèm trong `value` nếu có, không thì gợi ý mà bản đã lưu đang hiện.
+    - Quyết định cũ được ghi `text` ở lần dựng lại kế tiếp, **trước** khi bản soạn mới thay chữ: lấy từ `value` (lời duyệt: 698 trong 712 có), từ "[Nội dung: …]" trong lý do (lời bác: 81 trong 81), còn lại từ gợi ý đang hiện hoặc bản soạn gần nhất. Vì vậy phải gộp thay đổi này trước khi chạy `make draft-teaching`.
+    - Lời duyệt không nêu chữ nào (14, đều ở bậc không còn gợi ý) không duyệt gì cả. Lời bác không nêu chữ nào vẫn bỏ gợi ý đang có, như trước.
+    - Sửa gợi ý (`edit`) là chữ của cô nên ở lại qua các lần soạn lại.
+  - **Trang duyệt** chỉ hiện quyết định còn tính (`effective_decisions`): lời duyệt trên chữ không còn thì trang lại hiện nút "Duyệt". Bản lưu giữ mọi quyết định, là bằng chứng duyệt.
+  - **Còn lại:** duyệt cả tiết (`node:<id>`) không gắn với chữ của gợi ý, và gợi ý chưa duyệt vẫn vào bản phát hành, như trước; bấm "Duyệt" trên gợi ý đã sửa tay vẫn thay quyết định sửa bằng quyết định duyệt (mỗi gợi ý một khóa).
 - **DI-66, gia sư của từng câu đọc Student Model (PRIOR-1, 2026-10-22):**
   - **Vấn đề:** blueprint 05 và 25.3 cho chính sách đọc snapshot của Student Model ("đóng băng đầu session, cập nhật cục bộ trong session") cho R-STRONG-PRIOR và R-WEAK-PRIOR. Nhưng buổi học chưa bao giờ truyền snapshot cho gia sư của từng câu, nên cả hai luật [FACT] này chưa từng chạy trong buổi học.
   - **Thay đổi:** khi mở một câu, buổi học dựng `StudentSnapshot` từ projection của các sự kiện tính tới quyết định mở câu, gồm cả các buổi trước:

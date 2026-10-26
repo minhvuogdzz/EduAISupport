@@ -198,6 +198,7 @@ describe("parent pages (PART 27.1)", () => {
       auth: {
         config: () => Promise.resolve({ mode: "accounts", accounts: [] }),
         login: () => Promise.resolve(parent),
+        register: () => Promise.resolve(parent),
         me: () => Promise.resolve(parent),
         switchTo: () => true,
         logout: () => undefined,

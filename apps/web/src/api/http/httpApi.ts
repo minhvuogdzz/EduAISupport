@@ -132,6 +132,15 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
     }
   }
 
+  /** Keeps a login: the asked role is current, and a child's login also keeps the parent's token. */
+  function keep(result: { token: string; user: AuthUser; parent_token?: string | null }): AuthUser {
+    tokens = { ...tokens, [result.user.kind]: result.token };
+    if (result.parent_token) tokens.PARENT = result.parent_token;
+    current = result.user.kind;
+    store();
+    return result.user;
+  }
+
   function token(): string | null {
     return current ? (tokens[current] ?? null) : null;
   }
@@ -298,20 +307,23 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       config() {
         return request<AuthConfig>("GET", "/v1/auth/config", {});
       },
-      async login(loginName, pin) {
-        const result = await request<{ token: string; user: AuthUser }>(
+      async login(loginName, pin, role) {
+        const result = await request<{ token: string; user: AuthUser; parent_token?: string | null }>(
           "POST",
           "/v1/auth/login",
           {},
-          {
-            login_name: loginName,
-            pin,
-          },
+          { login_name: loginName, pin, role },
         );
-        tokens = { ...tokens, [result.user.kind]: result.token };
-        current = result.user.kind;
-        store();
-        return result.user;
+        return keep(result);
+      },
+      async register(username, passcode) {
+        const result = await request<{ token: string; user: AuthUser; parent_token?: string | null }>(
+          "POST",
+          "/v1/auth/student/register",
+          {},
+          { username, passcode },
+        );
+        return keep(result);
       },
       me() {
         const current = token();
@@ -325,7 +337,15 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
         return true;
       },
       logout() {
-        if (current) tokens = Object.fromEntries(Object.entries(tokens).filter(([kind]) => kind !== current));
+        // A child's account is also the parent's: leaving one leaves both.
+        const child = current === "STUDENT" || current === "PARENT";
+        if (current) {
+          tokens = Object.fromEntries(
+            Object.entries(tokens).filter(
+              ([kind]) => kind !== current && !(child && (kind === "STUDENT" || kind === "PARENT")),
+            ),
+          );
+        }
         current = null;
         store();
       },
