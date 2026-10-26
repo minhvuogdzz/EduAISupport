@@ -56,6 +56,7 @@ from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, A
 from cavat.modules.assessment.math_terms import terms_in, terms_missing
 from cavat.modules.assessment.student_intent import asks_question, expand_short_forms
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
+from cavat.modules.content.chapter_package import Node
 from cavat.modules.rag.bm25 import FILLER, content_words
 from cavat.modules.rag.retrieve import RagIndex, Retrieval
 from cavat.modules.teaching.meaning import meaning_request, verified_ideas
@@ -85,6 +86,30 @@ ANSWER_PASSAGES, ANSWER_CHARS = 3, 1200  # what Qwen reads for an answer (the pr
 EXTRACT_COVERAGE = 0.5  # DI-40: idf-weighted share of the question an extracted sentence must cover
 MAX_RETEACH_WORDS = 50  # DI-82, DI-84: two or three short sentences
 MAX_TEACH_WORDS = 70  # DI-84: answer the child, then the idea again with another example
+MAX_LECTURE_WORDS = 90  # DI-84: the theory of a node in the tutor's words, before the approved question
+LECTURE_COPY_RUN = 14  # a definition may be said as it stands; a whole paragraph read out may not
+MAX_INVITE_WORDS = 45
+MAX_CHAT_WORDS = 35
+LECTURE_TASK = (
+    "Dạy con ý trong căn cứ như đang nói chuyện: bằng lời đơn giản, đúng thuật ngữ của bài, có thể thêm "
+    "MỘT ví dụ nhỏ với số khác. Không đặt câu hỏi (cô sẽ hỏi câu hỏi của bài ngay sau lời này), không đọc "
+    "nguyên văn cả đoạn căn cứ."
+)
+INVITE_TASK = (
+    "Mời con tự nói lại ý chính của phần vừa học bằng lời của con, thật tự nhiên và hợp với việc con vừa làm "
+    "(xem hội thoại: nhắc tới điều con vừa làm được hoặc vừa hỏi). Hỏi vào ý của bài. Đúng MỘT câu hỏi, "
+    "ở cuối; "
+    "không đọc mục tiêu bài học."
+)
+CHAT_TASK = (
+    "Con nói chuyện ngoài bài. Đáp ngắn, thật thà như người (điều cô không biết hay không xem được thì nói "
+    "vậy, không bịa), rồi rủ con quay lại bước đang làm. Không đặt câu hỏi (cô sẽ hỏi lại câu đang chờ ngay "
+    "sau lời này), không đọc lại quy tắc."
+)
+ANOTHER_WAY_TASK = (
+    "Con muốn cô hỏi cái khác / hỏi cách khác. Đồng ý ngay, rồi hỏi lại CÙNG ý của câu đã hỏi bằng cách khác "
+    "hoặc với ví dụ khác. Đúng MỘT câu hỏi, ở cuối; không nêu đáp án."
+)
 RETEACH_TASK = (
     "Con chưa trả lời được câu cô hỏi. Nói lại ý của căn cứ ngắn hơn, bằng lời đơn giản hơn, có thể bằng MỘT "
     "ví dụ khác với bài. Không nói đáp án của câu đã hỏi, không đọc lại nguyên văn căn cứ, không đặt câu hỏi "
@@ -319,9 +344,17 @@ def teach_pack(
 
 
 def teach_codes(
-    text: str, pack: BrainPack, judged: str, student_address: str = "con", limit: int = MAX_TEACH_WORDS
+    text: str,
+    pack: BrainPack,
+    judged: str,
+    student_address: str = "con",
+    limit: int = MAX_TEACH_WORDS,
+    *,
+    question: str = "none",
+    copy_run: int = brain.COPY_RUN_WORDS,
 ) -> tuple[str, ...]:
-    """Why a turn that teaches again may not be said (empty: it may)."""
+    """Why a turn of the teaching loop may not be said (empty: it may). ``question``: "none" when the loop
+    asks the question itself after these words, "one" when the words end with the one question."""
     if not text:
         return ("EMPTY",)
     lowered = normalize_text(text)
@@ -330,8 +363,11 @@ def teach_codes(
         found.append("FOREIGN_TEXT")
     if wrong_address(text, student_address):
         found.append("WRONG_ADDRESS")
-    if "?" in text:
+    asked = text.count("?")
+    if question == "none" and asked:
         found.append("HAS_QUESTION")  # the loop asks the question again after these words
+    if question == "one" and (asked > 1 or not text.rstrip().endswith("?")):
+        found.append("MULTIPLE_QUESTIONS" if asked > 1 else "MISSING_QUESTION")
     if len(text.split()) > limit:
         found.append("TOO_LONG")
     if any(re.search(p, lowered) for p in PII_PATTERNS):
@@ -340,7 +376,7 @@ def teach_codes(
         found.append("INTELLIGENCE_PRAISE")
     if judged != "đúng" and any(p in lowered for p in _PRAISE_RIGHT):
         found.append("WRONG_PRAISE")
-    found += brain.speech_codes(text, pack, rephrase=True)
+    found += brain.speech_codes(text, pack, rephrase=True, copy_run=copy_run)
     return tuple(dict.fromkeys(found))
 
 
@@ -582,6 +618,118 @@ class GroundedSpeaker:
         if out.text is None:
             return Spoken(fallback.text, "TEMPLATE", (), out.rejected, out.flagged, ())
         return Spoken(out.text, "LLM", (), out.rejected, out.flagged, ())
+
+    # ------------------------------------------------------------------ BRAIN-1: the teaching loop speaks
+
+    def _say(self, pack: BrainPack, codes: Callable[[str], tuple[str, ...]]) -> Spoken:
+        """One turn of the brain for the teaching loop. ``Spoken.text`` is empty when no model could write it
+        (no gateway, quota, the call budget, refused twice): the caller says the approved words, and the
+        refusals stay in ``rejected`` for the teacher."""
+        if self.router is None or not self._may_bridge():
+            return Spoken("", "TEMPLATE")
+        out = brain.speak(self.router, pack, codes, calls_used=self.calls_used + self.calls_made)
+        self.calls_made += out.calls
+        if out.text is None:
+            return Spoken("", "TEMPLATE", (), out.rejected, out.flagged, ())
+        return Spoken(out.text, "LLM", (), out.rejected, out.flagged, ())
+
+    def _pack(self, task: str, question: str, **fields: Any) -> BrainPack:
+        recent = fields.pop("recent", ())
+        return BrainPack(
+            task=task,
+            question=question,
+            recent=tuple(Turn(role, text) for role, text in recent),
+            tutor_self=self.t,
+            student_address=self.s,
+            name=self.name,
+            **fields,
+        )
+
+    def lecture(
+        self, ground: str, *, ask: str, node_name: str, rule: str = "", recent: Sequence[tuple[str, str]] = ()
+    ) -> Spoken:
+        """The theory of a node in the tutor's own words (BRAIN-1): the approved text is the ground, the
+        approved question follows it word for word (the loop adds it: what the child answers is judged
+        against it)."""
+        pack = self._pack(
+            LECTURE_TASK,
+            ask,
+            lesson=node_name,
+            recent=recent,
+            grounds=tuple(g for g in (ground, rule) if g),
+            max_words=MAX_LECTURE_WORDS,
+        )
+
+        def codes(text: str) -> tuple[str, ...]:
+            found = list(
+                teach_codes(text, pack, "chưa rõ", self.s, MAX_LECTURE_WORDS, copy_run=LECTURE_COPY_RUN)
+            )
+            if terms_in(ground) and len(terms_missing(terms_in(ground), [text])) == len(terms_in(ground)):
+                found.append("KEY_IDEA_MISSING")  # none of the lesson's terms: it is about something else
+            return tuple(dict.fromkeys(found))
+
+        return self._say(pack, codes)
+
+    def invite_retell(self, node: Node, *, prompt: str, recent: Sequence[tuple[str, str]] = ()) -> Spoken:
+        """The invitation to say the idea back, written for what the child has just done (BRAIN-1); the
+        teacher's own sentence ``prompt`` is the idea of the question and the fallback."""
+        pack = self._pack(
+            INVITE_TASK,
+            prompt,
+            lesson=node.name,
+            recent=recent,
+            grounds=tuple(g for g in (brain.child_voice(node.description, self.s), node.method.rule) if g),
+            max_words=MAX_INVITE_WORDS,
+        )
+        wanted = {fold(w) for w in content_words(f"{node.name} {prompt}")}
+
+        def codes(text: str) -> tuple[str, ...]:
+            found = list(teach_codes(text, pack, "chưa rõ", self.s, MAX_INVITE_WORDS, question="one"))
+            if wanted and not wanted & {fold(w) for w in content_words(text)}:
+                found.append("OFF_TARGET")  # an invitation about something else than this lesson
+            return tuple(dict.fromkeys(found))
+
+        return self._say(pack, codes)
+
+    def chat(self, student_text: str, *, asked: str, recent: Sequence[tuple[str, str]] = ()) -> Spoken:
+        """A child who talks about something else ("mấy giờ rồi"): a short human answer and the way back to
+        the step. No question and no rule read out: the loop asks the waiting question after these words."""
+        pack = self._pack(
+            CHAT_TASK,
+            asked,
+            student_text=student_text,
+            verdict="Con nói chuyện ngoài bài.",
+            recent=recent,
+            max_words=MAX_CHAT_WORDS,
+        )
+        return self._say(pack, lambda t: teach_codes(t, pack, "chưa rõ", self.s, MAX_CHAT_WORDS))
+
+    def ask_another_way(
+        self, student_text: str, *, asked: str, node_name: str, recent: Sequence[tuple[str, str]] = ()
+    ) -> Spoken:
+        """A child who wants another question ("hỏi cái khác mà"): yes at once, then the same idea asked in
+        another way or with another example, ending with one question."""
+        pack = self._pack(
+            ANOTHER_WAY_TASK,
+            asked,
+            student_text=student_text,
+            verdict="Con muốn cô hỏi cách khác.",
+            lesson=node_name,
+            recent=[*recent, ("tutor", asked)],
+            grounds=(asked,),
+            max_words=MAX_INVITE_WORDS,
+        )
+        wanted = {fold(w) for w in content_words(f"{node_name} {asked}")}
+
+        def codes(text: str) -> tuple[str, ...]:
+            found = list(
+                teach_codes(text, pack, "chưa rõ", self.s, MAX_INVITE_WORDS, question="one", copy_run=6)
+            )
+            if wanted and not wanted & {fold(w) for w in content_words(text)}:
+                found.append("OFF_TARGET")
+            return tuple(dict.fromkeys(found))
+
+        return self._say(pack, codes)
 
     # ------------------------------------------------------------------ meaning and teaching again
 

@@ -243,6 +243,15 @@ _OFF_TOPIC_RE = phrase_regex(
         "con mèo",
         "con chó",
         "thời tiết",
+        "mấy giờ",
+        "bây giờ là mấy",
+        "hôm nay thứ",
+        "hôm nay ngày",
+        "bao giờ nghỉ",
+        "bao giờ hết giờ",
+        "buồn ngủ",
+        "đi vệ sinh",
+        "uống nước",
         "trời mưa",
         "trời nắng",
         "điện thoại",
@@ -573,6 +582,31 @@ def signals_distress(text: str) -> bool:
 
 
 _ASK_HINT_RE = phrase_regex(["gợi ý", "giúp con", "giúp em", "giúp với"])
+
+
+# BRAIN-1: "hỏi cái khác mà", "đổi câu khác đi": the child wants the question asked another way (not a
+# wrong answer, not "con không biết").
+_OTHER_QUESTION_RE = phrase_regex(
+    [
+        "hỏi cái khác",
+        "hỏi câu khác",
+        "hỏi khác đi",
+        "hỏi cách khác",
+        "hỏi lại cách khác",
+        "đổi câu",
+        "đổi cái khác",
+        "câu khác đi",
+        "cái khác đi",
+        "cái khác mà",
+        "câu khác mà",
+        "cô hỏi khác",
+    ]
+)
+
+
+def wants_other_question(text: str) -> bool:
+    """The child asks the tutor to ask something else or ask it another way."""
+    return bool(_OTHER_QUESTION_RE.search(expand_short_forms(text)))
 
 
 def asks_for_hint(text: str) -> bool:

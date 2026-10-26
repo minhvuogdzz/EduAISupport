@@ -254,14 +254,31 @@ def counter_example(
     return usable[shown % len(usable)] if usable else None
 
 
+_FIGURE = re.compile(r"\[Hình[^\]]*\]\s*", re.IGNORECASE)
+LONG_STEM_WORDS = 40
+
+
+def visible_stem(stem: str) -> str:
+    """BRAIN-1: what a child is shown when the tutor asks the item again. The text description of a figure
+    ("[Hình: Tam giác ABC nhọn, đường cao AH…]") is for the reader of the plan, not for the child, and a long
+    stem is not printed again whole: only its last sentence, the question."""
+    text = " ".join(_FIGURE.sub("", stem).split())
+    if len(text.split()) <= LONG_STEM_WORDS:
+        return text
+    sentences = [s for s in _SENTENCE_END.split(text) if s.strip()]
+    asked = [s for s in sentences if s.rstrip().endswith("?")]
+    return (asked or sentences)[-1]
+
+
 def _ask_item(ctx: RenderContext) -> tuple[str, str]:
     """The item restated as one question: the rephrase if any, else the stem plus an invitation."""
     item = ctx.item
     if item.rephrase:
         return item.rephrase, f"{item.id}:REPHRASE"
-    if "?" in item.stem:
-        return item.stem, f"{item.id}:STEM"
-    return f"{item.stem.rstrip(' .')}. {_say(ctx, 'try_it')}", f"{item.id}:STEM"
+    stem = visible_stem(item.stem)
+    if "?" in stem:
+        return stem, f"{item.id}:STEM"
+    return f"{stem.rstrip(' .')}. {_say(ctx, 'try_it')}", f"{item.id}:STEM"
 
 
 def _present(ctx: RenderContext) -> RenderedMessage:

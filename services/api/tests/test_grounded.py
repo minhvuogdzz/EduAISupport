@@ -19,6 +19,7 @@ from cavat.modules.session import chapter_service, service
 from cavat.modules.session.api import get_database
 from cavat.modules.teaching.grounded import Evidence, GroundedSpeaker, check
 from cavat.modules.teaching.loop import Awaiting, MessageKind, TeachingLoop
+from cavat.modules.tutor import brain
 from fastapi.testclient import TestClient
 
 NOW = datetime(2026, 10, 7, 9, 0, tzinfo=UTC)
@@ -263,9 +264,10 @@ def test_a_bridge_never_praises_a_wrong_answer_nor_reads_the_reply_out(index, br
 
 
 def loop_at_theory(speaker) -> tuple[TeachingLoop, object]:
-    loop = TeachingLoop(CHAPTER, "s1", speaker=speaker)
+    loop = TeachingLoop(CHAPTER, "s1")  # the approved theory opens it; the model joins for the replies
     turn = loop.start(NOW)
     assert turn.awaiting == Awaiting.THEORY_REPLY
+    loop.speaker = speaker
     return loop, turn
 
 
@@ -476,7 +478,8 @@ def test_a_retell_the_child_cannot_give_gets_a_bridge_then_the_main_idea(index):
     feedback = loop.on_student("con không nhớ ạ", NOW).messages[0]
     assert feedback.source == "LLM"
     assert feedback.text == "Con nói con chưa nhớ, không sao đâu nhé."
-    assert FRAC.description in loop.speaker.router.user_text()
+    goal = brain.child_voice(FRAC.description)  # the plan's goal, said to the child
+    assert any(goal in r.messages[1].content for r in loop.speaker.router.requests)
 
 
 # --- REFORM-1b: what a lead may and may not say -------------------------------------------------------------

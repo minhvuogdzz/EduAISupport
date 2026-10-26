@@ -64,12 +64,16 @@ MAX_PROMPT_TOKENS_BRAIN = 3000
 COPY_RUN_WORDS = 9  # DI-84: a run of words from the approved ground, as it stands, is reading it out
 REPEAT_SIMILARITY = 0.8
 
+FIGURE_TEXT = "FIGURE_TEXT"
+TEACHER_VOICE = "TEACHER_VOICE"
 OFF_TARGET = "OFF_TARGET"
 WRONG_MATH = "WRONG_MATH"
 COPIES_GROUND = "COPIES_GROUND"
 REPEATS_PREVIOUS = "REPEATS_PREVIOUS"
 
 CODE_NOTES: dict[str, str] = {
+    FIGURE_TEXT: 'đọc ra mô tả hình "[Hình: …]": chỉ nhắc câu hỏi chính',
+    TEACHER_VOICE: 'đọc lời viết cho giáo viên ("Bé nhận ra…", "Học sinh biết…"): nói với con bằng cô–con',
     OFF_TARGET: "câu hỏi không nhắc tới điều con vừa viết: hỏi vào đúng con số hoặc bước con đã viết",
     WRONG_MATH: "có phép tính hoặc so sánh sai",
     COPIES_GROUND: "đang đọc lại nguyên văn căn cứ: nói lại bằng lời khác, đổi ví dụ",
@@ -303,22 +307,61 @@ def _similar(a: str, b: str) -> float:
     return len(x & y) / len(x | y) if x | y else 0.0
 
 
+# BRAIN-1 (DI-84): the lesson plan's goals and the teacher's notes speak of the child in the third person ("Bé
+# nhận ra 3/10 viết được thành 0,3."). They are for the teacher: the child hears the tutor, who says "con".
+_THIRD_PERSON = re.compile(
+    r"(?:^|[.!?:;]\s+)(?:bé|học sinh|hs|các em|em)\s+(?:cần\s+|có thể\s+|sẽ\s+|biết\s+)?"
+    r"(?:nhận ra|nhận biết|biết|hiểu|đọc|viết|so sánh|thực hiện|vận dụng|giải|nêu|trình bày|phân biệt|nắm|"
+    r"tính|chuyển|xác định|làm quen|bước đầu)\b"
+)
+_GOAL_WORDS = re.compile(r"yêu cầu cần đạt|mục tiêu (?:bài|tiết|học tập)|chuẩn kiến thức")
+_SUBJECT = re.compile(r"(^|[.!?:;]\s+)(?:Bé|Học sinh|HS|Các em)\s+", re.UNICODE)
+
+
+def teacher_voice(text: str) -> str | None:
+    """A sentence written for the teacher that the text would read out to the child, if any."""
+    lowered = normalize_text(text)
+    found = _THIRD_PERSON.search(lowered) or _GOAL_WORDS.search(lowered)
+    return found.group(0).strip(" .!?:;") if found else None
+
+
+def child_voice(text: str, address: str = "con") -> str:
+    """The same words with the child spoken to ("Bé nhận ra…" becomes "con nhận ra…"). A fallback for a goal
+    of the lesson plan when no model can word it; the model's own turns are refused by ``TEACHER_VOICE``."""
+
+    def swap(m: re.Match[str]) -> str:
+        before = m.group(1)
+        starts = not before.strip() or before.strip()[-1] in ".!?"
+        return f"{before}{address.capitalize() if starts else address} "
+
+    return _SUBJECT.sub(swap, " ".join(text.split()))
+
+
 def repeats(text: str, recent: Sequence[Turn]) -> bool:
     return any(t.role == "tutor" and _similar(text, t.text) >= REPEAT_SIMILARITY for t in recent)
 
 
 def speech_codes(
-    text: str, pack: BrainPack, *, ask_target: bool = False, rephrase: bool = False
+    text: str,
+    pack: BrainPack,
+    *,
+    ask_target: bool = False,
+    rephrase: bool = False,
+    copy_run: int = COPY_RUN_WORDS,
 ) -> tuple[str, ...]:
     """The codes the net that does not depend on a RenderContext raises: wrong arithmetic, a copied ground, a
     repeated turn, and for ``ask_target`` a question that does not name what the child wrote."""
     codes: list[str] = []
     if math_errors(text):
         codes.append(WRONG_MATH)
-    if rephrase and copied_run(text, pack.grounds):
+    if rephrase and copied_run(text, pack.grounds, copy_run):
         codes.append(COPIES_GROUND)
     if repeats(text, pack.recent):
         codes.append(REPEATS_PREVIOUS)
+    if teacher_voice(text):
+        codes.append(TEACHER_VOICE)
+    if "[hình" in text.lower():
+        codes.append(FIGURE_TEXT)
     if ask_target and not names_childs_answer(text, pack.student_text):
         codes.append(OFF_TARGET)
     return tuple(codes)
