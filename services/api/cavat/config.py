@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # limited the next one reads (INGEST-1: the owner's 18 documents need 31 pages read by Gemini).
     gemini_vision_fallbacks: tuple[str, ...] = ("gemini-2.5-flash", "gemini-3.5-flash-lite")
     gemini_embedding_model: str = "gemini-embedding-001"  # Hybrid RAG vectors (plan v1 5.5.2)
+    # BRAIN-1 (ADR-034): the models that write the tutor's words, first to last, comma separated
+    # ("openai/gpt-oss-120b,qwen/qwen3.8-27b"). A name that starts with "gemini" is answered by the Gemini
+    # key. Empty: the router's default chain (see ``default_chat_chains``). One line changes the voice.
+    tutor_models: str = ""
     # Hard cap on LLM calls per session; above it the tutor runs on approved templates only. DI-71 (REFORM-1):
     # 40, from 15. A Qwen call spends 1.126 token on average (prompt and output, measured 2026-10-25; the
     # prompt <= 3.000, reasoning off): a full session about 45.000 of the 200.000 token a day of a Groq

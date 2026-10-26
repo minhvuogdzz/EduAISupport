@@ -33,9 +33,12 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 DEFAULT_STT_MODEL = "whisper-large-v3"
 
 
-def reasoning_effort_for(model: str) -> str:
-    """Qwen supports ``"none"`` (verified, ~148 vs ~392 token). gpt-oss only accepts low/medium/high."""
-    return "low" if model.startswith("openai/gpt-oss") else "none"
+def reasoning_effort_for(model: str) -> str | None:
+    """Qwen supports ``"none"`` (verified, ~148 vs ~392 token). gpt-oss only accepts low/medium/high. Another
+    model (Llama...) takes no such field at all: None, and the request does not carry it (BRAIN-1)."""
+    if model.startswith("openai/gpt-oss"):
+        return "low"
+    return "none" if model.startswith("qwen/") else None
 
 
 class GroqClient:
@@ -75,8 +78,9 @@ class GroqClient:
             "messages": [{"role": m.role, "content": m.content} for m in request.messages],
             "temperature": request.temperature,
             "max_completion_tokens": request.max_output_tokens,
-            "reasoning_effort": reasoning_effort_for(model),
         }
+        if (effort := reasoning_effort_for(model)) is not None:
+            body["reasoning_effort"] = effort
         if request.json_schema is not None:
             body["response_format"] = {
                 "type": "json_schema",

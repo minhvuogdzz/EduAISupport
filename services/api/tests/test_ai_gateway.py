@@ -517,3 +517,93 @@ def test_no_vendor_sdk_or_url_outside_ai_gateway():
             if any(p.search(text) for p in VENDOR_PATTERNS):
                 offenders.append(str(path.relative_to(REPO_ROOT)))
     assert offenders == []
+
+
+# --- BRAIN-1 (ADR-034): models of two vendors in one chain --------------------------------------
+
+
+def _gemini_answer(text: str):
+    return genai_types.GenerateContentResponse(
+        candidates=[
+            genai_types.Candidate(
+                content=genai_types.Content(role="model", parts=[genai_types.Part(text=text)])
+            )
+        ]
+    )
+
+
+def test_a_model_that_takes_no_reasoning_effort_is_sent_none():
+    """Qwen: "none"; gpt-oss: "low"; any other model on Groq does not take the field at all."""
+    model = "meta-llama/llama-4-scout-17b-16e-instruct"
+    rec = Recorder({model: [httpx.Response(200, json=_completion('{"utterance": "x"}', model))]})
+    _groq(rec).chat(_request(), model)
+    assert "reasoning_effort" not in json.loads(rec.requests[0].content)
+
+
+def test_tutor_models_is_one_line_that_sets_the_chain():
+    from cavat.modules.ai_gateway.router import default_chat_chains, parse_models
+
+    assert parse_models(" openai/gpt-oss-120b, gemini-3.5-flash ,, openai/gpt-oss-120b") == (
+        "openai/gpt-oss-120b",
+        "gemini-3.5-flash",
+    )
+    chains = default_chat_chains(QWEN, parse_models("gemini-3.5-flash,qwen/qwen3.8-27b"))
+    assert chains[ModelClass.TUTOR_REASONING] == ("gemini-3.5-flash", QWEN)
+    assert chains[ModelClass.INTENT_AGENT] == default_chat_chains(QWEN)[ModelClass.INTENT_AGENT]
+
+
+def test_gemini_chat_with_one_model_asks_for_json_and_parses_it():
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+
+    fake = _FakeGenaiClient(_gemini_answer('{"utterance": "Chào con"}'))
+    result = GeminiChat("key", client=fake).chat_with(_request(), "gemini-3.5-flash")
+    assert result.data == {"utterance": "Chào con"} and result.model == "gemini-3.5-flash"
+    config = fake.models.kwargs["config"]
+    assert config.response_mime_type == "application/json"
+    assert "additionalProperties" not in config.response_json_schema
+
+
+def test_gemini_chat_with_raises_the_gateways_errors():
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+
+    quota = genai_errors.APIError(429, {"error": {"code": 429, "message": "quota"}})
+    with pytest.raises(QuotaExceeded):
+        GeminiChat("key", client=_FakeGenaiClient(quota)).chat_with(_request(), "gemini-3.5-flash")
+    with pytest.raises(InvalidModelOutput):
+        GeminiChat("key", client=_FakeGenaiClient(_gemini_answer("not json"))).chat_with(
+            _request(), "gemini-3.5-flash"
+        )
+
+
+def test_the_dispatcher_sends_each_name_to_its_vendor_and_rests_a_gemini_that_is_out_of_quota():
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+    from cavat.modules.ai_gateway.router import ChatDispatcher
+
+    groq = FakeChatModel([{"utterance": "từ Groq"}, {"utterance": "lại từ Groq"}])
+    quota = genai_errors.APIError(429, {"error": {"code": 429, "message": "quota"}})
+    gemini = GeminiChat("key", client=_FakeGenaiClient(quota))
+    dispatcher = ChatDispatcher(groq, gemini)
+    router = AIRouter(
+        chat_provider=dispatcher,
+        chains={ModelClass.TUTOR_REASONING: ("gemini-3.5-flash", GPT_OSS)},
+    )
+
+    outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+
+    assert outcome.result is not None and outcome.result.model == GPT_OSS
+    assert [a.error for a in outcome.attempts] == ["QuotaExceeded", None]
+    assert dispatcher.quota.is_exhausted("gemini-3.5-flash")  # rests; the next turn does not send to it
+    again = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert again.attempts[0].sent is False
+
+
+def test_the_dispatcher_without_a_key_for_a_vendor_falls_through():
+    from cavat.modules.ai_gateway.router import ChatDispatcher
+
+    groq = FakeChatModel([{"utterance": "ok"}])
+    router = AIRouter(
+        chat_provider=ChatDispatcher(groq, None),
+        chains={ModelClass.TUTOR_REASONING: ("gemini-3.5-flash", GPT_OSS)},
+    )
+    outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert outcome.result is not None and outcome.attempts[0].error == "ModelUnavailable"

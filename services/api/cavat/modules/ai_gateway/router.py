@@ -1,7 +1,8 @@
 """Choose a model by ``ModelClass``, walk the fallback chain, enforce the per-session cap (ADR-017).
 
-Chain for chat: Qwen -> gpt-oss -> tell the caller to use an approved template. The tutor
-session never stops because of a provider. Callers never pick a model name (rule 4).
+Chain for chat: the models of ``TUTOR_MODELS`` (BRAIN-1, ADR-034), by default the measured order ->
+tell the caller to use an approved template. The tutor session never stops because of a provider. Callers
+never pick a model name (rule 4).
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
@@ -36,6 +37,7 @@ from .base import (
     Transcription,
     VisionProvider,
     VisionResult,
+    check_prompt_size,
     error_detail,
     estimate_prompt_tokens,
 )
@@ -45,9 +47,16 @@ DEFAULT_MAX_LLM_CALLS_PER_SESSION = 15
 DEFAULT_TUTOR_MODEL: str = Settings.model_fields["groq_model"].default
 
 
-def default_chat_chains(primary: str = DEFAULT_TUTOR_MODEL) -> dict[ModelClass, tuple[str, ...]]:
+def parse_models(value: str) -> tuple[str, ...]:
+    """``TUTOR_MODELS``: model names separated by commas, in the order they are tried."""
+    return tuple(dict.fromkeys(m.strip() for m in value.split(",") if m.strip()))
+
+
+def default_chat_chains(
+    primary: str = DEFAULT_TUTOR_MODEL, tutor_models: tuple[str, ...] = ()
+) -> dict[ModelClass, tuple[str, ...]]:
     return {
-        ModelClass.TUTOR_REASONING: (primary, "openai/gpt-oss-120b"),
+        ModelClass.TUTOR_REASONING: tutor_models or (primary, "openai/gpt-oss-120b"),
         ModelClass.LIGHTWEIGHT: (primary, "openai/gpt-oss-20b"),
         # REFORM-5 (DI-78): gpt-oss-120b reads a typo best of the free models and has a quota of its own; the
         # tutor's Qwen and the smaller gpt-oss follow. Gemini is not in the chain (ADR-017: images and vectors
@@ -276,6 +285,34 @@ class RecordingRouter:
         return getattr(self._router, name)
 
 
+GEMINI_QUOTA_PAUSE = timedelta(minutes=10)  # a free Gemini model that answered 429 rests this long
+
+
+class ChatDispatcher:
+    """BRAIN-1 (ADR-034): one ``ChatProvider`` for models of two vendors. A name that starts with "gemini"
+    goes to Gemini, every other name to Groq; they share the quota tracker, so a model that answered 429 is
+    skipped by the router for a while whatever its vendor. Gemini's free tier trains on what it is sent: only
+    the tutor's words and the child's given name go (the prompt builders mask contact data)."""
+
+    def __init__(self, groq: ChatProvider | None, gemini: Any | None = None) -> None:
+        self._groq, self._gemini = groq, gemini
+        self.quota: QuotaTracker = getattr(groq, "quota", None) or QuotaTracker()
+
+    def chat(self, request: ChatRequest, model: str) -> ChatResult:
+        if not model.startswith("gemini"):
+            if self._groq is None:
+                raise ModelUnavailable("no Groq key", model=model)
+            return self._groq.chat(request, model)
+        if self._gemini is None:
+            raise ModelUnavailable("no Gemini key", model=model)
+        check_prompt_size(request, model)  # the same budget as the other models: the prompt is the same
+        try:
+            return self._gemini.chat_with(request, model)
+        except QuotaExceeded as exc:
+            self.quota.mark_exhausted(model, exc.reset_at or datetime.now(UTC) + GEMINI_QUOTA_PAUSE)
+            raise
+
+
 def _embedding_name(provider: EmbeddingProvider | None) -> str | None:
     return getattr(provider, "model", None)
 
@@ -307,9 +344,11 @@ def build_router(
         from .groq import GroqClient
 
         groq = GroqClient(key)
-    vision = embeddings = None
+    vision = embeddings = gemini_chat = None
     if settings.gemini_api_key is not None and settings.gemini_api_key.get_secret_value():
-        from .gemini import GeminiEmbeddings, GeminiVision
+        from .gemini import GeminiChat, GeminiEmbeddings, GeminiVision
+
+        gemini_chat = GeminiChat(settings.gemini_api_key)
 
         vision = GeminiVision(
             settings.gemini_api_key,
@@ -322,13 +361,16 @@ def build_router(
         from .vieneu import VieneuSpeech
 
         tts = VieneuSpeech(settings.vieneu_url, voice=settings.vieneu_voice)
+    tutor_models = parse_models(settings.tutor_models)
+    needs_gemini = any(m.startswith("gemini") for m in tutor_models)
+    chat = ChatDispatcher(groq, gemini_chat if needs_gemini else None) if (groq or needs_gemini) else None
     return AIRouter(
-        chat_provider=groq,
+        chat_provider=chat,
         stt_provider=groq,
         tts_provider=tts,
         vision_provider=vision,
         embedding_provider=embeddings,
-        chains={**default_chat_chains(settings.groq_model), **(chains or {})},
+        chains={**default_chat_chains(settings.groq_model, tutor_models), **(chains or {})},
         stt_model=settings.groq_stt_model,
         max_calls_per_session=settings.max_llm_calls_per_session,
     )
