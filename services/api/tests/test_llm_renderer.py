@@ -30,7 +30,9 @@ from cavat.modules.tutor.validator import validate_message
 LESSON = Path(__file__).resolve().parents[3] / "docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml"
 PKG = load_lesson_package(LESSON)
 TEMPLATE = TemplateRenderer()
-QWEN, GPT_OSS = default_chat_chains()[ModelClass.TUTOR_REASONING]
+# BRAIN-1: the tutor's chain is gpt-oss-120b, gpt-oss-20b, Qwen; QWEN and GPT_OSS name its first two
+CHAIN = default_chat_chains()[ModelClass.TUTOR_REASONING]
+QWEN, GPT_OSS = CHAIN[:2]
 LLM_MOVES = [m for m in Move if m not in TEMPLATE_ONLY_MOVES]
 HINT_H3 = {"level": HintLevel.H3, "target": HintTarget.STRATEGY}
 
@@ -139,19 +141,17 @@ def test_output_without_a_message_is_rejected_as_empty():
 
 
 def test_429_uses_the_template_at_once():
-    renderer, fake = make(
-        {QWEN: [QuotaExceeded("429", model=QWEN)], GPT_OSS: [QuotaExceeded("429", model=GPT_OSS)]}
-    )
+    renderer, fake = make({model: [QuotaExceeded("429", model=model)] for model in CHAIN})
     ctx = ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3)
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
-    assert [model for model, _ in fake.calls] == [QWEN, GPT_OSS]  # the router's chain, no retry after it
+    assert [model for model, _ in fake.calls] == list(CHAIN)  # the router's chain, no retry after it
     assert renderer.last_trace.fallback_reason == "quota_exceeded"
-    assert renderer.calls_used == 2
+    assert renderer.calls_used == len(CHAIN)
 
 
 def test_known_exhausted_quota_uses_the_template_without_any_call():
     renderer, fake = make([])
-    for model in (QWEN, GPT_OSS):
+    for model in CHAIN:
         fake.quota.mark_exhausted(model, reset_at=None)
     ctx = ctx_for("GP-01", Move.PROBE, "0,25 > 0,3")
     assert renderer.render(ctx) == TEMPLATE.render(ctx)

@@ -26,7 +26,7 @@ from cavat.modules.ai_gateway.base import (
 from cavat.modules.ai_gateway.fake import FakeChatModel, FakeSpeechToText, FakeVision, ScriptExhausted
 from cavat.modules.ai_gateway.gemini import GeminiVision
 from cavat.modules.ai_gateway.groq import GroqClient
-from cavat.modules.ai_gateway.router import AIRouter, FallbackReason, build_router
+from cavat.modules.ai_gateway.router import AIRouter, FallbackReason, build_router, default_chat_chains
 from google.genai import errors as genai_errors
 from google.genai import types as genai_types
 from pydantic import SecretStr
@@ -34,6 +34,9 @@ from pydantic import SecretStr
 FAKE_KEY = "gsk_test_not_a_real_key_123"
 QWEN = "qwen/qwen3.8-27b"
 GPT_OSS = "openai/gpt-oss-120b"
+# BRAIN-1 (ADR-034): the tutor's default chain has three Groq models now (gpt-oss-120b, gpt-oss-20b,
+# Qwen); the fallback tests keep their two-model story (Qwen, then gpt-oss-120b) by naming that chain.
+TWO_MODELS = {**default_chat_chains(), ModelClass.TUTOR_REASONING: (QWEN, GPT_OSS)}
 SCHEMA = {
     "type": "object",
     "properties": {"utterance": {"type": "string"}},
@@ -273,7 +276,7 @@ def test_429_falls_back_to_gpt_oss():
             GPT_OSS: [httpx.Response(200, json=_completion('{"utterance": "Thử lại nhé."}', GPT_OSS))],
         }
     )
-    router = AIRouter(chat_provider=_groq(rec))
+    router = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS)
 
     outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
 
@@ -286,7 +289,7 @@ def test_429_falls_back_to_gpt_oss():
 
 def test_429_on_whole_chain_tells_caller_to_use_template():
     rec = Recorder({QWEN: [_rate_limited()], GPT_OSS: [_rate_limited()]})
-    router = AIRouter(chat_provider=_groq(rec))
+    router = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS)
 
     outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
 
@@ -307,14 +310,16 @@ def test_server_error_falls_back_then_template_on_invalid_output():
             GPT_OSS: [httpx.Response(200, json=_completion("oops"))],
         }
     )
-    outcome = AIRouter(chat_provider=_groq(rec)).chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    outcome = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS).chat(
+        ModelClass.TUTOR_REASONING, _request(), calls_used=0
+    )
     assert outcome.use_template and outcome.fallback_reason is FallbackReason.INVALID_OUTPUT
     assert [a.error for a in outcome.attempts] == ["ModelUnavailable", "InvalidModelOutput"]
 
 
 def test_too_long_prompt_goes_to_template_without_any_request():
     rec = Recorder({QWEN: [], GPT_OSS: []})
-    outcome = AIRouter(chat_provider=_groq(rec)).chat(
+    outcome = AIRouter(chat_provider=_groq(rec), chains=TWO_MODELS).chat(
         ModelClass.TUTOR_REASONING, _request("Một câu rất dài. " * 1000), calls_used=0
     )
     assert outcome.use_template and outcome.fallback_reason is FallbackReason.PROMPT_TOO_LONG
@@ -333,7 +338,7 @@ def test_session_cap_stops_llm_calls():
 
 def test_session_cap_reached_mid_chain():
     fake = FakeChatModel({QWEN: [QuotaExceeded("429", model=QWEN)], GPT_OSS: [{"utterance": "b"}]})
-    outcome = AIRouter(chat_provider=fake, max_calls_per_session=15).chat(
+    outcome = AIRouter(chat_provider=fake, max_calls_per_session=15, chains=TWO_MODELS).chat(
         ModelClass.TUTOR_REASONING, _request(), calls_used=14
     )
     assert outcome.fallback_reason is FallbackReason.SESSION_CAP
@@ -353,7 +358,7 @@ def test_no_api_key_means_template_only_mode():
 def test_build_router_reads_chain_and_cap_from_settings():
     settings = Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), max_llm_calls_per_session=7)
     router = build_router(settings)
-    assert router.chain(ModelClass.TUTOR_REASONING) == (QWEN, GPT_OSS)
+    assert router.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
     assert router.chain(ModelClass.LIGHTWEIGHT) == (QWEN, "openai/gpt-oss-20b")
     assert router.max_calls_per_session == 7
     with pytest.raises(ValueError):
@@ -361,14 +366,16 @@ def test_build_router_reads_chain_and_cap_from_settings():
     # An eval judges on a model with its own quota; the other classes keep their chain (TQ-2).
     judge = build_router(settings, chains={ModelClass.EVAL_JUDGE: (GPT_OSS,)})
     assert judge.chain(ModelClass.EVAL_JUDGE) == (GPT_OSS,)
-    assert judge.chain(ModelClass.TUTOR_REASONING) == (QWEN, GPT_OSS)
+    assert judge.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
 
 
-def test_groq_model_setting_heads_every_chat_chain():
-    # CFG-1: the brain is named once (GROQ_MODEL); the chains only add the fallbacks.
-    assert AIRouter().chain(ModelClass.TUTOR_REASONING)[0] == Settings.model_fields["groq_model"].default
+def test_groq_model_setting_heads_the_fallback_chains_and_ends_the_tutors():
+    # CFG-1: the model is named once (GROQ_MODEL). BRAIN-1 (ADR-034): the tutor speaks with the gpt-oss models
+    # first and GROQ_MODEL (Qwen) is the last of its chain; the other chains still start with it.
+    assert AIRouter().chain(ModelClass.TUTOR_REASONING)[-1] == Settings.model_fields["groq_model"].default
     router = build_router(Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), groq_model="qwen/next"))
-    for model_class in (ModelClass.TUTOR_REASONING, ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE):
+    assert router.chain(ModelClass.TUTOR_REASONING)[-1] == "qwen/next"
+    for model_class in (ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE):
         assert router.chain(model_class)[0] == "qwen/next"
 
 
@@ -549,6 +556,8 @@ def test_tutor_models_is_one_line_that_sets_the_chain():
     )
     chains = default_chat_chains(QWEN, parse_models("gemini-3.5-flash,qwen/qwen3.8-27b"))
     assert chains[ModelClass.TUTOR_REASONING] == ("gemini-3.5-flash", QWEN)
+    # BRAIN-1: the measured default order; GROQ_MODEL (Qwen) is the last of the three Groq models
+    assert default_chat_chains(QWEN)[ModelClass.TUTOR_REASONING] == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
     assert chains[ModelClass.INTENT_AGENT] == default_chat_chains(QWEN)[ModelClass.INTENT_AGENT]
 
 

@@ -418,7 +418,7 @@ def test_a_tutor_on_a_script_is_refused_the_same_opening_twice():
     assert not repeats("7/10, đúng rồi con. Mẫu số 10 từ đâu ra vậy?", said)
 
 
-# --- what the comparison on real turns showed (evals/reports/BRAIN-1-models.md) -------------------------------
+# --- what the comparison on real turns showed (evals/reports/BRAIN-1-models.md) ---------------------------
 
 
 @pytest.mark.parametrize(
@@ -461,8 +461,8 @@ def test_the_tutor_is_co_and_the_child_is_con(text):
 
 
 def test_a_lecture_in_other_words_than_the_plan_is_not_off_the_idea(index):  # noqa: F811
-    """The plan's text for a theory step is the teacher's script ("Tô 30 ô trên lưới…"); a lecture that says the
-    idea with other terms is still the lecture (the keyword check of v8 is gone)."""
+    """The plan's text for a theory step is the teacher's script ("Tô 30 ô trên lưới…"); a lecture that says
+    the idea with other terms is still the lecture (the keyword check of v8 is gone)."""
     from cavat.modules.teaching.grounded import lecture_request
 
     ground = (

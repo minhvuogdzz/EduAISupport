@@ -23,13 +23,16 @@ from cavat.modules.ai_gateway.base import (
     Usage,
     estimate_prompt_tokens,
 )
-from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter
+from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, default_chat_chains
 from cavat.modules.session import api as session_api
 from cavat.modules.session.api import get_database
 from cavat.modules.session.model_calls import model_call_events
 from fastapi.testclient import TestClient
 
 QWEN, GPT_OSS = "qwen/qwen3.8-27b", "openai/gpt-oss-120b"
+# BRAIN-1 (ADR-034): the tutor's default chain has three Groq models now (gpt-oss-120b, gpt-oss-20b,
+# Qwen); the fallback tests keep their two-model story (Qwen, then gpt-oss-120b) by naming that chain.
+TWO_MODELS = {**default_chat_chains(), ModelClass.TUTOR_REASONING: (QWEN, GPT_OSS)}
 SCHEMA = {
     "type": "object",
     "properties": {"message": {"type": "string"}},
@@ -72,7 +75,7 @@ def test_the_recording_router_keeps_each_call_and_lends_the_rest():
 
 
 def test_a_step_down_the_chain_is_a_fallback_and_the_answer_carries_its_tokens():
-    router = RecordingRouter(AIRouter(chat_provider=QwenOutOfQuota()))
+    router = RecordingRouter(AIRouter(chat_provider=QwenOutOfQuota(), chains=TWO_MODELS))
     router.chat(ModelClass.TUTOR_REASONING, request(), calls_used=0)
     events = model_call_events(router.calls, "attempt-1")
     assert [e.event_type for e in events] == ["MODEL_FALLBACK", "MODEL_CALLED"]
@@ -103,7 +106,7 @@ def test_a_prompt_refused_before_sending_is_called_but_not_a_fallback():
         def chat(self, request, model):
             raise PromptTooLong("too long", model=model, estimated_tokens=3100)
 
-    router = RecordingRouter(AIRouter(chat_provider=TooLong()))
+    router = RecordingRouter(AIRouter(chat_provider=TooLong(), chains=TWO_MODELS))
     router.chat(ModelClass.TUTOR_REASONING, request(), calls_used=0)
     [called] = payloads(model_call_events(router.calls))
     assert called.fallback_reason == "prompt_too_long"
@@ -112,7 +115,9 @@ def test_a_prompt_refused_before_sending_is_called_but_not_a_fallback():
 
 @pytest.fixture
 async def memory(monkeypatch):
-    monkeypatch.setattr(session_api, "tutor_router", lambda: AIRouter(chat_provider=QwenOutOfQuota()))
+    monkeypatch.setattr(
+        session_api, "tutor_router", lambda: AIRouter(chat_provider=QwenOutOfQuota(), chains=TWO_MODELS)
+    )
     database = InMemoryDatabase()
     await ensure_indexes(database)
     app.dependency_overrides[get_database] = lambda: database

@@ -43,8 +43,15 @@ from .base import (
 )
 
 DEFAULT_MAX_LLM_CALLS_PER_SESSION = 15
-# The tutor brain is named once, in the settings (GROQ_MODEL); the chains only add the fallbacks.
+# The model of the lightweight and judge chains is named in the settings (GROQ_MODEL, Qwen).
 DEFAULT_TUTOR_MODEL: str = Settings.model_fields["groq_model"].default
+# BRAIN-1 (ADR-034): the order that writes the tutor's words, measured on 26 real hard turns
+# (evals/reports/BRAIN-1-models.md, 2026-10-26): gpt-oss-120b 25 words of 26 and 17 passing the net,
+# gpt-oss-20b 26 and 18; Qwen could not be compared (its 200.000 token a day were spent: 1 of 26) and Gemini
+# answered 503/504 on 25 of 26, so Gemini is only in the chain when the owner names it in TUTOR_MODELS. Every
+# Groq model has a quota of its own, so the three together hold 600.000 token a day. One line of settings
+# changes it.
+DEFAULT_TUTOR_CHAIN: tuple[str, ...] = ("openai/gpt-oss-120b", "openai/gpt-oss-20b", DEFAULT_TUTOR_MODEL)
 
 
 def parse_models(value: str) -> tuple[str, ...]:
@@ -52,11 +59,16 @@ def parse_models(value: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(m.strip() for m in value.split(",") if m.strip()))
 
 
+def _tutor_chain(primary: str) -> tuple[str, ...]:
+    """The default tutor chain, ``GROQ_MODEL`` last (a model the owner names there still speaks)."""
+    return (*DEFAULT_TUTOR_CHAIN[:-1], primary)
+
+
 def default_chat_chains(
     primary: str = DEFAULT_TUTOR_MODEL, tutor_models: tuple[str, ...] = ()
 ) -> dict[ModelClass, tuple[str, ...]]:
     return {
-        ModelClass.TUTOR_REASONING: tutor_models or (primary, "openai/gpt-oss-120b"),
+        ModelClass.TUTOR_REASONING: tutor_models or _tutor_chain(primary),
         ModelClass.LIGHTWEIGHT: (primary, "openai/gpt-oss-20b"),
         # REFORM-5 (DI-78): gpt-oss-120b reads a typo best of the free models and has a quota of its own; the
         # tutor's Qwen and the smaller gpt-oss follow. Gemini is not in the chain (ADR-017: images and vectors
