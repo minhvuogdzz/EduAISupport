@@ -1,0 +1,54 @@
+# Bộ câu giữ riêng v4 cho RAG trên hai chương đã phát hành. Viết ngày 2026-10-26 (RAG-7), TRƯỚC khi phân tích các
+# câu trượt của v3 và trước mọi thay đổi code; commit riêng, đóng băng bằng thẻ git `eval-freeze-rag-v4`. KHÔNG dùng
+# để chỉnh tham số nào. Lý do có v4: RAG-7 sửa định tuyến về bài trước và cách gác câu Toán ngoài chương dựa trên
+# các câu trượt của v3, nên v3 thôi là bộ giữ riêng. v4 dồn vào hai lớp câu đó: hỏi khái niệm bài trước và Toán
+# ngoài chương, cùng vài câu khác để thấy nếu có chỗ tụt.
+#
+# Câu viết như trẻ gõ, `style` như v3 (co-dau, khong-dau, sai-chinh-ta, viet-tat). Nhãn theo tiết (NODE:*), do
+# Claude soạn chỉ từ tên tiết và đồ thị tiên quyết, chờ giáo viên duyệt. [ASSUME]
+version: 4
+chapters: [math-g5-decimals, math-g5-area-triangle-trapezoid]
+status: DRAFT
+cases:
+  # Hỏi khái niệm của bài trước
+  - {id: X01, group: bai-truoc, style: khong-dau, node: STP-T03, q: "chu so o hang phan tram la chu so thu may sau dau phay", relevant: ["STP-T02:*"]}
+  - {id: X02, group: bai-truoc, style: viet-tat, node: STP-T04, q: "them chu so 0 vao ben phai so thap phan thi so do co doi ko", relevant: ["STP-T03:*"]}
+  - {id: X03, group: bai-truoc, style: khong-dau, node: STP-T06, q: "so nao lon hon 2,3 hay 2,29 vay co", relevant: ["STP-T04:*"]}
+  - {id: X04, group: bai-truoc, style: khong-dau, node: STP-T08, q: "1 km bang bao nhieu met a", relevant: ["STP-T06:*"]}
+  - {id: X05, group: bai-truoc, style: khong-dau, node: STP-T10, q: "lam tron den hang don vi thi nhin chu so nao", relevant: ["STP-T09:*"]}
+  - {id: X06, group: bai-truoc, style: khong-dau, node: STP-T11, q: "1 ta bang bao nhieu kg", relevant: ["STP-T07:*"]}
+  - {id: X07, group: bai-truoc, style: co-dau, node: STP-T09, q: "3 m 45 cm viết thành mét thế nào", relevant: ["STP-T06:*"]}
+  - {id: X08, group: bai-truoc, style: khong-dau, node: STP-T05, q: "phan nguyen nam ben trai hay ben phai dau phay", relevant: ["STP-T02:*"]}
+  - {id: X09, group: bai-truoc, style: khong-dau, node: STP-T07, q: "0,1 la may phan may vay co", relevant: ["STP-T01:*"]}
+  - {id: X10, group: bai-truoc, style: khong-dau, node: DTTGHT-T04, q: "duong cao cua tam giac phai vuong goc voi day ha co", relevant: ["DTTGHT-T01:*"]}
+  - {id: X11, group: bai-truoc, style: khong-dau, node: DTTGHT-T03, q: "cong thuc tinh dien tich tam giac la gi", relevant: ["DTTGHT-T02:*"]}
+  - {id: X12, group: bai-truoc, style: khong-dau, node: DTTGHT-T07, q: "hinh thang vuong la hinh the nao", relevant: ["DTTGHT-T05:*"]}
+  - {id: X13, group: bai-truoc, style: khong-dau, node: DTTGHT-T08, q: "dien tich hinh thang bang tong 2 day nhan chieu cao roi lam gi nua", relevant: ["DTTGHT-T06:*"]}
+  - {id: X14, group: bai-truoc, style: khong-dau, node: DTTGHT-T06, q: "tai sao dien tich tam giac phai chia 2", relevant: ["DTTGHT-T02:*"]}
+  - {id: X15, group: bai-truoc, style: khong-dau, node: DTTGHT-T05, q: "tam giac co may duong cao", relevant: ["DTTGHT-T01:*"]}
+  - {id: X16, group: bai-truoc, style: khong-dau, node: DTTGHT-T08, q: "canh ben cua hinh thang la canh nao", relevant: ["DTTGHT-T05:*"]}
+  # Hỏi trong bài đang học
+  - {id: X17, group: cung-bai, style: khong-dau, node: STP-T05, q: "xep cac so 0,5 0,45 0,6 tu be den lon the nao", relevant: ["STP-T05:*"]}
+  - {id: X18, group: cung-bai, style: viet-tat, node: STP-T09, q: "lam tron 2,35 den hang phan muoi dc may", relevant: ["STP-T09:*"]}
+  - {id: X19, group: cung-bai, style: khong-dau, node: STP-T10, q: "lam tron den hang phan tram la sao", relevant: ["STP-T10:*"]}
+  - {id: X20, group: cung-bai, style: khong-dau, node: DTTGHT-T03, q: "tam giac day 5cm cao 4cm thi dien tich bao nhieu", relevant: ["DTTGHT-T03:*"]}
+  - {id: X21, group: cung-bai, style: viet-tat, node: DTTGHT-T07, q: "hinh thang day 6 va 4 cao 3 tinh dien tich ntn", relevant: ["DTTGHT-T07:*"]}
+  - {id: X22, group: cung-bai, style: khong-dau, node: STP-T07, q: "3 kg 5 g viet thanh kg the nao", relevant: ["STP-T07:*"]}
+  # Hỏi bài sau
+  - {id: X23, group: bai-sau, style: khong-dau, node: STP-T02, q: "lam tron 3,456 den hang phan tram", relevant: []}
+  - {id: X24, group: bai-sau, style: khong-dau, node: DTTGHT-T03, q: "hinh thang co may dinh", relevant: []}
+  - {id: X25, group: bai-sau, style: khong-dau, node: STP-T04, q: "2 ha bang bao nhieu m2", relevant: []}
+  - {id: X26, group: bai-sau, style: khong-dau, node: DTTGHT-T01, q: "cong thuc dien tich hinh thang la gi", relevant: []}
+  # Toán ngoài chương
+  - {id: X27, group: lac-de-toan, style: khong-dau, node: STP-T05, q: "dien tich hinh vuong tinh sao", relevant: []}
+  - {id: X28, group: lac-de-toan, style: khong-dau, node: DTTGHT-T04, q: "chu vi hinh chu nhat tinh the nao", relevant: []}
+  - {id: X29, group: lac-de-toan, style: khong-dau, node: STP-T09, q: "nhan 2 phan so the nao", relevant: []}
+  - {id: X30, group: lac-de-toan, style: khong-dau, node: DTTGHT-T07, q: "the tich hinh lap phuong la gi", relevant: []}
+  - {id: X31, group: lac-de-toan, style: khong-dau, node: STP-T03, q: "so nguyen to la so nao", relevant: []}
+  - {id: X32, group: lac-de-toan, style: khong-dau, node: DTTGHT-T02, q: "duong kinh hinh tron la gi", relevant: []}
+  - {id: X33, group: lac-de-toan, style: khong-dau, node: STP-T08, q: "phep chia co du la gi", relevant: []}
+  - {id: X34, group: lac-de-toan, style: khong-dau, node: DTTGHT-T06, q: "1 gio co bao nhieu phut", relevant: []}
+  # Lạc đề
+  - {id: X35, group: lac-de, style: khong-dau, node: STP-T06, q: "con muon choi game", relevant: []}
+  - {id: X36, group: lac-de, style: khong-dau, node: DTTGHT-T05, q: "me con sap ve roi", relevant: []}
+  - {id: X37, group: lac-de, style: khong-dau, node: STP-T11, q: "co oi hom nay hoc xong chua", relevant: []}
