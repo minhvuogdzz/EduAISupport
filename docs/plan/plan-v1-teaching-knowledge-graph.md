@@ -139,8 +139,8 @@ Luật tất định, mỗi luật một mã `N-*`, có version như policy gợ
 | N-TRANSFER | Đủ C, I nhưng thiếu A hoặc T | Bài vận dụng |
 | N-PASS | Đạt điều kiện qua node (5.3) | Ghi qua node; quay về node đang chờ nếu có, không thì sang node tiếp theo đã mở khóa |
 | N-REVIEW | Sau mỗi lần qua node | Một câu ôn xen kẽ của node đã qua trước đó |
-| N-BUDGET | Hết số câu cho phép ở node mà chưa đạt | Cô nhắc lại cách làm, dừng node, ghi "cần học lại" cho giáo viên; node phụ thuộc vẫn mở (DI-75) |
-| N-FINISH | Không còn node mở khóa chưa qua | Tổng kết buổi học |
+| N-BUDGET | Hết số câu cho phép ở node mà chưa đạt (lượt hai: 4 câu, DI-80) | Cô nhắc lại cách làm, dừng node, ghi "cần học lại" cho giáo viên; node phụ thuộc vẫn mở (DI-75); hết buổi, tiết đã dừng được dạy lại một lần (lượt hai, `N-NEXT` lý do `SECOND_PASS`, DI-80) |
+| N-FINISH | Không còn node mở khóa chưa qua, và mọi tiết đã dừng đã được dạy lại một lần | Tổng kết buổi học |
 
 Bảng DI-8 của blueprint (dải M → hành động) dùng để chọn mức hỗ trợ trong N-PRACTICE và N-TRANSFER.
 
@@ -558,7 +558,22 @@ Chạy song song từ Mốc 1:
   - **Giới hạn [OPEN]:**
     - một học sinh mô phỏng, hai buổi mỗi chương, không phải học sinh thật; con mô phỏng học thêm từ những gì gia sư làm, nên một phần chênh lệch là do được dạy nhiều hơn;
     - buổi đầu dài tới 268–308 lượt và chưa có trần thời gian: con thoát lúc nào cũng được và tiến độ vẫn lưu;
-    - nhắc lại cách làm mới là đọc lại quy tắc đã duyệt, chưa phải giảng lại bằng ví dụ khác; chưa có lần học lại tiết yếu ngay trong buổi (lượt hai ở cuối buổi); nhiều tiết liên tiếp bị dừng thì buổi vẫn đi tiếp tới hết chương. Chủ dự án quyết nếu muốn thêm.
+    - nhắc lại cách làm mới là đọc lại quy tắc đã duyệt, chưa phải giảng lại bằng ví dụ khác; lần học lại tiết yếu ngay trong buổi do DI-80 (FLOW-2) thêm; nhiều tiết liên tiếp bị dừng thì buổi vẫn đi tiếp tới hết chương.
+- **DI-80, hết tiết thì quay lại dạy lại tiết yếu một lần, bằng ví dụ khác (FLOW-2, `node-policy/0.5.0`, 2026-10-26, quyết định của chủ dự án):**
+  - **Vấn đề:** sau DI-75 buổi đi tiếp qua tiết yếu, nhưng tiết yếu mới chỉ được nhắc lại cách làm rồi hẹn buổi sau. Chủ dự án (giáo viên kiểm soát): "sau khi hết tiết, quay lại dạy lại tiết yếu một lần nữa ngay trong buổi, giảng lại bằng ví dụ khác".
+  - **Luật (tất định, là hàm của sự kiện; replay ra đúng như lúc chạy):**
+    - khi không còn tiết nào để vào (trước đây là `FINISH`, `NO_NODE_LEFT`), nếu còn tiết đã dừng, chưa qua và chưa dạy lại: `ENTER_NODE` (`N-NEXT`, lý do `SECOND_PASS`) vào tiết đó, theo thứ tự chương; mỗi tiết chỉ một lần trong buổi, không vòng lặp (`TeachingState.second_pass`);
+    - lượt hai không khởi động lại bằng bài ôn nền, hỏi lại bài cũ hay quay về tiết nền (`Visit.second`);
+    - giảng lại bằng thứ buổi này chưa dùng ở tiết đó (`examples_used`, `variants_used` cấp buổi, vì `Visit` mới thì rỗng): ví dụ có lời giải chưa dùng (`N-RETEACH`, hỗ trợ cao nhất); hết thì biến thể lý thuyết chưa dùng (rồi hỏi kiểm tra như thường); hết cả hai thì lấy cái dùng sớm nhất, lý do `SAME_EXAMPLE` hoặc `SAME_VARIANT`, lời mở nói là giải lại chậm hơn từng bước;
+    - sau giảng là vòng luyện ngắn: được hỏi lại các câu con chưa tự làm đúng (`TeachingState.missed`: từng có kết quả không thành công, kể cả câu đã làm đúng sau khi hỏi lại ở DI-56) và các câu chưa hỏi, mỗi câu một lần trong lượt hai; **ngân sách lượt hai là 4 câu** (`NodePolicyConfig.second_pass_items`), thay cho `max_items` của tiết;
+    - qua tiết (`pass_now`, `N-PASS`): ghi qua, bỏ khỏi "còn cần ôn thêm" (`stopped` bỏ tiết đó) và vào "đã học xong"; dừng lần nữa (`N-BUDGET`, hết 4 câu hoặc hết câu) thì vẫn nằm trong "còn cần ôn thêm", không dạy lần ba;
+    - câu mở lượt hai (`loop.py`, bảng `PHRASES`): "Mình quay lại bài {name} một lần nữa nhé, cô giảng lại bằng ví dụ khác." (hoặc "…cô giải lại chậm hơn từng bước.").
+  - **DI cần chủ dự án duyệt [OPEN]:** ngân sách 4 câu của lượt hai (đề xuất, nhỏ hơn 12 của lượt đầu); lượt hai không có bài ôn nền, hỏi lại bài cũ hay quay về tiết nền; quy tắc "hỏi lại câu từng sai" thay vì hỏi lại mọi câu; hai câu mở lượt hai.
+  - **Đo** (học sinh mô phỏng học chậm `--pace 0.35`, hai buổi mỗi chương, câu mẫu, trong bộ nhớ, `simulate_learner.py --memory`; trước = DI-75):
+    - Số thập phân, buổi 1: 308 lượt và 9/11 tiết qua, nay 319 lượt và 10/11; buổi 2: 16 lượt, nay 7 lượt, cùng 11/11;
+    - Diện tích, buổi 1: 268 lượt và 6/8, nay 278 lượt và 8/8; sau buổi 1 không còn tiết nào để học lại nên không có buổi 2 (trước đó buổi 2 mất 23 lượt);
+    - buổi 1 dài thêm 10–11 lượt (3–4%); cứu được 3 tiết yếu trong 5 tiết đã dừng ở buổi 1.
+  - **Giới hạn [OPEN]:** kho câu còn mỏng (5 câu một tiết ở chương Số thập phân), nên lượt hai ít khi có đủ 4 câu mới để nâng mức nắm vững tới ngưỡng qua; câu hỏi lại cùng một đề có thể con nhớ đáp án.
 - **DI-76, "không" và "chưa" đứng một mình là "con không biết" (REFORM-5, 3.1, `student-intent/0.3.0`, 2026-10-26):**
   - **Vấn đề:** trong PDF ngày 25/10, con gõ "không" khi gia sư hỏi "vì sao" và được khen "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận" (REFORM-2 đã bỏ lời khen). Ở câu đang làm, "không" bị đọc là số 0 và chấm sai; "ko", "k", "chưa" rơi vào `R-REDIRECT` và tính là lượt không tiến bộ, ba lượt như vậy mở lời giải mẫu H6 (`R-FRUSTRATION`).
   - **Luật mới:**

@@ -15,7 +15,8 @@ from cavat.core.events import EventType, ItemResolved, NodeDecisionMade, RetellJ
 from cavat.core.pedagogy import ItemResolution, TeachAction
 from cavat.modules.assessment.projector import DEFAULT_POLICY
 
-NODE_POLICY_VERSION = "node-policy/0.4.0"  # 0.4.0: DI-75 a stopped period still lets the next one come
+NODE_POLICY_VERSION = "node-policy/0.5.0"  # 0.5.0: DI-80 a stopped period is taught again once, at the end
+# (0.4.0: DI-75 a stopped period still lets the next one come)
 
 Phase = Literal["NEW", "CHECK", "CHECK_FAILED", "PRACTICE"]
 
@@ -32,6 +33,7 @@ class NodePolicyConfig:
     success_max_hint: int = DEFAULT_POLICY.success_max_hint  # the projector's success, kept identical
     support_bands: tuple[float, ...] = (40, 60, 75, 90)  # DI-8: lower bounds of GUIDED .. CHALLENGE
     recall_prior: bool = True  # DI-52: N-RECALL, ask back a related node learnt before
+    second_pass_items: int = 4  # DI-80 [OPEN]: item budget of the second pass of a stopped node
 
 
 DEFAULT_CONFIG = NodePolicyConfig()
@@ -68,6 +70,8 @@ class Visit:
     retells: int = 0
     check_failures: int = 0
     practice_successes: int = 0
+    second: bool = False  # DI-80: the second pass of a node stopped earlier in the session
+    asked: list[str] = field(default_factory=list)  # items asked in this visit
 
 
 @dataclass
@@ -79,7 +83,9 @@ class TeachingState:
     examples_used: dict[str, list[str]] = field(default_factory=dict)
     evidence_nodes: set[str] = field(default_factory=set)  # nodes with an item result in this session
     passed: list[str] = field(default_factory=list)  # in order, this session
-    stopped: set[str] = field(default_factory=set)
+    stopped: set[str] = field(default_factory=set)  # stopped and not passed since: "cần ôn thêm"
+    second_pass: set[str] = field(default_factory=set)  # DI-80: stopped nodes entered again, once each
+    missed: set[str] = field(default_factory=set)  # items answered without a success at least once
     remediated: set[tuple[str, str]] = field(default_factory=set)  # (node put on hold, prerequisite)
     recalled: set[tuple[str, str]] = field(default_factory=set)  # DI-52: (node, node recalled), this session
     review_due: bool = False
@@ -110,7 +116,10 @@ def _decision(state: TeachingState, d: NodeDecisionMade) -> None:
         assert d.node_id is not None
         if state.waiting and state.waiting[-1] == d.node_id:
             state.waiting.pop()
-        state.current, state.review_due = Visit(d.node_id), False
+        second = "SECOND_PASS" in d.reason_codes
+        if second:
+            state.second_pass.add(d.node_id)
+        state.current, state.review_due = Visit(d.node_id, second=second), False
     elif action == TeachAction.SWITCH_TO_PREREQUISITE:
         assert visit is not None and d.node_id is not None
         state.waiting.append(visit.node_id)
@@ -119,6 +128,7 @@ def _decision(state: TeachingState, d: NodeDecisionMade) -> None:
     elif action == TeachAction.PASS_NODE:
         assert d.node_id is not None
         state.passed.append(d.node_id)
+        state.stopped.discard(d.node_id)  # a second pass that succeeds: no longer to revise
         state.current, state.review_due = None, True
     elif action == TeachAction.STOP_NODE:
         assert d.node_id is not None
@@ -145,7 +155,8 @@ def _visit_decision(state: TeachingState, visit: Visit, d: NodeDecisionMade) -> 
         assert ref is not None
         visit.examples.append(ref)
         state.examples_used.setdefault(visit.node_id, []).append(ref)
-        if visit.phase == "CHECK_FAILED":  # no theory variant left: the example is the re-teaching
+        if visit.phase == "CHECK_FAILED" or (visit.second and visit.phase == "NEW"):
+            # no theory variant left, or the second pass (DI-80): the example is the re-teaching
             visit.phase = "PRACTICE"
     elif action == TeachAction.ASK_RETELL:
         visit.retell_asked, visit.retell_pending = True, True
@@ -159,6 +170,7 @@ def _visit_decision(state: TeachingState, visit: Visit, d: NodeDecisionMade) -> 
         assert ref is not None
         visit.warmup_node, visit.warmup_item = d.node_id, ref
         visit.pending, visit.pending_action = ref, action
+        visit.asked.append(ref)
         state.asked.add(ref)
     else:  # CHECK_ITEM, COMPLETION_ITEM, PRACTICE_ITEM, TRANSFER_ITEM
         assert ref is not None
@@ -170,11 +182,14 @@ def _visit_decision(state: TeachingState, visit: Visit, d: NodeDecisionMade) -> 
             visit.completion_asked = True
         visit.items += 1
         visit.pending, visit.pending_action = ref, action
+        visit.asked.append(ref)
         state.asked.add(ref)
 
 
 def _item(state: TeachingState, p: ItemResolved, config: NodePolicyConfig) -> None:
     state.evidence_nodes.update(p.kc_ids)
+    if not is_success(p, config):
+        state.missed.add(p.item_id)
     visit = state.current
     if visit is None or visit.pending != p.item_id:
         return  # a review item: its evidence only goes to the projection

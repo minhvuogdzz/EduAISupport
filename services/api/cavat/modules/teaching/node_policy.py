@@ -5,9 +5,11 @@
 replayed (rule 7: the policy is versioned). The LLM only phrases what a decision points to: a theory
 variant, a worked example, an item or the retell prompt. Rules, in priority order:
 
-- N-FINISH    no node left to learn: end the session with a summary;
+- N-FINISH    no node left to learn and no stopped node to teach again: end the session with a summary;
 - N-REVIEW    just after a pass: one item of a node passed earlier (interleaving);
-- N-NEXT      no current node: resume the node on hold, else the first unlocked node not passed;
+- N-NEXT      no current node: resume the node on hold, else the first unlocked node not passed, else (DI-80)
+              a node stopped today and not taught again yet: its second pass (another example, a short round
+              of the questions not solved, no warm-up, recall or detour; once per node);
 - N-PASS      the pass rule holds (DI-15);
 - N-BUDGET    the node used its item budget, or has no item left: stop it, "cần học lại";
 - N-REMEDIATE a critical misconception of an earlier node, a failed warm-up item, or a second failed
@@ -109,6 +111,16 @@ class _Policy:
                 after_stop = any(self.nodes[p].passed_at is None for p in prerequisites)
                 reasons = ["UNLOCKED_AFTER_STOP" if after_stop else "UNLOCKED"]
                 return self._make(TeachAction.ENTER_NODE, "N-NEXT", node_id, reasons=reasons)
+        # FLOW-2 (DI-80): back to a period stopped today, once, in the order of the chapter.
+        for node_id in self.order:
+            if (
+                node_id in st.stopped
+                and node_id not in st.second_pass
+                and self.nodes[node_id].passed_at is None
+            ):
+                pick = self._second_pass_pick(self.chapter.node(node_id))
+                same = pick[2] if pick else []
+                return self._make(TeachAction.ENTER_NODE, "N-NEXT", node_id, reasons=["SECOND_PASS", *same])
         return self._make(TeachAction.FINISH, "N-FINISH", reasons=["NO_NODE_LEFT"])
 
     def _done(self, node_id: str) -> bool:
@@ -134,9 +146,9 @@ class _Policy:
         node, ns = self.chapter.node(node_id), self.nodes[node_id]
         if ns.pass_now:
             return self._make(TeachAction.PASS_NODE, "N-PASS", node_id)
-        if visit.items >= node.pass_rule.max_items:
+        if visit.items >= self._budget(visit, node):
             return self._make(TeachAction.STOP_NODE, "N-BUDGET", node_id, reasons=["BUDGET", *ns.missing])
-        switch = self._misconception_remediation(node_id)
+        switch = None if visit.second else self._misconception_remediation(node_id)  # DI-80: no detour
         if switch is not None:
             return switch
         if visit.phase == "NEW":
@@ -163,7 +175,12 @@ class _Policy:
                 )
         return None
 
+    def _budget(self, visit: Visit, node: Node) -> int:
+        return self.config.second_pass_items if visit.second else node.pass_rule.max_items
+
     def _start(self, visit: Visit, node: Node) -> NodeDecisionMade:
+        if visit.second:
+            return self._second_pass(visit, node)
         if visit.warmup_item is None:
             warmup = self._warmup(node)
             if warmup is not None:
@@ -180,6 +197,33 @@ class _Policy:
                 reasons=["WARMUP_FAILED"],
             )
         return self._teach(visit, node, "N-TEACH")
+
+    def _second_pass_pick(self, node: Node) -> tuple[TeachAction, str, list[str]] | None:
+        """DI-80: what teaches the node again, not used in this session yet: a worked example, else a theory
+        variant, else the earliest used (``SAME_*``, the loop says it is done more slowly)."""
+        used_examples = self.state.examples_used.get(node.id, [])
+        used_variants = self.state.variants_used.get(node.id, [])
+        for w in node.worked_examples:
+            if w.id not in used_examples:
+                return TeachAction.SHOW_WORKED_EXAMPLE, w.id, []
+        for t in node.theory:
+            if t.id not in used_variants:
+                return TeachAction.TEACH_THEORY, t.id, []
+        if used_examples:
+            return TeachAction.SHOW_WORKED_EXAMPLE, used_examples[0], ["SAME_EXAMPLE"]
+        if used_variants:
+            return TeachAction.TEACH_THEORY, used_variants[0], ["SAME_VARIANT"]
+        return None
+
+    def _second_pass(self, visit: Visit, node: Node) -> NodeDecisionMade:
+        """DI-80: the second pass teaches again with what the first did not use, then goes to the questions.
+        No warm-up, recall or detour in it."""
+        pick = self._second_pass_pick(node)
+        if pick is None:
+            return self._practice(visit, node, self.nodes[node.id], modelled=True)
+        action, ref, same = pick
+        support = PracticeSupport.EXPLAIN_FIRST if action == TeachAction.SHOW_WORKED_EXAMPLE else None
+        return self._make(action, "N-RETEACH", node.id, ref, support, ["SECOND_PASS", *same])
 
     def _warmup(self, node: Node) -> NodeDecisionMade | None:
         missing = [p for p in self.chapter.prerequisites(node.id) if p not in self.state.evidence_nodes]
@@ -223,7 +267,7 @@ class _Policy:
 
     def _check(self, visit: Visit, node: Node) -> NodeDecisionMade:
         if visit.check_item is None:
-            fresh = self._fresh(node.checks)
+            fresh = self._fresh(node.checks, visit=visit)
             if fresh:
                 return self._make(TeachAction.CHECK_ITEM, "N-CHECK", node.id, fresh[0])
         if not visit.retell_asked:
@@ -232,7 +276,7 @@ class _Policy:
 
     def _reteach(self, visit: Visit, node: Node) -> NodeDecisionMade:
         failures = visit.check_failures
-        if failures >= self.config.remediate_after_check_failures:
+        if failures >= self.config.remediate_after_check_failures and not visit.second:
             weak = [
                 p
                 for p in self.chapter.prerequisites(node.id)
@@ -243,7 +287,7 @@ class _Policy:
                 return self._make(
                     TeachAction.SWITCH_TO_PREREQUISITE, "N-REMEDIATE", weakest, reasons=["CHECK_FAILED_TWICE"]
                 )
-        if failures == 1 and (recall := self._recall(node, "CHECK_FAILED")) is not None:
+        if failures == 1 and not visit.second and (recall := self._recall(node, "CHECK_FAILED")) is not None:
             return recall
         untaught = [t.id for t in node.theory if t.id not in visit.taught]
         used = self.state.variants_used.get(node.id, [])
@@ -271,20 +315,21 @@ class _Policy:
             if example is not None:
                 return self._make(TeachAction.SHOW_WORKED_EXAMPLE, "N-METHOD", node.id, example)
         if not visit.completion_asked:
-            fresh = self._fresh(node.completion)
+            fresh = self._fresh(node.completion, visit=visit)
             if fresh:
                 return self._make(TeachAction.COMPLETION_ITEM, "N-METHOD", node.id, fresh[0], support)
         missing = set(ns.missing)
         active = {m.id for m in ns.misconceptions if m.status != "RESOLVED"}
-        practice = self._fresh(node.practice, probing=active)
+        practice = self._fresh(node.practice, probing=active, visit=visit)
         if "UNDERSTOOD" in missing:
             # DI-49, also while a misconception is followed (0.3.1): the items probing it come first, but
             # one that adds the missing form still comes in time, or the budget ends the period (seen when
             # MISC-1 found "quên chia 2" and every probing item was a number to fill in).
-            practice = self._covering(practice, ns, node.pass_rule.max_items - visit.items)
-        transfer = self._fresh(node.transfer)
+            practice = self._covering(practice, ns, self._budget(visit, node) - visit.items)
+        transfer = self._fresh(node.transfer, visit=visit)
         reasons = sorted(missing)
-        if "UNDERSTOOD" in missing and (again := self._retry_for_form(visit, node, ns)) is not None:
+        # DI-80: in a second pass ``_fresh`` already brings back the items missed, so no DI-56 retry
+        if "UNDERSTOOD" in missing and not visit.second and (again := self._retry_for_form(visit, node, ns)):
             return self._make(
                 TeachAction.PRACTICE_ITEM, "N-PRACTICE", node.id, again, support, [*reasons, "RETRY_FORM"]
             )
@@ -299,7 +344,7 @@ class _Policy:
             return self._make(TeachAction.ASK_RETELL, "N-CHECK", node.id, reasons=["EXPLANATION_MISSING"])
         if transfer:
             return self._make(TeachAction.TRANSFER_ITEM, "N-PRACTICE", node.id, transfer[0], support, reasons)
-        checks = self._fresh(node.checks)
+        checks = self._fresh(node.checks, visit=visit)
         if checks:
             return self._make(TeachAction.CHECK_ITEM, "N-PRACTICE", node.id, checks[0], support, reasons)
         return self._make(TeachAction.STOP_NODE, "N-BUDGET", node.id, reasons=["NO_ITEMS_LEFT", *reasons])
@@ -339,10 +384,20 @@ class _Policy:
                 todo.extend(self.chapter.prerequisites(n))
         return [n for n in self.order if n in found]
 
-    def _fresh(self, item_ids: Iterable[str], probing: Collection[str] = ()) -> list[str]:
+    def _fresh(
+        self, item_ids: Iterable[str], probing: Collection[str] = (), visit: Visit | None = None
+    ) -> list[str]:
         """Items not asked in this session: those probing an active misconception first, then those
-        never met in any session, then file order."""
-        candidates = [i for i in item_ids if i not in self.state.asked]
+        never met in any session, then file order. In a second pass (DI-80) the items asked earlier and
+        not self-solved (``missed``) come back too, once each in the visit."""
+        if visit is not None and visit.second:
+            candidates = [
+                i
+                for i in item_ids
+                if i not in visit.asked and (i not in self.state.asked or i in self.state.missed)
+            ]
+        else:
+            candidates = [i for i in item_ids if i not in self.state.asked]
 
         def key(pair: tuple[int, str]) -> tuple[bool, bool, int]:
             index, item_id = pair
