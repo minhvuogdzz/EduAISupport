@@ -24,6 +24,15 @@ validator, each one from a real Qwen output:
   unless the message answers a mathematical term the child used (asked "con làm thế nào?", the model gave
   a hint instead).
 
+REFORM-1b (llm-renderer.v8, DI-81) adds the last moves a child hears most:
+
+- OFFER_CHOICE in the model's words, which must still offer both a hint and another try (``CHOICE_MISSING``);
+- CONFIRM_ADVANCE after a right answer: praise of what the child did, no question (``ASKS_ON_ADVANCE``);
+- *lead* moves (``lead_only`` in the directive): PRESENT and the CONFIRM_ADVANCE of an explanation the child
+  could not give (REFORM-2, DI-68). The model writes one sentence on what the child said, at most
+  ``LEAD_WORDS`` words and no question (``LEAD_QUESTION``); the approved text (the stem, the explanation)
+  follows word for word and the whole is checked. With nothing the child said there is no call.
+
 v5's ``NEW_MATH_TERM`` (no mathematical term outside the sources) is gone: the child asks "mẫu như nào"
 next to an anchor without "mẫu số", and the answer was replaced by the template.
 
@@ -61,13 +70,14 @@ from cavat.modules.tutor.contracts import (
     ValidationCode,
 )
 from cavat.modules.tutor.policy import UNCLEAR_REASONS
-from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, build_request, prompt_view
+from cavat.modules.tutor.prompt_builder import LEAD_WORDS, RECENT_TURNS, Turn, build_request, prompt_view
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import singles_out_choice
 
+# v8: REFORM-1b (DI-81), see the module docstring
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v7"
+LLM_RENDERER_VERSION = "llm-renderer.v8"
 LLM_MOVES = frozenset(
     {
         Move.PROBE,
@@ -80,6 +90,9 @@ LLM_MOVES = frozenset(
         Move.WORKED_GUIDANCE,
         Move.TEACH_BACK,
         Move.VERIFY,  # only when it asks again (``ASK_AGAIN``), see ``_template_only``
+        Move.PRESENT,  # REFORM-1b: a lead before the stem, when the child said something
+        Move.CONFIRM_ADVANCE,
+        Move.OFFER_CHOICE,
     }
 )
 TEMPLATE_ONLY_MOVES = frozenset(Move) - LLM_MOVES
@@ -90,6 +103,9 @@ TOP_MOVES = frozenset({Move.EXPLAIN, Move.REDIRECT})
 # DI-70: moves that only ask how the child thinks; a mathematical term from outside the sources is a hint.
 ASK_ONLY_MOVES = frozenset({Move.PROBE, Move.NUDGE})
 MAX_ATTEMPTS = 2  # the first call and one retry carrying the rejection codes
+CHOICE_MISSING = "CHOICE_MISSING"
+ASKS_ON_ADVANCE = "ASKS_ON_ADVANCE"
+LEAD_QUESTION = "LEAD_QUESTION"
 BEYOND_ANCHOR = "BEYOND_ANCHOR"
 REPEATS_PREVIOUS = "REPEATS_PREVIOUS"
 OFF_ANCHOR = "OFF_ANCHOR"
@@ -101,6 +117,9 @@ MIN_ANCHOR_COVERAGE = 0.3
 DECIMAL_BASES = ("10", "100", "1000")
 # DI-60: words a model message may add to its anchor when the anchor is already near the cap.
 ANCHOR_SLACK = 15
+# DI-75: a lead before approved text (prompt_builder.LEAD_WORDS) stays within the slack, so the item loop's
+# final check accepts the whole.
+assert LEAD_WORDS <= ANCHOR_SLACK
 _REPAIRABLE = frozenset({ValidationCode.MISSING_QUESTION, ValidationCode.WRONG_ADDRESS})
 _SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
 
@@ -197,15 +216,35 @@ def repair(text: str, codes: Sequence[str], ctx: RenderContext, anchor: str) -> 
 
 
 def _template_only(ctx: RenderContext) -> bool:
-    """Said with the approved template: a test item, a move of lesson content, and VERIFY unless it asks
-    again after "là sao?" (the item's own "vì sao" is the teacher's question; FIX-2's VERIFY after a wrong
-    answer is the approved probe)."""
+    """Said with the approved template: a test item, a move of lesson content, VERIFY unless it asks again
+    after "là sao?" (the item's own "vì sao" is the teacher's question; FIX-2's VERIFY after a wrong answer is
+    the approved probe), and an opening or a move on when the child said nothing to answer."""
     move = ctx.decision.move
     if ctx.item.is_assessment or move in TEMPLATE_ONLY_MOVES:
         return True
     if move == Move.ASK_CONFIRM and UNCLEAR_REASONS.intersection(ctx.decision.reason_codes):
         return True  # REFORM-5: the reader already wrote (or the template has) the question for this slip
+    if move in (Move.PRESENT, Move.CONFIRM_ADVANCE) and not (ctx.student_text or "").strip():
+        return True
     return move == Move.VERIFY and "ASK_AGAIN" not in ctx.decision.reason_codes
+
+
+def lead_only(ctx: RenderContext) -> bool:
+    """DI-75: the model writes one sentence before the approved text, which is said word for word."""
+    d = ctx.decision
+    return d.move == Move.PRESENT or (
+        d.move == Move.CONFIRM_ADVANCE and "EXPLAIN_AND_ADVANCE" in d.reason_codes
+    )
+
+
+def move_codes(text: str, ctx: RenderContext) -> tuple[str, ...]:
+    """DI-75: what a whole message of OFFER_CHOICE or CONFIRM_ADVANCE must (not) say."""
+    move, lowered = ctx.decision.move, normalize_text(text)
+    if move == Move.OFFER_CHOICE and not ("gợi ý" in lowered and "thử" in lowered):
+        return (CHOICE_MISSING,)  # the screen shows both buttons: the words must offer both
+    if move == Move.CONFIRM_ADVANCE and "?" in text:
+        return (ASKS_ON_ADVANCE,)  # the item is closed; the next one opens at once
+    return ()
 
 
 @dataclass(frozen=True)
@@ -293,16 +332,33 @@ class LLMRenderer:
                 codes = (*codes, BEYOND_ANCHOR)
             if self._repeats(text):
                 codes = (*codes, REPEATS_PREVIOUS)
-            codes = (*codes, *idea_codes(text, ctx, anchor))
+            codes = (*codes, *idea_codes(text, ctx, anchor), *move_codes(text, ctx))
             if singles_out_choice(text, ctx.item) and not singles_out_choice(anchor, ctx.item):
                 codes = (*codes, ValidationCode.ANSWER_LEAK)
         return tuple(codes)
+
+    def _lead_codes(self, lead: str, ctx: RenderContext, anchor: str) -> tuple[str, ...]:
+        """DI-75: a lead, then the approved text: the whole through the validator, the lead on its own."""
+        if not lead:
+            return (ValidationCode.EMPTY,)
+        whole = f"{lead} {anchor}"
+        codes = list(self._validator(whole, replace(ctx, max_words=len(whole.split()))).codes)
+        if "?" in lead:
+            codes.append(LEAD_QUESTION)
+        if len(lead.split()) > LEAD_WORDS:
+            codes.append(ValidationCode.TOO_LONG)
+        if beyond_anchor(lead, ctx, anchor):
+            codes.append(BEYOND_ANCHOR)
+        if singles_out_choice(lead, ctx.item):
+            codes.append(ValidationCode.ANSWER_LEAK)
+        return tuple(dict.fromkeys(codes))
 
     def _render_with_llm(self, ctx: RenderContext, fallback: RenderedMessage) -> RenderedMessage:
         move = ctx.decision.move
         view = prompt_view(ctx)
         anchor = fallback.text if view is ctx else self._template.render(view).text
         ctx = replace(ctx, max_words=word_cap(ctx, anchor))  # DI-60: the prompt and the checks use it
+        lead = lead_only(ctx)
         rejected: list[tuple[str, ...]] = []
         calls, flagged = 0, False  # a safety flag survives even when its message is rejected
         for _ in range(MAX_ATTEMPTS):
@@ -312,6 +368,7 @@ class LLMRenderer:
                 history=self._history,
                 student_name=self._student_name,
                 retry_codes=rejected[-1] if rejected else (),
+                lead_only=lead,
             )
             outcome = self._router.chat(ModelClass.TUTOR_REASONING, request, calls_used=self.calls_used)
             self.calls_used += outcome.calls_made
@@ -322,6 +379,15 @@ class LLMRenderer:
                 return fallback
             text, safety_flag, feedback = _fields(outcome.result.data)
             flagged = flagged or safety_flag
+            if lead:
+                codes = self._lead_codes(text, ctx, anchor)
+                if not codes:
+                    self.last_trace = RenderTrace(
+                        move, "LLM", calls, None, tuple(rejected), flagged, feedback
+                    )
+                    return RenderedMessage(text=f"{text} {anchor}", source="LLM", hint_ref=fallback.hint_ref)
+                rejected.append(codes)
+                continue
             codes = self._codes(text, ctx, anchor)
             fixed = repair(text, codes, ctx, anchor)
             if fixed is not None and not self._codes(fixed, ctx, anchor):

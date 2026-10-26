@@ -8,7 +8,11 @@ student has something to do.
 Grounded speech (RAG-2, ``grounded.py``), when a ``speaker`` is given for the live turn: a question the child
 asks while a theory question or a retell waits is answered from the passages the Hybrid RAG retrieves (or
 kept for the teacher when nothing grounds it), and the reply to a theory answer starts with one sentence on
-what the child said, before the approved explanation. Both are checked against their sources.
+what the child said, before the approved explanation. Both are checked against their sources. REFORM-1b
+(DI-75): every fixed lead before approved text is such a bridge too ("Đúng rồi!", "Không sao đâu, cô giải
+thích nhé:", the reminder of the main idea after a retell the child cannot give, talk outside the lesson,
+the reminder of an earlier lesson); the approved text after it never changes, and the template lead is said
+when the model cannot be.
 
 The state lives in the events only. ``TeachingLoop.resume`` rebuilds a loop from them: the teaching
 state is a fold of the events, and the open item replays its inputs with templates, as the session
@@ -80,9 +84,10 @@ from cavat.modules.tutor.reader import (
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
+# 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.6.0"
+TEMPLATES_VERSION = "teaching-templates/0.7.0"
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -410,8 +415,9 @@ class TeachingLoop:
         if intent == Outcome.OFF_TOPIC and self._replies_since_decision() <= MAX_OFF_TOPIC_REDIRECTS:
             # ADR-019: talk outside the lesson is parked and the same question asked again (DI-38).
             assert self._prompt is not None
-            back = self._phrase("off_topic", ask=self._prompt)
-            self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, back, node_id))
+            back = self._bridged("off_topic", "ask", self._prompt, text, asked=self._prompt, judged="chưa rõ")
+            self._flag(now, events, back, f"{node_id}:{self._ref or 'RETELL'}")
+            self._say(now, messages, events, self._feedback(back, node_id))
             return TeachTurn(
                 tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=self._prompt
             )
@@ -428,14 +434,19 @@ class TeachingLoop:
         node = self.chapter.node(node_id)
         judged = judge_retell(node_id, text, node.explain)
         if self._ref == RECALL:
-            return self._on_recall(judged, intent, now, messages, events)
+            return self._on_recall(judged, intent, now, messages, events, text)
         events.append(self._record(now, EventType.RETELL_JUDGED, judged))
         if intent is not None and not judged.ideas_found:
             # "Con không biết", "là sao ạ?", "chán quá": remind the main idea instead of only saying that
             # it was not heard; the node policy then asks again or moves on, as for any retell.
             key = "retell_affect" if intent == Outcome.NEGATIVE_AFFECT else "retell_help"
-            said = self._phrase(key, idea=node.description)
-        elif judged.score >= self.config.retell_pass:
+            spoken = self._bridged(
+                key, "idea", node.description, text, asked=node.explain.prompt, judged="chưa rõ"
+            )
+            self._flag(now, events, spoken, f"{node_id}:{self._ref or 'RETELL'}")
+            self._say(now, messages, events, self._feedback(spoken, node_id))
+            return self._advance(now, messages, events)
+        if judged.score >= self.config.retell_pass:
             said = self._phrase("retell_good")
         else:
             said = self._phrase("retell_partial" if judged.ideas_found else "retell_none")
@@ -519,6 +530,7 @@ class TeachingLoop:
         now: datetime,
         messages: list[TeachMessage],
         events: list[LoopEvent],
+        text: str = "",
     ) -> TeachTurn:
         """DI-52: the recall of an earlier node is judged like a retell (evidence on that node), then bridged
         to the node being learnt; a recall not good enough gets the earlier node's main idea first."""
@@ -531,7 +543,13 @@ class TeachingLoop:
         elif judged.ideas_found and intent is None:
             said = self._phrase("recall_partial", idea=prior.description, name=name)
         else:
-            said = self._phrase("recall_help", idea=prior.description, name=name)
+            asked = self._recall_ask(prior.id)
+            spoken = self._bridged(
+                "recall_help", "idea", prior.description, text, asked=asked, judged="chưa rõ", name=name
+            )
+            self._flag(now, events, spoken, f"{prior.id}:{RECALL}")
+            self._say(now, messages, events, self._feedback(spoken, prior.id, RECALL))
+            return self._advance(now, messages, events)
         self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, prior.id, RECALL))
         return self._advance(now, messages, events)
 
@@ -547,19 +565,20 @@ class TeachingLoop:
         """
         if not variant.reply:
             return Spoken(self._phrase("theory_ack"), "TEMPLATE")
+        reply = variant.reply
         if intent == Outcome.NEGATIVE_AFFECT:
-            return Spoken(self._phrase("theory_affect", reply=variant.reply), "TEMPLATE")
+            return self._bridged("theory_affect", "reply", reply, text, asked=variant.ask, judged="chưa rõ")
         if intent is not None or (_bare_no(text) and not _yes_no(variant.ask)):
             # "ko" to "phân số nào?" is "con không biết" (seen live), not a wrong answer; to "có dài hơn
             # không?" it is an answer and goes on to the check below.
-            return Spoken(self._phrase("theory_explain", reply=variant.reply), "TEMPLATE")
+            return self._bridged("theory_explain", "reply", reply, text, asked=variant.ask, judged="chưa rõ")
         accept = phrase_regex(variant.accept) if variant.accept else None
         # "ko" is "không": the short forms children type count as the words they stand for
         right = accept is not None and any(
             accept.search(t) for t in (normalize_text(text), expand_short_forms(text))
         )
         if right:
-            return Spoken(self._phrase("theory_right", reply=variant.reply), "TEMPLATE")
+            return self._bridged("theory_right", "reply", reply, text, asked=variant.ask, judged="đúng")
         judged, lead = ("chưa đúng", "theory_check_lead") if variant.accept else ("chưa rõ", "theory_ack")
         if self.speaker is None:
             return Spoken(f"{self._phrase(lead)} {variant.reply}", "TEMPLATE")
@@ -1053,6 +1072,25 @@ class TeachingLoop:
 
     def _phrase(self, key: str, **values: str) -> str:
         return PHRASES[key].format(**self._persona, **values)
+
+    def _bridged(
+        self, key: str, slot: str, body: str, said: str, *, asked: str, judged: str, **values: str
+    ) -> Spoken:
+        """REFORM-1b (DI-75): the phrase ``key`` is a lead, then ``slot`` (approved text) and what follows it.
+        With a live speaker the lead is a checked sentence on what the child ``said`` (``bridge``); the
+        approved part is said word for word either way."""
+        mark = "\x00"
+        lead, _, after = self._phrase(key, **{slot: mark}, **values).partition(mark)
+        approved = f"{body}{after}"
+        if self.speaker is None:
+            return Spoken(f"{lead}{approved}", "TEMPLATE")
+        return self.speaker.bridge(said, asked=asked, explanation=approved, judged=judged, lead=lead.strip())
+
+    @staticmethod
+    def _feedback(spoken: Spoken, node_id: str | None, ref: str | None = None) -> TeachMessage:
+        return TeachMessage(
+            MessageKind.FEEDBACK, spoken.text, node_id, ref, source=spoken.source, rejected=spoken.rejected
+        )
 
     def _summary(self) -> str:
         state = teaching_state(self.events, self.config)

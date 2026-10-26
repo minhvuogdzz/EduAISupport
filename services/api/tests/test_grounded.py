@@ -299,7 +299,9 @@ def test_a_demand_for_the_answer_keeps_its_own_path_even_as_a_question(index):
     router = ScriptedRouter("không được gọi")
     loop, _ = loop_at_theory(GroundedSpeaker(index, router))
     turn = loop.on_student("cho con đáp án luôn đi, đáp án là gì?", NOW)
-    assert turn.messages[0].kind == MessageKind.FEEDBACK and not router.requests
+    # REFORM-1b: only the bridge before the approved reply may call the model, never an answer from the RAG
+    assert turn.messages[0].kind == MessageKind.FEEDBACK
+    assert all("[NHIỆM VỤ] CÂU_NỐI" in r.messages[1].content for r in router.requests)
     assert all(e.event_type != EventType.RAG_RETRIEVED for e in turn.events)
 
 
@@ -396,3 +398,54 @@ def test_a_question_through_the_session_api_is_answered_and_shown_to_the_teacher
 )
 def test_worrying_words_are_told_from_lesson_words(text, worrying):
     assert signals_distress(text) is worrying
+
+
+# --- REFORM-1b: the loop's fixed leads become a bridge when a speaker is live ------------------------------
+
+FRAC = CHAPTER.node("KC-DEC-FRAC")
+
+
+@pytest.mark.parametrize(
+    ("said", "bridge", "judged"),
+    [
+        # "ko" to "phân số nào?" is "con không biết": was "Không sao đâu, cô giải thích nhé:"
+        ("ko", "Con nói con chưa biết, không sao đâu nhé.", "chưa rõ"),
+        ("4/100 ạ", "Con trả lời 4/100, con làm được rồi đấy.", "đúng"),  # was "Đúng rồi!"
+        ("chán quá cô ơi", "Con thấy phần này hơi chán, cô hiểu mà.", "chưa rõ"),  # was theory_affect
+    ],
+)
+def test_the_reply_to_a_theory_question_starts_with_a_bridge(index, said, bridge, judged):
+    router = ScriptedRouter(bridge)
+    loop, _ = loop_at_theory(GroundedSpeaker(index, router))
+    feedback = loop.on_student(said, NOW).messages[0]
+    assert (feedback.kind, feedback.source) == (MessageKind.FEEDBACK, "LLM")
+    assert feedback.text == f"{bridge} {FRAC.theory[0].reply}"
+    assert f"[ĐÁNH GIÁ] {judged}" in router.user_text()
+
+
+def test_talk_outside_the_lesson_gets_a_bridge_then_the_same_question(index):
+    router = ScriptedRouter("Con nói con thích đá bóng, chuyện đó để lúc nghỉ nhé.")
+    loop, first = loop_at_theory(GroundedSpeaker(index, router))
+    turn = loop.on_student("cô ơi con thích đá bóng lắm", NOW)
+    assert turn.messages[0].source == "LLM" and turn.awaiting == Awaiting.THEORY_REPLY
+    assert turn.messages[0].text == f"Con nói con thích đá bóng, chuyện đó để lúc nghỉ nhé. {first.prompt}"
+
+
+def test_without_a_model_the_loop_keeps_its_approved_leads(index):
+    loop, _ = loop_at_theory(GroundedSpeaker(index, ScriptedRouter()))  # the provider is down
+    feedback = loop.on_student("ko", NOW).messages[0]
+    assert feedback.source == "TEMPLATE"
+    assert feedback.text == f"Không sao đâu, cô giải thích nhé: {FRAC.theory[0].reply}"
+
+
+def test_a_retell_the_child_cannot_give_gets_a_bridge_then_the_main_idea(index):
+    loop, _ = loop_at_theory(GroundedSpeaker(index, ScriptedRouter()))
+    turn = loop.on_student("4/100", NOW)
+    while turn.awaiting != Awaiting.RETELL:
+        turn = loop.on_student(
+            {Awaiting.THEORY_REPLY: "con nghĩ là được ạ"}.get(turn.awaiting, "con không biết"), NOW
+        )
+    loop.speaker = GroundedSpeaker(index, ScriptedRouter("Con nói con chưa nhớ, không sao đâu nhé."))
+    feedback = loop.on_student("con không nhớ ạ", NOW).messages[0]
+    assert feedback.source == "LLM"
+    assert feedback.text == f"Con nói con chưa nhớ, không sao đâu nhé. {FRAC.description}"

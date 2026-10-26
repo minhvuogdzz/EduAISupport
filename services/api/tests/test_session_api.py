@@ -307,10 +307,10 @@ def reply(message, safety_flag=False):
 
 
 async def test_llm_phrases_the_live_turn_and_past_turns_are_never_sent_again(client, memory, monkeypatch):
-    fake = llm_router(monkeypatch, RewordingModel([]))
     state = start(client)
     for _ in range(2):
-        state = advance(client, state)  # concept checks answered correctly: template-only moves
+        state = advance(client, state)  # concept checks answered correctly, before the model is installed
+    fake = llm_router(monkeypatch, RewordingModel([]))  # REFORM-1b: the praise of a right answer calls it
     assert state["item"]["item_id"] == "GP-01" and not fake.calls
     wrong = ">" if correct_text("GP-01") == "<" else "<"
 
@@ -335,10 +335,10 @@ async def test_llm_phrases_the_live_turn_and_past_turns_are_never_sent_again(cli
 def test_a_leaking_model_falls_back_to_the_template(client, monkeypatch):
     answer = PKG.item("GP-01").answer
     leak = f"Đáp án là {answer.left} {correct_text('GP-01')} {answer.right} nhé. Con hiểu chưa?"
-    fake = llm_router(monkeypatch, FakeChatModel([reply(leak), reply(leak)]))
     state = start(client)
     for _ in range(2):
         state = advance(client, state)
+    fake = llm_router(monkeypatch, FakeChatModel([reply(leak), reply(leak)]))
     wrong = ">" if correct_text("GP-01") == "<" else "<"
     assert send(client, state, wrong, "w1").status_code == 200
     state = get_state(client, state)

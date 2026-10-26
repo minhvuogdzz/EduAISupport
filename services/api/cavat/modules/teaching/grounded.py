@@ -67,7 +67,7 @@ from cavat.modules.tutor.validator import (
     wrong_address,
 )
 
-GROUNDED_VERSION = "grounded-speech/0.2.2"
+GROUNDED_VERSION = "grounded-speech/0.3.0"  # 0.3.0: REFORM-1b, DI-75
 PROMPT_FILE = "grounded.v1.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -87,6 +87,8 @@ TUTOR_TALK = frozenset(
     "dung chua xem thu that ra lai nua cau tra loi noi nghi cung nhe day dau oi nao tot lam gang vay ay do "
     "nay kia se dang da van nhung nen neu khi de rang bi tu ban em hoc bai minh hay qua roi phai y dieu "
     "chi moi luc nay vua cach giup cho ca nhau ghi nho dap thay kiem tra giu".split()
+    # DI-75 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa biết", "con thấy chán")
+    + "biet hieu kho chan vui thich buon met lo ke chuyen muon".split()
 )
 _NUMBER = re.compile(r"^[\d.,/]+$")
 _SENTENCE = re.compile(r"(?<=[.!?…])\s+")
@@ -423,7 +425,8 @@ class GroundedSpeaker:
 
     def _evidence(self, texts: Sequence[str], student_text: str) -> Evidence:
         """The passages, the child's words and the child's given name (the tutor may call the child by it)."""
-        return Evidence((*texts, student_text, self.name or ""))
+        # "ko" is "không": the short forms the child types count as the words they stand for (REFORM-1b)
+        return Evidence((*texts, student_text, expand_short_forms(student_text), self.name or ""))
 
     def _ask_model(
         self,
