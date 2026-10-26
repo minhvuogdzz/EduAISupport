@@ -48,6 +48,8 @@ SETS = {
     "published_tune": ("published", DATA / "rag-published-v1.yaml"),
     "published_holdout_v1": ("published", DATA / "rag-published-holdout-v1.yaml"),
     "published_holdout_v2": ("published", DATA / "rag-published-holdout-v2.yaml"),
+    # RAG-6: written as children type, frozen (tag eval-freeze-rag-v3) before the DI-50 fix
+    "published_holdout_v3": ("published", DATA / "rag-published-holdout-v3.yaml"),
     "sample_tune": ("sample", DATA / "rag-decimals-v1.yaml"),
     "sample_holdout": ("sample", DATA / "rag-decimals-holdout-v1.yaml"),
 }
@@ -213,6 +215,7 @@ def detail(index, case: Case, config: str, k: int = 3, order: list[str] | None =
     return {
         "id": case.id,
         "group": case.group,
+        "style": case.style,
         "q": case.q,
         "node": case.node,
         "mode": found.mode,
@@ -374,7 +377,12 @@ def main() -> None:
     sweep = []
     for margin in SWEEP:
         row: dict = {"margin": margin}
-        for name in ("published_tune", "published_holdout_v1", "published_holdout_v2"):
+        for name in (
+            "published_tune",
+            "published_holdout_v1",
+            "published_holdout_v2",
+            "published_holdout_v3",
+        ):
             index = indexes["published"]
             with with_routing(margin):
                 rows = [detail(index, c, PRODUCTION) for c in cases[name]]
@@ -396,7 +404,7 @@ def main() -> None:
 
     # Statistics of the paired comparisons that the paper reports.
     stats: dict = {}
-    for name in ("published_tune", "published_holdout_v1", "published_holdout_v2"):
+    for name in ("published_tune", "published_holdout_v1", "published_holdout_v2", "published_holdout_v3"):
         before = result["sets"][name]["configs"][PRODUCTION]["off"]["rows"]
         after = result["sets"][name]["configs"][PRODUCTION]["on"]["rows"]
         pairs = [(b, a) for b, a in zip(before, after, strict=True) if b["relevant"]]
@@ -447,7 +455,7 @@ def main() -> None:
     stats["contrasts_v2"] = contrasts
     # What the graph adds to a conventional RAG: in-scope retrieval, teaching ahead, answering a later period.
     flat_stats = {}
-    for name in ("published_tune", "published_holdout_v1", "published_holdout_v2"):
+    for name in ("published_tune", "published_holdout_v1", "published_holdout_v2", "published_holdout_v3"):
         entry = {}
         for config in (PRODUCTION, *FLAT):
             rows = result["sets"][name]["configs"][config]["on"]["rows"]
@@ -473,7 +481,15 @@ def main() -> None:
     # Production against the conventional RAG, paired by question, on each published set and on all of them.
     versus: dict = {}
     for flat_name in FLAT:
-        groups = {name: [name] for name in ("published_tune", "published_holdout_v1", "published_holdout_v2")}
+        groups = {
+            name: [name]
+            for name in (
+                "published_tune",
+                "published_holdout_v1",
+                "published_holdout_v2",
+                "published_holdout_v3",
+            )
+        }
         groups["all_published"] = list(groups)
         groups["heldout_only"] = ["published_holdout_v2"]
         for label, names in groups.items():
@@ -515,7 +531,10 @@ def main() -> None:
         "route": "hybrid+route-only",
         "define": "hybrid+define-only",
     }
-    pools = {name: [name] for name in ("published_tune", "published_holdout_v1", "published_holdout_v2")}
+    pools = {
+        name: [name]
+        for name in ("published_tune", "published_holdout_v1", "published_holdout_v2", "published_holdout_v3")
+    }
     pools["heldout"] = ["published_holdout_v1", "published_holdout_v2"]
 
     def against_production(config: str, names: list[str]) -> dict:
@@ -543,6 +562,22 @@ def main() -> None:
             "mcnemar_p": mcnemar_exact(len(won), len(lost)),
         }
 
+    # RAG-6: the frozen v3 set by how the child typed the question (in-chapter questions only).
+    styles: dict = {}
+    for config in (PRODUCTION, "keyword+rerank"):
+        rows = [
+            r
+            for r in result["sets"]["published_holdout_v3"]["configs"][config]["on"]["rows"]
+            if r["relevant"]
+        ]
+        for style in sorted({r["style"] for r in rows}):
+            got = [r for r in rows if r["style"] == style]
+            styles.setdefault(style, {})[config] = {
+                "n": len(got),
+                "hit3": mean(1.0 if r["first"] and r["first"] <= 3 else 0.0 for r in got),
+                "mrr": mean(1 / r["first"] if r["first"] else 0.0 for r in got),
+            }
+    stats["styles_v3"] = styles
     stats["components"] = {
         label: {
             "production": {
@@ -593,7 +628,7 @@ def main() -> None:
     )
     print(f"written {OUT.relative_to(REPO_ROOT)}")
     for name, s in stats.items():
-        if name in ("contrasts_v2", "grounding", "flat", "flat_vs_production", "components"):
+        if name in ("contrasts_v2", "grounding", "flat", "flat_vs_production", "components", "styles_v3"):
             continue
         print(
             f"{name}: n={s['n']} Hit@3 {s['hit3_before']:.2f} -> {s['hit3_after']:.2f}, "

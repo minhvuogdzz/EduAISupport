@@ -84,26 +84,61 @@ _FILLERS = ("cua tam giac", "cua hinh thang", "trong so thap phan")
 
 def defined_term(query: str) -> str | None:
     """The term of a definition question, folded, or None."""
+    found = term_and_shape(query)
+    return found[0] if found else None
+
+
+def term_and_shape(query: str) -> tuple[str, str | None] | None:
+    """The term of a definition question and the shape it names, folded, or None:
+    "đường cao của hình thang là gì" -> ("duong cao", "cua hinh thang"). RAG-6: the shape is kept so that a
+    passage that defines the term for another shape is not taken as the definition (DI-50)."""
     q = fold(normalize(query))
     if not _DEFINITION.search(q):
         return None
     m = _TERM.match(q)
     if not m:
         return None
-    term = m.group(1).strip()
+    term, shape = m.group(1).strip(), None
     for filler in _FILLERS:
-        term = term.removesuffix(filler).strip()
-    return term if 2 <= len(term) <= 40 else None
+        if term.endswith(filler):
+            term, shape = term.removesuffix(filler).strip(), filler
+    return (term, shape) if 2 <= len(term) <= 40 else None
 
 
-def defines(text: str, term: str) -> bool:
+# RAG-6: where a sentence or a clause ends in a passage (a decimal comma or point is not an end).
+_CLAUSES = re.compile(r"[!?:;()\[\]\n]+|(?<!\d)[.,]|[.,](?!\d)")
+
+
+def defines(text: str, term: str, shape: str | None = None) -> bool:
     """The passage defines the term: "đường cao của tam giác là", "gọi là đường cao", "hình thang là".
-    "đáy và đường cao là những cạnh nào" asks, it does not define: a question word after "là" is none."""
-    t = fold(normalize(text))
+    "đáy và đường cao là những cạnh nào" asks, it does not define: a question word after "là" is none.
+
+    RAG-6: a definition opens its sentence or clause with the term, names it after "gọi là", or ends a clause
+    with it ("Đáy dài hơn là đáy lớn"); a term in the middle of one is used, not defined ("Hàng cần làm tròn
+    là hàng đơn vị", "đáy 6 m, chiều cao 5 m là:"). With ``shape`` (the shape the question names), a
+    definition of the term for another shape does not count ("đường cao của tam giác là" for "đường cao của
+    hình thang là gì"), nor does a passage that speaks only of another shape ("Độ dài đường cao gọi là chiều
+    cao" in the triangle's period, for "chiều cao của hình thang là gì")."""
     # nor is a value ("phần nguyên là 0", "phần nguyên đều là 5", "gồm 9 đơn vị"): a number after "là"
     asks = r"(?!\s+(?:gi|nhung canh nao|canh nao|hang nao|phan nao|sao|bao nhieu|may|cai gi)\b)(?!\s*\d)"
-    defined = rf"\b{re.escape(term)}\b(?:\s+(?!deu\b)\w+){{0,4}}\s+(?:la|gom)\b{asks}"
-    return bool(re.search(rf"{defined}|\bgoi la (?:\w+ )?{re.escape(term)}\b", t))
+    opens = re.compile(rf"{re.escape(term)}\b((?:\s+(?!deu\b)(?!\d)\w+){{0,4}})\s+(?:la|gom)\b{asks}")
+    named = re.compile(rf"\bgoi la (?:\w+ )?{re.escape(term)}\b((?:\s+\w+){{0,3}})")
+    # "Đáy dài hơn là đáy lớn": a clause that ends by naming the term describes it
+    ends = re.compile(rf"\bla {re.escape(term)}()$")
+    others = [f for f in _FILLERS if f != shape] if shape else []
+    if shape:
+        whole = fold(normalize(text))
+        names = {f: f.split(" ", 1)[1] for f in _FILLERS}  # "cua tam giac" -> "tam giac"
+        if not re.search(rf"\b{names[shape]}\b", whole) and any(
+            re.search(rf"\b{names[f]}\b", whole) for f in others
+        ):
+            return False
+    for clause in _CLAUSES.split(text):
+        t = fold(normalize(clause))
+        for m in (opens.match(t), named.search(t), ends.search(t)):
+            if m and not any(other in m.group(1) for other in others):
+                return True
+    return False
 
 
 GROUNDED_COVERAGE = 0.5  # DI-17: share of the question's content words a chosen passage must contain
@@ -272,7 +307,8 @@ class RagIndex:
             # ancestor is in scope, one step away (a definition does not fade with the distance on the graph).
             # Later periods stay out (the graph only leads back).
             near = {**{n: 1 for n in self.ancestors(node_id)}, **near}
-        term = defined_term(query) if mode == "definition" else None
+        found_term = term_and_shape(query) if mode == "definition" else None
+        term, shape = found_term or (None, None)
 
         bm25_all = self.keyword.scores(query) if keyword else [0.0] * len(self.chunks)
         coverage_all = self.keyword.coverage(query)
@@ -323,7 +359,7 @@ class RagIndex:
         for i, distance in scope:
             chunk = self.chunks[i]
             fused = sum(1 / (RRF_K + r) for r in (bm25_rank.get(i), cos_rank.get(i)) if r is not None)
-            defining = bool(define and term and defines(chunk.text, term))
+            defining = bool(define and term and defines(chunk.text, term, shape))
             # DI-50: the passage that defines the term asked about is where it is taught: no fading with the
             # distance on the graph (the child asks again what an earlier period taught).
             fused *= 1.0 if defining else 1 / (1 + distance)

@@ -54,6 +54,7 @@ class Case:
     mode: str = "question"
     used: frozenset[str] = frozenset()
     misconception: str | None = None
+    style: str = ""  # RAG-6: how the child typed it (co-dau, khong-dau, sai-chinh-ta, viet-tat)
 
 
 @dataclass(frozen=True)
@@ -88,6 +89,7 @@ def load_cases(path: Path) -> list[Case]:
             mode=c.get("mode", "question"),
             used=frozenset(c.get("used") or ()),
             misconception=c.get("misconception"),
+            style=c.get("style", ""),
         )
         for c in data["cases"]
     ]

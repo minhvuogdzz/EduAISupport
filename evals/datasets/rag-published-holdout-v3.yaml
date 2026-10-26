@@ -1,0 +1,65 @@
+# Bộ câu giữ riêng v3 cho RAG trên hai chương đã phát hành. Viết ngày 2026-10-25 (RAG-6), TRƯỚC khi sửa lỗi khái
+# niệm của DI-50, commit riêng và đóng băng bằng thẻ git `eval-freeze-rag-v3` trước mọi thay đổi code; KHÔNG dùng
+# để chỉnh tham số nào. Lý do có v3: v1 và v2 đã được xem khi phân tích lỗi (RAG-5), và cả hai gần như chỉ có câu
+# gõ đúng chính tả, có dấu, dùng đúng chữ của bài.
+#
+# Câu được viết như trẻ lớp 5 gõ thật (`style`):
+#   co-dau: gõ đủ dấu; khong-dau: không dấu; sai-chinh-ta: thiếu hoặc sai chữ ("bao nhiu", "chiu cao");
+#   viet-tat: chữ tắt của trẻ ("j", "ko", "dc", "ntn").
+# `tag: dinh-nghia-hinh`: câu "X của <hình> là gì", lớp câu mà lỗi DI-50 làm sai (RAG-5); viết mới, không lấy từ v1/v2.
+#
+# Nhãn theo tiết (NODE:*), do Claude soạn chỉ từ tên tiết và đồ thị tiên quyết (không xem kết quả truy xuất), chờ
+# giáo viên duyệt. [ASSUME] Câu "bai-truoc" chỉ hỏi về một tiết mà tiết đang học dựa vào (trực tiếp hoặc gián tiếp).
+version: 3
+chapters: [math-g5-decimals, math-g5-area-triangle-trapezoid]
+status: DRAFT
+cases:
+  # Hỏi trong bài đang học
+  - {id: W01, group: cung-bai, style: viet-tat, node: STP-T01, q: "phan so thap phan la phan so ntn a", relevant: ["STP-T01:*"]}
+  - {id: W02, group: cung-bai, style: viet-tat, node: STP-T02, q: "so 3,07 doc la j", relevant: ["STP-T02:*"]}
+  - {id: W03, group: cung-bai, style: khong-dau, node: STP-T03, q: "tai sao 0,5 bang 5/10 vay co", relevant: ["STP-T03:*"]}
+  - {id: W04, group: cung-bai, style: khong-dau, node: STP-T04, q: "0,9 voi 0,85 so nao lon hon", relevant: ["STP-T04:*"]}
+  - {id: W05, group: cung-bai, style: viet-tat, node: STP-T06, q: "5m 3dm viet thanh met dc ko", relevant: ["STP-T06:*"]}
+  - {id: W06, group: cung-bai, style: sai-chinh-ta, node: STP-T07, q: "2 tấn 5 tạ bằng bao nhiu tấn", relevant: ["STP-T07:*"]}
+  - {id: W07, group: cung-bai, style: co-dau, node: STP-T08, q: "1 ha bằng bao nhiêu mét vuông", relevant: ["STP-T08:*"]}
+  - {id: W08, group: cung-bai, style: khong-dau, node: STP-T09, q: "lam tron 7,46 den hang don vi", relevant: ["STP-T09:*"]}
+  - {id: W09, group: cung-bai, style: khong-dau, node: DTTGHT-T01, q: "day cua tam giac la canh nao a", relevant: ["DTTGHT-T01:*"]}
+  - {id: W10, group: cung-bai, style: khong-dau, node: DTTGHT-T02, q: "dien tich tam giac tinh the nao vay co", relevant: ["DTTGHT-T02:*"]}
+  - {id: W11, group: cung-bai, style: khong-dau, node: DTTGHT-T05, q: "hinh thang la hinh nhu the nao", relevant: ["DTTGHT-T05:*"]}
+  - {id: W12, group: cung-bai, style: khong-dau, node: DTTGHT-T06, q: "cong thuc dien tich hinh thang la gi", relevant: ["DTTGHT-T06:*"]}
+  # Hỏi khái niệm của bài trước
+  - {id: W13, group: bai-truoc, style: viet-tat, node: STP-T04, q: "phan nguyen voi phan thap phan cach nhau bang j", relevant: ["STP-T02:*"]}
+  - {id: W14, group: bai-truoc, style: khong-dau, node: STP-T05, q: "so sanh 2 so thap phan thi xem phan nao truoc", relevant: ["STP-T04:*"]}
+  - {id: W15, group: bai-truoc, style: khong-dau, node: STP-T07, q: "1 m bang bao nhieu dm", relevant: ["STP-T06:*"]}
+  - {id: W16, group: bai-truoc, style: khong-dau, node: STP-T10, q: "lam tron den hang phan muoi la sao co", relevant: ["STP-T09:*"]}
+  - {id: W17, group: bai-truoc, style: viet-tat, node: STP-T09, q: "0,50 co bang 0,5 ko", relevant: ["STP-T03:*"]}
+  - {id: W18, group: bai-truoc, style: co-dau, node: STP-T11, q: "7/10 viết thành số thập phân thế nào", relevant: ["STP-T01:*", "STP-T03:*"]}
+  - {id: W19, group: bai-truoc, style: co-dau, node: STP-T08, q: "5 kg 30 g viết ra kg thế nào", relevant: ["STP-T07:*"]}
+  - {id: W20, group: bai-truoc, style: sai-chinh-ta, node: DTTGHT-T03, q: "chiu cao cua tam giac la doan nao", relevant: ["DTTGHT-T01:*"]}
+  - {id: W21, group: bai-truoc, style: khong-dau, node: DTTGHT-T06, q: "dien tich tam giac thi chia may", relevant: ["DTTGHT-T02:*"]}
+  - {id: W22, group: bai-truoc, style: khong-dau, node: DTTGHT-T07, q: "hinh thang co may canh song song", relevant: ["DTTGHT-T05:*"]}
+  - {id: W23, group: bai-truoc, style: khong-dau, node: DTTGHT-T08, q: "dien tich hinh thang tinh sao", relevant: ["DTTGHT-T06:*"]}
+  - {id: W24, group: bai-truoc, style: khong-dau, node: DTTGHT-T04, q: "muon tinh dien tich tam giac can biet nhung gi", relevant: ["DTTGHT-T02:*"]}
+  # "X của <hình> là gì": định nghĩa có kèm hình
+  - {id: W25, group: bai-truoc, tag: dinh-nghia-hinh, style: co-dau, node: DTTGHT-T06, q: "đường cao của hình thang là gì", relevant: ["DTTGHT-T05:*"]}
+  - {id: W26, group: bai-truoc, tag: dinh-nghia-hinh, style: khong-dau, node: DTTGHT-T07, q: "day cua hinh thang la canh nao", relevant: ["DTTGHT-T05:*"]}
+  - {id: W27, group: bai-truoc, tag: dinh-nghia-hinh, style: co-dau, node: DTTGHT-T03, q: "đường cao của tam giác là gì ạ", relevant: ["DTTGHT-T01:*"]}
+  - {id: W28, group: bai-truoc, tag: dinh-nghia-hinh, style: viet-tat, node: DTTGHT-T08, q: "chieu cao hinh thang la j", relevant: ["DTTGHT-T05:*"]}
+  - {id: W29, group: bai-truoc, tag: dinh-nghia-hinh, style: co-dau, node: DTTGHT-T02, q: "đáy của tam giác là gì", relevant: ["DTTGHT-T01:*"]}
+  - {id: W30, group: bai-truoc, tag: dinh-nghia-hinh, style: co-dau, node: STP-T05, q: "phần thập phân của số thập phân là gì", relevant: ["STP-T02:*"]}
+  # Hỏi bài sau
+  - {id: W31, group: bai-sau, style: khong-dau, node: STP-T03, q: "lam tron so 8,26 the nao", relevant: []}
+  - {id: W32, group: bai-sau, style: viet-tat, node: DTTGHT-T02, q: "dien tich hinh thang tinh ntn", relevant: []}
+  - {id: W33, group: bai-sau, style: co-dau, node: STP-T05, q: "4 tấn 50kg bằng bao nhiêu tấn", relevant: []}
+  - {id: W34, group: bai-sau, style: khong-dau, node: DTTGHT-T01, q: "dien tich tam giac day 8 cao 5 la bao nhieu", relevant: []}
+  - {id: W35, group: bai-sau, style: khong-dau, node: STP-T02, q: "so sanh 4,5 va 4,48", relevant: []}
+  # Toán ngoài chương
+  - {id: W36, group: lac-de-toan, style: khong-dau, node: STP-T06, q: "chia hai phan so the nao", relevant: []}
+  - {id: W37, group: lac-de-toan, style: khong-dau, node: DTTGHT-T05, q: "the tich hinh hop chu nhat tinh sao", relevant: []}
+  - {id: W38, group: lac-de-toan, style: khong-dau, node: STP-T04, q: "phan so toi gian la gi", relevant: []}
+  - {id: W39, group: lac-de-toan, style: khong-dau, node: DTTGHT-T03, q: "dien tich hinh tron tinh the nao", relevant: []}
+  # Lạc đề
+  - {id: W40, group: lac-de, style: khong-dau, node: STP-T07, q: "co oi con muon di choi", relevant: []}
+  - {id: W41, group: lac-de, style: khong-dau, node: DTTGHT-T06, q: "hom qua con xem hoat hinh vui lam", relevant: []}
+  - {id: W42, group: lac-de, style: khong-dau, node: STP-T10, q: "con buon ngu qua", relevant: []}
+  - {id: W43, group: lac-de, style: khong-dau, node: STP-T02, q: "ban ngoi canh con cu noi chuyen", relevant: []}
