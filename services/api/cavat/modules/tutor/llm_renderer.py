@@ -118,7 +118,7 @@ MIN_ANCHOR_COVERAGE = 0.3
 DECIMAL_BASES = ("10", "100", "1000")
 # DI-60: words a model message may add to its anchor when the anchor is already near the cap.
 ANCHOR_SLACK = 15
-# DI-75: a lead before approved text (prompt_builder.LEAD_WORDS) stays within the slack, so the item loop's
+# DI-81: a lead before approved text (prompt_builder.LEAD_WORDS) stays within the slack, so the item loop's
 # final check accepts the whole.
 assert LEAD_WORDS <= ANCHOR_SLACK
 _REPAIRABLE = frozenset({ValidationCode.MISSING_QUESTION, ValidationCode.WRONG_ADDRESS})
@@ -231,13 +231,13 @@ def _template_only(ctx: RenderContext) -> bool:
 
 
 def lead_only(ctx: RenderContext) -> bool:
-    """DI-75: the model writes one sentence before the approved text, which is said word for word."""
+    """DI-81: the model writes one sentence before the approved text, which is said word for word."""
     d = ctx.decision
     return d.move == Move.CONFIRM_ADVANCE and "EXPLAIN_AND_ADVANCE" in d.reason_codes
 
 
 def move_codes(text: str, ctx: RenderContext) -> tuple[str, ...]:
-    """DI-75: what a whole message of OFFER_CHOICE or CONFIRM_ADVANCE must (not) say."""
+    """DI-81: what a whole message of OFFER_CHOICE or CONFIRM_ADVANCE must (not) say."""
     move, lowered = ctx.decision.move, normalize_text(text)
     if move == Move.OFFER_CHOICE and not ("gợi ý" in lowered and "thử" in lowered):
         return (CHOICE_MISSING,)  # the screen shows both buttons: the words must offer both
@@ -337,7 +337,7 @@ class LLMRenderer:
         return tuple(codes)
 
     def _lead_codes(self, lead: str, ctx: RenderContext, anchor: str) -> tuple[str, ...]:
-        """DI-75: a lead, then the approved text: the whole through the validator, the lead on its own."""
+        """DI-81: a lead, then the approved text: the whole through the validator, the lead on its own."""
         if not lead:
             return (ValidationCode.EMPTY,)
         whole = f"{lead} {anchor}"

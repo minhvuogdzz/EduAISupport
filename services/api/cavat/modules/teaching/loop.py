@@ -9,7 +9,7 @@ Grounded speech (RAG-2, ``grounded.py``), when a ``speaker`` is given for the li
 asks while a theory question or a retell waits is answered from the passages the Hybrid RAG retrieves (or
 kept for the teacher when nothing grounds it), and the reply to a theory answer starts with one sentence on
 what the child said, before the approved explanation. Both are checked against their sources. REFORM-1b
-(DI-75): every fixed lead before approved text is such a bridge too ("Đúng rồi!", "Không sao đâu, cô giải
+(DI-81): every fixed lead before approved text is such a bridge too ("Đúng rồi!", "Không sao đâu, cô giải
 thích nhé:", the reminder of the main idea after a retell the child cannot give, talk outside the lesson,
 the reminder of an earlier lesson); the approved text after it never changes, and the template lead is said
 when the model cannot be.
@@ -1076,7 +1076,7 @@ class TeachingLoop:
     def _bridged(
         self, key: str, slot: str, body: str, said: str, *, asked: str, judged: str, **values: str
     ) -> Spoken:
-        """REFORM-1b (DI-75): the phrase ``key`` is a lead, then ``slot`` (approved text) and what follows it.
+        """REFORM-1b (DI-81): the phrase ``key`` is a lead, then ``slot`` (approved text) and what follows it.
         With a live speaker the lead is a checked sentence on what the child ``said`` (``bridge``); the
         approved part is said word for word either way."""
         mark = "\x00"

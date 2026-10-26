@@ -506,4 +506,6 @@ def test_the_words_about_feelings_are_free_only_in_a_bridge(index):
     """An answer to a question of the child keeps the strict list: "chắc chắn" there is a claim."""
     said = "Cô hiểu con ngại, khó và chưa chắc chắn."
     assert "UNSUPPORTED_CLAIM" in check(said, evidence(index, "phần nguyên là gì"), max_words=50)
-    assert "UNSUPPORTED_CLAIM" not in check(said, evidence(index, "phần nguyên là gì"), max_words=50, bridge=True)
+    assert "UNSUPPORTED_CLAIM" not in check(
+        said, evidence(index, "phần nguyên là gì"), max_words=50, bridge=True
+    )

@@ -1,5 +1,5 @@
 <!--
-Tutor Constitution v5 (L1, blueprint PART 14.2; REFORM-1b, DI-75, 2026-10-26).
+Tutor Constitution v5 (L1, blueprint PART 14.2; REFORM-1b, DI-81, 2026-10-26).
 Thay đổi so với v4: thêm câu dẫn (directive.lead_only) trước lời đã duyệt nói nguyên văn; thêm CONFIRM_ADVANCE
 và OFFER_CHOICE vào các nước đi do model diễn đạt.
 Sửa file này là thay đổi prompt: tạo bản version mới và chạy eval regression (CLAUDE.md quy tắc 7).

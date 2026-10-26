@@ -559,6 +559,33 @@ Chạy song song từ Mốc 1:
     - một học sinh mô phỏng, hai buổi mỗi chương, không phải học sinh thật; con mô phỏng học thêm từ những gì gia sư làm, nên một phần chênh lệch là do được dạy nhiều hơn;
     - buổi đầu dài tới 268–308 lượt và chưa có trần thời gian: con thoát lúc nào cũng được và tiến độ vẫn lưu;
     - nhắc lại cách làm mới là đọc lại quy tắc đã duyệt, chưa phải giảng lại bằng ví dụ khác; lần học lại tiết yếu ngay trong buổi do DI-80 (FLOW-2) thêm; nhiều tiết liên tiếp bị dừng thì buổi vẫn đi tiếp tới hết chương.
+- **DI-81, Qwen khen đúng, mời gợi ý hay tự thử và dẫn lời trong vòng dạy (REFORM-1b, `llm-renderer.v8`, `tutor-prompt.v5`, `grounded-speech/0.3.0`, `teaching-templates/0.7.0`, 2026-10-26):**
+  - **Vấn đề:** sau REFORM-1, chạy Qwen thật với con chờ 8 giây trước mỗi tin (nhịp thật: trung vị 8 giây, tứ phân vị 5,6–25 giây, đo trên buổi học thử ngày 25/10) thì chỉ 12/84 lời gia sư ở câu hỏi (14%) và 2/53 lời của vòng dạy do model viết. Phần còn lại là câu mẫu: khen "Đúng rồi!...", mời gợi ý hay tự thử, và các câu mở đầu trước lời giảng đã duyệt.
+  - **Nước đi mới do model diễn đạt (`item loop`):**
+    - CONFIRM_ADVANCE sau câu đúng: khen đúng việc con đã làm, báo sang câu tiếp, không hỏi (`ASKS_ON_ADVANCE`).
+    - OFFER_CHOICE: phải mời đủ cả hai lựa chọn "gợi ý thêm" và "tự thử lại" (`CHOICE_MISSING`).
+    - CONFIRM_ADVANCE sau khi con không giải thích được (REFORM-2, DI-68): model chỉ viết một câu dẫn tối đa 15 từ, không hỏi, không khen "Đúng rồi"; lời giải thích đã duyệt nói nguyên văn ngay sau, cả câu qua validator.
+    - Không có lời nào của con để trả lời thì vẫn là câu mẫu, không gọi model.
+    - PRESENT (mở câu) vẫn là câu mẫu: item loop mở câu không kèm lời nào của con (24/24 lần mở trong lần đo), và việc "sang câu tiếp" đã do lời khen nói.
+  - **Vòng dạy (`teaching/loop.py`):** các câu mở đầu cố định trước lời đã duyệt ("Đúng rồi!", "Không sao đâu, cô giải thích nhé:", nhắc ý chính sau lượt nói lại, kéo về sau lạc đề, nhắc bài cũ) thành câu nối của `GroundedSpeaker.bridge` khi có model; lời đã duyệt phía sau không đổi một chữ. Model không dùng được thì nói câu mở đầu cũ.
+  - **Chốt an toàn giữ nguyên:** lộ đáp án, đơn cử một lựa chọn, khen khi chưa đúng, nhại lời con, xưng hô, một câu hỏi, kiểm số và thuật ngữ. Câu kiểm tra cuối bài vẫn dùng câu mẫu.
+  - **Nới bộ kiểm của câu nối (sau khi đọc các câu bị từ chối):** trong lần đo đầu 9/12 câu nối bị từ chối, đều vì `UNATTRIBUTED` hoặc `UNSUPPORTED_CLAIM`, ví dụ "Cô hiểu Vương chưa chắc chắn, mình cùng xem lại nhé." khi con gõ "ko".
+    - `UNATTRIBUTED` (phải nói "con nghĩ/nói...") chỉ áp khi câu nối lặp lại một con số của con hoặc một từ của bài mà con đã dùng. Lặp ý của con như lời của gia sư vẫn bị chặn.
+    - Các từ nói về cảm xúc, sự chưa chắc và nỗ lực (chắc, hiểu, khó, ngại, rõ, chậm...) không cần có trong nguồn, **chỉ trong câu nối**; lời đáp câu con hỏi giữ danh sách cũ.
+  - **Hạn mức:** câu nối chừa 1/5 cuối trần cho giải thích và câu con hỏi, như các nước đi khác (DI-61).
+  - **Đo** (`simulate_learner --measure`, con chờ 8 giây, 2 chương, mỗi chương một buổi 40 lượt, trong bộ nhớ, không ghi gì; trước là `main` edc4fe4, sau là nhánh này trước khi nới bộ kiểm):
+
+    | | Trước | Sau (hai lần đo) |
+    |---|---|---|
+    | Lời ở câu hỏi do model viết | 12/84 (14%) | 24/86 (28%) và 25/82 (30%) |
+    | Lời giảng của vòng dạy do model viết | 2/53 | 3/56 và 4/57 |
+    | Câu nối được nhận / số câu nối | không có số | 3/12 |
+
+  - **Giới hạn đã biết (nói thẳng):**
+    - Sau khi nới bộ kiểm, lần đo một buổi chương Số thập phân chạy khi hạn mức ngày của Qwen đã hết (Groq báo đã dùng 198.000–199.900 trên 200.000 token): gần như toàn bộ lời do gpt-oss-120b viết, nên kết quả không nói được gì về Qwen. Câu nối nhận 3/6 ở lần đó (mẫu rất nhỏ). Ba câu nối chạy riêng với model thật (Qwen, rồi gpt-oss khi Qwen hết hạn mức) đều qua.
+    - Cần đo lại với Qwen khi cửa sổ 24 giờ của Groq nhả hạn mức.
+    - Chưa chạy `make eval-hard` (judge dùng cùng hạn mức) cho prompt v5.
+    - Khen "Đúng rồi" bằng model tiêu khoảng 1 trong 3 lượt gọi của một buổi 40 lượt (16 lần gọi trong một lần đo); trần 40 (DI-71) vẫn chịu được, nhưng buổi dài hơn 40 lượt sẽ hết lượt gọi sớm và quay về câu mẫu.
 - **DI-80, hết tiết thì quay lại dạy lại tiết yếu một lần, bằng ví dụ khác (FLOW-2, `node-policy/0.5.0`, 2026-10-26, quyết định của chủ dự án):**
   - **Vấn đề:** sau DI-75 buổi đi tiếp qua tiết yếu, nhưng tiết yếu mới chỉ được nhắc lại cách làm rồi hẹn buổi sau. Chủ dự án (giáo viên kiểm soát): "sau khi hết tiết, quay lại dạy lại tiết yếu một lần nữa ngay trong buổi, giảng lại bằng ví dụ khác".
   - **Luật (tất định, là hàm của sự kiện; replay ra đúng như lúc chạy):**

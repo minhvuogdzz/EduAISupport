@@ -67,7 +67,7 @@ from cavat.modules.tutor.validator import (
     wrong_address,
 )
 
-GROUNDED_VERSION = "grounded-speech/0.3.0"  # 0.3.0: REFORM-1b, DI-75
+GROUNDED_VERSION = "grounded-speech/0.3.0"  # 0.3.0: REFORM-1b, DI-81
 PROMPT_FILE = "grounded.v1.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -88,9 +88,9 @@ TUTOR_TALK = frozenset(
     "nay kia se dang da van nhung nen neu khi de rang bi tu ban em hoc bai minh hay qua roi phai y dieu "
     "chi moi luc nay vua cach giup cho ca nhau ghi nho dap thay kiem tra giu".split()
 )
-# DI-75 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa chắc chắn", "con thấy chán",
-# "cô hiểu con ngại"): feelings, doubt, effort, calm. Only a bridge may use them without evidence: an answer
-# to a question of the child keeps the strict list above.
+# DI-81 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa chắc chắn", "con thấy
+# chán", "cô hiểu con ngại"): feelings, doubt, effort, calm. Only a bridge may use them without evidence: an
+# answer to a question of the child keeps the strict list above.
 BRIDGE_TALK = frozenset(
     "biet hieu kho khan chac chan ro ngai vui thich buon met lo ke chuyen muon cham nhanh ky nhan doan "
     "cam on thoai mai".split()
@@ -175,7 +175,7 @@ def check(
     student_address: str = "con",
     bridge: bool = False,
 ) -> tuple[str, ...]:
-    """Why a message the model wrote may not be said (empty: it may). ``bridge``: DI-75, a sentence on the
+    """Why a message the model wrote may not be said (empty: it may). ``bridge``: DI-81, a sentence on the
     child, which may use the words of ``BRIDGE_TALK`` without evidence."""
     if not message.strip():
         return ("EMPTY",)
@@ -207,7 +207,7 @@ def check(
 
 
 def repeats_idea(lead: str, said: str, lesson: str) -> bool:
-    """DI-75: whether a lead repeats something the child said about the lesson: one of the child's numbers, or
+    """DI-81: whether a lead repeats something the child said about the lesson: one of the child's numbers, or
     a word of the lesson's own text that the child used. Only then must it say whose idea it is (a wrong idea
     repeated without it reads as the tutor's). "ko" or "chán quá cô ơi" are not ideas about the lesson."""
     said = expand_short_forms(said)
@@ -443,7 +443,7 @@ class GroundedSpeaker:
     # ------------------------------------------------------------------ helpers
 
     def _may_bridge(self) -> bool:
-        """DI-75: a bridge is wording, not help. As the renderer's moves other than EXPLAIN and REDIRECT
+        """DI-81: a bridge is wording, not help. As the renderer's moves other than EXPLAIN and REDIRECT
         (DI-61), it leaves the last fifth of the session's calls to explanations and to the child's
         questions."""
         cap = getattr(self.router, "max_calls_per_session", DEFAULT_MAX_LLM_CALLS_PER_SESSION)

@@ -454,7 +454,7 @@ def test_the_session_calls_are_kept_for_the_moves_that_need_them(move, decision,
         assert renderer.last_trace.fallback_reason == "call_budget"
 
 
-# REFORM-1b (DI-75): opening an item, praising a right answer and offering a hint or another try.
+# REFORM-1b (DI-81): opening an item, praising a right answer and offering a hint or another try.
 def test_the_offer_of_a_hint_or_another_try_is_said_by_the_model_and_keeps_both_choices():
     good = "Không sao đâu con, câu này hơi khó. Con muốn cô gợi ý thêm hay con tự thử lại một lần nữa?"
     one_choice = "Không sao đâu con. Con có muốn cô gợi ý thêm không?"

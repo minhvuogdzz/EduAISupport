@@ -40,7 +40,7 @@ CONSTITUTION = "constitution.v5.md"
 SUBJECT_MODULES = {("math", 5): "math_g5.v1.md"}
 
 RECENT_TURNS = 6  # blueprint: the 4-6 latest turns of the current item
-LEAD_WORDS = 15  # DI-75: a sentence before approved text, said word for word after it
+LEAD_WORDS = 15  # DI-81: a sentence before approved text, said word for word after it
 MAX_TURN_CHARS = 300
 MAX_STUDENT_CHARS = 500
 MAX_OUTPUT_TOKENS = 300
@@ -155,7 +155,7 @@ def student_said(reason_codes: Sequence[str]) -> str | None:
 def directive(ctx: RenderContext, lead_only: bool = False) -> dict[str, Any]:
     """L5 Turn Directive (PART 14.4): what to do this turn, decided by the policy, never by the model.
 
-    ``lead_only`` (DI-75): the model writes one sentence; the approved text follows word for word."""
+    ``lead_only`` (DI-81): the model writes one sentence; the approved text follows word for word."""
     decision, item = ctx.decision, ctx.item
     out: dict[str, Any] = {
         "state": {
