@@ -286,10 +286,14 @@ def teach_cases(docs: list[dict], limit: int, pin: tuple[str, ...] = ()) -> list
         events = doc.get("events", [])
         for i, e in enumerate(events):
             p = e.get("payload") or {}
-            node_ref = p.get("item_id", "")
-            if ":" not in node_ref:
-                continue
-            node_id, ref = node_ref.split(":", 1)
+            if e["event_type"] == "TEACH_MESSAGE_SENT":
+                node_id, ref = p.get("node_id") or "", p.get("ref") or ""
+                node_ref = f"{node_id}:{ref}"
+            else:
+                node_ref = p.get("item_id", "")
+                if ":" not in node_ref:
+                    continue
+                node_id, ref = node_ref.split(":", 1)
             try:
                 node = chapter.node(node_id)
             except Exception:
