@@ -147,7 +147,8 @@ PHRASES: dict[str, str] = {
     "retell_none": "{T} chưa nghe thấy ý chính trong câu trả lời của {s}.",
     "example": "{T} làm mẫu cho {s} xem nhé.",
     "pass": "{S} đã hiểu bài {name} rồi. Giỏi lắm!",
-    "stop": "Bài {name} mình tạm dừng ở đây. {T} sẽ ôn lại với {s} vào buổi sau nhé.",
+    "stop": "Bài {name} {s} chưa vững hẳn. {T} nhắc lại cách làm để {s} nhớ: {rule} "
+    "{T} sẽ ôn lại với {s} sau nhé.",
     "summary_done": "Hôm nay {s} đã học xong: {names}.",
     "summary_review": "Còn cần ôn thêm: {names}.",
     "summary_none": "Hôm nay mình dừng ở đây nhé.",
@@ -667,7 +668,9 @@ class TeachingLoop:
         elif a == TeachAction.PASS_NODE:
             say(TeachMessage(MessageKind.PASS, self._phrase("pass", name=name), node_id))
         elif a == TeachAction.STOP_NODE:
-            say(TeachMessage(MessageKind.STOP, self._phrase("stop", name=name), node_id))
+            rule = self.chapter.node(node_id).method.rule.strip()
+            rule += "" if rule.endswith((".", "!", "?")) else "."
+            say(TeachMessage(MessageKind.STOP, self._phrase("stop", name=name, rule=rule), node_id))
         elif a == TeachAction.FINISH:
             say(TeachMessage(MessageKind.SUMMARY, self._summary()))
             self.awaiting = Awaiting.NOTHING

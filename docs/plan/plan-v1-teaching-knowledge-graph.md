@@ -139,7 +139,7 @@ Luật tất định, mỗi luật một mã `N-*`, có version như policy gợ
 | N-TRANSFER | Đủ C, I nhưng thiếu A hoặc T | Bài vận dụng |
 | N-PASS | Đạt điều kiện qua node (5.3) | Ghi qua node; quay về node đang chờ nếu có, không thì sang node tiếp theo đã mở khóa |
 | N-REVIEW | Sau mỗi lần qua node | Một câu ôn xen kẽ của node đã qua trước đó |
-| N-BUDGET | Hết số câu cho phép ở node mà chưa đạt | Dừng node, ghi "cần học lại" cho giáo viên; node phụ thuộc vẫn khóa |
+| N-BUDGET | Hết số câu cho phép ở node mà chưa đạt | Cô nhắc lại cách làm, dừng node, ghi "cần học lại" cho giáo viên; node phụ thuộc vẫn mở (DI-75) |
 | N-FINISH | Không còn node mở khóa chưa qua | Tổng kết buổi học |
 
 Bảng DI-8 của blueprint (dải M → hành động) dùng để chọn mức hỗ trợ trong N-PRACTICE và N-TRANSFER.
@@ -544,6 +544,20 @@ Chạy song song từ Mốc 1:
     - Sửa gợi ý (`edit`) là chữ của cô nên ở lại qua các lần soạn lại.
   - **Trang duyệt** chỉ hiện quyết định còn tính (`effective_decisions`): lời duyệt trên chữ không còn thì trang lại hiện nút "Duyệt". Bản lưu giữ mọi quyết định, là bằng chứng duyệt.
   - **Còn lại:** duyệt cả tiết (`node:<id>`) không gắn với chữ của gợi ý, và gợi ý chưa duyệt vẫn vào bản phát hành, như trước; bấm "Duyệt" trên gợi ý đã sửa tay vẫn thay quyết định sửa bằng quyết định duyệt (mỗi gợi ý một khóa).
+- **DI-75, một tiết dùng hết số câu mà chưa qua không làm hết buổi (FLOW-1, `node-policy/0.4.0`, 2026-10-26, quyết định của chủ dự án):**
+  - **Vấn đề:** buổi học thử ngày 26/10 (ảnh chụp màn hình của chủ dự án): tiết đầu của chương Số thập phân dùng hết số câu cho phép (mặc định 12 câu mỗi tiết, hoặc tiết hết câu mới) nên bị dừng "cần học lại". Các tiết sau chỉ mở khi mọi tiết tiên quyết đã qua, nên không còn tiết nào để vào: buổi kết thúc với "0/11 bài đã qua". Chương này là một chuỗi, nên một tiết đầu yếu là hết cả buổi.
+  - **Yêu cầu của chủ dự án:** con chưa hiểu thì giảng lại rồi sang bài khác; con hiểu thì sang bài khác. Một tiết yếu không bao giờ làm kết thúc buổi.
+  - **Thay đổi:**
+    - luật `N-BUDGET` vẫn dừng tiết, nhưng tiết đã dừng trong buổi này không còn khóa các tiết sau: tiết sau mở với lý do `UNLOCKED_AFTER_STOP`;
+    - lời dừng tiết nhắc lại cách làm đã duyệt của tiết (`method.rule`) rồi hẹn ôn lại sau, thay cho câu "mình tạm dừng ở đây";
+    - tiết yếu vẫn không được ghi là đã qua: nó nằm trong "còn cần ôn thêm" của lời tổng kết và buổi sau lại được vào học lại; mức nắm vững vẫn là bản chiếu tất định từ sự kiện, không đổi.
+  - **Đo** (học sinh mô phỏng học chậm `--pace 0.35`, hai buổi mỗi chương, hai chương đã phát hành, câu mẫu, trong bộ nhớ, `simulate_learner.py --memory`):
+    - Số thập phân, buổi 1: 95 lượt và 2/11 tiết qua, nay 308 lượt và 9/11; buổi 2: 39 lượt và 3/11, nay 16 lượt và 11/11;
+    - Diện tích, buổi 1: 74 lượt và 1/8, nay 268 lượt và 6/8; buổi 2: 125 lượt và 4/8, nay 23 lượt và 8/8.
+  - **Giới hạn [OPEN]:**
+    - một học sinh mô phỏng, hai buổi mỗi chương, không phải học sinh thật; con mô phỏng học thêm từ những gì gia sư làm, nên một phần chênh lệch là do được dạy nhiều hơn;
+    - buổi đầu dài tới 268–308 lượt và chưa có trần thời gian: con thoát lúc nào cũng được và tiến độ vẫn lưu;
+    - nhắc lại cách làm mới là đọc lại quy tắc đã duyệt, chưa phải giảng lại bằng ví dụ khác; chưa có lần học lại tiết yếu ngay trong buổi (lượt hai ở cuối buổi); nhiều tiết liên tiếp bị dừng thì buổi vẫn đi tiếp tới hết chương. Chủ dự án quyết nếu muốn thêm.
 - **DI-66, gia sư của từng câu đọc Student Model (PRIOR-1, 2026-10-22):**
   - **Vấn đề:** blueprint 05 và 25.3 cho chính sách đọc snapshot của Student Model ("đóng băng đầu session, cập nhật cục bộ trong session") cho R-STRONG-PRIOR và R-WEAK-PRIOR. Nhưng buổi học chưa bao giờ truyền snapshot cho gia sư của từng câu, nên cả hai luật [FACT] này chưa từng chạy trong buổi học.
   - **Thay đổi:** khi mở một câu, buổi học dựng `StudentSnapshot` từ projection của các sự kiện tính tới quyết định mở câu, gồm cả các buổi trước:
