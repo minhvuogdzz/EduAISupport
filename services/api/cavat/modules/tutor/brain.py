@@ -337,8 +337,20 @@ def child_voice(text: str, address: str = "con") -> str:
     return _SUBJECT.sub(swap, " ".join(text.split()))
 
 
+OPENING_WORDS = 4  # DI-84: the same first words as one of the last two tutor turns is a tutor on a script
+
+
+def _opening(text: str) -> tuple[str, ...]:
+    return tuple(re.findall(r"\w+", fold(normalize_text(text)))[:OPENING_WORDS])
+
+
 def repeats(text: str, recent: Sequence[Turn]) -> bool:
-    return any(t.role == "tutor" and _similar(text, t.text) >= REPEAT_SIMILARITY for t in recent)
+    """The turn says again what the tutor said, or opens with the same words as one of its last two turns."""
+    said = [t for t in recent if t.role == "tutor"]
+    if any(_similar(text, t.text) >= REPEAT_SIMILARITY for t in said):
+        return True
+    opening = _opening(text)
+    return len(opening) == OPENING_WORDS and any(_opening(t.text) == opening for t in said[-2:])
 
 
 def speech_codes(

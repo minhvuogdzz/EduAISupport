@@ -202,7 +202,11 @@ OTHER_WORDS = (
 
 
 def test_a_child_who_asks_la_sao_is_explained_in_other_words_not_read_the_rule(index):  # noqa: F811
-    router = ModelRouter(OTHER_WORDS, OTHER_WORDS.replace("bánh", "thước").replace("ăn", "tô"))
+    second = (
+        "Thử nghĩ về cái thước nhé: thước dài 1 m chia làm 10 đoạn bằng nhau, tô 3 đoạn thì là 3/10. "
+        "Mẫu số 10 là số đoạn bằng nhau của cả cái thước."
+    )
+    router = ModelRouter(OTHER_WORDS, second)
     loop, first = loop_at_theory(GroundedSpeaker(index, router))
     for _ in range(2):  # the first "là sao nhỉ" teaches again (REFORM-6), the second answers and goes on
         turn = loop.on_student("là sao nhỉ", NOW)
@@ -403,3 +407,12 @@ def test_the_invitation_to_say_it_back_is_written_for_what_the_child_did(index):
     assert (
         refused.text == "" and "TEACHER_VOICE" in refused.rejected[0] and "OFF_TARGET" in refused.rejected[1]
     )
+
+
+def test_a_tutor_on_a_script_is_refused_the_same_opening_twice():
+    from cavat.modules.tutor.brain import repeats
+    from cavat.modules.tutor.prompt_builder import Turn
+
+    said = [Turn("tutor", "Cô thấy con viết 7/10. Vì sao mẫu số lại là 10?"), Turn("student", "vì có một số")]
+    assert repeats("Cô thấy con viết 0,3 rồi. Con nói cô nghe vì sao nhé?", said)
+    assert not repeats("7/10, đúng rồi con. Mẫu số 10 từ đâu ra vậy?", said)
