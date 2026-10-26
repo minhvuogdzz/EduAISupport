@@ -303,11 +303,24 @@ class MessageRead(_Payload):
     item_id: str
     turn: int  # the item loop's student turn the reading was made on
     label: Literal[
-        "ANSWER", "STEP_ANSWER", "ASKS_ABOUT", "ASK_TASK", "DONT_KNOW", "OFF_TOPIC", "AFFECT", "OTHER"
+        "ANSWER",
+        "STEP_ANSWER",
+        "ASKS_ABOUT",
+        "ASK_TASK",
+        "DONT_KNOW",
+        "OFF_TOPIC",
+        "AFFECT",
+        "OTHER",
+        "AMBIGUOUS_TYPO",  # REFORM-5: a typo with a likely meaning ("ki" for "ko")
+        "GIBBERISH",  # REFORM-5: a key slip or laughter with none ("ể", "êr", "tt", "kkk")
     ]
     focus: str = ""
     answer: str = ""
     source: Literal["RULE", "LLM"]
+    # REFORM-5 (3.1): what the reader guessed the child meant, and the question it proposes to ask. Both are
+    # said or shown to the teacher only after the validator passed them; a replay reads them from here.
+    guessed_meaning: str = ""
+    clarification: str = ""
 
 
 class MoveChosen(_Payload):

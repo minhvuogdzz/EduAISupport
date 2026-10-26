@@ -133,6 +133,29 @@ def test_gpt_oss_fallback_uses_supported_reasoning_effort():
     assert json.loads(rec.requests[0].content)["reasoning_effort"] == "low"
 
 
+def test_every_model_of_the_intent_chain_gets_the_reasoning_effort_it_accepts():
+    """REFORM-5: the intent agent runs on gpt-oss first. Groq refuses "none" on gpt-oss (low, medium, high
+    only), and Qwen needs "none" or it bills about 390 tokens of thought for nothing (checked live)."""
+    from cavat.modules.ai_gateway.router import default_chat_chains
+
+    chain = default_chat_chains()[ModelClass.INTENT_AGENT]
+    assert chain == ("openai/gpt-oss-120b", QWEN, "openai/gpt-oss-20b")
+    for model in chain:
+        rec = Recorder({model: [httpx.Response(200, json=_completion('{"utterance": "x"}', model))]})
+        _groq(rec).chat(_request(), model)
+        sent = json.loads(rec.requests[0].content)
+        assert sent["reasoning_effort"] == ("none" if model == QWEN else "low"), model
+        assert sent["response_format"]["json_schema"]["strict"] is True
+
+
+def test_the_intent_agent_is_a_chat_class_whose_chain_names_the_brain_once():
+    from cavat.modules.ai_gateway.base import CHAT_MODEL_CLASSES
+
+    assert ModelClass.INTENT_AGENT in CHAT_MODEL_CLASSES
+    router = build_router(Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), groq_model="qwen/next"))
+    assert router.chain(ModelClass.INTENT_AGENT) == ("openai/gpt-oss-120b", "qwen/next", "openai/gpt-oss-20b")
+
+
 @pytest.mark.parametrize("content", ["Đây không phải JSON", '["a", "b"]', ""])
 def test_invalid_json_raises_invalid_model_output(content):
     rec = Recorder({QWEN: [httpx.Response(200, json=_completion(content))]})

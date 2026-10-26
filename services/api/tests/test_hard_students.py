@@ -18,14 +18,14 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import timedelta
 
 import pytest
 from cavat.core.events import EventType
 from cavat.core.pedagogy import Move, Outcome
 from cavat.modules.assessment.math_checker import classify_intent
-from cavat.modules.teaching.loop import Awaiting, MessageKind, TeachingLoop, TeachTurn
+from cavat.modules.teaching.loop import CONFIRM_REF, Awaiting, MessageKind, TeachingLoop, TeachTurn
 from test_teaching_loop import CHAPTER, EXPLAINING, T0, correct_text
 
 FIRST_NODE = "KC-DEC-FRAC"
@@ -121,7 +121,13 @@ ROLES = [
     Role(
         "Nấm, đúng mà lý do chưa chắc", ["vì con đoán ạ"], where=()
     ),  # explanations are judged in milestone 2
+    # REFORM-5 (3.1): what the owner's students type when they are stuck. None of it is an answer, an
+    # explanation or a reason to praise (``test_typos_and_key_slips_...``).
+    Role("Kiên, gõ nhầm phím", ["ki", "kt", "ể", "êr"]),
+    Role("Tuấn, bấm bừa và cười", ["kkk", "tt", "kk", "hihi"], times=2),
+    Role("Hà, chỉ nói không", ["không", "ko", "chưa", "k"], times=2),
 ]
+SLIP_ROLES = [r for r in ROLES if r.name.split(",")[0] in ("Kiên", "Tuấn", "Hà")]
 
 
 def talk(role: Role) -> tuple[TeachingLoop, list[tuple[str | None, TeachTurn]]]:
@@ -222,3 +228,36 @@ def test_the_answer_of_a_number_item_is_never_said_before_the_child_finds_it(rol
                     f"{role.name}: {current} answer {item.answer.value} said after {said!r}: {tutor!r}"
                 )
         current = turn.item_id if turn.awaiting == Awaiting.ANSWER else None
+
+
+def asked_what_it_meant(turn: TeachTurn) -> bool:
+    """The tutor's reply to a few unreadable letters: ASK_CONFIRM of the item loop, or the question of a
+    theory or retell wait."""
+    return Move.ASK_CONFIRM in moves(turn) or any(m.ref == CONFIRM_REF for m in turn.messages)
+
+
+@pytest.mark.parametrize("role", SLIP_ROLES, ids=lambda r: r.name)
+def test_slips_are_never_praised_graded_nor_asked_about_twice_in_a_row(role: Role) -> None:
+    """REFORM-5, acceptance 3: after "ki", "kt", "ể", "êr", "tt", "kkk", "không" the tutor never says
+    "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận". It asks what the child meant once, then helps."""
+    _, log = talk(replace(role, asked=Counter()))  # a fresh count: the other tests share the role objects
+    in_a_row = 0
+    slips = 0
+    for said, turn in log[1:]:
+        if said not in role.says:
+            in_a_row = 0
+            continue
+        slips += 1
+        said_text = text(turn)
+        assert "Đúng rồi" not in said_text and "cẩn thận" not in said_text, (
+            f"{role.name}: {said!r} -> {said_text!r}"
+        )
+        in_a_row = in_a_row + 1 if asked_what_it_meant(turn) else 0
+        assert in_a_row < 2, f"{role.name}: asked twice in a row after {said!r}"
+    assert slips >= len(role.says), role.name  # the role did say its words
+    assert not [
+        e
+        for _, t in log
+        for e in t.events
+        if e.event_type == EventType.ANSWER_SUBMITTED and e.payload["raw_text"] in role.says
+    ]

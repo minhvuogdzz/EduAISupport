@@ -29,9 +29,13 @@ from dataclasses import dataclass, field
 from cavat.modules.assessment.student_intent import expand_short_forms, keyword_dump
 from cavat.modules.assessment.vi_numbers import normalize_text
 
-CONDUCTOR_VERSION = "conductor/0.1.0"
+# 0.2.0: REFORM-5, a message that is one letter typed over ("kk", "kkk", "tt") is kept, not shrunk to "k" (=
+# không)
+CONDUCTOR_VERSION = "conductor/0.2.0"
 MAX_CHARS = 300  # a longer message keeps its end: a child writes the answer last
 _STRETCH_RE = re.compile(r"([^\W\d_])\1{2,}")  # three or more of the same letter: "đúnggg"
+_ONE_LETTER_RE = re.compile(r"([^\W\d_])\1+")  # the whole message: "kk", "kkk", "tttt"
+MASH_KEEPS = 3  # such a message keeps this many letters ("kkkkkkkk" -> "kkk")
 _PUNCT_RUN_RE = re.compile(r"([!?.…,])\1{2,}")
 _O_AS_ZERO_RE = re.compile(r"(?<![\w])[oO](?=[,.]\d)")  # "o,5" typed with the letter o
 _SPACES_RE = re.compile(r"[ \t]+")
@@ -60,7 +64,13 @@ def clean(raw: str) -> Cleaned:
     if stripped != text:
         signals.append("EMOJI")
         text = stripped
-    shrunk = _STRETCH_RE.sub(r"\1", text)
+    letters = re.sub(r"[\W_]+", "", text)
+    if _ONE_LETTER_RE.fullmatch(letters):
+        # REFORM-5: laughter or a key held down, not a word stretched. Shrunk to one letter it would read "k",
+        # which is "không": the loop asks what the child meant instead (``student_intent.is_keyboard_mash``).
+        shrunk = letters[:MASH_KEEPS]
+    else:
+        shrunk = _STRETCH_RE.sub(r"\1", text)
     if shrunk != text:
         signals.append("STRETCHED")
         text = shrunk

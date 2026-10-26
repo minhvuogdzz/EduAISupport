@@ -277,3 +277,22 @@ def test_the_lesson_address_and_lookalikes_pass(text):
 
 def test_wrong_address_is_a_validation_code():
     assert ValidationCode.WRONG_ADDRESS.value in codes("Em thử so sánh hàng phần mười xem?")
+
+
+def test_the_explanation_said_to_a_child_who_would_not_explain_is_not_a_leak():
+    """REFORM-5: the child answered right and could not say why; the approved explanation states the answer
+    they gave, so the leak check does not apply (it still does after the full explanation of an unsolved
+    item)."""
+    explanation = PKG.item("GP-01").explanation
+    assert explanation and "0,25 < 0,3" in explanation
+
+    def closing(*reasons):
+        decision = PolicyDecision(move=Move.CLOSE_ITEM, reason_codes=reasons)
+        item = PKG.item("GP-01")
+        state = ItemState(item_id=item.id, activity=ActivityType.GUIDED_PRACTICE)
+        return RenderContext(decision=decision, item=item, package=PKG, state=state)
+
+    text = f"Cô giải thích ngắn gọn để con nhớ nhé: {explanation} Bây giờ mình sang câu tiếp theo nhé!"
+    assert LEAK not in set(VALIDATE(text, closing("NO_EXPLANATION", "UNCLEAR_TWICE")).codes)
+    assert LEAK in set(VALIDATE(text, closing("NO_EXPLANATION", "NOT_SOLVED")).codes)
+    assert LEAK in set(VALIDATE(text, closing("OFF_TOPIC")).codes)

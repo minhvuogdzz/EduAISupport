@@ -42,9 +42,22 @@ from cavat.core.pedagogy import (
     Outcome,
     resolution_for,
 )
-from cavat.modules.assessment.math_checker import CheckResult, check_answer, classify_intent, parse_relation
+from cavat.modules.assessment.math_checker import (
+    CheckResult,
+    check_answer,
+    classify_intent,
+    no_is_an_answer,
+    parse_relation,
+)
 from cavat.modules.assessment.reason import judge_reason
-from cavat.modules.assessment.student_intent import asks_for_hint
+from cavat.modules.assessment.student_intent import (
+    asks_for_hint,
+    intent_of_guess,
+    is_affirmation,
+    is_bare_negation,
+    is_gibberish_or_ambiguous_short,
+    known_words,
+)
 from cavat.modules.assessment.vi_numbers import parse_literal
 from cavat.modules.content.lesson_package import (
     BooleanAnswer,
@@ -54,6 +67,7 @@ from cavat.modules.content.lesson_package import (
     Item,
     LessonPackage,
     NumericAnswer,
+    OpenAnswer,
     OrderAnswer,
 )
 from cavat.modules.rag.bm25 import content_words
@@ -70,8 +84,23 @@ from cavat.modules.tutor.contracts import (
     TurnTrigger,
 )
 from cavat.modules.tutor.llm_renderer import word_cap
-from cavat.modules.tutor.policy import DEFAULT_CONFIG, ItemFacts, PolicyConfig, accept, decide, options
-from cavat.modules.tutor.reader import ContextReader, rule_step_reading
+from cavat.modules.tutor.policy import (
+    DEFAULT_CONFIG,
+    ItemFacts,
+    PolicyConfig,
+    accept,
+    decide,
+    options,
+    unclear_twice,
+)
+from cavat.modules.tutor.reader import (
+    MAX_INTENT_READS_PER_ITEM,
+    ContextReader,
+    clarification_problems,
+    read_unclear,
+    rule_step_reading,
+    rule_unclear_reading,
+)
 from cavat.modules.tutor.renderer import PHRASES, TemplateRenderer, counter_example, ladder_top
 
 # DI, approved by the owner on 2026-10-01: hard stop for one item. Every policy path ends well before
@@ -109,6 +138,12 @@ _READ_OUTCOME = {
     "AFFECT": Outcome.NEGATIVE_AFFECT,
 }
 _HELP = frozenset({Outcome.HELP_REQUEST, Outcome.ANSWER_DEMAND})
+# REFORM-5: "ừ" to "cô đoán con muốn nói là con chưa biết làm, đúng không?" is read as the guess it confirms.
+CONFIRMED_TEXT = {
+    Outcome.HELP_REQUEST: "con không biết",
+    Outcome.NEGATIVE_AFFECT: "con thấy chán",
+    Outcome.CLARIFY_REQUEST: "con chưa hiểu",
+}
 
 # Fixed fallback sentence (renderer.PHRASES key) used when a message fails the validator twice.
 _FALLBACK_KEY: dict[Move, str] = {
@@ -134,6 +169,10 @@ class Phase(StrEnum):
     VERIFYING = "VERIFYING"  # the "vì sao" after a correct answer (R-VERIFY)
     TEACH_BACK = "TEACH_BACK"  # the student retells the method after H6/H7 (R-TEACH-BACK)
     RESOLVED = "RESOLVED"
+
+
+# Phases in which the child answers in words: asking what a few letters meant leaves the phase as it is.
+_WORDS_PHASES = frozenset({Phase.VERIFYING, Phase.TEACH_BACK, Phase.AWAITING_REASON, Phase.AWAITING_PROBE})
 
 
 @dataclass(frozen=True)
@@ -215,6 +254,15 @@ class ItemTutor:
         self._explanation_asked = False
         self._explained: bool | None = None
         self._misconceptions: list[str] = []
+        # REFORM-5: words of the task a child may quote (a name, an option), which are not a key
+        # slip; the model readings spent on this item; the question the reader proposed and the
+        # guess it made for the message being answered, and what the guess asks of the tutor if the
+        # child says yes.
+        self._known = known_words(item.stem, item.rephrase or "", *_option_words(item))
+        self._intent_reads = 0
+        self._clarification: str | None = None
+        self._guess: str | None = None
+        self._guess_intent: Outcome | None = None
 
     # ------------------------------------------------------------------ public API
 
@@ -245,6 +293,12 @@ class ItemTutor:
             raise RuntimeError("item already resolved")
         st = self.state
         self._turns += 1
+        if st.confirm_open and self._guess_intent is not None and is_affirmation(text):
+            text = CONFIRMED_TEXT[self._guess_intent]  # the child confirmed what the tutor guessed
+        elif is_bare_negation(text) and not no_is_an_answer(self.item):
+            # "chưa", "ko", "k" are "con không biết" (student-intent/0.3.0), and the tutor answers that.
+            # Given as typed, the model once greeted "chưa" with "Chưa sao" (live, 2026-10-26).
+            text = CONFIRMED_TEXT[Outcome.HELP_REQUEST]
         self._said = text
         st.seconds_since_shown += seconds
         st.seconds_since_last_message = seconds
@@ -260,6 +314,8 @@ class ItemTutor:
             return self._on_reason(text, seconds)
 
         check = self._check(text)
+        if self._ambiguous(text, check):
+            return self._on_unclear(text, "ANSWER")
         if self._step_candidate(check):
             check = self._read_step(check, text)
         elif self.reader is not None and self._unclear(check, text):
@@ -428,6 +484,8 @@ class ItemTutor:
         )
 
     def _on_explanation(self, text: str) -> TutorTurn:
+        if self._ambiguous(text):
+            return self._on_unclear(text, "EXPLANATION")
         intent = classify_intent(text)
         self._explained = intent is None
         self.state.last_explanation_vague = False
@@ -462,6 +520,8 @@ class ItemTutor:
         second wrong attempt, no unproductive turn. A correct answer, a different answer, silence and a
         request for help are handled as on any other turn.
         """
+        if self._ambiguous(text):
+            return self._on_unclear(text, "ANSWER")
         check = self._check(text)
         last = self._last_graded
         restated = (
@@ -479,6 +539,8 @@ class ItemTutor:
 
     def _on_probe(self, text: str, seconds: float) -> TutorTurn:
         """Read the probe comparison and attribute ``if_wrong`` or ``if_correct`` (GP-08, GP-08b)."""
+        if self._ambiguous(text):  # before the probe is used up: asked about, the child may still answer it
+            return self._on_unclear(text, "ANSWER")
         option = self._probe_option
         assert option is not None and option.probe is not None
         probe = option.probe
@@ -510,6 +572,79 @@ class ItemTutor:
         self._record_answer(check, text, seconds)
         trigger: TurnTrigger = "HINT_REQUEST" if check.outcome in _HELP else "ANSWER"
         return self._act(self._decide(trigger, check), text)
+
+    # ------------------------------------------------------------------ a few letters nothing reads
+
+    def _ambiguous(self, text: str, check: CheckResult | None = None) -> bool:
+        """REFORM-5 (3.1): nothing reads the message and it is a few letters ("ki", "kk", "ể"): a key
+        slip or a
+        typo, not an answer, an explanation or a request. ``check``: what the checker made of it in a
+        phase that
+        grades (None in a phase that waits for words); a graded outcome is never a slip."""
+        if check is None:
+            if classify_intent(text) is not None:
+                return False
+        elif check.outcome not in (Outcome.UNPARSEABLE, Outcome.NEEDS_LLM):
+            # an open answer the facts could not match is graded WRONG even when nothing in it was readable
+            if not (
+                check.outcome == Outcome.WRONG
+                and check.misconception_id is None
+                and isinstance(self.item.answer, OpenAnswer)
+            ):
+                return False
+        return is_gibberish_or_ambiguous_short(text, self._known)
+
+    def _on_unclear(self, text: str, trigger: TurnTrigger) -> TutorTurn:
+        """REFORM-5 (3.1, DI-76): the tutor asks what the letters meant (ASK_CONFIRM), once; if the
+        next message is
+        as unreadable the policy helps instead (R-ASK-CONFIRM, UNCLEAR_TWICE). Nothing is graded, counted as
+        unproductive or praised, and the phase stays what it was. The reading (the rule's, or the
+        model's guess
+        and the question it proposes) is recorded, so a replay asks the same without a model."""
+        st = self.state
+        twice = st.confirm_open
+        asks_model = (
+            not twice
+            and self.reader is not None
+            and rule_unclear_reading(text) is None
+            and self._intent_reads < MAX_INTENT_READS_PER_ITEM
+        )
+        self._intent_reads += int(asks_model)
+        reading = read_unclear(
+            self.reader,
+            stem=self.item.stem,
+            last_tutor=self.last_tutor,
+            said=text,
+            turn=self._turns,
+            allow_model=asks_model,
+        )
+        self._emit(
+            EventType.MESSAGE_READ,
+            MessageRead(
+                item_id=self.item.id,
+                turn=self._turns,
+                label=reading.label,  # type: ignore[arg-type]
+                source=reading.source,
+                guessed_meaning=reading.guessed_meaning,
+                clarification=reading.clarification,
+            ),
+        )
+        self._clarification = reading.clarification or None
+        self._guess = reading.guessed_meaning or None
+        self._guess_intent = intent_of_guess(reading.guessed_meaning)
+        check = CheckResult(
+            Outcome.NEEDS_CONFIRMATION, normalized=text.strip(), detail={"read": reading.label}
+        )
+        if unclear_twice(st, check):
+            st.help_requests += 1  # the policy turns it into a request for help
+        decision = self._decide(trigger, check)
+        if decision.move != Move.ASK_CONFIRM:
+            if self.phase == Phase.AWAITING_PROBE:
+                self._probe_option = None  # the comparison is dropped: the child is helped instead
+            if self.phase in (Phase.VERIFYING, Phase.TEACH_BACK):
+                self._explained = False
+                st.last_explanation_vague = False
+        return self._act(decision, text)
 
     # ------------------------------------------------------------------ tutor side
 
@@ -578,6 +713,7 @@ class ItemTutor:
                 rule_ids=list(d.rule_ids),
             ),
         )
+        st.confirm_open = d.move == Move.ASK_CONFIRM
         if d.move == Move.NUDGE:
             st.nudges_sent += 1
         if d.move == Move.EXPLAIN:
@@ -597,6 +733,9 @@ class ItemTutor:
             st.probes_sent += 1  # R-FIRST-WRONG asks "con làm thế nào?" once per item
 
         msg, attempts = self._render(d, student_text)
+        self._clarification = self._guess = None
+        if d.move != Move.ASK_CONFIRM:
+            self._guess_intent = None
         self.last_tutor = msg.text
         if d.move == Move.COGNITIVE_CONFLICT:
             st.counter_examples_shown += 1
@@ -646,7 +785,8 @@ class ItemTutor:
             self.state.choice_offered = True
             return Phase.AWAITING_CHOICE
         if d.move == Move.ASK_CONFIRM:
-            return Phase.AWAITING_CONFIRM
+            # REFORM-5: the child still owes the explanation (or the probe, or the account of the method)
+            return self.phase if self.phase in _WORDS_PHASES else Phase.AWAITING_CONFIRM
         if d.move == Move.PROBE:
             return Phase.AWAITING_PROBE if self._probe_option is not None else Phase.AWAITING_REASON
         if d.move in (Move.TEACH_BACK, Move.FULL_EXPLANATION):
@@ -665,6 +805,7 @@ class ItemTutor:
         evidence = (
             tuple(self.explainer(self._focus or "", self.last_tutor)) if explaining and self.explainer else ()
         )
+        asking = d.move == Move.ASK_CONFIRM
         ctx = RenderContext(
             decision=d,
             item=self.item,
@@ -675,7 +816,16 @@ class ItemTutor:
             focus=self._focus if explaining else None,
             last_tutor=self.last_tutor or None,
             evidence=evidence,
+            guessed_meaning=self._guess if asking else None,
+            clarification=self._clarification if asking else None,
         )
+        if ctx.clarification and (codes := self._refused(ctx.clarification, ctx)):
+            # REFORM-5: the reader's question did not pass; the template asks (DI-76). The record keeps it.
+            self._emit(
+                EventType.OUTPUT_REJECTED,
+                OutputRejected(item_id=self.item.id, move=d.move, issue_codes=codes, source="LLM"),
+            )
+            ctx = replace(ctx, clarification=None)
         # DI-60: the word cap of the final check follows the approved text, as in the LLM renderer. With the
         # fixed 60 an approved explanation of a geometry period (158 words with its stem) failed twice and the
         # child got a generic phrase, and a model message the renderer had accepted was rejected here.
@@ -693,6 +843,11 @@ class ItemTutor:
                 ),
             )
         return RenderedMessage(text=self._fallback(d.move), source="FALLBACK"), 3
+
+    def _refused(self, question: str, ctx: RenderContext) -> list[str]:
+        """Why the question a reader proposed may not be said: its own checks, then the validator's."""
+        problems = clarification_problems(question, ctx.persona.student_address)
+        return problems + list(self.validator(question, ctx).codes)
 
     def _fallback(self, move: Move) -> str:
         if move == Move.PRESENT:
@@ -731,3 +886,10 @@ class ItemTutor:
         event = TutorEvent(type=event_type, payload=payload.model_dump(mode="json"))
         self.events.append(event)
         self._pending.append(event)
+
+
+def _option_words(item: Item) -> list[str]:
+    """What a child may quote of a choice item: the options, their aliases and their letters."""
+    if not isinstance(item.answer, ChoiceAnswer):
+        return []
+    return [w for o in item.answer.options for w in (o.text, *o.aliases, o.id)]

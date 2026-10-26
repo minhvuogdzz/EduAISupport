@@ -22,9 +22,11 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
+# v9: REFORM-5, ASK_CONFIRM asks about a key slip or a likely typo in its own words (DI-76), or says the
+#     question the intent agent proposed (checked by the validator)
 # v8: REFORM-2, EXPLAIN_AND_ADVANCE says the approved explanation, the rule answers "lý thuyết là gì",
 #     punctuation no longer hides a word; v7: FIX-6, the counterexample is tied to the item and varies
-TEMPLATE_VERSION = "template-renderer.v8"
+TEMPLATE_VERSION = "template-renderer.v9"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -35,6 +37,10 @@ PHRASES: dict[str, str] = {
     "try_it": "{S} làm thử giúp {t} được không?",
     "offer_choice": "{S} muốn {t} gợi ý thêm hay {s} muốn tự thử lại một lần nữa?",
     "ask_confirm": "{T} chưa chắc đã hiểu đúng ý {s}. {S} viết lại câu trả lời rõ hơn giúp {t} được không?",
+    # REFORM-5 (DI-76, drafted for the owner's review): a few letters nothing reads. The tutor says what it
+    # guesses and asks (never takes it for an answer), or says the keys slipped and asks again.
+    "ask_confirm_typo": "{T} đoán {s} muốn nói là {s} {meaning}, đúng không, hay {s} định gõ ý khác?",
+    "ask_confirm_mash": "Hình như bàn phím của {s} vừa gõ ra mấy chữ lạ. {S} gõ lại ý của mình giúp {t} nhé?",
     "verify": "Đúng rồi! {S} giải thích cho {t} vì sao {s} làm như vậy được không?",
     "confirm_advance": "Đúng rồi! {S} đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
     "worked_next": "Vậy bước cuối cùng là gì, {s} làm tiếp giúp {t} được không?",
@@ -378,6 +384,23 @@ def _teach_back(ctx: RenderContext) -> RenderedMessage:
     return _with_rule(ctx, _msg(_say(ctx, "teach_back"), "TEMPLATE"))
 
 
+_SUBJECT_RE = re.compile(r"^(?:con|em|cô)\s+", re.IGNORECASE)
+
+
+def _ask_confirm(ctx: RenderContext) -> RenderedMessage:
+    """REFORM-5: the intent agent's question when it proposed one that the validator passed (said as it is);
+    else the template for a likely typo (with the guess) or for a key slip; else the old fixed sentence."""
+    if ctx.clarification:
+        return _msg(ctx.clarification, "LLM")
+    reasons = ctx.decision.reason_codes
+    meaning = _SUBJECT_RE.sub("", (ctx.guessed_meaning or "").strip(" .?!"))
+    if "TYPO" in reasons and meaning:
+        return _msg(_say(ctx, "ask_confirm_typo", meaning=meaning), "TEMPLATE")
+    if "TYPO" in reasons or "GIBBERISH" in reasons:
+        return _msg(_say(ctx, "ask_confirm_mash"), "TEMPLATE")
+    return _msg(_say(ctx, "ask_confirm"), "TEMPLATE")
+
+
 def _confirm_advance(ctx: RenderContext) -> RenderedMessage:
     if "EXPLAIN_AND_ADVANCE" in ctx.decision.reason_codes:
         explanation = approved_explanation(ctx.item)
@@ -430,7 +453,7 @@ _RENDERERS: dict[Move, Callable[[RenderContext], RenderedMessage]] = {
     Move.NUDGE: _fixed("nudge"),
     Move.REDIRECT: _redirect,
     Move.OFFER_CHOICE: _fixed("offer_choice"),
-    Move.ASK_CONFIRM: _fixed("ask_confirm"),
+    Move.ASK_CONFIRM: _ask_confirm,
     Move.VERIFY: _verify,
     Move.CONFIRM_ADVANCE: _confirm_advance,
     Move.WORKED_GUIDANCE: _worked_guidance,

@@ -27,6 +27,10 @@ MESSAGE_OVERHEAD_TOKENS = 4
 class ModelClass(StrEnum):
     TUTOR_REASONING = "tutor_reasoning"
     LIGHTWEIGHT = "lightweight"
+    # REFORM-5 (3.1): reads the few letters a child types when nothing else reads them ("ki", "kt", "ể"). Its
+    # own chain, on gpt-oss-120b first: every Groq model has its own per-minute and per-day quota, so these
+    # reads do not spend the tokens the tutor's own voice (Qwen) needs.
+    INTENT_AGENT = "intent_agent"
     EVAL_JUDGE = "eval_judge"
     STT_VI = "stt_vi"
     TTS_VI = "tts_vi"  # the tutor's voice (ADR-030: VieNeu-TTS, local)
@@ -34,7 +38,9 @@ class ModelClass(StrEnum):
     EMBEDDING = "embedding"  # Hybrid RAG vectors (plan v1 5.5.2, ADR-017: Gemini)
 
 
-CHAT_MODEL_CLASSES = frozenset({ModelClass.TUTOR_REASONING, ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE})
+CHAT_MODEL_CLASSES = frozenset(
+    {ModelClass.TUTOR_REASONING, ModelClass.LIGHTWEIGHT, ModelClass.INTENT_AGENT, ModelClass.EVAL_JUDGE}
+)
 
 
 @dataclass(frozen=True)

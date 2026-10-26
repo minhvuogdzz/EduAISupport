@@ -36,6 +36,20 @@ from cavat.modules.tutor.contracts import (
 MOVES_AFTER_SOLVED = frozenset({Move.VERIFY, Move.CONFIRM_ADVANCE})
 MOVES_SKIPPING_LEAK_CHECK = MOVES_ALLOWED_TO_REVEAL | MOVES_AFTER_SOLVED
 
+
+def _closes_a_solved_item(ctx: RenderContext) -> bool:
+    """REFORM-5: the item closed because the child, who had answered right, would not or could not say why
+    ("NO_EXPLANATION"): the tutor says the approved explanation, which states the answer the child already
+    gave.
+    Not after the full explanation of a child who never answered ("NOT_SOLVED")."""
+    d = ctx.decision
+    return (
+        d.move == Move.CLOSE_ITEM
+        and "NO_EXPLANATION" in d.reason_codes
+        and "NOT_SOLVED" not in d.reason_codes
+    )
+
+
 _NUM = r"\d+(?:\s*/\s*\d+|[.,]\d+)?"
 _UNIT = r"(?:\s*(?:xăng-ti-mét|ki-lô-gam|mét|lít|giây|cm|kg|m|g|l)\b)?"
 _RELATIONS: dict[str, Callable[[Fraction, Fraction], bool]] = {
@@ -333,7 +347,7 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
     move = ctx.decision.move
     lowered = normalize_text(text)
 
-    if move not in MOVES_SKIPPING_LEAK_CHECK:
+    if move not in MOVES_SKIPPING_LEAK_CHECK and not _closes_a_solved_item(ctx):
         leak = _leak(text, ctx)
         if leak:
             issues.append(ValidationIssue(ValidationCode.ANSWER_LEAK, leak))

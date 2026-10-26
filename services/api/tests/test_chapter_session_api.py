@@ -141,7 +141,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.3.0",
         "policy": "node-policy/0.3.1",
-        "templates": "teaching-templates/0.5.0",
+        "templates": "teaching-templates/0.6.0",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None
@@ -226,8 +226,8 @@ def test_the_conductor_cleans_a_message_and_unsticks_a_tutor_saying_the_same_thi
     assert state["teaching"]["awaiting"] == "ANSWER"
     state = advance(client, state, "c1", "😭😭 ko bít lm jjjj")
     before = len(state["transcript"])
-    state = advance(client, state, "c2", "xyz abc")
-    state = advance(client, state, "c3", "xyz abc")
+    state = advance(client, state, "c2", "xyz abc def")
+    state = advance(client, state, "c3", "xyz abc def")
     tutor = [t["text"] for t in state["transcript"][before:] if t["actor"] != "student"]
     assert len(tutor) >= 3 and tutor[-1] != tutor[-2], tutor  # not the same redirect twice in a row
     session = asyncio.run(LearningSessionRepository(memory, service.DEMO_SCHOOL_ID).get(state["session_id"]))

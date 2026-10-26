@@ -49,6 +49,10 @@ def default_chat_chains(primary: str = DEFAULT_TUTOR_MODEL) -> dict[ModelClass, 
     return {
         ModelClass.TUTOR_REASONING: (primary, "openai/gpt-oss-120b"),
         ModelClass.LIGHTWEIGHT: (primary, "openai/gpt-oss-20b"),
+        # REFORM-5 (DI-77): gpt-oss-120b reads a typo best of the free models and has a quota of its own; the
+        # tutor's Qwen and the smaller gpt-oss follow. Gemini is not in the chain (ADR-017: images and vectors
+        # only; 20 requests a day; its free tier trains on what it is sent, and a child's words go there).
+        ModelClass.INTENT_AGENT: ("openai/gpt-oss-120b", primary, "openai/gpt-oss-20b"),
         ModelClass.EVAL_JUDGE: (primary, "openai/gpt-oss-120b"),
     }
 

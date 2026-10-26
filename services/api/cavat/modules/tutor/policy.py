@@ -33,11 +33,13 @@ from cavat.core.pedagogy import (
     Outcome,
     resolution_for,
 )
+from cavat.modules.assessment.math_checker import CheckResult
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
+# 0.12.0: REFORM-5 (DI-76), a few letters nothing reads are asked about once, then the child is helped
 # 0.11.0: REFORM-2 (DI-67, DI-68), a right step advances, no praise without an explanation
 # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
-POLICY_VERSION = "hint-policy/0.11.0"
+POLICY_VERSION = "hint-policy/0.12.0"
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -70,6 +72,28 @@ _NO_EXPLANATION = frozenset(
         Outcome.NEGATIVE_AFFECT,
     }
 )
+
+# REFORM-5 (DI-76): MESSAGE_READ labels of a few letters nothing reads, and the reason each one puts on
+# ASK_CONFIRM (the renderer words the question by it).
+UNCLEAR_READS = frozenset({"AMBIGUOUS_TYPO", "GIBBERISH"})
+UNCLEAR_REASONS = frozenset({"TYPO", "GIBBERISH"})
+_REASON_OF_READ = {"AMBIGUOUS_TYPO": "TYPO", "GIBBERISH": "GIBBERISH"}
+
+
+def unclear_read(chk: CheckResult | None) -> str | None:
+    """The label of a check that says "a few letters nothing reads, to ask about" (the item loop sets it),
+    or None."""
+    if chk is None or chk.outcome != Outcome.NEEDS_CONFIRMATION:
+        return None
+    read = chk.detail.get("read")
+    return read if read in UNCLEAR_READS else None
+
+
+def unclear_twice(state: ItemState, chk: CheckResult | None) -> bool:
+    """Asked once what the letters meant and the next message is as unreadable (R-ASK-CONFIRM does not ask
+    again)."""
+    return state.confirm_open and unclear_read(chk) is not None
+
 
 # ADR-019: reasons of the moves that answer what the student said rather than how they answered.
 INTENT_REASONS = frozenset({"OFF_TOPIC", "CLARIFY", "NEGATIVE_AFFECT", "ANSWER_DEMAND", "HELP_REQUEST"})
@@ -132,9 +156,19 @@ def decide(
 ) -> PolicyDecision | None:
     """Choose the tutor's move for one turn. ``None`` means keep waiting (only for SILENCE or TICK)."""
     facts = facts if facts is not None else ItemFacts()
+    twice = unclear_twice(inp.state, inp.check)
+    if twice:
+        # REFORM-5 (3.1, anti-loop): the tutor asked what a few letters meant and the child sent letters
+        # nothing reads again. A third question would be the loop the owner saw; a child who keeps typing
+        # "kkk" or "tt" is stuck or out of patience, and that is a request for help (the next hint, or the
+        # explanation to go on).
+        assert inp.check is not None
+        inp = replace(inp, check=replace(inp.check, outcome=Outcome.HELP_REQUEST))
     decision = _base(inp, facts, config)
     if decision is None:
         return None
+    if twice:
+        decision = _tag(decision, "R-ASK-CONFIRM", "UNCLEAR_TWICE")
     decision = _time_pressure(decision, inp, facts, config)
     decision = _strong_prior_verify(decision, inp, facts, config)
     return _assessment_cap(decision, inp, config)
@@ -271,7 +305,7 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
     if inp.trigger == "START":
         return PolicyDecision(move=Move.PRESENT, reason_codes=("ITEM_START",), rule_ids=("R-PRESENT",))
     if inp.trigger == "EXPLANATION":
-        return _after_explanation(st, outcome)
+        return _after_explanation(st, outcome, chk)
     if outcome == Outcome.CORRECT:
         return _correct(st, facts, cfg)
 
@@ -332,9 +366,7 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
     if chk is None:  # TICK with nothing to do
         return None
     if outcome == Outcome.NEEDS_CONFIRMATION:
-        return PolicyDecision(
-            move=Move.ASK_CONFIRM, reason_codes=("NEEDS_CONFIRMATION",), rule_ids=("R-ASK-CONFIRM",)
-        )
+        return _ask_confirm(chk)
     if outcome == Outcome.PARTIAL and st.hint_levels:
         # REFORM-2 (DI-67): the child answered the question of the hint (a step, or the right value in the
         # other form). That is progress: the next rung leads to the next step, up to H5, and the tutor says
@@ -351,6 +383,18 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         return _wrong(inp, facts, cfg)
     return PolicyDecision(
         move=Move.REDIRECT, target=HintTarget.TASK, reason_codes=("UNREADABLE",), rule_ids=("R-REDIRECT",)
+    )
+
+
+def _ask_confirm(chk: CheckResult | None) -> PolicyDecision:
+    """R-ASK-CONFIRM: the tutor asks again what the child meant, and nothing is graded, praised or
+    counted. A key
+    slip or a likely typo (REFORM-5) says so in its reason, for the words of the question."""
+    kind = _REASON_OF_READ.get(unclear_read(chk) or "")
+    return PolicyDecision(
+        move=Move.ASK_CONFIRM,
+        reason_codes=("NEEDS_CONFIRMATION", *((kind,) if kind else ())),
+        rule_ids=("R-ASK-CONFIRM",),
     )
 
 
@@ -488,12 +532,19 @@ _ASK_AGAIN_REASON = {
 }
 
 
-def _after_explanation(st: ItemState, outcome: Outcome | None) -> PolicyDecision:
+def _after_explanation(
+    st: ItemState, outcome: Outcome | None, chk: CheckResult | None = None
+) -> PolicyDecision:
     """End the item once the student answered (or skipped) the VERIFY / TEACH_BACK question.
 
     "Là sao ạ?", talk outside the lesson or "chán quá" in reply to "vì sao" gets the question once more,
     with a word for what the child said (DI-38); the second time the item ends as before.
+    A few letters nothing reads ("ki", "kkk") are asked about first (REFORM-5): the item goes on waiting
+    for the
+    explanation, and the "vì sao" is not yet asked again.
     """
+    if outcome == Outcome.NEEDS_CONFIRMATION:
+        return _ask_confirm(chk)
     rule = "R-TEACH-BACK" if st.worked_shown else "R-VERIFY"
     again = _ASK_AGAIN_REASON.get(outcome) if outcome is not None else None
     if again is not None and not st.explanation_asked_again:

@@ -83,8 +83,8 @@ def test_a_hint_the_conductor_gave_is_in_the_transcript(client):
     ``UNSTICK``, with what the conductor found in the message that led to it."""
     state = advance(client, start(client), "u0")  # the theory question, then the first item
     state = advance(client, state, "u1", "😭😭 ko bít lm jjjj")
-    state = advance(client, state, "u2", "xyz abc")
-    state = advance(client, state, "u3", "xyz abc")
+    state = advance(client, state, "u2", "xyz abc def")
+    state = advance(client, state, "u3", "xyz abc def")
 
     turns = turns_of(client, state)
     unstuck = [t for t in turns if t["student"] and t["student"]["kind"] == "UNSTICK"]
