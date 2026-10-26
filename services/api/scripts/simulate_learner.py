@@ -263,6 +263,7 @@ def run(
     max_turns: int,
     resume: str | None = None,
     pace: float = 1.0,
+    think_s: float = 0.0,
 ) -> list[dict]:
     sessions = []
     vuong = None
@@ -288,6 +289,7 @@ def run(
             vuong.notice([x["text"] for x in state["transcript"][seen:] if x["actor"] == "tutor"], node)
             seen = len(state["transcript"])
             command, text = vuong.reply(state)
+            time.sleep(think_s)  # the child reads and types; without it the Groq minute limit is hit at once
             began = time.monotonic()
             v = state["state_version"]
             key = {"Idempotency-Key": f"sim-{sid}-{v}"}
@@ -550,6 +552,12 @@ def main() -> None:
         "--pace", type=float, default=1.0, help="how fast the child learns (0.35: a slow child, PRIOR-2)"
     )
     parser.add_argument(
+        "--think-s",
+        type=float,
+        default=0.0,
+        help="seconds the child waits before each message; 8 is the median of a real session (REFORM-1b)",
+    )
+    parser.add_argument(
         "--measure",
         action="store_true",
         help="in memory with the live tutor, write nothing; print who wrote each tutor turn (LLM-1)",
@@ -580,7 +588,14 @@ def main() -> None:
                 else None
             )
             made[chapter_id] = run(
-                client, chapter_id, args.student_id, args.sessions, args.turns, resume, pace=args.pace
+                client,
+                chapter_id,
+                args.student_id,
+                args.sessions,
+                args.turns,
+                resume,
+                pace=args.pace,
+                think_s=args.think_s,
             )
     if args.memory:
         return
