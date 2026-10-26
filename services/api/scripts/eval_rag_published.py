@@ -25,7 +25,16 @@ from statistics import mean
 from cavat import db
 from cavat.config import REPO_ROOT, get_settings
 from cavat.modules.rag.embed import Embedder, GatewayEmbedder, HashEmbedder
-from cavat.modules.rag.evaluate import CONFIGS, expand, load_cases, markdown, run, without_vectors
+from cavat.modules.rag.evaluate import (
+    ALL_CONFIGS,
+    CONFIGS,
+    ablation_markdown,
+    expand,
+    load_cases,
+    markdown,
+    run,
+    without_vectors,
+)
 from cavat.modules.rag.service import RagService, default_embedder
 from cavat.modules.session import chapter_service
 from cavat.modules.session.service import DEMO_SCHOOL_ID
@@ -116,8 +125,22 @@ async def main(live: bool, holdout_path=HOLDOUT, tag: str = "") -> int:
         return 1
     embedder.embed(sorted({c.q for c in cases + holdout}), "RETRIEVAL_QUERY")
     production = "hybrid+rerank" if live else "keyword+rerank"
-    by_config = {name: run(index, cases, name) for name in CONFIGS}
-    by_config_holdout = {name: run(index, holdout, name) for name in CONFIGS}
+    by_config = {name: run(index, cases, name) for name in ALL_CONFIGS}
+    by_config_holdout = {name: run(index, holdout, name) for name in ALL_CONFIGS}
+
+    def main_configs(results: dict) -> dict:
+        return {name: results[name] for name in CONFIGS}
+
+    def ablation(results: dict) -> list[str]:
+        return [
+            "",
+            f"Ablation từng thành phần (RAG-5, embedder `{name}`): bỏ một thành phần khỏi cấu hình đủ, "
+            "hoặc thêm một thành phần vào `hybrid`. Trước RAG-5, cờ `rerank` bật cả định tuyến và ưu tiên "
+            "định nghĩa, nên dòng `+rerank` ở bảng trên là ba cơ chế cộng lại.",
+            "",
+            ablation_markdown(results),
+        ]
+
     if without_vectors(by_config) + without_vectors(by_config_holdout):
         print("Some retrievals ran without their vector: no report.")
         return 1
@@ -135,7 +158,8 @@ async def main(live: bool, holdout_path=HOLDOUT, tag: str = "") -> int:
         "",
         "## Bộ câu chính (dùng để chỉnh DI-50)",
         "",
-        markdown(by_config, name, production=production, semantic=live),
+        markdown(main_configs(by_config), name, production=production, semantic=live),
+        *ablation(by_config),
         "",
         *by_group(by_config[production], dev_decided),
         "",
@@ -145,7 +169,8 @@ async def main(live: bool, holdout_path=HOLDOUT, tag: str = "") -> int:
         "",
         f"## Bộ câu giữ riêng `{holdout_path.name}` (không dùng để chỉnh gì)",
         "",
-        markdown(by_config_holdout, name, production=production, semantic=False),
+        markdown(main_configs(by_config_holdout), name, production=production, semantic=False),
+        *ablation(by_config_holdout),
         "",
         *by_group(by_config_holdout[production], holdout_decided),
         "",

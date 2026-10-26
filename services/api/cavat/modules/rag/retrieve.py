@@ -253,8 +253,16 @@ class RagIndex:
         keyword: bool = True,
         semantic: bool = True,
         rerank: bool = True,
+        route: bool = True,
+        define: bool = True,
     ) -> Retrieval:
-        """The chunks to ground one tutor turn on. ``keyword``/``semantic``/``rerank``: ablations (5.5.5)."""
+        """The chunks to ground one tutor turn on.
+
+        Ablations (5.5.5, RAG-5), one flag per component so that each is measured apart: ``keyword`` (BM25),
+        ``semantic`` (vectors), ``rerank`` (the factors of step 5: kind, used, misconception, draft),
+        ``route`` (DI-57: a question about an earlier period) and ``define`` (DI-50: the passage that defines
+        the term asked about, without fading on the graph). Until RAG-5 ``rerank`` also switched routing and
+        the definition boost, so the "re-ranking" row of the first ablation measured the three together."""
         started = time.perf_counter()
         if mode == "question" and _DEFINITION.search(fold(normalize(query))):
             mode = "definition"
@@ -279,7 +287,7 @@ class RagIndex:
                 semantic_name = "off"
 
         routed = None
-        if rerank and node_id is not None and mode in ("question", "definition"):
+        if route and node_id is not None and mode in ("question", "definition"):
             routed = self._route(node_id, cos_all, coverage_all, semantic_name != "off")
             if routed is not None:
                 # DI-57: the question is about an earlier period: its passages are as close as the period's
@@ -315,11 +323,11 @@ class RagIndex:
         for i, distance in scope:
             chunk = self.chunks[i]
             fused = sum(1 / (RRF_K + r) for r in (bm25_rank.get(i), cos_rank.get(i)) if r is not None)
-            defining = bool(rerank and term and defines(chunk.text, term))
+            defining = bool(define and term and defines(chunk.text, term))
             # DI-50: the passage that defines the term asked about is where it is taught: no fading with the
             # distance on the graph (the child asks again what an earlier period taught).
             fused *= 1.0 if defining else 1 / (1 + distance)
-            final, reasons = fused, []
+            final, reasons, factor = fused, [], 1.0
             if rerank and fused > 0:
                 factor = KIND_FACTOR.get(mode, {}).get(chunk.kind, 1.0)
                 if factor != 1.0:
@@ -333,10 +341,10 @@ class RagIndex:
                 if not chunk.approved:
                     factor *= DRAFT_FACTOR
                     reasons.append("bản nháp")
-                if defining:
-                    factor *= DEFINES_FACTOR
-                    reasons.append(f"định nghĩa «{term}»")
-                final = fused * factor
+            if defining and fused > 0:
+                factor *= DEFINES_FACTOR
+                reasons.append(f"định nghĩa «{term}»")
+            final = fused * factor
             scored.append(
                 Scored(
                     chunk,

@@ -7,15 +7,22 @@ Bảng~\ref{tab:ablation-main} và Hình~\ref{fig:ablation} so năm cấu hình 
 
 \textbf{Từ khóa, ngữ nghĩa và hợp nhất không tách được nhau.} Cả ba cho Hit@3 đúng $0{,}40$ và MRR trong khoảng $0{,}449$--$0{,}460$ ($\Delta$MRR từ khóa$\to$lai $+0{,}001$, khoảng $[0{,}000;\,0{,}002]$, McNemar $p=1{,}0$). Lý do nằm ở dữ liệu chứ không phải ở bộ so khớp: văn bản của giáo viên ngắn và dùng chung nhiều thuật ngữ giữa các tiết (``phần nguyên'', ``hàng'', ``dấu phẩy''), nên đoạn từ tiết đang học và đoạn từ tiết khác khớp từ khóa và nghĩa tương đương nhau; điều phân biệt là \emph{cấu trúc}, tức tiết nào đang được học.
 
-\textbf{Cấu trúc đồ thị và xếp hạng lại sư phạm là phần có tác dụng.} Thêm xếp hạng lại và trọng số khoảng cách vào cấu hình lai nâng MRR từ $0{,}460$ lên $0{,}887$ ($\Delta=+0{,}427$, khoảng $[0{,}236;\,0{,}613]$; Hit@3 $+0{,}50$, McNemar $p=0{,}002$, $10$ câu từ sai sang đúng và không câu nào ngược lại).
+\textbf{Định tuyến là phần có tác dụng; xếp hạng lại sư phạm thì không.} Đi từ cấu hình lai sang cấu hình sản phẩm, MRR tăng từ $0{,}460$ lên $0{,}887$ ($\Delta=+0{,}427$, khoảng $[0{,}236;\,0{,}613]$; Hit@3 $+0{,}50$, McNemar $p=0{,}002$, $10$ câu từ sai sang đúng và không câu nào ngược lại). Cờ ``xếp hạng lại'' của các bảng trên bật cùng lúc ba cơ chế: các hệ số xếp hạng lại sư phạm (loại đoạn, đoạn đã dùng, lỗi sai vừa gặp, bản nháp), định tuyến về tiết trước (DI-57) và ưu tiên đoạn định nghĩa (DI-50). Bảng~\ref{tab:components} bỏ riêng từng cơ chế khỏi cấu hình sản phẩm (RAG-5). Toàn bộ phần tăng là định tuyến: bỏ nó, MRR giảm $0{,}384$ (khoảng $[-0{,}574;\,-0{,}200]$, McNemar $p=0{,}004$). Bỏ các hệ số xếp hạng lại không đổi hạng câu nào ($\Delta=0{,}000$ ở cả hai tập): với câu con tự hỏi, chúng không có tác dụng đo được; chúng chỉ có thể có ích cho chế độ giảng và gợi ý, mà các tập này không đo. Ưu tiên đoạn định nghĩa còn làm MRR thấp đi một chút ($+0{,}025$ khi bỏ, khoảng $[0{,}000;\,0{,}075]$): ở $4$ câu ``X là gì'' của ba tập, nó đẩy lên đầu một đoạn định nghĩa không thuộc tiết được gán nhãn. Hai trong số đó là đoạn tài liệu trải nhiều tiết, có thể vẫn trả lời đúng (nhãn chặt); một là lỗi thật: cụm chỉ hình bị bỏ khỏi khái niệm, nên ``chiều cao của hình thang là gì'' kéo định nghĩa chiều cao \emph{của tam giác} lên đầu. Lỗi này được ghi lại để sửa và đo trên một tập giữ riêng mới, không sửa trên chính v2.
 
-\textbf{Phần góp của vector chưa chứng minh được.} So từ khóa $+$ xếp hạng lại với lai $+$ xếp hạng lại, $\Delta$MRR $=+0{,}158$ với khoảng $[-0{,}031;\,0{,}359]$ chứa $0$ và McNemar $p=0{,}22$ trên $20$ câu. Một nhận định trước đây của dự án (``vector ngữ nghĩa chỉ có ích khi đi cùng cấu trúc đồ thị'') vì vậy \emph{không được dữ liệu ủng hộ ở mức thống kê}; nó chỉ nhất quán với một xu hướng thuận lợi ở cỡ mẫu này. Ở chương mẫu, ngữ nghĩa thuần đứng đầu về MRR ($0{,}765$ so với $0{,}678$ của lai $+$ xếp hạng lại) và giả thuyết ``lai $+$ xếp hạng lại tốt nhất'' không đạt: xếp hạng lại được thiết kế cho cấu trúc của tài liệu thật và không giúp ở đây.
+\textbf{Phần góp của vector chưa chứng minh được.} So từ khóa $+$ xếp hạng lại với lai $+$ xếp hạng lại, $\Delta$MRR $=+0{,}158$ với khoảng $[-0{,}031;\,0{,}359]$ chứa $0$ và McNemar $p=0{,}22$ trên $20$ câu. Gộp hai tập giữ riêng v1 và v2 ($34$ câu) thì bỏ vector làm MRR giảm $0{,}152$ (khoảng $[-0{,}289;\,-0{,}027]$, McNemar $p=0{,}04$), nhưng v1 đã chi phối thiết kế nên đây không phải bằng chứng độc lập; và vector chỉ có tác dụng qua định tuyến (lề cosine thay cho lề độ phủ từ khóa), vì trong phạm vi một tiết bỏ từ khóa hay bỏ vector đều không đổi hạng (bỏ từ khóa: $\Delta=-0{,}002$). Một nhận định trước đây của dự án (``vector ngữ nghĩa chỉ có ích khi đi cùng cấu trúc đồ thị'') vì vậy \emph{không được dữ liệu ủng hộ ở mức thống kê}; nó chỉ nhất quán với một xu hướng thuận lợi ở cỡ mẫu này. Ở chương mẫu, ngữ nghĩa thuần đứng đầu về MRR ($0{,}765$ so với $0{,}678$ của lai $+$ xếp hạng lại) và giả thuyết ``lai $+$ xếp hạng lại tốt nhất'' không đạt: xếp hạng lại được thiết kế cho cấu trúc của tài liệu thật và không giúp ở đây.
 
 \begin{table*}[tp]
 \centering
 \caption{Ablation trên hai tập giữ riêng. Hit@$k$: tỉ lệ câu có đoạn liên quan trong $k$ đoạn đầu; KTC: khoảng bootstrap $95\%$. Đậm: MRR cao nhất trên tập v2. ``Phẳng'': không đưa tiết đang học vào truy xuất (Mục~\ref{sec:flat}); trên chương mẫu, câu hỏi không mang tiết nên phẳng và có đồ thị trùng nhau.}
 \label{tab:ablation-main}
 \input{gen/tab-ablation-main}
+\end{table*}
+
+\begin{table*}[tp]
+\centering
+\caption{Ablation từng thành phần (RAG-5): bỏ một thành phần khỏi cấu hình sản phẩm, so cặp theo câu. $\Delta$MRR âm: thành phần có ích; KTC: bootstrap cặp $95\%$; $p$: McNemar chính xác trên Hit@3. Bỏ vector là cấu hình từ khóa $+$ xếp hạng lại (định tuyến theo độ phủ từ khóa); bỏ phạm vi đồ thị là RAG phẳng. Tập v1 đã chi phối thiết kế, nên cột gộp chỉ để tham khảo.}
+\label{tab:components}
+\input{gen/tab-components}
 \end{table*}
 
 \begin{figure*}[tp]

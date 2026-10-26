@@ -10,6 +10,8 @@ pedagogical re-ranking), with and without the topic routing of DI-57:
 - the best cosine of the passages handed to the tutor, for the grounding threshold;
 - the corpus: passages by kind, length, tagging to nodes;
 - the sensitivity of Hit@3 and of the false-answer rate to the routing margin;
+- the ablation of one component at a time (RAG-5): leave one out of the configuration that runs, or add one
+  to the plain hybrid, paired by question against the configuration that runs;
 - 95% intervals (Wilson for proportions, paired bootstrap for differences) and exact McNemar tests.
 """
 
@@ -30,7 +32,7 @@ from cavat.config import REPO_ROOT, get_settings
 from cavat.core.memory_db import InMemoryDatabase
 from cavat.modules.rag import retrieve as retrieve_module
 from cavat.modules.rag.chunks import syllables
-from cavat.modules.rag.evaluate import CONFIGS, Case, expand, load_cases
+from cavat.modules.rag.evaluate import ABLATION, ALL_CONFIGS, CONFIGS, Case, expand, load_cases
 from cavat.modules.rag.service import RagService, default_embedder
 from cavat.modules.session import chapter_service
 from cavat.modules.session.service import DEMO_SCHOOL_ID
@@ -176,8 +178,8 @@ def corpus_stats(index) -> dict:
 # A conventional RAG over the whole chapter: no period of the graph given (no scope, no distance weight, no
 # routing, no "later period" check). The comparison that says what the graph adds.
 FLAT = {
-    "flat-hybrid": {"keyword": True, "semantic": True, "rerank": False},
-    "flat-hybrid+rerank": {"keyword": True, "semantic": True, "rerank": True},
+    "flat-hybrid": {"keyword": True, "semantic": True, "rerank": False, "route": False, "define": False},
+    "flat-hybrid+rerank": {"keyword": True, "semantic": True, "rerank": True, "route": True, "define": True},
 }
 
 
@@ -191,7 +193,7 @@ def detail(index, case: Case, config: str, k: int = 3, order: list[str] | None =
         misconception_id=case.misconception,
         k=k,
         max_chars=100_000,
-        **(FLAT[config] if flat else CONFIGS[config]),
+        **(FLAT[config] if flat else ALL_CONFIGS[config]),
     )
     ahead = None
     if order and case.node in order:
@@ -300,9 +302,9 @@ def main() -> None:
             "configs": {},
         }
         order_of = orders if which == "published" else sample_orders
-        for config in (*CONFIGS, *FLAT):
+        for config in (*ALL_CONFIGS, *FLAT):
             for routing, margin in (("on", production_margin), ("off", 9.0)):
-                if routing == "off" and (which != "published" or config in FLAT):
+                if routing == "off" and (which != "published" or config in FLAT or config in ABLATION):
                     continue  # the routing is not part of the sample-chapter run of `make eval-rag`
                 with with_routing(margin):
                     rows = [
@@ -497,6 +499,73 @@ def main() -> None:
                 "mcnemar": {"fixed": fixed, "broken": broken, "p": mcnemar_exact(fixed, broken)},
             }
     stats["flat_vs_production"] = versus
+    # RAG-5: each component apart, paired by question against the configuration that runs. Leaving out the
+    # vectors is "keyword+rerank"; leaving out the graph scope is the flat RAG.
+    leave_one_out = {
+        "keyword": "no-keyword",
+        "semantic": "keyword+rerank",
+        "scope": "flat-hybrid+rerank",
+        "rerank": "no-rerank",
+        "route": "no-route",
+        "define": "no-define",
+    }
+    add_one = {
+        "none": "hybrid",
+        "rerank": "hybrid+rerank-only",
+        "route": "hybrid+route-only",
+        "define": "hybrid+define-only",
+    }
+    pools = {name: [name] for name in ("published_tune", "published_holdout_v1", "published_holdout_v2")}
+    pools["heldout"] = ["published_holdout_v1", "published_holdout_v2"]
+
+    def against_production(config: str, names: list[str]) -> dict:
+        a_rows, b_rows = [], []
+        for n in names:
+            a_rows += [r for r in result["sets"][n]["configs"][config]["on"]["rows"] if r["relevant"]]
+            b_rows += [r for r in result["sets"][n]["configs"][PRODUCTION]["on"]["rows"] if r["relevant"]]
+        ha = [1.0 if r["first"] and r["first"] <= 3 else 0.0 for r in a_rows]
+        hb = [1.0 if r["first"] and r["first"] <= 3 else 0.0 for r in b_rows]
+        ra = [1 / r["first"] if r["first"] else 0.0 for r in a_rows]
+        rb = [1 / r["first"] if r["first"] else 0.0 for r in b_rows]
+        lost = [r["id"] for r, x, y in zip(a_rows, ha, hb, strict=True) if y and not x]
+        won = [r["id"] for r, x, y in zip(a_rows, ha, hb, strict=True) if x and not y]
+        return {
+            "config": config,
+            "n": len(ha),
+            "hit1": mean(1.0 if r["first"] == 1 else 0.0 for r in a_rows),
+            "hit3": mean(ha),
+            "mrr": mean(ra),
+            # the change when the component is taken out (or the plain hybrid against the full one)
+            "delta_mrr": paired_bootstrap(rb, ra, rng),
+            "delta_hit3": paired_bootstrap(hb, ha, rng),
+            "lost": lost,
+            "won": won,
+            "mcnemar_p": mcnemar_exact(len(won), len(lost)),
+        }
+
+    stats["components"] = {
+        label: {
+            "production": {
+                "n": len(
+                    [
+                        r
+                        for n in names
+                        for r in result["sets"][n]["configs"][PRODUCTION]["on"]["rows"]
+                        if r["relevant"]
+                    ]
+                ),
+                "mrr": mean(
+                    (1 / r["first"] if r["first"] else 0.0)
+                    for n in names
+                    for r in result["sets"][n]["configs"][PRODUCTION]["on"]["rows"]
+                    if r["relevant"]
+                ),
+            },
+            "leave_one_out": {k: against_production(c, names) for k, c in leave_one_out.items()},
+            "add_one": {k: against_production(c, names) for k, c in add_one.items()},
+        }
+        for label, names in pools.items()
+    }
     # Grounding: the confusion of the threshold on every set (production configuration, routing on).
     grounding = {}
     for name in SETS:
@@ -524,13 +593,19 @@ def main() -> None:
     )
     print(f"written {OUT.relative_to(REPO_ROOT)}")
     for name, s in stats.items():
-        if name in ("contrasts_v2", "grounding", "flat", "flat_vs_production"):
+        if name in ("contrasts_v2", "grounding", "flat", "flat_vs_production", "components"):
             continue
         print(
             f"{name}: n={s['n']} Hit@3 {s['hit3_before']:.2f} -> {s['hit3_after']:.2f}, "
             f"MRR CI after {s['mrr_after_ci'][0]:.3f}-{s['mrr_after_ci'][1]:.3f}, "
             f"McNemar +{s['mcnemar']['fixed']}/-{s['mcnemar']['broken']} p={s['mcnemar']['p']:.4f}"
         )
+    for label, block in stats["components"].items():
+        parts = [
+            f"-{k} {v['delta_mrr'][0]:+.3f} [{v['delta_mrr'][1]:+.3f}, {v['delta_mrr'][2]:+.3f}]"
+            for k, v in block["leave_one_out"].items()
+        ]
+        print(f"components {label} (MRR {block['production']['mrr']:.3f}): " + "; ".join(parts))
     _ = replace  # keeps the import for readers of the module
 
 
