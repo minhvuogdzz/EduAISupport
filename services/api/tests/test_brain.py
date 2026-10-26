@@ -272,3 +272,134 @@ def test_the_owner_chooses_the_voice_with_one_line(monkeypatch):
         Settings(_env_file=None, groq_api_key="gsk_test", gemini_api_key="gm_test", tts="off")
     )
     assert plain._chat._gemini is None
+
+
+# --- the owner's two cases of 2026-10-26 (account "Nam"): G, a long stem with a figure; D, a retell ----
+
+from cavat.core.pedagogy import Outcome  # noqa: E402
+from cavat.modules.assessment.math_checker import classify_intent  # noqa: E402
+from cavat.modules.assessment.student_intent import wants_other_question  # noqa: E402
+from cavat.modules.teaching.loop import Awaiting, TeachingLoop  # noqa: E402
+from cavat.modules.tutor.brain import child_voice, teacher_voice  # noqa: E402
+from cavat.modules.tutor.renderer import visible_stem  # noqa: E402
+
+LONG_STEM = (
+    "[Hình: Hình 1: Tam giác ABC nhọn, đường cao AH nét đứt vuông góc với đáy BC tại H nằm trong đoạn BC. "
+    "Hình 2: Tam giác DEF vuông tại D, đường cao là cạnh DE. Hình 3: Tam giác MNP tù, đường cao MK nằm ngoài "
+    "tam giác.] Trong ba hình tam giác trên, hình nào có đường cao nằm ngoài tam giác?"
+)
+GOAL = "Bé nhận ra 3/10, 27/100 viết được thành 0,3 và 0,27. Bé đọc, viết được số thập phân đơn giản."
+
+
+def test_a_long_stem_with_a_figure_is_asked_again_by_its_question_only():
+    shown = visible_stem(LONG_STEM)
+    assert (
+        "[Hình" not in shown
+        and shown == "Trong ba hình tam giác trên, hình nào có đường cao nằm ngoài tam giác?"
+    )
+    assert visible_stem("Viết 0,9 thành phân số thập phân.") == "Viết 0,9 thành phân số thập phân."
+
+
+def test_the_tutor_never_prints_the_whole_stem_again_after_la_sao():
+    item = item_0_9(
+        stem=LONG_STEM, answer=NumericAnswer(type="numeric", value="3", form=None), verify_prompt=None
+    )
+    router = ScriptedRouter(
+        "Mình tìm hình có đường cao nằm ngoài tam giác. Con nhìn xem hình nào có đường cao nằm ngoài nhé?"
+    )
+    t = tutor(router, item)
+    turn = t.on_student("là sao")
+    assert "[Hình" not in turn.text and len(turn.text.split()) < 40
+    assert "Tam giác ABC nhọn" in router.user_text()  # the description stays the brain's context
+    plain = tutor(ScriptedRouter(), item).on_student("là sao")  # no model: the template says the question
+    assert "[Hình" not in plain.text and "Tam giác ABC" not in plain.text
+
+
+def test_a_model_that_reads_the_figure_description_out_is_refused():
+    read = "Hình 1: Tam giác ABC nhọn, đường cao AH. [Hình: Tam giác ABC] Con chọn hình nào?"
+    router = ScriptedRouter(read, "Con nhìn lại ba hình rồi chọn hình có đường cao ở ngoài nhé?")
+    item = item_0_9(
+        stem=LONG_STEM, answer=NumericAnswer(type="numeric", value="3", form=None), verify_prompt=None
+    )
+    turn = tutor(router, item).on_student("là sao")
+    assert "[Hình" not in turn.text and "FIGURE_TEXT" in router.user_text(1)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        GOAL,
+        "Cô nhắc lại nhé: Bé nhận ra 3/10 viết được thành 0,3.",
+        "Học sinh biết so sánh hai số thập phân.",
+    ],
+)
+def test_a_goal_written_for_the_teacher_is_never_read_to_the_child(text):
+    assert teacher_voice(text)
+    assert not teacher_voice(child_voice(text))
+    assert child_voice(GOAL).startswith("Con nhận ra 3/10")
+
+
+def test_the_retell_fallbacks_say_the_goal_to_the_child_not_as_the_plan_writes_it(index):  # noqa: F811
+    """The owner's case D4: "Cô nhắc lại đúng nhé: Bé nhận ra 3/10…" was read out."""
+    loop = TeachingLoop(CHAPTER, "s1")
+    turn = loop.start(NOW)
+    said = []
+    for _ in range(14):
+        reply = {Awaiting.THEORY_REPLY: "con nghĩ là được ạ"}.get(turn.awaiting, "con không biết")
+        turn = loop.on_student(reply, NOW)
+        said += [m.text for m in turn.messages]
+        if turn.awaiting == Awaiting.NOTHING:
+            break
+    assert said and not [t for t in said if teacher_voice(t)]
+
+
+@pytest.mark.parametrize(
+    "text", ["hỏi cái khác mà", "cô hỏi khác đi", "đổi câu khác đi cô", "hỏi cách khác đi"]
+)
+def test_a_child_who_asks_for_another_question_is_understood(text):
+    assert wants_other_question(text)
+    assert not wants_other_question("con không biết")
+
+
+def test_talk_about_the_time_is_outside_the_lesson():
+    assert classify_intent("mấy giờ rồi") == Outcome.OFF_TOPIC
+
+
+def test_a_child_who_asks_the_time_in_a_wait_is_answered_like_a_person_then_the_question_waits(index):  # noqa: F811
+    router = ModelRouter("Giờ này cô không xem được đâu con, mình làm tiếp nhé.")
+    loop, first = loop_at_theory(GroundedSpeaker(index, router))
+    turn = loop.on_student("mấy giờ rồi", NOW)
+    said = turn.messages[0]
+    assert (
+        said.source == "LLM"
+        and said.text == f"Giờ này cô không xem được đâu con, mình làm tiếp nhé. {first.prompt}"
+    )
+    assert turn.awaiting == Awaiting.THEORY_REPLY and REPLY not in said.text
+
+
+def test_a_child_who_wants_another_question_gets_the_same_idea_asked_another_way(index):  # noqa: F811
+    again = "Được con, cô hỏi cách khác nhé: một phân số có mẫu số 10, 100 hay 1000 thì mình gọi là gì?"
+    router = ModelRouter(again)
+    loop, first = loop_at_theory(GroundedSpeaker(index, router))
+    turn = loop.on_student("hỏi cái khác mà", NOW)
+    said = turn.messages[0]
+    assert said.source == "LLM" and said.text == again and turn.awaiting == Awaiting.THEORY_REPLY
+    assert not teacher_voice(said.text) and turn.prompt == first.prompt  # the wait is the approved question
+    fallback_loop, first = loop_at_theory(GroundedSpeaker(index, ModelRouter()))  # no model
+    said = fallback_loop.on_student("hỏi cái khác mà", NOW).messages[0]
+    assert said.source == "TEMPLATE" and said.text == f"Được con, cô hỏi lại nhé: {first.prompt}"
+
+
+def test_the_invitation_to_say_it_back_is_written_for_what_the_child_did(index):  # noqa: F811
+    node = CHAPTER.node("KC-DEC-FRAC")
+    invite = "Con vừa làm đúng 7/10 rồi đó. Con nói lại cho cô nghe, phân số thập phân là phân số thế nào?"
+    spoken = GroundedSpeaker(index, ModelRouter(invite)).invite_retell(
+        node, prompt=node.explain.prompt, recent=[("student", "7/10")]
+    )
+    assert (spoken.text, spoken.source) == (invite, "LLM")
+    # the goal read out, then a question about something else: both refused, the plan's sentence stays
+    router = ModelRouter(GOAL, "Hôm nay trời đẹp quá phải không?")
+    refused = GroundedSpeaker(index, router).invite_retell(node, prompt=node.explain.prompt)
+    assert (
+        refused.text == "" and "TEACHER_VOICE" in refused.rejected[0] and "OFF_TARGET" in refused.rejected[1]
+    )
