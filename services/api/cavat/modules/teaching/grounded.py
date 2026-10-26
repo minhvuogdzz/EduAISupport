@@ -422,12 +422,14 @@ def lecture_request(
     )
     address = who.get("student_address", "con")
 
+    wanted = {fold(w) for w in content_words(f"{node_name} {ground}")}
+
     def codes(text: str) -> tuple[str, ...]:
         found = list(
             teach_codes(text, pack, "chưa rõ", address, MAX_LECTURE_WORDS, copy_run=LECTURE_COPY_RUN)
         )
-        if terms_in(ground) and len(terms_missing(terms_in(ground), [text])) == len(terms_in(ground)):
-            found.append("KEY_IDEA_MISSING")  # none of the lesson's terms: it is about something else
+        if not _on_topic(text, wanted):
+            found.append("OFF_TARGET")  # nothing of the lesson in it: it is about something else
         return tuple(dict.fromkeys(found))
 
     return pack, codes

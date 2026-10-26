@@ -416,3 +416,59 @@ def test_a_tutor_on_a_script_is_refused_the_same_opening_twice():
     said = [Turn("tutor", "Cô thấy con viết 7/10. Vì sao mẫu số lại là 10?"), Turn("student", "vì có một số")]
     assert repeats("Cô thấy con viết 0,3 rồi. Con nói cô nghe vì sao nhé?", said)
     assert not repeats("7/10, đúng rồi con. Mẫu số 10 từ đâu ra vậy?", said)
+
+
+# --- what the comparison on real turns showed (evals/reports/BRAIN-1-models.md) -------------------------------
+
+
+@pytest.mark.parametrize(
+    ("question", "said"),
+    [
+        ("Cô thấy con viết 0,35. Vì sao 35/100 lại là 0,35 vậy con?", "0.35"),  # the child typed a dot
+        ("Con viết 0,5, vì sao nửa lại là 0,5 vậy con?", "0,50"),  # the same value, another form
+    ],
+)
+def test_a_question_names_the_number_the_child_wrote_by_its_value_not_its_spelling(question, said):
+    assert names_childs_answer(question, said)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "35 chia 100 được 35 phần mười trăm nhé con.",
+        "Một phần trăm nghìn của cái bánh là rất nhỏ.",
+        "Mỗi phần mười nghìn là 0,0001.",
+    ],
+)
+def test_a_way_of_reading_a_fraction_that_does_not_exist_is_refused(text):
+    from cavat.modules.tutor.brain import BrainPack, speech_codes
+
+    assert "WRONG_MATH" in speech_codes(text, BrainPack(task="", question=""))
+    for fine in ("Ba phần mười, bảy phần trăm, chín phần nghìn.", "Có 10 phần bằng nhau, tô 3 phần."):
+        assert "WRONG_MATH" not in speech_codes(fine, BrainPack(task="", question=""))
+
+
+@pytest.mark.parametrize(
+    "text", ["Tôi không xem được giờ.", "Bạn có thể thử lại nhé.", "Được rồi, tớ hỏi lại nhé."]
+)
+def test_the_tutor_is_co_and_the_child_is_con(text):
+    from cavat.modules.tutor.brain import BrainPack, speech_codes
+
+    assert "WRONG_ADDRESS" in speech_codes(text, BrainPack(task="", question=""))
+    assert "WRONG_ADDRESS" not in speech_codes(
+        "Cô không xem được giờ. Bạn An nói 3/10 là đúng đó con.", BrainPack(task="", question="")
+    )
+
+
+def test_a_lecture_in_other_words_than_the_plan_is_not_off_the_idea(index):  # noqa: F811
+    """The plan's text for a theory step is the teacher's script ("Tô 30 ô trên lưới…"); a lecture that says the
+    idea with other terms is still the lecture (the keyword check of v8 is gone)."""
+    from cavat.modules.teaching.grounded import lecture_request
+
+    ground = (
+        "Tô 30 ô trên lưới: bao nhiêu phần mười? Giới thiệu 3/10 = 0,3. Tô tiếp 27 ô, viết 27/100 = 0,27."
+    )
+    _, codes = lecture_request(ground, ask="Phân số nào là phân số thập phân?", node_name="Phân số thập phân")
+    said = "Phân số có mẫu số 10, 100, 1000 thì viết thành số thập phân được. Ví dụ 3/10 viết là 0,3."
+    assert codes(said) == ()
+    assert "OFF_TARGET" in codes("Hôm nay trời đẹp và con mèo của cô rất ngoan nhé.")

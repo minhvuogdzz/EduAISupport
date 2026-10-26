@@ -86,7 +86,7 @@ CODE_NOTES: dict[str, str] = {
     "INTELLIGENCE_PRAISE": "khen trí thông minh",
     "EMPTY": "message trống",
     "FOREIGN_TEXT": "có chữ hoặc từ không phải tiếng Việt",
-    "WRONG_ADDRESS": "gọi học sinh sai xưng hô",
+    "WRONG_ADDRESS": "xưng hô sai: gia sư là cô, học sinh là con (không dùng tôi, tớ, bạn, em)",
     "WRONG_PRAISE": "khen đúng khi máy chấm chưa nói đúng",
     "ECHOES_CHILD": "nhại lại lời học sinh như lời cô",
     "HAS_QUESTION": "lượt này không được hỏi",
@@ -278,6 +278,7 @@ def _number_forms(text: str) -> set[str]:
     forms: set[str] = set()
     for n in extract_numbers(text):
         forms.add(re.sub(r"\s+", "", n.text))
+        forms.add(f"={n.value}")  # "0.35", "0,35" and "0,350" are one number
         if "/" in n.text:
             forms.update(p.strip() for p in n.text.split("/"))
     return forms
@@ -344,6 +345,21 @@ def _opening(text: str) -> tuple[str, ...]:
     return tuple(re.findall(r"\w+", fold(normalize_text(text)))[:OPENING_WORDS])
 
 
+# Ways of reading a fraction aloud that do not exist ("35 phần mười trăm" seen from gpt-oss-20b): the part
+# after "phần" is one of mười, trăm, nghìn, or a single number.
+_BAD_DENOMINATOR = re.compile(r"phần\s+(?:mười\s+(?:trăm|nghìn)|trăm\s+nghìn)")
+# The tutor is "cô" and the child "con". "Bạn An" (a name in a problem) is allowed, "bạn có thể…" is not.
+_WRONG_SELF = re.compile(r"(?<!\w)(?:tôi|tớ|tao)(?!\w)")
+_BAN_AS_YOU = re.compile(
+    r"(?:^|[.!?,;:]\s*)bạn\s+(?:có|hãy|thử|nên|cần|muốn|làm|đã|vừa|nhớ|nghĩ|đọc|viết|tính|chọn|xem)\b"
+)
+
+
+def wrong_voice(text: str) -> bool:
+    lowered = normalize_text(text)
+    return bool(_WRONG_SELF.search(lowered) or _BAN_AS_YOU.search(lowered))
+
+
 def repeats(text: str, recent: Sequence[Turn]) -> bool:
     """The turn says again what the tutor said, or opens with the same words as one of its last two turns."""
     said = [t for t in recent if t.role == "tutor"]
@@ -364,8 +380,10 @@ def speech_codes(
     """The codes the net that does not depend on a RenderContext raises: wrong arithmetic, a copied ground, a
     repeated turn, and for ``ask_target`` a question that does not name what the child wrote."""
     codes: list[str] = []
-    if math_errors(text):
+    if math_errors(text) or _BAD_DENOMINATOR.search(normalize_text(text)):
         codes.append(WRONG_MATH)
+    if wrong_voice(text):
+        codes.append("WRONG_ADDRESS")
     if rephrase and copied_run(text, pack.grounds, copy_run):
         codes.append(COPIES_GROUND)
     if repeats(text, pack.recent):
