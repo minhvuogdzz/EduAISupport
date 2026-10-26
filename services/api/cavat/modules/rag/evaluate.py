@@ -1,5 +1,6 @@
-"""Evaluation of the Hybrid RAG (plan v1, 5.5.5): a labelled question set, four configurations (keywords
-only, semantics only, hybrid, hybrid + pedagogical re-ranking), Hit@k, Recall@k and MRR, and how well
+"""Evaluation of the Hybrid RAG (plan v1, 5.5.5): a labelled question set, the configurations of the
+ablation (keywords only, semantics only, hybrid, hybrid + pedagogical re-ranking, and since RAG-5 one
+component left out or added at a time), Hit@k, Recall@k and MRR, and how well
 ``grounded`` tells questions on the chapter from off-topic ones. Used by ``make eval-rag`` and by the
 regression test that keeps the offline numbers from falling.
 """
@@ -15,13 +16,32 @@ import yaml
 
 from cavat.modules.rag.retrieve import RagIndex
 
+
+def _config(keyword: bool, semantic: bool, rerank: bool, route: bool, define: bool) -> dict[str, bool]:
+    return {"keyword": keyword, "semantic": semantic, "rerank": rerank, "route": route, "define": define}
+
+
+# The first five keep the meaning they had before RAG-5 ("+rerank" = re-ranking, routing DI-57 and the
+# definition boost DI-50 together), so the numbers reported until then can be read against them.
 CONFIGS: dict[str, dict[str, bool]] = {
-    "keyword": {"keyword": True, "semantic": False, "rerank": False},
-    "semantic": {"keyword": False, "semantic": True, "rerank": False},
-    "hybrid": {"keyword": True, "semantic": True, "rerank": False},
-    "keyword+rerank": {"keyword": True, "semantic": False, "rerank": True},  # what runs without vectors
-    "hybrid+rerank": {"keyword": True, "semantic": True, "rerank": True},
+    "keyword": _config(True, False, False, False, False),
+    "semantic": _config(False, True, False, False, False),
+    "hybrid": _config(True, True, False, False, False),
+    "keyword+rerank": _config(True, False, True, True, True),  # what runs without vectors
+    "hybrid+rerank": _config(True, True, True, True, True),  # what runs with vectors
 }
+# RAG-5: one component at a time. Leave one out of the configuration that runs ("no-semantic" is
+# "keyword+rerank" above; no graph scope is the flat RAG of scripts/paper_rag.py), and add one to "hybrid".
+ABLATION: dict[str, dict[str, bool]] = {
+    "no-keyword": _config(False, True, True, True, True),
+    "no-rerank": _config(True, True, False, True, True),
+    "no-route": _config(True, True, True, False, True),
+    "no-define": _config(True, True, True, True, False),
+    "hybrid+rerank-only": _config(True, True, True, False, False),
+    "hybrid+route-only": _config(True, True, False, True, False),
+    "hybrid+define-only": _config(True, True, False, False, True),
+}
+ALL_CONFIGS = {**CONFIGS, **ABLATION}
 
 
 @dataclass(frozen=True)
@@ -34,6 +54,7 @@ class Case:
     mode: str = "question"
     used: frozenset[str] = frozenset()
     misconception: str | None = None
+    style: str = ""  # RAG-6: how the child typed it (co-dau, khong-dau, sai-chinh-ta, viet-tat)
 
 
 @dataclass(frozen=True)
@@ -68,6 +89,7 @@ def load_cases(path: Path) -> list[Case]:
             mode=c.get("mode", "question"),
             used=frozenset(c.get("used") or ()),
             misconception=c.get("misconception"),
+            style=c.get("style", ""),
         )
         for c in data["cases"]
     ]
@@ -97,7 +119,7 @@ def run(index: RagIndex, cases: Iterable[Case], config: str, k: int = 3) -> list
             misconception_id=case.misconception,
             k=k,
             max_chars=100_000,
-            **CONFIGS[config],
+            **ALL_CONFIGS[config],
         )
         ranking = [s.chunk.chunk_id for s in found.ranked]
         relevant = expand(case.relevant, index)
@@ -166,7 +188,7 @@ def without_vectors(by_config: dict[str, list[CaseResult]]) -> int:
     return sum(
         r.semantic == "off"
         for name, results in by_config.items()
-        if CONFIGS[name]["semantic"]
+        if ALL_CONFIGS[name]["semantic"]
         for r in results
     )
 
@@ -227,4 +249,51 @@ def markdown(by_config: dict[str, list[CaseResult]], embedder: str, production: 
             lines.append(
                 f"- {r.case.id} «{r.case.q}»: câu lạc đề mà vẫn coi là có căn cứ; top 1: {r.ranking[:1]}"
             )
+    return "\n".join(lines)
+
+
+# RAG-5: what each component brings, against the configuration that runs with vectors.
+LEAVE_ONE_OUT = (
+    ("bỏ từ khóa (BM25)", "no-keyword"),
+    ("bỏ vector", "keyword+rerank"),
+    ("bỏ xếp lại sư phạm", "no-rerank"),
+    ("bỏ định tuyến DI-57", "no-route"),
+    ("bỏ ưu tiên định nghĩa DI-50", "no-define"),
+)
+ADD_ONE = (
+    ("hybrid (RRF, phạm vi đồ thị)", "hybrid"),
+    ("hybrid + xếp lại sư phạm", "hybrid+rerank-only"),
+    ("hybrid + định tuyến DI-57", "hybrid+route-only"),
+    ("hybrid + ưu tiên định nghĩa DI-50", "hybrid+define-only"),
+)
+
+
+def ablation_markdown(by_config: dict[str, list[CaseResult]], full: str = "hybrid+rerank") -> str:
+    """One row per component: the configuration without it (or with it alone on top of ``hybrid``), its
+    metrics, the change of MRR against ``full``, and the questions whose Hit@3 it fixes or breaks."""
+    base = {r.case.id: r for r in by_config[full] if r.case.relevant}
+
+    def hit3(r: CaseResult) -> bool:
+        return r.first_relevant is not None and r.first_relevant <= 3
+
+    def row(label: str, name: str) -> str:
+        m, f = metrics(by_config[name]), metrics(by_config[full])
+        other = {r.case.id: r for r in by_config[name] if r.case.relevant}
+        lost = sorted(i for i, r in base.items() if hit3(r) and not hit3(other[i]))
+        won = sorted(i for i, r in base.items() if not hit3(r) and hit3(other[i]))
+        change = ", ".join([*(f"−{i}" for i in lost), *(f"+{i}" for i in won)]) or "—"
+        return (
+            f"| {label} | `{name}` | {m.hit1:.2f} | {m.hit3:.2f} | {m.mrr:.3f} | {m.mrr - f.mrr:+.3f} "
+            f"| {change} |"
+        )
+
+    f = metrics(by_config[full])
+    lines = [
+        "| Thành phần | Cấu hình | Hit@1 | Hit@3 | MRR | ΔMRR so với đủ | Hit@3 đổi (− mất, + được) |",
+        "|---|---|---|---|---|---|---|",
+        f"| đủ mọi thành phần | `{full}` | {f.hit1:.2f} | {f.hit3:.2f} | {f.mrr:.3f} | — | — |",
+        *(row(label, name) for label, name in LEAVE_ONE_OUT),
+        "| *thêm từng thành phần vào hybrid* | | | | | | |",
+        *(row(label, name) for label, name in ADD_ONE),
+    ]
     return "\n".join(lines)

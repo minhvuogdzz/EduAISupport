@@ -515,14 +515,35 @@ def test_a_question_is_never_routed_to_a_later_period():
     assert all(s.chunk.node_id != "E" for s in found.ranked)
 
 
-def test_routing_is_part_of_the_structure_step_of_the_ablation():
+def test_routing_has_its_own_flag_in_the_ablation():
+    """RAG-5: routing is measured apart from the re-ranking (until then ``rerank=False`` switched it off)."""
     chunks = [
         chunk("A:theory", "Phần thập phân là các chữ số bên phải dấu phẩy.", node="A"),
         chunk("D:theory", "Sắp xếp các số thập phân từ bé đến lớn.", node="D"),
     ]
     index = RagIndex(chunks, None, CHAIN)
-    plain = index.retrieve("phần thập phân có mấy chữ số", node_id="D", k=3, rerank=False)
-    assert all(s.chunk.node_id != "A" for s in plain.ranked)  # without structure: periods near only
+    q = "phần thập phân có mấy chữ số"
+    plain = index.retrieve(q, node_id="D", k=3, rerank=False, route=False)
+    assert all(s.chunk.node_id != "A" for s in plain.ranked)  # without routing: periods near only
+    routed = index.retrieve(q, node_id="D", k=3, rerank=False)
+    assert routed.results[0].chunk.node_id == "A"  # routing alone, without the re-ranking factors
+    reranked = index.retrieve(q, node_id="D", k=3, route=False)
+    assert all(s.chunk.node_id != "A" for s in reranked.ranked)  # the re-ranking alone does not route
+
+
+def test_the_definition_boost_has_its_own_flag_in_the_ablation():
+    """RAG-5: DI-50's boost of the passage that defines the term works without the re-ranking factors."""
+    chunks = [
+        chunk("A:theory", "Đường cao của tam giác là đoạn thẳng kẻ từ đỉnh vuông góc với đáy.", node="A"),
+        chunk("B:note", "Con hay vẽ đường cao sai: đường cao đường cao phải vuông góc.", node="B"),
+    ]
+    index = RagIndex(chunks, None, {"B": {"A"}})
+    q = "đường cao là gì"
+    boosted = index.retrieve(q, node_id="B", k=2, rerank=False, route=False)
+    plain = index.retrieve(q, node_id="B", k=2, rerank=False, route=False, define=False)
+    assert boosted.ranked[0].chunk.chunk_id == "A:theory"
+    assert any("định nghĩa" in r for r in boosted.ranked[0].reasons)
+    assert not any(s.reasons for s in plain.ranked)
 
 
 def test_a_passage_of_several_periods_never_reaches_an_earlier_one():
@@ -572,6 +593,50 @@ def test_a_definition_is_told_from_a_question_and_a_value(text, term, defines_it
     from cavat.modules.rag.retrieve import defines
 
     assert defines(text, term) is defines_it
+
+
+@pytest.mark.parametrize(
+    ("text", "term", "shape", "defines_it"),
+    [
+        # a term in the middle of a sentence is used, not defined
+        ("Bước 1: Hàng cần làm tròn là hàng đơn vị (chữ số 3).", "lam tron", None, False),
+        ("Diện tích hình thang có đáy 10 m, đáy 6 m, chiều cao 5 m là:", "chieu cao", None, False),
+        ("Bước 2: Đáy dài hơn là đáy lớn, đáy ngắn hơn là đáy bé.", "day lon", None, True),
+        # the shape the question names stays with the term
+        ("Đường cao của tam giác là đoạn thẳng kẻ từ một đỉnh.", "duong cao", "cua hinh thang", False),
+        (
+            "Hình thang ABCD. Đường cao của hình thang là đoạn vuông góc với hai đáy.",
+            "duong cao",
+            "cua hinh thang",
+            True,
+        ),
+        (
+            "Đáy và đường cao của tam giác. Độ dài đường cao gọi là chiều cao.",
+            "chieu cao",
+            "cua hinh thang",
+            False,
+        ),
+        ("Đáy và đường cao của tam giác. Độ dài đường cao gọi là chiều cao.", "chieu cao", None, True),
+        (
+            "Diện tích hình tam giác, hình thang. Độ dài đường cao gọi là chiều cao.",
+            "chieu cao",
+            "cua hinh thang",
+            True,
+        ),
+    ],
+)
+def test_a_definition_opens_its_sentence_and_keeps_the_shape_asked(text, term, shape, defines_it):
+    """RAG-6: the two faults of DI-50 found by the component ablation of RAG-5."""
+    from cavat.modules.rag.retrieve import defines
+
+    assert defines(text, term, shape) is defines_it
+
+
+def test_the_shape_of_a_definition_question_is_kept():
+    from cavat.modules.rag.retrieve import term_and_shape
+
+    assert term_and_shape("chiều cao của hình thang là gì") == ("chieu cao", "cua hinh thang")
+    assert term_and_shape("đường cao là gì vậy cô") == ("duong cao", None)
 
 
 def test_a_later_period_wins_only_when_it_is_clearly_closer():

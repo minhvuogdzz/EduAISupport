@@ -139,7 +139,7 @@ Luật tất định, mỗi luật một mã `N-*`, có version như policy gợ
 | N-TRANSFER | Đủ C, I nhưng thiếu A hoặc T | Bài vận dụng |
 | N-PASS | Đạt điều kiện qua node (5.3) | Ghi qua node; quay về node đang chờ nếu có, không thì sang node tiếp theo đã mở khóa |
 | N-REVIEW | Sau mỗi lần qua node | Một câu ôn xen kẽ của node đã qua trước đó |
-| N-BUDGET | Hết số câu cho phép ở node mà chưa đạt | Dừng node, ghi "cần học lại" cho giáo viên; node phụ thuộc vẫn khóa |
+| N-BUDGET | Hết số câu cho phép ở node mà chưa đạt | Cô nhắc lại cách làm, dừng node, ghi "cần học lại" cho giáo viên; node phụ thuộc vẫn mở (DI-75) |
 | N-FINISH | Không còn node mở khóa chưa qua | Tổng kết buổi học |
 
 Bảng DI-8 của blueprint (dải M → hành động) dùng để chọn mức hỗ trợ trong N-PRACTICE và N-TRANSFER.
@@ -544,6 +544,20 @@ Chạy song song từ Mốc 1:
     - Sửa gợi ý (`edit`) là chữ của cô nên ở lại qua các lần soạn lại.
   - **Trang duyệt** chỉ hiện quyết định còn tính (`effective_decisions`): lời duyệt trên chữ không còn thì trang lại hiện nút "Duyệt". Bản lưu giữ mọi quyết định, là bằng chứng duyệt.
   - **Còn lại:** duyệt cả tiết (`node:<id>`) không gắn với chữ của gợi ý, và gợi ý chưa duyệt vẫn vào bản phát hành, như trước; bấm "Duyệt" trên gợi ý đã sửa tay vẫn thay quyết định sửa bằng quyết định duyệt (mỗi gợi ý một khóa).
+- **DI-75, một tiết dùng hết số câu mà chưa qua không làm hết buổi (FLOW-1, `node-policy/0.4.0`, 2026-10-26, quyết định của chủ dự án):**
+  - **Vấn đề:** buổi học thử ngày 26/10 (ảnh chụp màn hình của chủ dự án): tiết đầu của chương Số thập phân dùng hết số câu cho phép (mặc định 12 câu mỗi tiết, hoặc tiết hết câu mới) nên bị dừng "cần học lại". Các tiết sau chỉ mở khi mọi tiết tiên quyết đã qua, nên không còn tiết nào để vào: buổi kết thúc với "0/11 bài đã qua". Chương này là một chuỗi, nên một tiết đầu yếu là hết cả buổi.
+  - **Yêu cầu của chủ dự án:** con chưa hiểu thì giảng lại rồi sang bài khác; con hiểu thì sang bài khác. Một tiết yếu không bao giờ làm kết thúc buổi.
+  - **Thay đổi:**
+    - luật `N-BUDGET` vẫn dừng tiết, nhưng tiết đã dừng trong buổi này không còn khóa các tiết sau: tiết sau mở với lý do `UNLOCKED_AFTER_STOP`;
+    - lời dừng tiết nhắc lại cách làm đã duyệt của tiết (`method.rule`) rồi hẹn ôn lại sau, thay cho câu "mình tạm dừng ở đây";
+    - tiết yếu vẫn không được ghi là đã qua: nó nằm trong "còn cần ôn thêm" của lời tổng kết và buổi sau lại được vào học lại; mức nắm vững vẫn là bản chiếu tất định từ sự kiện, không đổi.
+  - **Đo** (học sinh mô phỏng học chậm `--pace 0.35`, hai buổi mỗi chương, hai chương đã phát hành, câu mẫu, trong bộ nhớ, `simulate_learner.py --memory`):
+    - Số thập phân, buổi 1: 95 lượt và 2/11 tiết qua, nay 308 lượt và 9/11; buổi 2: 39 lượt và 3/11, nay 16 lượt và 11/11;
+    - Diện tích, buổi 1: 74 lượt và 1/8, nay 268 lượt và 6/8; buổi 2: 125 lượt và 4/8, nay 23 lượt và 8/8.
+  - **Giới hạn [OPEN]:**
+    - một học sinh mô phỏng, hai buổi mỗi chương, không phải học sinh thật; con mô phỏng học thêm từ những gì gia sư làm, nên một phần chênh lệch là do được dạy nhiều hơn;
+    - buổi đầu dài tới 268–308 lượt và chưa có trần thời gian: con thoát lúc nào cũng được và tiến độ vẫn lưu;
+    - nhắc lại cách làm mới là đọc lại quy tắc đã duyệt, chưa phải giảng lại bằng ví dụ khác; chưa có lần học lại tiết yếu ngay trong buổi (lượt hai ở cuối buổi); nhiều tiết liên tiếp bị dừng thì buổi vẫn đi tiếp tới hết chương. Chủ dự án quyết nếu muốn thêm.
 - **DI-76, "không" và "chưa" đứng một mình là "con không biết" (REFORM-5, 3.1, `student-intent/0.3.0`, 2026-10-26):**
   - **Vấn đề:** trong PDF ngày 25/10, con gõ "không" khi gia sư hỏi "vì sao" và được khen "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận" (REFORM-2 đã bỏ lời khen). Ở câu đang làm, "không" bị đọc là số 0 và chấm sai; "ko", "k", "chưa" rơi vào `R-REDIRECT` và tính là lượt không tiến bộ, ba lượt như vậy mở lời giải mẫu H6 (`R-FRUSTRATION`).
   - **Luật mới:**
@@ -861,6 +875,8 @@ Chạy song song từ Mốc 1:
     - Tập chỉnh, Hit@3 nhóm hỏi bài trước: 0,20 → 0,70.
     - Tập giữ riêng: 0,29 → 0,29, chưa cải thiện. Các câu hỏi khái niệm không theo dạng "là gì" về bài ở xa vẫn ngoài phạm vi.
     - Chương YAML cũ không tụt (Hit@3: 1,00 / 0,87).
+  - Đo lại riêng từng phần (RAG-5, 2026-10-25, `make eval-rag-published LIVE=1`, cờ `define` của `retrieve`): khi đã có định tuyến DI-57, ưu tiên đoạn định nghĩa làm MRR thấp đi (bỏ nó: tập chỉnh +0,056, giữ riêng v2 +0,025, v1+v2 +0,034, khoảng [0,000; 0,088]). Một lỗi thật: `_FILLERS` bỏ "của hình thang" khỏi khái niệm, nên "chiều cao của hình thang là gì" ưu tiên định nghĩa chiều cao của tam giác. Đã sửa ở RAG-6, xem ý dưới.
+  - Sửa (RAG-6, 2026-10-25): một định nghĩa phải mở đầu câu hoặc vế câu bằng khái niệm ("Đường cao của tam giác là…"), gọi tên nó sau "gọi là", hoặc kết thúc vế câu bằng nó ("Đáy dài hơn là đáy lớn"). Khái niệm nằm giữa câu là được dùng, không phải được định nghĩa ("Hàng cần làm tròn là hàng đơn vị", "chiều cao 5 m là"). Câu hỏi nêu hình ("của hình thang") thì không nhận định nghĩa dành cho hình khác, kể cả đoạn chỉ nói về hình khác (`term_and_shape`, `defines(text, term, shape)`). Chỉnh trên bộ chỉnh, v1, v2: MRR bộ chỉnh 0,944 không đổi, v1 0,952 → 0,964, v2 0,887 → 0,912. Trên tập giữ riêng v3 (`rag-published-holdout-v3.yaml`, câu viết như trẻ gõ, thẻ `eval-freeze-rag-v3` trước khi sửa): trước và sau giống hệt nhau (Hit@3 0,80, MRR 0,822), nên v3 không xác nhận cũng không bác bản sửa. Sau khi sửa, bỏ ưu tiên định nghĩa làm MRR của v3 giảm 0,029.
 - **DI-49, chọn câu bù dạng còn thiếu (`node-policy/0.2.0`, 2026-10-12):** khi tiết còn thiếu dạng câu hoặc mức nhận thức để "hiểu" (DI-6), danh sách câu luyện dài hơn ngân sách còn lại, và câu đầu tiên bù được chỗ thiếu nằm từ vị trí (ngân sách còn lại − 2) trở đi, thì câu đó được đưa lên trước. Các trường hợp khác giữ thứ tự cũ. Phiên học thử phát hiện STP-T06: học sinh làm đúng 11/12 câu vẫn bị dừng tiết vì 12 câu đầu cùng một dạng.
 - **DI-48, chấm tất định câu đáp án mở (`KeyFacts`, 2026-10-12):**
   - Câu đáp án mở mang các ý bắt buộc, rút từ đáp án của giáo viên hoặc do giáo viên ghi (`item:<id>/facts`). `MathChecker` đúng khi mọi ý đều có:

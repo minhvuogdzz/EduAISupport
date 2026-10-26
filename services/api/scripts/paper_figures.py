@@ -1188,7 +1188,7 @@ def tab_ablation_full() -> None:
         if not first:
             out.append(r"\midrule")
         first = False
-        cfgs = list(RAG["sets"][s]["configs"])
+        cfgs = [c for c in RAG["sets"][s]["configs"] if c in CONFIG_LABEL]  # RAG-5 rows: tab-components
         for i, c in enumerate(cfgs):
             m = RAG["sets"][s]["configs"][c]["on"]["metrics"]
             lab = label if i == 0 else ""
@@ -1203,6 +1203,48 @@ def tab_ablation_full() -> None:
                 )
     out += [r"\bottomrule", r"\end{tabular}"]
     write("tab-ablation-full.tex", "\n".join(out))
+
+
+COMPONENT_LABEL = {
+    "keyword": "Từ khóa (BM25 hai dạng)",
+    "semantic": "Vector ngữ nghĩa",
+    "scope": "Phạm vi đồ thị (so với RAG phẳng)",
+    "rerank": "Xếp hạng lại sư phạm",
+    "route": "Định tuyến về tiết trước (DI-57)",
+    "define": "Ưu tiên đoạn định nghĩa (DI-50)",
+}
+
+
+def signed(x: float, nd: int = 3) -> str:
+    return ("$+$" if x > 0 else "$-$" if x < 0 else "") + num(abs(x), nd)
+
+
+def tab_components() -> None:
+    """RAG-5: one component left out of the configuration that runs, paired by question."""
+    comp = RAG["stats"]["components"]
+    v2, pooled = comp["published_holdout_v2"], comp["published_holdout_v3"]
+    out = [
+        r"\footnotesize",
+        r"\begin{tabular}{@{}lrrrr@{}}",
+        r"\toprule",
+        rf"Bỏ thành phần & \multicolumn{{2}}{{c}}{{v2 ($n={v2['production']['n']}$)}}"
+        rf" & \multicolumn{{2}}{{c}}{{v3 ($n={pooled['production']['n']}$)}} \\",
+        r"\cmidrule(lr){2-3}\cmidrule(lr){4-5}",
+        r" & $\Delta$MRR [KTC 95\%] & $p$ & $\Delta$MRR [KTC 95\%] & $p$ \\",
+        r"\midrule",
+        rf"(đủ mọi thành phần: MRR) & {num(v2['production']['mrr'], 3)} & & "
+        rf"{num(pooled['production']['mrr'], 3)} & \\",
+    ]
+    for key, label in COMPONENT_LABEL.items():
+        a, b = v2["leave_one_out"][key], pooled["leave_one_out"][key]
+        cells = [label]
+        for x in (a, b):
+            d, lo, hi = x["delta_mrr"]
+            p = x["mcnemar_p"]
+            cells += [f"{signed(d)} [{signed(lo)}; {signed(hi)}]", "$<$0,001" if p < 0.001 else num(p, 3)]
+        out.append(" & ".join(cells) + r" \\")
+    out += [r"\bottomrule", r"\end{tabular}"]
+    write("tab-components.tex", "\n".join(out))
 
 
 def tab_routing() -> None:
@@ -2227,6 +2269,7 @@ def main() -> None:
         fig_grounding,
         tab_ablation_main,
         tab_ablation_full,
+        tab_components,
         tab_routing,
         tab_flat,
         tab_rag_decisions,

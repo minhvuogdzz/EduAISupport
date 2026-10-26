@@ -140,7 +140,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     report = client.get(f"/v1/sessions/{sid}/report", headers=TEACHER).json()
     assert report["versions"] == {
         "mastery": "node-mastery/0.3.0",
-        "policy": "node-policy/0.3.1",
+        "policy": "node-policy/0.4.0",
         "templates": "teaching-templates/0.6.0",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
