@@ -155,7 +155,7 @@ demo-memory: ## Old name of make run-memory
 	@$(MAKE) --no-print-directory run-memory
 
 doctor: ## Before a trial: check keys, database, models, voice, port, disk, build (read-only; LIVE=1 also calls each model once)
-	cd services/api && .venv/bin/python -m cavat.doctor $(if $(LIVE),--live,)
+	cd services/api && .venv/bin/python -m cavat.doctor --port $(PORT) $(if $(LIVE),--live,)
 
 tunnel: ## A public HTTPS address for the app at PORT (Cloudflare quick tunnel) while this runs; start make run first
 	cd services/api && .venv/bin/python scripts/tunnel.py --port $(PORT)
