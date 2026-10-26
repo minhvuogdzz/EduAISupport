@@ -449,3 +449,54 @@ def test_a_retell_the_child_cannot_give_gets_a_bridge_then_the_main_idea(index):
     feedback = loop.on_student("con không nhớ ạ", NOW).messages[0]
     assert feedback.source == "LLM"
     assert feedback.text == f"Con nói con chưa nhớ, không sao đâu nhé. {FRAC.description}"
+
+
+# --- REFORM-1b: what a lead may and may not say -------------------------------------------------------------
+
+# Seen live (Qwen 3.8 and gpt-oss-120b, 2026-10-26): a good lead on "ko" was refused as UNSUPPORTED_CLAIM and
+# UNATTRIBUTED, though it repeats nothing the child said about the lesson.
+REAL_LEAD = "Cô hiểu Vương chưa chắc chắn, mình cùng xem lại nhé."
+
+
+def test_a_lead_on_how_the_child_feels_needs_no_idea_of_the_child_to_be_attributed(index):
+    spoken = GroundedSpeaker(index, ScriptedRouter(REAL_LEAD), student_name="Vương").bridge(
+        "ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Mình cùng xem lại nhé:"
+    )
+    assert spoken.source == "LLM" and spoken.text == f"{REAL_LEAD} {T1_REPLY}"
+
+
+@pytest.mark.parametrize(
+    ("said", "lead"),
+    [
+        ("4/10 ạ", "Phần tô màu là 4/10, mình cùng xem lại nhé."),  # the child's number, as the tutor's own
+        ("dài hơn ạ", "Đoạn dây dài hơn, mình cùng xem lại nhé."),  # the child's idea, as the tutor's own
+    ],
+)
+def test_a_lead_that_repeats_what_the_child_said_about_the_lesson_still_says_whose_it_is(index, said, lead):
+    spoken = GroundedSpeaker(index, ScriptedRouter(lead, None)).bridge(
+        said, asked=T1_ASK, explanation=T1_REPLY, judged="chưa đúng", lead="Mình cùng xem lại nhé:"
+    )
+    assert spoken.source == "TEMPLATE" and "UNATTRIBUTED" in spoken.rejected[0]
+
+
+def test_a_lead_may_not_claim_something_about_the_lesson_with_ordinary_words(index):
+    """The support check stays for a lead that says something about the lesson: here a rule of the chapter."""
+    lead = "Cô nói rồi, chia càng nhiều phần thì mỗi phần càng nhỏ đó con."
+    spoken = GroundedSpeaker(index, ScriptedRouter(lead, None)).bridge(
+        "ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Mình cùng xem lại nhé:"
+    )
+    assert spoken.source == "TEMPLATE" and "UNSUPPORTED_CLAIM" in spoken.rejected[0]
+
+
+class CappedRouter(ScriptedRouter):
+    max_calls_per_session = 10
+
+
+def test_a_lead_leaves_the_last_fifth_of_the_calls_to_explanations_and_questions(index):
+    router = CappedRouter(REAL_LEAD)
+    speaker = GroundedSpeaker(index, router, student_name="Vương", calls_used=8)  # the last 2 are kept
+    spoken = speaker.bridge("ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Xem lại nhé:")
+    assert spoken.source == "TEMPLATE" and spoken.text == f"Xem lại nhé: {T1_REPLY}"
+    assert router.requests == [] and speaker.calls_made == 0
+    again = GroundedSpeaker(index, CappedRouter(REAL_LEAD), student_name="Vương", calls_used=7)
+    assert again.bridge("ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead=".").source == "LLM"

@@ -497,19 +497,10 @@ def test_an_explanation_the_child_could_not_give_gets_a_lead_then_the_approved_t
     assert all("WRONG_PRAISE" in codes for codes in renderer.last_trace.rejected)
 
 
-def test_an_item_opens_with_a_lead_and_the_stem_word_for_word():
-    ctx = ctx_for("GP-01", Move.PRESENT, "chán quá cô ơi")
-    lead = "Cô hiểu con hơi mệt rồi, mình làm thêm một câu ngắn nhé."
-    renderer, fake = make([turn(lead)])
-    msg = renderer.render(ctx)
-    assert (msg.text, msg.source) == (f"{lead} {PKG.item('GP-01').stem}", "LLM")
-    asks = "Con sẵn sàng chưa?"
-    renderer, fake = make([turn(asks), turn(asks)])
-    assert renderer.render(ctx) == TEMPLATE.render(ctx)
-    assert all("LEAD_QUESTION" in codes for codes in renderer.last_trace.rejected)
-
-
-def test_an_item_opened_with_nothing_to_answer_is_the_stem_without_a_call():
+def test_an_item_is_opened_with_its_stem_and_no_call():
+    """The item loop opens an item with no message of the child, and the CONFIRM_ADVANCE before it already
+    says the move on (a lead for PRESENT never fired in the measured sessions: 24 opens, none with words)."""
     renderer, fake = make([turn("không được gọi")])
-    assert renderer.render(ctx_for("GP-01", Move.PRESENT)).text == PKG.item("GP-01").stem
+    assert Move.PRESENT in TEMPLATE_ONLY_MOVES
+    assert renderer.render(ctx_for("GP-01", Move.PRESENT, "chán quá cô ơi")).text == PKG.item("GP-01").stem
     assert fake.calls == []

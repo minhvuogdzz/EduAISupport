@@ -28,10 +28,12 @@ REFORM-1b (llm-renderer.v8, DI-81) adds the last moves a child hears most:
 
 - OFFER_CHOICE in the model's words, which must still offer both a hint and another try (``CHOICE_MISSING``);
 - CONFIRM_ADVANCE after a right answer: praise of what the child did, no question (``ASKS_ON_ADVANCE``);
-- *lead* moves (``lead_only`` in the directive): PRESENT and the CONFIRM_ADVANCE of an explanation the child
-  could not give (REFORM-2, DI-68). The model writes one sentence on what the child said, at most
-  ``LEAD_WORDS`` words and no question (``LEAD_QUESTION``); the approved text (the stem, the explanation)
-  follows word for word and the whole is checked. With nothing the child said there is no call.
+- a *lead* (``lead_only`` in the directive) for the CONFIRM_ADVANCE of an explanation the child could not give
+  (REFORM-2, DI-68): the model writes one sentence on what the child said, at most ``LEAD_WORDS`` words and no
+  question (``LEAD_QUESTION``); the approved explanation follows word for word and the whole is checked.
+
+PRESENT stays a template: the item loop opens an item with no message of the child (measured: 24 of 24 opens
+had none), and the move on is already said by the CONFIRM_ADVANCE before it.
 
 v5's ``NEW_MATH_TERM`` (no mathematical term outside the sources) is gone: the child asks "mẫu như nào"
 next to an anchor without "mẫu số", and the answer was replaced by the template.
@@ -90,7 +92,6 @@ LLM_MOVES = frozenset(
         Move.WORKED_GUIDANCE,
         Move.TEACH_BACK,
         Move.VERIFY,  # only when it asks again (``ASK_AGAIN``), see ``_template_only``
-        Move.PRESENT,  # REFORM-1b: a lead before the stem, when the child said something
         Move.CONFIRM_ADVANCE,
         Move.OFFER_CHOICE,
     }
@@ -218,13 +219,13 @@ def repair(text: str, codes: Sequence[str], ctx: RenderContext, anchor: str) -> 
 def _template_only(ctx: RenderContext) -> bool:
     """Said with the approved template: a test item, a move of lesson content, VERIFY unless it asks again
     after "là sao?" (the item's own "vì sao" is the teacher's question; FIX-2's VERIFY after a wrong answer is
-    the approved probe), and an opening or a move on when the child said nothing to answer."""
+    the approved probe), and a move on when the child said nothing to answer."""
     move = ctx.decision.move
     if ctx.item.is_assessment or move in TEMPLATE_ONLY_MOVES:
         return True
     if move == Move.ASK_CONFIRM and UNCLEAR_REASONS.intersection(ctx.decision.reason_codes):
         return True  # REFORM-5: the reader already wrote (or the template has) the question for this slip
-    if move in (Move.PRESENT, Move.CONFIRM_ADVANCE) and not (ctx.student_text or "").strip():
+    if move == Move.CONFIRM_ADVANCE and not (ctx.student_text or "").strip():
         return True
     return move == Move.VERIFY and "ASK_AGAIN" not in ctx.decision.reason_codes
 
@@ -232,9 +233,7 @@ def _template_only(ctx: RenderContext) -> bool:
 def lead_only(ctx: RenderContext) -> bool:
     """DI-75: the model writes one sentence before the approved text, which is said word for word."""
     d = ctx.decision
-    return d.move == Move.PRESENT or (
-        d.move == Move.CONFIRM_ADVANCE and "EXPLAIN_AND_ADVANCE" in d.reason_codes
-    )
+    return d.move == Move.CONFIRM_ADVANCE and "EXPLAIN_AND_ADVANCE" in d.reason_codes
 
 
 def move_codes(text: str, ctx: RenderContext) -> tuple[str, ...]:

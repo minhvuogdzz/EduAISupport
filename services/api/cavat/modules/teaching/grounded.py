@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
@@ -52,7 +52,7 @@ from cavat.modules.ai_gateway.base import (
     ModelClass,
     estimate_prompt_tokens,
 )
-from cavat.modules.ai_gateway.router import AIRouter
+from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.assessment.math_terms import terms_in, terms_missing
 from cavat.modules.assessment.student_intent import asks_question, expand_short_forms
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
@@ -87,8 +87,10 @@ TUTOR_TALK = frozenset(
     "dung chua xem thu that ra lai nua cau tra loi noi nghi cung nhe day dau oi nao tot lam gang vay ay do "
     "nay kia se dang da van nhung nen neu khi de rang bi tu ban em hoc bai minh hay qua roi phai y dieu "
     "chi moi luc nay vua cach giup cho ca nhau ghi nho dap thay kiem tra giu".split()
-    # DI-75 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa biết", "con thấy chán")
-    + "biet hieu kho chan vui thich buon met lo ke chuyen muon".split()
+    # DI-75 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa chắc chắn", "con thấy
+    # chán", "cô hiểu con ngại"): feelings, doubt, effort, calm. None of them folds to a word of the chapters.
+    + "biet hieu kho khan chac chan ro ngai vui thich buon met lo ke chuyen muon cham nhanh ky nhan doan "
+    "cam on thoai mai".split()
 )
 _NUMBER = re.compile(r"^[\d.,/]+$")
 _SENTENCE = re.compile(r"(?<=[.!?…])\s+")
@@ -197,6 +199,18 @@ def check(
             codes.append("REPEATS_EXPLANATION")
             break
     return tuple(codes)
+
+
+def repeats_idea(lead: str, said: str, lesson: str) -> bool:
+    """DI-75: whether a lead repeats something the child said about the lesson: one of the child's numbers, or
+    a word of the lesson's own text that the child used. Only then must it say whose idea it is (a wrong idea
+    repeated without it reads as the tutor's). "ko" or "chán quá cô ơi" are not ideas about the lesson."""
+    said = expand_short_forms(said)
+    said_numbers = {n.value for n in extract_numbers(said)}
+    if any(n.value in said_numbers for n in extract_numbers(lead)):
+        return True
+    ideas = {fold(w) for w in content_words(said)} - TUTOR_TALK
+    return bool(ideas & set(_words(lesson)) & set(_words(lead)))
 
 
 @dataclass(frozen=True)
@@ -390,6 +404,8 @@ class GroundedSpeaker:
     def bridge(self, student_text: str, *, asked: str, explanation: str, judged: str, lead: str) -> Spoken:
         """One sentence on what the child said, then ``explanation`` word for word. ``judged``: "đúng",
         "chưa đúng" or "chưa rõ"; ``lead``: the template sentence used when the model cannot be."""
+        if not self._may_bridge():
+            return Spoken(f"{lead} {explanation}", "TEMPLATE")
         evidence = self._evidence([asked, explanation], student_text)
         lines = [
             "[NHIỆM VỤ] CÂU_NỐI",
@@ -411,6 +427,7 @@ class GroundedSpeaker:
             MAX_BRIDGE_WORDS,
             forbid=(explanation,),
             attribution=attribution,
+            needs_attribution=lambda said: repeats_idea(said, student_text, f"{asked} {explanation}"),
             no_praise=judged != "đúng",
         )
         if text:
@@ -418,6 +435,13 @@ class GroundedSpeaker:
         return Spoken(f"{lead} {explanation}", "TEMPLATE", (), rejected, flagged, refused)
 
     # ------------------------------------------------------------------ helpers
+
+    def _may_bridge(self) -> bool:
+        """DI-75: a bridge is wording, not help. As the renderer's moves other than EXPLAIN and REDIRECT
+        (DI-61), it leaves the last fifth of the session's calls to explanations and to the child's
+        questions."""
+        cap = getattr(self.router, "max_calls_per_session", DEFAULT_MAX_LLM_CALLS_PER_SESSION)
+        return self.calls_used + self.calls_made < cap - cap // 5
 
     def _address(self) -> str:
         line = f'[XƯNG HÔ] Gia sư xưng "{self.t}", gọi học sinh là "{self.s}".'
@@ -435,6 +459,7 @@ class GroundedSpeaker:
         max_words: int,
         forbid: Sequence[str] = (),
         attribution: Sequence[str] = (),
+        needs_attribution: Callable[[str], bool] | None = None,
         no_praise: bool = False,
     ) -> tuple[str | None, tuple[tuple[str, ...], ...], bool, tuple[str, ...]]:
         """The model's words once they pass ``check``; "" when the model wrote nothing (the passages do not
@@ -472,7 +497,11 @@ class GroundedSpeaker:
                 return "", tuple(rejected), flagged, tuple(refused)
             codes = check(text, evidence, max_words=max_words, forbid=forbid)
             lowered = normalize_text(text)
-            if attribution and not any(a in lowered for a in attribution):
+            if (
+                attribution
+                and not any(a in lowered for a in attribution)
+                and (needs_attribution is None or needs_attribution(text))
+            ):
                 codes = (*codes, "UNATTRIBUTED")
             if no_praise and any(p in lowered for p in _PRAISE_RIGHT):
                 codes = (*codes, "CONTRADICTS_JUDGEMENT")
