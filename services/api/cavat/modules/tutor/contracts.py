@@ -118,6 +118,13 @@ class RenderContext:
     # passed by the validator (the tutor says it as it is). Empty: the template asks.
     guessed_meaning: str | None = None
     clarification: str | None = None
+    # BRAIN-1 (DI-84): the checker's verdict on the child's last graded answer, and whether that answer is
+    # right (a right answer is the child's own, so the tutor may say it and the calculation behind it).
+    # ``free_numbers``: the message is a model's, which may build a new example, so its numbers are checked
+    # by arithmetic (``brain.math_errors``) and not by being in the lesson.
+    check: CheckResult | None = None
+    solved: bool = False
+    free_numbers: bool = False
 
 
 @dataclass(frozen=True)

@@ -797,7 +797,12 @@ class TeachingLoop:
         if self.speaker is None:
             return Spoken(f"{self._phrase(lead)} {variant.reply}", "TEMPLATE")
         return self.speaker.bridge(
-            text, asked=variant.ask, explanation=variant.reply, judged=judged, lead=self._phrase(lead)
+            text,
+            asked=variant.ask,
+            explanation=variant.reply,
+            judged=judged,
+            lead=self._phrase(lead),
+            recent=self._recent(4),
         )
 
     def _on_question(
@@ -1298,7 +1303,15 @@ class TeachingLoop:
         approved = f"{body}{after}"
         if self.speaker is None:
             return Spoken(f"{lead}{approved}", "TEMPLATE")
-        return self.speaker.bridge(said, asked=asked, explanation=approved, judged=judged, lead=lead.strip())
+        return self.speaker.bridge(
+            said,
+            asked=asked,
+            explanation=approved,
+            judged=judged,
+            lead=lead.strip(),
+            recent=self._recent(4),
+            teaching=slot != "ask",  # "ask": the same question again after talk outside the lesson
+        )
 
     @staticmethod
     def _feedback(spoken: Spoken, node_id: str | None, ref: str | None = None) -> TeachMessage:

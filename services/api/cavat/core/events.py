@@ -156,6 +156,8 @@ class TutorMessageSent(_Payload):
     source: Literal["TEMPLATE", "GENERIC", "LLM", "FALLBACK"]
     words: int = Field(ge=0)
     attempts_to_pass_validator: int = Field(default=1, ge=1)
+    # BRAIN-1 (DI-84): the model that wrote an LLM message (the teacher's page shows who spoke)
+    model: str | None = None
 
 
 class OutputRejected(_Payload):

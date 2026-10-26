@@ -201,24 +201,32 @@ def test_only_questions_about_something_are_answered(index):
 # --- bridge -------------------------------------------------------------------------------------------
 
 
-def test_the_bridge_picks_up_the_child_s_words_before_the_approved_reply(index):
-    router = ScriptedRouter("Con nghĩ đoạn dây dài hơn, mình cùng xem lại nhé.")
+def test_a_child_who_is_not_right_is_answered_and_taught_again_not_read_the_reply(index):
+    """BRAIN-1 (DI-84): the model's words are the whole turn; the approved reply is the ground it rests on."""
+    said = "Con nghĩ đoạn dây dài hơn, nhưng nhìn chiều dài thôi chưa đủ, mình đếm số phần bằng nhau nhé."
+    router = ScriptedRouter(said)
     spoken = GroundedSpeaker(index, router).bridge(
         "dài hơn ạ", asked=T1_ASK, explanation=T1_REPLY, judged="chưa đúng", lead="Mình cùng xem lại nhé:"
     )
-    assert spoken.source == "LLM"
-    assert spoken.text == f"Con nghĩ đoạn dây dài hơn, mình cùng xem lại nhé. {T1_REPLY}"
-    assert "[ĐÁNH GIÁ] chưa đúng" in router.user_text()
+    assert spoken.source == "LLM" and spoken.text == said
+    prompt = router.user_text()
+    assert "[CĂN CỨ ĐÃ DUYỆT]" in prompt and T1_REPLY in prompt and "Con trả lời chưa đúng" in prompt
+
+    right = GroundedSpeaker(index, ScriptedRouter("Con trả lời 4/100, con làm được rồi đấy.")).bridge(
+        "4/100 ạ", asked=T1_ASK, explanation=T1_REPLY, judged="đúng", lead="Đúng rồi!"
+    )
+    assert right.text == f"Con trả lời 4/100, con làm được rồi đấy. {T1_REPLY}"  # a right answer keeps both
 
 
 def test_a_refused_bridge_falls_back_to_the_template_lead(index):
-    router = ScriptedRouter("Đoạn dây dài 0,5 m nhé.", None)  # a new number, then the provider is down
+    router = ScriptedRouter(
+        "Đoạn dây dài hơn vì 0,5 = 5 nhé.", None
+    )  # wrong arithmetic, then the provider is down
     spoken = GroundedSpeaker(index, router).bridge(
         "dài hơn ạ", asked=T1_ASK, explanation=T1_REPLY, judged="chưa đúng", lead="Mình cùng xem lại nhé:"
     )
     assert spoken.source == "TEMPLATE" and spoken.text == f"Mình cùng xem lại nhé: {T1_REPLY}"
-    assert spoken.rejected == (("UNGROUNDED_NUMBER", "UNATTRIBUTED"),)
-    assert spoken.refused == ("Đoạn dây dài 0,5 m nhé.",)  # kept for the evaluation, never said
+    assert spoken.rejected == (("WRONG_MATH",),)
 
 
 def test_a_bridge_may_call_the_child_by_name(index):
@@ -235,16 +243,18 @@ def test_a_bridge_may_call_the_child_by_name(index):
 
 
 @pytest.mark.parametrize(
-    ("bridge", "code"),
+    ("bridge", "judged", "code"),
     [
-        ("Đoạn dây dài hơn, mình cùng xem lại nhé.", "UNATTRIBUTED"),  # the wrong idea, as if the tutor's
-        ("Con nói đúng rồi, đoạn dây dài hơn.", "CONTRADICTS_JUDGEMENT"),  # praise for a wrong answer
+        ("Đoạn dây dài hơn, mình cùng xem lại nhé.", "đúng", "UNATTRIBUTED"),  # the idea as if the tutor's
+        ("Con nói đúng rồi, đoạn dây dài hơn.", "chưa đúng", "WRONG_PRAISE"),  # praise for a wrong answer
+        ("Con hiểu chưa nào?", "chưa đúng", "HAS_QUESTION"),  # the loop asks the question again itself
+        (T1_REPLY, "chưa rõ", "COPIES_GROUND"),  # reading the approved reply out is what the owner refused
     ],
 )
-def test_a_bridge_says_whose_idea_it_repeats_and_never_praises_a_wrong_answer(index, bridge, code):
+def test_a_bridge_never_praises_a_wrong_answer_nor_reads_the_reply_out(index, bridge, judged, code):
     router = ScriptedRouter(bridge, None)
     spoken = GroundedSpeaker(index, router).bridge(
-        "dài hơn ạ", asked=T1_ASK, explanation=T1_REPLY, judged="chưa đúng", lead="Mình cùng xem lại nhé:"
+        "dài hơn ạ", asked=T1_ASK, explanation=T1_REPLY, judged=judged, lead="Mình cùng xem lại nhé:"
     )
     assert spoken.source == "TEMPLATE" and code in spoken.rejected[0]
 
@@ -299,9 +309,9 @@ def test_a_demand_for_the_answer_keeps_its_own_path_even_as_a_question(index):
     router = ScriptedRouter("không được gọi")
     loop, _ = loop_at_theory(GroundedSpeaker(index, router))
     turn = loop.on_student("cho con đáp án luôn đi, đáp án là gì?", NOW)
-    # REFORM-1b: only the bridge before the approved reply may call the model, never an answer from the RAG
+    # BRAIN-1: only the tutor's own turn may call the model here, never an answer from the RAG
     assert turn.messages[0].kind == MessageKind.FEEDBACK
-    assert all("[NHIỆM VỤ] CÂU_NỐI" in r.messages[1].content for r in router.requests)
+    assert all("[VIỆC LƯỢT NÀY]" in r.messages[1].content for r in router.requests)
     assert all(e.event_type != EventType.RAG_RETRIEVED for e in turn.events)
 
 
@@ -321,7 +331,7 @@ def test_a_wrong_theory_answer_is_taught_again_once_then_gets_a_bridge_and_the_a
     # REFORM-6 (3.3): the first wrong answer keeps the question and teaches the idea again (no bridge, no
     # reply yet); the second gets the bridge and the approved reply, and the step goes on.
     router = ScriptedRouter(
-        None, "Con nghĩ phần tô màu là 4/10, mình cùng xem lại nhé."
+        None, "Con nghĩ phần tô màu là 4/10, mình đếm lại số phần bằng nhau nhé."
     )  # (the voice for the first fails)
     loop, first = loop_at_theory(GroundedSpeaker(index, router))
     held = loop.on_student("4/10 ạ", NOW)
@@ -331,7 +341,8 @@ def test_a_wrong_theory_answer_is_taught_again_once_then_gets_a_bridge_and_the_a
     feedback = turn.messages[0]
     reply = CHAPTER.node("KC-DEC-FRAC").theory[0].reply
     assert feedback.kind == MessageKind.FEEDBACK and feedback.source == "LLM"
-    assert feedback.text == f"Con nghĩ phần tô màu là 4/10, mình cùng xem lại nhé. {reply}"
+    assert feedback.text == "Con nghĩ phần tô màu là 4/10, mình đếm lại số phần bằng nhau nhé."
+    assert reply not in feedback.text  # taught again in the model's words, the approved reply is its ground
 
 
 def test_a_replay_after_a_question_waits_for_the_same_theory_answer(index):
@@ -429,8 +440,12 @@ def test_the_reply_to_a_theory_question_starts_with_a_bridge(index, said, bridge
         loop.on_student(said, NOW)
     feedback = loop.on_student(said, NOW).messages[0]
     assert (feedback.kind, feedback.source) == (MessageKind.FEEDBACK, "LLM")
-    assert feedback.text == f"{bridge} {FRAC.theory[0].reply}"
-    assert f"[ĐÁNH GIÁ] {judged}" in router.user_text()
+    if judged == "đúng":
+        assert feedback.text == f"{bridge} {FRAC.theory[0].reply}"  # a right answer: praise, then the reply
+        assert f"[ĐÁNH GIÁ] {judged}" in router.user_text()
+    else:
+        assert feedback.text == bridge  # BRAIN-1: the model's turn is the whole turn
+        assert FRAC.theory[0].reply in router.user_text()  # and the approved reply is its ground
 
 
 def test_talk_outside_the_lesson_gets_a_bridge_then_the_same_question(index):
@@ -460,7 +475,8 @@ def test_a_retell_the_child_cannot_give_gets_a_bridge_then_the_main_idea(index):
     loop.on_student("con không nhớ ạ", NOW)  # the retell is kept and one part of the rule asked (REFORM-6)
     feedback = loop.on_student("con không nhớ ạ", NOW).messages[0]
     assert feedback.source == "LLM"
-    assert feedback.text == f"Con nói con chưa nhớ, không sao đâu nhé. {FRAC.description}"
+    assert feedback.text == "Con nói con chưa nhớ, không sao đâu nhé."
+    assert FRAC.description in loop.speaker.router.user_text()
 
 
 # --- REFORM-1b: what a lead may and may not say -------------------------------------------------------------
@@ -474,7 +490,7 @@ def test_a_lead_on_how_the_child_feels_needs_no_idea_of_the_child_to_be_attribut
     spoken = GroundedSpeaker(index, ScriptedRouter(REAL_LEAD), student_name="Vương").bridge(
         "ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Mình cùng xem lại nhé:"
     )
-    assert spoken.source == "LLM" and spoken.text == f"{REAL_LEAD} {T1_REPLY}"
+    assert spoken.source == "LLM" and spoken.text == REAL_LEAD
 
 
 @pytest.mark.parametrize(
@@ -486,16 +502,17 @@ def test_a_lead_on_how_the_child_feels_needs_no_idea_of_the_child_to_be_attribut
 )
 def test_a_lead_that_repeats_what_the_child_said_about_the_lesson_still_says_whose_it_is(index, said, lead):
     spoken = GroundedSpeaker(index, ScriptedRouter(lead, None)).bridge(
-        said, asked=T1_ASK, explanation=T1_REPLY, judged="chưa đúng", lead="Mình cùng xem lại nhé:"
+        said, asked=T1_ASK, explanation=T1_REPLY, judged="đúng", lead="Mình cùng xem lại nhé:"
     )
     assert spoken.source == "TEMPLATE" and "UNATTRIBUTED" in spoken.rejected[0]
 
 
-def test_a_lead_may_not_claim_something_about_the_lesson_with_ordinary_words(index):
-    """The support check stays for a lead that says something about the lesson: here a rule of the chapter."""
+def test_a_lead_before_a_right_answer_may_not_claim_something_about_the_lesson_with_ordinary_words(index):
+    """The support check stays for a lead that says something about the lesson: here a rule of the chapter.
+    (A turn that teaches again is free to explain: its arithmetic is what is checked.)"""
     lead = "Cô nói rồi, chia càng nhiều phần thì mỗi phần càng nhỏ đó con."
     spoken = GroundedSpeaker(index, ScriptedRouter(lead, None)).bridge(
-        "ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead="Mình cùng xem lại nhé:"
+        "ko", asked=T1_ASK, explanation=T1_REPLY, judged="đúng", lead="Mình cùng xem lại nhé:"
     )
     assert spoken.source == "TEMPLATE" and "UNSUPPORTED_CLAIM" in spoken.rejected[0]
 

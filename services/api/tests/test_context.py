@@ -110,7 +110,7 @@ def test_qwen_says_the_explanation_in_context_and_the_checks_hold():
     turn = t.on_student("mẫu như nào")
     assert turn.move == Move.EXPLAIN and turn.text == said
     user = router.requests[-1][1].messages[1].content
-    assert '"child_asks":"mẫu"' in user and "[ĐOẠN NGUỒN]" in user and PASSAGE[:40] in user
+    assert "điều con hỏi (mẫu)" in user and "[CĂN CỨ ĐÃ DUYỆT]" in user and PASSAGE[:40] in user
 
 
 @pytest.mark.parametrize(

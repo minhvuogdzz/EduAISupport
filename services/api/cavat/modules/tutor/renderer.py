@@ -399,12 +399,36 @@ def _ask_confirm(ctx: RenderContext) -> RenderedMessage:
     return _msg(_say(ctx, "ask_confirm"), "TEMPLATE")
 
 
+def reteach_material(ctx: RenderContext) -> str | None:
+    """BRAIN-1 (C2): what the tutor says again to a child who could not say why, when no model can say it:
+    the item's approved explanation or worked steps, else the sentences of the approved passages on the item's
+    question, else the statements of the lesson's strongest hints, else the answer the child gave (right, or
+    they would not be taught again). None only when the lesson has nothing at all on this item."""
+    item = ctx.item
+    if explanation := approved_explanation(item):
+        return explanation
+    passages = [s for p in ctx.evidence for s in _SENTENCE_END.split(" ".join(p.split())) if s.strip()]
+    if statements := [s for s in passages if not s.endswith("?")][:2]:
+        return " ".join(statements)
+    hints = sorted((*item.hints, *fitting_generic_hints(item, ctx.package)), key=lambda h: -h.level)
+    said = [s for h in hints for s in _SENTENCE_END.split(h.text) if s.strip() and not s.endswith("?")][:2]
+    if said:
+        return " ".join(said)
+    answer = ctx.check.normalized if ctx.check is not None else None
+    return f"Đáp án của câu này là {answer}." if answer else None
+
+
+def _teach_again(ctx: RenderContext) -> RenderedMessage:
+    """The child answered right and could not say why: the idea again, then on. Never only "sang câu tiếp"."""
+    material = reteach_material(ctx)
+    if material is None:
+        return _msg(_say(ctx, "move_on"), "TEMPLATE")
+    return _msg(_say(ctx, "explain_and_advance", explanation=material), "TEMPLATE")
+
+
 def _confirm_advance(ctx: RenderContext) -> RenderedMessage:
     if "EXPLAIN_AND_ADVANCE" in ctx.decision.reason_codes:
-        explanation = approved_explanation(ctx.item)
-        if explanation is not None:
-            return _msg(_say(ctx, "explain_and_advance", explanation=explanation), "TEMPLATE")
-        return _msg(_say(ctx, "move_on"), "TEMPLATE")
+        return _teach_again(ctx)
     return _msg(_say(ctx, "confirm_advance"), "TEMPLATE")
 
 
@@ -413,10 +437,11 @@ def _close_item(ctx: RenderContext) -> RenderedMessage:
     if d.resolution in (None, ItemResolution.UNRESOLVED):
         return _msg(_say(ctx, "close_item"), "TEMPLATE")
     talk = {"OFF_TOPIC", "CLARIFY", "NEGATIVE_AFFECT"}.intersection(d.reason_codes)
-    if "NO_EXPLANATION" in d.reason_codes and not talk and (explanation := approved_explanation(ctx.item)):
-        # The child could not or would not explain ("không biết", silence): the approved explanation, then
-        # on. Talk outside the lesson keeps its own lead (ADR-019) and the plain move on.
-        return _msg(_say(ctx, "explain_and_advance", explanation=explanation), "TEMPLATE")
+    if "NO_EXPLANATION" in d.reason_codes and not talk:
+        # The child could not or would not explain ("không biết", silence): the idea is said again (BRAIN-1:
+        # whatever the lesson has on the item), then on. Talk outside the lesson keeps its own lead (ADR-019)
+        # and the plain move on.
+        return _teach_again(ctx)
     return _msg(_say(ctx, "move_on"), "TEMPLATE")
 
 

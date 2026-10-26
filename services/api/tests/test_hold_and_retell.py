@@ -36,7 +36,9 @@ class Models:
     """Answers by model class: LIGHTWEIGHT reads the meaning, TUTOR_REASONING speaks."""
 
     def __init__(
-        self, ideas=None, voice="Mình thử nghĩ lại từng bước nhé, phân số thập phân là phân số có mẫu số 10."
+        self,
+        ideas=None,
+        voice="Mình thử nghĩ lại từng bước nhé. Mẫu số là 10, 100 hay 1000 thì mình gọi là phân số thập phân.",
     ) -> None:
         self.ideas = ideas if ideas is not None else []
         self.voice = voice

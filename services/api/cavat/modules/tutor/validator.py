@@ -384,7 +384,9 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
             issues.append(ValidationIssue(code, hit))
 
     grounded = grounded_values(ctx)
-    ungrounded = [n.text for n in extract_numbers(text) if n.value not in grounded]
+    ungrounded = (
+        [] if ctx.free_numbers else [n.text for n in extract_numbers(text) if n.value not in grounded]
+    )
     if ungrounded:
         issues.append(ValidationIssue(ValidationCode.UNGROUNDED_NUMBER, ", ".join(ungrounded)))
 

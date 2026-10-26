@@ -186,7 +186,7 @@ def test_the_router_of_an_evaluation_is_built_on_the_eval_key():
     heard = {}
     for name, flag in (("students", False), ("eval", True)):
         router = build_router(both, for_eval=flag)
-        heard[name] = router._chat._http.headers["authorization"]
+        heard[name] = router._chat._groq._http.headers["authorization"]
     assert heard == {"students": "Bearer gsk_students", "eval": "Bearer gsk_eval"}
     only_eval = settings(groq_api_key_eval=SecretStr("gsk_eval"), tts="off")
     assert build_router(only_eval, for_eval=True)._chat is not None
