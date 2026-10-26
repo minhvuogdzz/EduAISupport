@@ -125,16 +125,22 @@ ROLES = [
 
 
 def talk(role: Role) -> tuple[TeachingLoop, list[tuple[str | None, TeachTurn]]]:
-    """(what the child said, what the tutor did) until the first node is passed or the limit is hit."""
+    """(what the child said, what the tutor did) until the first node is passed or stopped."""
     loop = TeachingLoop(CHAPTER, "hard")
     log: list[tuple[str | None, TeachTurn]] = [(None, loop.start(T0))]
     for n in range(LIMIT):
         turn = log[-1][1]
-        if turn.awaiting == Awaiting.NOTHING or loop.projection().nodes[FIRST_NODE].passed_at is not None:
+        passed = loop.projection().nodes[FIRST_NODE].passed_at is not None
+        if turn.awaiting == Awaiting.NOTHING or passed or stopped(turn):
             return loop, log
         said = role.reply(turn)
         log.append((said, loop.on_student(said, T0 + timedelta(seconds=10 * (n + 1)), 10)))
     raise AssertionError(f"{role.name}: the first node was not passed in {LIMIT} messages")
+
+
+def stopped(turn: TeachTurn) -> bool:
+    """The first node ran out of questions (N-BUDGET) in this turn."""
+    return any(m.kind == MessageKind.STOP and m.node_id == FIRST_NODE for m in turn.messages)
 
 
 def moves(turn: TeachTurn) -> list[Move]:
@@ -151,12 +157,13 @@ def text(turn: TeachTurn) -> str:
 
 @pytest.mark.parametrize("role", ROLES, ids=lambda r: r.name)
 def test_the_tutor_handles_every_role_and_still_teaches(role: Role) -> None:
-    loop, log = talk(role)  # never stuck: the first node is passed, or the session ends with a summary
+    loop, log = talk(role)  # never stuck: the first node is passed, or stopped and the session goes on
     if loop.projection().nodes[FIRST_NODE].passed_at is None:
         # A child who never works alone nor explains is not counted as understanding (DI-15): the tutor
-        # stops the node and says it will be reviewed, it does not pretend.
-        assert log[-1][1].awaiting == Awaiting.NOTHING, role.name
+        # stops the node, says it will be reviewed and goes on to the next one (DI-75), it does not pretend.
+        assert stopped(log[-1][1]), role.name
         assert "ôn" in text(log[-1][1]), role.name
+        assert log[-1][1].awaiting != Awaiting.NOTHING, role.name
 
     previous: TeachTurn = log[0][1]
     repeats = 0

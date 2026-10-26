@@ -103,9 +103,17 @@ class _Policy:
             ns = self.nodes[node_id]
             if node_id in st.stopped or ns.passed_at is not None:
                 continue
-            if all(self.nodes[p].passed_at is not None for p in self.chapter.prerequisites(node_id)):
-                return self._make(TeachAction.ENTER_NODE, "N-NEXT", node_id, reasons=["UNLOCKED"])
+            prerequisites = self.chapter.prerequisites(node_id)
+            if all(self._done(p) for p in prerequisites):
+                # FLOW-1 (DI-75): a period the child used up today does not end the session.
+                after_stop = any(self.nodes[p].passed_at is None for p in prerequisites)
+                reasons = ["UNLOCKED_AFTER_STOP" if after_stop else "UNLOCKED"]
+                return self._make(TeachAction.ENTER_NODE, "N-NEXT", node_id, reasons=reasons)
         return self._make(TeachAction.FINISH, "N-FINISH", reasons=["NO_NODE_LEFT"])
+
+    def _done(self, node_id: str) -> bool:
+        """Passed, or stopped today: the next period may come either way (DI-75)."""
+        return self.nodes[node_id].passed_at is not None or node_id in self.state.stopped
 
     def _review(self) -> NodeDecisionMade | None:
         just = self.state.passed[-1] if self.state.passed else None

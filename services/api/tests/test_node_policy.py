@@ -195,12 +195,18 @@ def test_two_failed_checks_with_a_weak_prerequisite_go_back_to_it():
     assert switch[1:5] == ("KC-DEC-FRAC", None, "N-REMEDIATE", ("CHECK_FAILED_TWICE",))
 
 
-def test_a_node_without_progress_is_stopped_and_its_dependents_stay_locked():
+def test_a_node_without_progress_is_stopped_and_the_next_node_still_comes():
+    """FLOW-1 (DI-75): a weak period never ends the session; the next one comes."""
     wrong = {i: None for i in ("TP-CC-01", "TP-CP-01", "TP-PR-01", "TP-PR-02", "TP-TR-01")}
     steps = decisions(run(Student(wrong=wrong)))
-    assert steps[-2][:4] == (A.STOP_NODE, "KC-DEC-FRAC", None, "N-BUDGET") and "NO_ITEMS_LEFT" in steps[-2][4]
+    stop = next(i for i, s in enumerate(steps) if s[0] == A.STOP_NODE)
+    assert steps[stop][:4] == (A.STOP_NODE, "KC-DEC-FRAC", None, "N-BUDGET")
+    assert "NO_ITEMS_LEFT" in steps[stop][4]
+    after = steps[stop + 1]
+    assert after[0] == A.ENTER_NODE and after[1] != "KC-DEC-FRAC" and "UNLOCKED_AFTER_STOP" in after[4]
+    passed = [s[1] for s in steps if s[0] == A.PASS_NODE]
+    assert passed and "KC-DEC-FRAC" not in passed
     assert steps[-1][0] == A.FINISH
-    assert all(s[1] in (None, "KC-DEC-FRAC") for s in steps)
 
 
 def test_after_a_pass_an_earlier_node_is_reviewed():
@@ -224,7 +230,7 @@ def test_decisions_are_deterministic_and_carry_the_policy_version():
     first, again = run(Student()), run(Student())
     assert decisions(first) == decisions(again)
     versions = {e.payload["policy_version"] for e in first if e.event_type == EventType.NODE_DECISION}
-    assert versions == {"node-policy/0.3.1"}
+    assert versions == {"node-policy/0.4.0"}
 
 
 def test_item_decisions_carry_the_support_of_the_mastery_band():

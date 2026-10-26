@@ -15,7 +15,7 @@ from cavat.core.events import EventType, ItemResolved, NodeDecisionMade, RetellJ
 from cavat.core.pedagogy import ItemResolution, TeachAction
 from cavat.modules.assessment.projector import DEFAULT_POLICY
 
-NODE_POLICY_VERSION = "node-policy/0.3.1"  # 0.3.1: DI-49 with a misconception followed, DI-56 retry
+NODE_POLICY_VERSION = "node-policy/0.4.0"  # 0.4.0: DI-75 a stopped period still lets the next one come
 
 Phase = Literal["NEW", "CHECK", "CHECK_FAILED", "PRACTICE"]
 
