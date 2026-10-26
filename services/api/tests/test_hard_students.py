@@ -25,10 +25,11 @@ import pytest
 from cavat.core.events import EventType
 from cavat.core.pedagogy import Move, Outcome
 from cavat.modules.assessment.math_checker import classify_intent
-from cavat.modules.teaching.loop import CONFIRM_REF, Awaiting, MessageKind, TeachingLoop, TeachTurn
+from cavat.modules.teaching.loop import CONFIRM_REF, HOLD_REF, Awaiting, MessageKind, TeachingLoop, TeachTurn
 from test_teaching_loop import CHAPTER, EXPLAINING, T0, correct_text
 
 FIRST_NODE = "KC-DEC-FRAC"
+THEORY, RETELL = (Awaiting.THEORY_REPLY,), (Awaiting.RETELL,)
 LIMIT = 400  # student messages: far more than any role needs to pass the first node
 
 
@@ -126,6 +127,10 @@ ROLES = [
     Role("Kiên, gõ nhầm phím", ["ki", "kt", "ể", "êr"]),
     Role("Tuấn, bấm bừa và cười", ["kkk", "tt", "kk", "hihi"], times=2),
     Role("Hà, chỉ nói không", ["không", "ko", "chưa", "k"], times=2),
+    # REFORM-6 (3.3): a child who has not understood the theory question or the retell is taught again once
+    # (the question stays), then told the idea and the lesson goes on. Never a thank-you nor a praise.
+    Role("Lan, hả và là sao má ở phần lý thuyết", ["hả", "???", "là sao má", "ko"], times=2, where=THEORY),
+    Role("Mai, hỏi lại ở phần nói lại", ["???", "là sao má", "mẫu như nào"], times=2, where=RETELL),
 ]
 SLIP_ROLES = [r for r in ROLES if r.name.split(",")[0] in ("Kiên", "Tuấn", "Hà")]
 
@@ -268,3 +273,27 @@ def test_slips_are_never_praised_graded_nor_asked_about_twice_in_a_row(role: Rol
         for e in t.events
         if e.event_type == EventType.ANSWER_SUBMITTED and e.payload["raw_text"] in role.says
     ]
+
+
+HOLD_ROLES = [r for r in ROLES if r.name.split(",")[0] in ("Lan", "Mai")]
+
+
+@pytest.mark.parametrize("role", HOLD_ROLES, ids=lambda r: r.name)
+def test_a_child_who_has_not_understood_is_taught_again_once_then_told_the_idea(role: Role) -> None:
+    """REFORM-6, acceptance 2: the first "hả", "???", "là sao má" keeps the question and teaches it again, the
+    second says the approved idea and the lesson goes on; none of it is praised."""
+    _, log = talk(replace(role, asked=Counter()))
+    waits: dict[str, list[tuple[str, TeachTurn]]] = {}
+    for (_, before), (said, turn) in zip(log, log[1:], strict=False):
+        if said in role.says and before.awaiting in role.where:
+            waits.setdefault(f"{before.node_id}:{before.prompt}", []).append((said, turn))
+    assert waits, role.name
+    for key, answers in waits.items():
+        first, closing = answers[0][1], answers[1][1] if len(answers) > 1 else None
+        assert first.awaiting in role.where and first.prompt == key.split(":", 1)[1], (role.name, key)
+        assert any(m.ref == HOLD_REF for m in first.messages), (role.name, key, text(first))
+        assert not any(e.event_type == EventType.NODE_DECISION for e in first.events), (role.name, key)
+        assert "Đúng rồi" not in text(first) and "cảm ơn" not in text(first), (role.name, key)
+        if closing is not None:
+            assert any(e.event_type == EventType.NODE_DECISION for e in closing.events), (role.name, key)
+            assert "Đúng rồi" not in text(closing), (role.name, key)

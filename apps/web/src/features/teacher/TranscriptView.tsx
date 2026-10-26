@@ -215,6 +215,9 @@ const READ_LABEL: Record<string, string> = {
   OFF_TOPIC: "chuyện ngoài bài",
   AFFECT: "con đang chán hoặc buồn",
   OTHER: "chưa rõ",
+  // REFORM-5: a few letters nothing reads, asked about once (teaching/loop.py _ask_confirm)
+  AMBIGUOUS_TYPO: "con gõ nhầm phím, gia sư đoán ý",
+  GIBBERISH: "con gõ chữ không đọc được",
 };
 
 const PARKED_LABEL: Record<NonNullable<TeachAnnotation["parked"]>, string> = {
@@ -294,8 +297,15 @@ function StudentChips({ annotation }: { annotation: StudentAnnotation }) {
         </Chip>
       )}
       {retell && (
-        <Chip tone={retell.score >= 0.5 ? "emerald" : "rose"} title="Số ý bắt buộc con nói được">
-          {`${retell.purpose === "RECALL" ? "Nhớ lại bài cũ" : "Nói lại"}: ${retell.ideas_found}/${retell.ideas_total} ý`}
+        <Chip
+          tone={retell.score >= 0.5 ? "emerald" : "rose"}
+          title={
+            retell.graded_by === "MODEL"
+              ? `Chấm theo nghĩa, model dẫn lời con: ${(retell.quotes ?? []).join(" · ")}`
+              : "Số ý bắt buộc con nói được"
+          }
+        >
+          {`${retell.purpose === "RECALL" ? "Nhớ lại bài cũ" : "Nói lại"}: ${retell.ideas_found}/${retell.ideas_total} ý${retell.graded_by === "MODEL" ? " (chấm theo nghĩa)" : ""}`}
         </Chip>
       )}
       {misconception && (

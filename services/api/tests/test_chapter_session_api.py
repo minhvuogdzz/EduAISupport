@@ -181,6 +181,8 @@ def test_the_teacher_transcript_shows_the_rules_and_the_retell_verdict(client):
         "ideas_found": 0,
         "ideas_total": 3,
         "purpose": "RETELL",
+        "graded_by": "RULE",
+        "quotes": [],
     }
     assert transcript["session"]["progress"] == {"items_done": 0, "items_total": 7}
 

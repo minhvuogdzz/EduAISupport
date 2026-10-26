@@ -103,7 +103,7 @@ HOLD_REF = "RETEACH"
 # What says "I have not understood" ("ko", "không biết", "hả", "là sao má", "???"). Feeling, a demand for the
 # answer and talk outside the lesson keep their own paths.
 _NOT_UNDERSTOOD = frozenset({Outcome.HELP_REQUEST, Outcome.CLARIFY_REQUEST, Outcome.NO_RESPONSE})
-MIN_MEANING_WORDS = 3  # DI-81: fewer words are not an answer worth reading for meaning
+MIN_MEANING_WORDS = 3  # DI-83: fewer words are not an answer worth reading for meaning
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
@@ -189,7 +189,7 @@ PHRASES: dict[str, str] = {
     "retell_partial": "{S} đã nói được một phần ý.",
     "retell_none": "{T} chưa nghe thấy ý chính trong câu trả lời của {s}.",
     "retell_close": "{T} nhắc lại ý đúng nhé: {idea}",
-    # REFORM-6 (DI-81, drafted for the owner's review): the teaching again of a child who has not understood
+    # REFORM-6 (DI-82, drafted for the owner's review): the teaching again of a child who has not understood
     # (the lead is the model's words when it can speak, else the approved material).
     "hold_lead": "Không sao đâu, {t} nói lại theo cách khác nhé.",
     "hold_theory_ask": "{S} thử trả lời lại giúp {t} nhé: {ask}",

@@ -246,6 +246,8 @@ class RetellView(BaseModel):
     ideas_found: int
     ideas_total: int
     purpose: Literal["RETELL", "RECALL"] = "RETELL"  # RECALL: a node learnt before, asked again (DI-52)
+    graded_by: Literal["RULE", "MODEL"] = "RULE"  # REFORM-6: keywords, or the model with a quote of the child
+    quotes: list[str] = Field(default_factory=list)  # the child's words the model's ideas rest on
 
 
 class ConductedView(BaseModel):

@@ -81,8 +81,8 @@ MAX_BRIDGE_WORDS = 25  # DI-40
 CLAIM_SUPPORT = 0.6  # DI-40: share of the message's distinct content words found in the evidence
 ANSWER_PASSAGES, ANSWER_CHARS = 3, 1200  # what Qwen reads for an answer (the prompt stays < 3 000 token)
 EXTRACT_COVERAGE = 0.5  # DI-40: idf-weighted share of the question an extracted sentence must cover
-MAX_RETEACH_WORDS = 40  # DI-81: two short sentences
-# DI-81: the meaning check reads only while the session has used less than this share of its model calls
+MAX_RETEACH_WORDS = 40  # DI-82: two short sentences
+# DI-83: the meaning check reads only while the session has used less than this share of its model calls
 # (as the intent agent's share, DI-78): the rest is the tutor's own voice.
 MEANING_CALL_SHARE = (3, 4)
 MAX_ATTEMPTS = 2  # the first call and one retry carrying the reasons

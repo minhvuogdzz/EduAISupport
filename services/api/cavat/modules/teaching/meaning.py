@@ -1,4 +1,4 @@
-"""REFORM-6 (plan 4.1, DI-81): what a child said, read for its meaning against the teacher's rule.
+"""REFORM-6 (plan 4.1, DI-83): what a child said, read for its meaning against the teacher's rule.
 
 The keywords of the rubric (``assessment/retell.py``, ``accept`` of a theory variant) are the first tier and
 cost nothing. When a child answers with content that they do not match, a light model is asked which ideas the
@@ -19,9 +19,9 @@ from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest
 from cavat.modules.tutor.prompt_builder import clean_text
 
 MEANING_VERSION = "retell-meaning/0.1.0"
-MIN_QUOTE_WORDS = 2  # DI-81: a quote of one word shows nothing ("mẫu")
+MIN_QUOTE_WORDS = 2  # DI-83: a quote of one word shows nothing ("mẫu")
 MIN_QUOTE_LETTERS = 5
-MEANING_CONFIDENCE = 0.8  # DI-81: kept at or above the projector's 0.6, a quote is checked, not guessed
+MEANING_CONFIDENCE = 0.8  # DI-83: kept at or above the projector's 0.6, a quote is checked, not guessed
 MAX_TEXT = 300
 MAX_PHRASINGS = 3  # of a key idea shown to the model
 MAX_OUTPUT_TOKENS = 400  # gpt-oss spends its (low) reasoning inside this cap, as the intent agent's

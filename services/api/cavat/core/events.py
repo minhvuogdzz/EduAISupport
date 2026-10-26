@@ -248,7 +248,7 @@ class RetellJudged(_Payload):
     purpose: Literal["RETELL", "RECALL"] = "RETELL"
     label_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     modality: Literal["TEXT", "VOICE"] = "TEXT"
-    # REFORM-6 (4.1, DI-81): the ideas the model found beyond the keywords, each with the words of the child
+    # REFORM-6 (4.1, DI-83): the ideas the model found beyond the keywords, each with the words of the child
     # it
     # rests on (checked to be in ``text``). ``ideas_found`` already holds them: a replay reads this event and
     # never asks the model again. Empty for a judgement by keywords alone (label_source RUBRIC_RULE).

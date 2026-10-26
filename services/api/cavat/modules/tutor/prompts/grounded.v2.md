@@ -1,6 +1,6 @@
 <!--
 Grounded speech v2 (v1: RAG-2, plan v1 mục 5.5–5.6; ADR-018 quyết định 5). Bản nháp 2026-10-07 chờ chủ dự án duyệt.
-v2 (REFORM-6, DI-81, nháp 2026-10-26 chờ duyệt): thêm nhiệm vụ GIẢNG_LẠI cho học sinh chưa hiểu.
+v2 (REFORM-6, DI-82 và DI-83, nháp 2026-10-26 chờ duyệt): thêm nhiệm vụ GIẢNG_LẠI cho học sinh chưa hiểu.
 System prompt cho ba việc gia sư nói bằng lời của mình: trả lời câu học sinh tự hỏi (TRẢ_LỜI) và câu nối
 điều học sinh vừa nói với lời giải thích đã duyệt (CÂU_NỐI). Mọi câu trả về đều được kiểm chứng tất định
 trước khi đến học sinh (teaching/grounded.py): số và từ có nghĩa phải có trong đoạn nguồn hoặc lời học sinh.

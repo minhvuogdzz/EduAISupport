@@ -14,6 +14,11 @@ REFORM-5 (3.1) adds three roles that type what the owner's students type when st
 bare "không"). The report counts the replies that praise such a message ("Đúng rồi!"): it must be 0, and how
 many of the key slips were read by the intent agent (a model call) and how many by rule (none).
 `python scripts/eval_hard_students.py Kiên Tuấn` runs only the roles whose name contains one of the words.
+
+REFORM-6 (3.3) adds two roles for the theory question and the retell ("hả", "???", "là sao má"). They run
+on the teaching loop, not on one item, and need no key: `python scripts/eval_hard_students.py hold` prints
+what the tutor does with each (templates only, no token) and fails if a first "hả" advances the step or
+anything is praised.
 """
 
 from __future__ import annotations
@@ -21,7 +26,7 @@ from __future__ import annotations
 import sys
 import time
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from statistics import fmean
 
@@ -32,7 +37,8 @@ from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, ModelClass
 from cavat.modules.ai_gateway.router import build_router
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.content.chapter_package import load_chapter
-from cavat.modules.tutor.item_loop import ItemTutor
+from cavat.modules.teaching.loop import Awaiting, TeachingLoop
+from cavat.modules.tutor.item_loop import ItemTutor, Phase
 from cavat.modules.tutor.llm_renderer import LLMRenderer
 from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.tutor.renderer import TemplateRenderer
@@ -69,6 +75,7 @@ SCENARIOS: list[tuple[str, str, list[str]]] = [
 ]
 SLIP_ROLES = ("Kiên", "Tuấn", "Linh")
 PRAISE = ("Đúng rồi", "Chính xác", "cẩn thận")
+START = datetime(2026, 10, 26, 8, 0, tzinfo=UTC)
 
 JUDGE_SYSTEM = (
     "Bạn là giáo viên Toán tiểu học có kinh nghiệm, chấm một lượt nói của gia sư AI với học sinh lớp 5. "
@@ -257,7 +264,47 @@ def report(turns: list[Turn]) -> str:
     return "\n".join(lines) + "\n"
 
 
+HOLD_SCENARIOS = [
+    ("Lan, hả và là sao má ở phần lý thuyết", Awaiting.THEORY_REPLY, ["hả", "???", "là sao má"]),
+    ("Mai, hỏi lại ở phần nói lại", Awaiting.RETELL, ["???", "là sao má", "mẫu như nào"]),
+]
+
+
+def run_hold() -> None:
+    """REFORM-6: the first message at a wait keeps the question and teaches again; the second says it."""
+    chapter = load_chapter(CHAPTER)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
+    from test_teaching_loop import correct_text  # the right answer of any item, as the tests give it
+
+    for role, wait, messages in HOLD_SCENARIOS:
+        loop = TeachingLoop(chapter, "hold")
+        turn, n = loop.start(START), 0
+        while turn.awaiting != wait:  # a child who knows the lesson up to the wait
+            n += 1
+            if turn.awaiting == Awaiting.THEORY_REPLY:
+                variant = next(t for t in chapter.node(turn.node_id).theory if t.ask == turn.prompt)
+                said = variant.accept[0] if variant.accept else "Con nghĩ là được ạ."
+            elif turn.awaiting == Awaiting.RETELL:
+                said = ". ".join(i[0] for i in chapter.node(turn.node_id).explain.key_ideas)
+            else:
+                item = chapter.item(turn.item_id)
+                explaining = turn.item_phase in (Phase.VERIFYING, Phase.TEACH_BACK)
+                said = item.explanation if explaining else correct_text(turn.item_id)
+            turn = loop.on_student(said, START + timedelta(seconds=n), 5)
+        for k, said in enumerate(messages[:2]):
+            before = sum(e.event_type == EventType.NODE_DECISION for e in loop.events)
+            turn = loop.on_student(said, START + timedelta(seconds=n + k + 1), 5)
+            advanced = sum(e.event_type == EventType.NODE_DECISION for e in loop.events) > before
+            reply = " ".join(m.text for m in turn.messages)
+            print(f"{role}: {said!r} -> {'tiếp' if advanced else 'giữ'}: {reply}")
+            assert advanced == (k == 1), f"{role}: lượt {k + 1} {'đi tiếp' if advanced else 'không đi tiếp'}"
+            assert not any(p in reply for p in PRAISE), f"{role}: khen khi con chưa hiểu"
+
+
 def main() -> None:
+    if sys.argv[1:] == ["hold"]:
+        run_hold()
+        return
     key = get_settings().groq_api_key
     if key is None or not key.get_secret_value():
         sys.exit("GROQ_API_KEY chưa có trong services/api/.env: bản chạy thật cần Qwen.")
