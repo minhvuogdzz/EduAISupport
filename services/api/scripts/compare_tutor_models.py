@@ -46,7 +46,6 @@ from cavat.modules.ai_gateway.groq import GroqClient
 from cavat.modules.ai_gateway.router import AIRouter, ChatDispatcher
 from cavat.modules.session import chapter_service, model_usage
 from cavat.modules.session.service import DEMO_SCHOOL_ID
-from cavat.modules.teaching.grounded import teach_codes, teach_pack
 from cavat.modules.tutor import brain
 from cavat.modules.tutor.brain import BrainPack, estimate_prompt_tokens  # noqa: F401
 from cavat.modules.tutor.contracts import RenderContext
@@ -139,7 +138,7 @@ PRIORITY = {
 }
 
 
-def item_cases(docs: list[dict], limit: int, pin: str = "") -> list[Case]:
+def item_cases(docs: list[dict], limit: int, pin: tuple[str, ...] = ()) -> list[Case]:
     found: list[tuple[int, Case]] = []
     for doc in docs:
         chapter = chapter_service.chapter_for(doc.get("lesson_id"), doc.get("lesson_version"))
@@ -175,7 +174,7 @@ def item_cases(docs: list[dict], limit: int, pin: str = "") -> list[Case]:
                 pack = renderer._pack(ctx, fallback)
                 said = ctx.student_text or ""
                 score = PRIORITY[ctx.decision.move] * 10 + (0 if said else 5)
-                if pin and doc["_id"].startswith(pin):
+                if pin and doc["_id"].startswith(tuple(pin)):
                     score = -100  # the session of the owner's three faults comes first
                 found.append(
                     (
@@ -196,7 +195,7 @@ def item_cases(docs: list[dict], limit: int, pin: str = "") -> list[Case]:
     out: list[Case] = []
     per_move: Counter[str] = Counter()
     for _, case in found:
-        if per_move[case.move] >= max(2, limit // 5) and not case.label.startswith(pin or "\0"):
+        if per_move[case.move] >= max(2, limit // 5) and not case.label.startswith(tuple(pin) or ("\0",)):
             continue
         per_move[case.move] += 1
         out.append(case)
@@ -269,14 +268,17 @@ def coverage(docs: list[dict]) -> str:
     )
 
 
-def teach_cases(docs: list[dict], limit: int) -> list[Case]:
+def teach_cases(docs: list[dict], limit: int, pin: tuple[str, ...] = ()) -> list[Case]:
+    """Turns of the teaching loop: what the child says in a wait (not understood, off topic, another
+    question), and the tutor's own theory and invitation to say it back, each with the net of ``grounded``."""
+    from cavat.core.pedagogy import Outcome
+    from cavat.modules.assessment.math_checker import classify_intent
+    from cavat.modules.assessment.student_intent import wants_other_question
+    from cavat.modules.teaching import grounded as g
+
+    docs = sorted(docs, key=lambda d: not d["_id"].startswith(pin or ("\0",)))
     out: list[Case] = []
-    docs = sorted(
-        docs,
-        key=lambda d: (
-            not any("là sao" in ((e.get("payload") or {}).get("text", "")) for e in d.get("events", []))
-        ),
-    )
+    seen: set[str] = set()
     for doc in docs:
         chapter = chapter_service.chapter_for(doc.get("lesson_id"), doc.get("lesson_version"))
         if chapter is None:
@@ -284,47 +286,82 @@ def teach_cases(docs: list[dict], limit: int) -> list[Case]:
         events = doc.get("events", [])
         for i, e in enumerate(events):
             p = e.get("payload") or {}
-            if (
-                e["event_type"] != "STUDENT_MESSAGE"
-                or p.get("kind") != "MESSAGE"
-                or ":" not in p.get("item_id", "")
-            ):
+            node_ref = p.get("item_id", "")
+            if ":" not in node_ref:
                 continue
-            text = p.get("text", "")
-            if not THEORY_CUES.search(text):
-                continue
-            node_id, ref = p["item_id"].split(":", 1)
+            node_id, ref = node_ref.split(":", 1)
             try:
                 node = chapter.node(node_id)
-                variant = next(t for t in node.theory if t.id == ref)
             except Exception:
                 continue
-            asked = next(
+            recent = [
                 (
-                    (x.get("payload") or {}).get("text", "")
-                    for x in reversed(events[:i])
-                    if x["event_type"] == "TEACH_MESSAGE_SENT"
-                ),
-                variant.ask,
-            )
-            pack = teach_pack(
-                text, asked=variant.ask, ground=variant.reply, judged="chưa rõ", rule=node.method.rule
-            )
-            out.append(
-                Case(
-                    label=f"{doc['_id'][:8]}/{node_id}:{ref}/THEORY",
-                    kind="teach",
-                    ref=f"{node_id}:{ref}",
-                    move="THEORY_REPLY",
-                    said=text,
-                    pack=pack,
-                    check=lambda t, pk=pack: teach_codes(t, pk, "chưa rõ"),
-                    context=asked[:0],
+                    "tutor" if x["event_type"] == "TEACH_MESSAGE_SENT" else "student",
+                    (x.get("payload") or {}).get("text", ""),
                 )
-            )
-            if len(out) >= limit:
-                return out
-    return out
+                for x in events[max(0, i - 6) : i]
+                if x["event_type"] in ("TEACH_MESSAGE_SENT", "STUDENT_MESSAGE")
+            ][-4:]
+            who = {"tutor_self": "cô", "student_address": "con", "name": doc.get("student_display_name")}
+            label = f"{doc['_id'][:8]}/{node_ref}"
+            if e["event_type"] == "STUDENT_MESSAGE" and p.get("kind") in ("MESSAGE", "EXPLANATION"):
+                text = p.get("text", "")
+                variant = next((t for t in node.theory if t.id == ref), None)
+                asked = variant.ask if variant else node.explain.prompt
+                if wants_other_question(text):
+                    kind, (pack, check) = (
+                        "another",
+                        g.another_request(text, asked=asked, node_name=node.name, recent=recent, **who),
+                    )
+                elif classify_intent(text) == Outcome.OFF_TOPIC:
+                    kind, (pack, check) = "chat", g.chat_request(text, asked=asked, recent=recent, **who)
+                elif THEORY_CUES.search(text) or ref == "RETELL":
+                    ground = variant.reply if variant else node.method.rule
+                    pack = g.teach_pack(
+                        text,
+                        asked=asked,
+                        ground=ground,
+                        judged="chưa rõ",
+                        recent=recent,
+                        rule=node.method.rule,
+                        name=who["name"],
+                    )
+                    check = lambda t, pk=pack: g.teach_codes(t, pk, "chưa rõ")  # noqa: E731
+                    kind = "teach"
+                else:
+                    continue
+                key = f"{kind}/{text[:20]}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append(Case(f"{label}/{kind}", "teach", node_ref, kind.upper(), text, pack, check))
+            elif (
+                e["event_type"] == "TEACH_MESSAGE_SENT"
+                and p.get("kind") in ("THEORY", "RETELL_PROMPT")
+                and doc["_id"].startswith(pin or ("\0",))
+            ):
+                kind = "lecture" if p["kind"] == "THEORY" else "invite"
+                if f"{kind}/{node_id}" in seen:
+                    continue
+                seen.add(f"{kind}/{node_id}")
+                if kind == "lecture":
+                    variant = next((t for t in node.theory if t.id == p.get("ref")), None)
+                    if variant is None:
+                        continue
+                    pack, check = g.lecture_request(
+                        variant.text,
+                        ask=variant.ask,
+                        node_name=node.name,
+                        rule=node.method.rule,
+                        recent=recent,
+                        **who,
+                    )
+                else:
+                    pack, check = g.invite_request(node, prompt=node.explain.prompt, recent=recent, **who)
+                out.append(Case(f"{label}/{kind}", "teach", node_ref, kind.upper(), "", pack, check))
+        if len(out) >= limit:
+            break
+    return out[:limit]
 
 
 def router_for(model: str, settings) -> AIRouter:
@@ -433,10 +470,15 @@ def render_report(models: list[str], cases: list[Case], results: dict[str, list[
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--cases", type=int, default=16)
-    parser.add_argument("--teach", type=int, default=3, help="how many of the cases are theory turns")
+    parser.add_argument("--cases", type=int, default=24)
+    parser.add_argument("--teach", type=int, default=9, help="how many of the cases are teaching-loop turns")
     parser.add_argument("--days", type=float, default=30)
-    parser.add_argument("--pin", default="01a17468", help="session id prefix whose turns are always taken")
+    parser.add_argument(
+        "--pin",
+        nargs="*",
+        default=["01a17468", "01a177d0"],
+        help="session id prefixes whose turns come first",
+    )
     parser.add_argument("--models", nargs="+", default=[])
     parser.add_argument("--dry", action="store_true", help="only list the cases, call no model")
     parser.add_argument("--out", default=str(REPORT / "BRAIN-1-models.md"))
@@ -444,7 +486,9 @@ def main() -> None:
     settings = get_settings()
     print(f"Database: {settings.mongodb_db} (chỉ đọc)")
     docs = load_docs(args.days)
-    cases = item_cases(docs, args.cases - args.teach, args.pin) + teach_cases(docs, args.teach)
+    cases = item_cases(docs, args.cases - args.teach, tuple(args.pin)) + teach_cases(
+        docs, args.teach, tuple(args.pin)
+    )
     print(f"{len(docs)} buổi, {len(cases)} lượt:", Counter(c.move for c in cases))
     if not cases:
         sys.exit("Không có lượt nào để so sánh.")

@@ -380,6 +380,134 @@ def teach_codes(
     return tuple(dict.fromkeys(found))
 
 
+def loop_pack(
+    task: str,
+    question: str,
+    *,
+    recent: Sequence[tuple[str, str]] = (),
+    tutor_self: str = "cô",
+    student_address: str = "con",
+    name: str | None = None,
+    **fields: Any,
+) -> BrainPack:
+    return BrainPack(
+        task=task,
+        question=question,
+        recent=tuple(Turn(role, text) for role, text in recent),  # type: ignore[arg-type]
+        tutor_self=tutor_self,
+        student_address=student_address,
+        name=name,
+        **fields,
+    )
+
+
+def lecture_request(
+    ground: str,
+    *,
+    ask: str,
+    node_name: str,
+    rule: str = "",
+    recent: Sequence[tuple[str, str]] = (),
+    **who: Any,
+) -> tuple[BrainPack, Callable[[str], tuple[str, ...]]]:
+    """The theory of a node: the pack and the net (BRAIN-1)."""
+    pack = loop_pack(
+        LECTURE_TASK,
+        ask,
+        lesson=node_name,
+        recent=recent,
+        grounds=tuple(g for g in (ground, rule) if g),
+        max_words=MAX_LECTURE_WORDS,
+        **who,
+    )
+    address = who.get("student_address", "con")
+
+    def codes(text: str) -> tuple[str, ...]:
+        found = list(
+            teach_codes(text, pack, "chưa rõ", address, MAX_LECTURE_WORDS, copy_run=LECTURE_COPY_RUN)
+        )
+        if terms_in(ground) and len(terms_missing(terms_in(ground), [text])) == len(terms_in(ground)):
+            found.append("KEY_IDEA_MISSING")  # none of the lesson's terms: it is about something else
+        return tuple(dict.fromkeys(found))
+
+    return pack, codes
+
+
+def _on_topic(text: str, wanted: set[str]) -> bool:
+    return not wanted or bool(wanted & {fold(w) for w in content_words(text)})
+
+
+def invite_request(
+    node: Node, *, prompt: str, recent: Sequence[tuple[str, str]] = (), **who: Any
+) -> tuple[BrainPack, Callable[[str], tuple[str, ...]]]:
+    """The invitation to say the idea back: the pack and the net (BRAIN-1)."""
+    address = who.get("student_address", "con")
+    pack = loop_pack(
+        INVITE_TASK,
+        prompt,
+        lesson=node.name,
+        recent=recent,
+        grounds=tuple(g for g in (brain.child_voice(node.description, address), node.method.rule) if g),
+        max_words=MAX_INVITE_WORDS,
+        **who,
+    )
+    wanted = {fold(w) for w in content_words(f"{node.name} {prompt}")}
+
+    def codes(text: str) -> tuple[str, ...]:
+        found = list(teach_codes(text, pack, "chưa rõ", address, MAX_INVITE_WORDS, question="one"))
+        if not _on_topic(text, wanted):
+            found.append("OFF_TARGET")  # an invitation about something else than this lesson
+        return tuple(dict.fromkeys(found))
+
+    return pack, codes
+
+
+def chat_request(
+    student_text: str, *, asked: str, recent: Sequence[tuple[str, str]] = (), **who: Any
+) -> tuple[BrainPack, Callable[[str], tuple[str, ...]]]:
+    """Talk outside the lesson: the pack and the net (BRAIN-1)."""
+    pack = loop_pack(
+        CHAT_TASK,
+        asked,
+        student_text=student_text,
+        verdict="Con nói chuyện ngoài bài.",
+        recent=recent,
+        max_words=MAX_CHAT_WORDS,
+        **who,
+    )
+    address = who.get("student_address", "con")
+    return pack, lambda t: teach_codes(t, pack, "chưa rõ", address, MAX_CHAT_WORDS)
+
+
+def another_request(
+    student_text: str, *, asked: str, node_name: str, recent: Sequence[tuple[str, str]] = (), **who: Any
+) -> tuple[BrainPack, Callable[[str], tuple[str, ...]]]:
+    """A child who wants the question asked another way: the pack and the net (BRAIN-1)."""
+    pack = loop_pack(
+        ANOTHER_WAY_TASK,
+        asked,
+        student_text=student_text,
+        verdict="Con muốn cô hỏi cách khác.",
+        lesson=node_name,
+        recent=[*recent, ("tutor", asked)],
+        grounds=(asked,),
+        max_words=MAX_INVITE_WORDS,
+        **who,
+    )
+    wanted = {fold(w) for w in content_words(f"{node_name} {asked}")}
+    address = who.get("student_address", "con")
+
+    def codes(text: str) -> tuple[str, ...]:
+        found = list(
+            teach_codes(text, pack, "chưa rõ", address, MAX_INVITE_WORDS, question="one", copy_run=6)
+        )
+        if not _on_topic(text, wanted):
+            found.append("OFF_TARGET")
+        return tuple(dict.fromkeys(found))
+
+    return pack, codes
+
+
 class GroundedSpeaker:
     """One per command of a session: the index of the moment, the gateway, and the session's call count."""
 
@@ -633,17 +761,8 @@ class GroundedSpeaker:
             return Spoken("", "TEMPLATE", (), out.rejected, out.flagged, ())
         return Spoken(out.text, "LLM", (), out.rejected, out.flagged, ())
 
-    def _pack(self, task: str, question: str, **fields: Any) -> BrainPack:
-        recent = fields.pop("recent", ())
-        return BrainPack(
-            task=task,
-            question=question,
-            recent=tuple(Turn(role, text) for role, text in recent),
-            tutor_self=self.t,
-            student_address=self.s,
-            name=self.name,
-            **fields,
-        )
+    def _who(self) -> dict[str, Any]:
+        return {"tutor_self": self.t, "student_address": self.s, "name": self.name}
 
     def lecture(
         self, ground: str, *, ask: str, node_name: str, rule: str = "", recent: Sequence[tuple[str, str]] = ()
@@ -651,84 +770,31 @@ class GroundedSpeaker:
         """The theory of a node in the tutor's own words (BRAIN-1): the approved text is the ground, the
         approved question follows it word for word (the loop adds it: what the child answers is judged
         against it)."""
-        pack = self._pack(
-            LECTURE_TASK,
-            ask,
-            lesson=node_name,
-            recent=recent,
-            grounds=tuple(g for g in (ground, rule) if g),
-            max_words=MAX_LECTURE_WORDS,
+        pack, codes = lecture_request(
+            ground, ask=ask, node_name=node_name, rule=rule, recent=recent, **self._who()
         )
-
-        def codes(text: str) -> tuple[str, ...]:
-            found = list(
-                teach_codes(text, pack, "chưa rõ", self.s, MAX_LECTURE_WORDS, copy_run=LECTURE_COPY_RUN)
-            )
-            if terms_in(ground) and len(terms_missing(terms_in(ground), [text])) == len(terms_in(ground)):
-                found.append("KEY_IDEA_MISSING")  # none of the lesson's terms: it is about something else
-            return tuple(dict.fromkeys(found))
-
         return self._say(pack, codes)
 
     def invite_retell(self, node: Node, *, prompt: str, recent: Sequence[tuple[str, str]] = ()) -> Spoken:
         """The invitation to say the idea back, written for what the child has just done (BRAIN-1); the
         teacher's own sentence ``prompt`` is the idea of the question and the fallback."""
-        pack = self._pack(
-            INVITE_TASK,
-            prompt,
-            lesson=node.name,
-            recent=recent,
-            grounds=tuple(g for g in (brain.child_voice(node.description, self.s), node.method.rule) if g),
-            max_words=MAX_INVITE_WORDS,
-        )
-        wanted = {fold(w) for w in content_words(f"{node.name} {prompt}")}
-
-        def codes(text: str) -> tuple[str, ...]:
-            found = list(teach_codes(text, pack, "chưa rõ", self.s, MAX_INVITE_WORDS, question="one"))
-            if wanted and not wanted & {fold(w) for w in content_words(text)}:
-                found.append("OFF_TARGET")  # an invitation about something else than this lesson
-            return tuple(dict.fromkeys(found))
-
+        pack, codes = invite_request(node, prompt=prompt, recent=recent, **self._who())
         return self._say(pack, codes)
 
     def chat(self, student_text: str, *, asked: str, recent: Sequence[tuple[str, str]] = ()) -> Spoken:
         """A child who talks about something else ("mấy giờ rồi"): a short human answer and the way back to
         the step. No question and no rule read out: the loop asks the waiting question after these words."""
-        pack = self._pack(
-            CHAT_TASK,
-            asked,
-            student_text=student_text,
-            verdict="Con nói chuyện ngoài bài.",
-            recent=recent,
-            max_words=MAX_CHAT_WORDS,
-        )
-        return self._say(pack, lambda t: teach_codes(t, pack, "chưa rõ", self.s, MAX_CHAT_WORDS))
+        pack, codes = chat_request(student_text, asked=asked, recent=recent, **self._who())
+        return self._say(pack, codes)
 
     def ask_another_way(
         self, student_text: str, *, asked: str, node_name: str, recent: Sequence[tuple[str, str]] = ()
     ) -> Spoken:
         """A child who wants another question ("hỏi cái khác mà"): yes at once, then the same idea asked in
         another way or with another example, ending with one question."""
-        pack = self._pack(
-            ANOTHER_WAY_TASK,
-            asked,
-            student_text=student_text,
-            verdict="Con muốn cô hỏi cách khác.",
-            lesson=node_name,
-            recent=[*recent, ("tutor", asked)],
-            grounds=(asked,),
-            max_words=MAX_INVITE_WORDS,
+        pack, codes = another_request(
+            student_text, asked=asked, node_name=node_name, recent=recent, **self._who()
         )
-        wanted = {fold(w) for w in content_words(f"{node_name} {asked}")}
-
-        def codes(text: str) -> tuple[str, ...]:
-            found = list(
-                teach_codes(text, pack, "chưa rõ", self.s, MAX_INVITE_WORDS, question="one", copy_run=6)
-            )
-            if wanted and not wanted & {fold(w) for w in content_words(text)}:
-                found.append("OFF_TARGET")
-            return tuple(dict.fromkeys(found))
-
         return self._say(pack, codes)
 
     # ------------------------------------------------------------------ meaning and teaching again

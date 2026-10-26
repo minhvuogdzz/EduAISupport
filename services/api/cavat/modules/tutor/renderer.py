@@ -255,7 +255,7 @@ def counter_example(
 
 
 _FIGURE = re.compile(r"\[Hình[^\]]*\]\s*", re.IGNORECASE)
-LONG_STEM_WORDS = 40
+LONG_STEM_WORDS = 60
 
 
 def visible_stem(stem: str) -> str:
