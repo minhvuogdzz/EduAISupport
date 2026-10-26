@@ -158,7 +158,7 @@ doctor: ## Before a trial: check keys, database, models, voice, port, disk, buil
 	cd services/api && .venv/bin/python -m cavat.doctor --port $(PORT) $(if $(LIVE),--live,)
 
 tunnel: ## A public HTTPS address for the app at PORT (Cloudflare quick tunnel) while this runs; start make run first
-	cd services/api && .venv/bin/python scripts/tunnel.py --port $(PORT)
+	cd services/api && .venv/bin/python -m cavat.tunnel --port $(PORT)
 
 backup: ## Export every collection of the database of services/api/.env to var/storage/backups/<time>/*.jsonl (read-only)
 	cd services/api && .venv/bin/python -m cavat.backup
