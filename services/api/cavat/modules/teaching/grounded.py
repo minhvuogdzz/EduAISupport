@@ -291,6 +291,59 @@ def retrieval_payload(found: Retrieval, purpose: str, node_id: str | None) -> di
     }
 
 
+def teach_pack(
+    student_text: str,
+    *,
+    asked: str,
+    ground: str,
+    judged: str,
+    recent: Sequence[tuple[str, str]] = (),
+    rule: str = "",
+    tutor_self: str = "cô",
+    student_address: str = "con",
+    name: str | None = None,
+) -> BrainPack:
+    """BRAIN-1: the pack of a turn that answers a child who did not get it (``GroundedSpeaker.teach``)."""
+    return BrainPack(
+        task=TEACH_TASKS.get(judged, TEACH_TASKS["chưa rõ"]),
+        question=asked,
+        student_text=student_text,
+        verdict=f"Con trả lời {judged}." if judged != "chưa rõ" else "Con chưa trả lời được câu cô hỏi.",
+        recent=tuple(Turn(role, text) for role, text in recent),  # type: ignore[arg-type]
+        grounds=tuple(g for g in (ground, rule) if g),
+        tutor_self=tutor_self,
+        student_address=student_address,
+        name=name,
+        max_words=MAX_TEACH_WORDS,
+    )
+
+
+def teach_codes(
+    text: str, pack: BrainPack, judged: str, student_address: str = "con", limit: int = MAX_TEACH_WORDS
+) -> tuple[str, ...]:
+    """Why a turn that teaches again may not be said (empty: it may)."""
+    if not text:
+        return ("EMPTY",)
+    lowered = normalize_text(text)
+    found: list[str] = []
+    if foreign_text(text):
+        found.append("FOREIGN_TEXT")
+    if wrong_address(text, student_address):
+        found.append("WRONG_ADDRESS")
+    if "?" in text:
+        found.append("HAS_QUESTION")  # the loop asks the question again after these words
+    if len(text.split()) > limit:
+        found.append("TOO_LONG")
+    if any(re.search(p, lowered) for p in PII_PATTERNS):
+        found.append("PII_REQUEST")
+    if any(re.search(p, lowered) for p in INTELLIGENCE_PRAISE_PATTERNS):
+        found.append("INTELLIGENCE_PRAISE")
+    if judged != "đúng" and any(p in lowered for p in _PRAISE_RIGHT):
+        found.append("WRONG_PRAISE")
+    found += brain.speech_codes(text, pack, rephrase=True)
+    return tuple(dict.fromkeys(found))
+
+
 class GroundedSpeaker:
     """One per command of a session: the index of the moment, the gateway, and the session's call count."""
 
@@ -509,51 +562,26 @@ class GroundedSpeaker:
         fallback = Spoken(f"{lead} {ground}", "TEMPLATE")
         if self.router is None or not self._may_bridge():
             return fallback
-        pack = BrainPack(
-            task=TEACH_TASKS.get(judged, TEACH_TASKS["chưa rõ"]),
-            question=asked,
-            student_text=student_text,
-            verdict=f"Con trả lời {judged}." if judged != "chưa rõ" else "Con chưa trả lời được câu cô hỏi.",
-            recent=tuple(Turn(role, text) for role, text in recent),  # type: ignore[arg-type]
-            grounds=tuple(g for g in (ground, rule) if g),
+        pack = teach_pack(
+            student_text,
+            asked=asked,
+            ground=ground,
+            judged=judged,
+            recent=recent,
+            rule=rule,
             tutor_self=self.t,
             student_address=self.s,
             name=self.name,
-            max_words=MAX_TEACH_WORDS,
         )
 
         def codes(text: str) -> tuple[str, ...]:
-            return self._teach_codes(text, pack, judged)
+            return teach_codes(text, pack, judged, self.s)
 
         out = brain.speak(self.router, pack, codes, calls_used=self.calls_used + self.calls_made)
         self.calls_made += out.calls
         if out.text is None:
             return Spoken(fallback.text, "TEMPLATE", (), out.rejected, out.flagged, ())
         return Spoken(out.text, "LLM", (), out.rejected, out.flagged, ())
-
-    def _teach_codes(
-        self, text: str, pack: BrainPack, judged: str, limit: int = MAX_TEACH_WORDS
-    ) -> tuple[str, ...]:
-        if not text:
-            return ("EMPTY",)
-        lowered = normalize_text(text)
-        found: list[str] = []
-        if foreign_text(text):
-            found.append("FOREIGN_TEXT")
-        if wrong_address(text, self.s):
-            found.append("WRONG_ADDRESS")
-        if "?" in text:
-            found.append("HAS_QUESTION")  # the loop asks the question again after these words
-        if len(text.split()) > limit:
-            found.append("TOO_LONG")
-        if any(re.search(p, lowered) for p in PII_PATTERNS):
-            found.append("PII_REQUEST")
-        if any(re.search(p, lowered) for p in INTELLIGENCE_PRAISE_PATTERNS):
-            found.append("INTELLIGENCE_PRAISE")
-        if judged != "đúng" and any(p in lowered for p in _PRAISE_RIGHT):
-            found.append("WRONG_PRAISE")
-        found += brain.speech_codes(text, pack, rephrase=True)
-        return tuple(dict.fromkeys(found))
 
     # ------------------------------------------------------------------ meaning and teaching again
 
@@ -618,7 +646,7 @@ class GroundedSpeaker:
         )
 
         def codes(text: str) -> tuple[str, ...]:
-            found = list(self._teach_codes(text, pack, "chưa rõ", limit=MAX_RETEACH_WORDS))
+            found = list(teach_codes(text, pack, "chưa rõ", self.s, MAX_RETEACH_WORDS))
             if brain.copied_run(text, forbid, n=6):
                 found.append("REPEATS_EXPLANATION")
             if answer is not None and any(answer.search(t) for t in (text, normalize_text(text))):

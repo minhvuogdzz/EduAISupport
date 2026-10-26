@@ -225,3 +225,50 @@ def test_reading_the_rule_back_to_the_child_is_refused_and_the_arithmetic_is_che
     )
     assert spoken.source == "TEMPLATE" and spoken.text == f"Cô nói theo cách khác nhé: {REPLY}"
     assert spoken.rejected == (("COPIES_GROUND",), ("WRONG_MATH",))
+
+
+# --- rule 2 and the record -------------------------------------------------------------------------------
+
+
+def test_the_answer_and_the_solution_of_an_unsolved_item_never_reach_the_prompt():
+    """An item the child has not solved: the explanation and the worked steps stay out of the pack."""
+    router = ScriptedRouter("Con đọc lại đề rồi nói cô nghe 0,9 có mấy chữ số sau dấu phẩy nhé?")
+    turn = tutor(router).on_student("9/100")  # wrong
+    assert turn.text.startswith("Con đọc lại đề") or turn.move != Move.CLOSE_ITEM
+    prompt = "\n".join(m.content for r in router.requests for m in r.messages)
+    assert EXPLANATION not in prompt and "Vậy 0,9 = 9/10." not in prompt
+    assert "CHƯA ĐÚNG" in prompt
+
+
+def test_the_model_that_wrote_a_message_is_in_the_event_and_a_template_names_none():
+    t = tutor(ScriptedRouter("Con viết 9/10. Vì sao mẫu số lại là 10 hả con?"))
+    turn = t.on_student("9/10")
+    sent = [e for e in turn.events if e.type.value == "TUTOR_MESSAGE_SENT"][0].payload
+    assert sent["source"] == "LLM" and sent["model"] == "fake-model"
+    fallback = tutor(ScriptedRouter()).on_student("9/10")
+    sent = [e for e in fallback.events if e.type.value == "TUTOR_MESSAGE_SENT"][0].payload
+    assert sent["source"] != "LLM" and sent["model"] is None
+
+
+def test_the_owner_chooses_the_voice_with_one_line(monkeypatch):
+    from cavat.config import Settings
+    from cavat.modules.ai_gateway.base import ModelClass
+    from cavat.modules.ai_gateway.router import ChatDispatcher, build_router
+
+    for name in ("TUTOR_MODELS", "GROQ_API_KEY", "GEMINI_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings(
+        _env_file=None,
+        groq_api_key="gsk_test",
+        gemini_api_key="gm_test",
+        tts="off",
+        tutor_models="openai/gpt-oss-120b, gemini-3.8-flash",
+    )
+    router = build_router(settings)
+    assert router.chain(ModelClass.TUTOR_REASONING) == ("openai/gpt-oss-120b", "gemini-3.8-flash")
+    assert isinstance(router._chat, ChatDispatcher) and router._chat._gemini is not None
+    # not asked for, Gemini is not given the children's words
+    plain = build_router(
+        Settings(_env_file=None, groq_api_key="gsk_test", gemini_api_key="gm_test", tts="off")
+    )
+    assert plain._chat._gemini is None
