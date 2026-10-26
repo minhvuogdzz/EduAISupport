@@ -331,6 +331,9 @@ export interface StudentAnnotation {
     score: number;
     ideas_found: number;
     ideas_total: number;
+    /** REFORM-6: judged by the keywords, or by the model with a quote of the child for each extra idea. */
+    graded_by?: "RULE" | "MODEL";
+    quotes?: string[];
   } | null;
   /** The child's words raised a safety flag (SAFE-1): the teacher should read them. */
   safety?: boolean;

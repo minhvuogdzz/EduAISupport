@@ -146,24 +146,30 @@ def test_the_voice_of_the_child_and_the_purpose_of_a_retell_are_in_the_transcrip
         state = advance(client, state, f"v{n}")
         n += 1
     sid = state["session_id"]
-    body = {
-        "item_attempt_id": state["teaching"]["input_id"],
-        "kind": "ANSWER",
-        "content": {"text": "Con không nhớ ạ."},
-        "modality": "VOICE",
-        "expected_state_version": state["state_version"],
-    }
-    sent = client.post(
-        f"/v1/sessions/{sid}/responses", json=body, headers={**MINH, "Idempotency-Key": "v-voice"}
-    )
-    assert sent.status_code == 200, sent.text
-    state = client.get(f"/v1/sessions/{sid}/state", headers=MINH).json()
+    for key, said in (("v-voice-1", "Con không nhớ ạ."), ("v-voice-2", "Con vẫn không nhớ ạ.")):
+        # the first is taught again (REFORM-6): the retell is judged on the second
+        body = {
+            "item_attempt_id": state["teaching"]["input_id"],
+            "kind": "ANSWER",
+            "content": {"text": said},
+            "modality": "VOICE",
+            "expected_state_version": state["state_version"],
+        }
+        sent = client.post(
+            f"/v1/sessions/{sid}/responses", json=body, headers={**MINH, "Idempotency-Key": key}
+        )
+        assert sent.status_code == 200, sent.text
+        state = client.get(f"/v1/sessions/{sid}/state", headers=MINH).json()
 
     turns = turns_of(client, state)
-    spoken = next(t for t in turns if t["text"] == "Con không nhớ ạ.")
+    spoken = next(t for t in turns if t["text"] == "Con vẫn không nhớ ạ.")
     assert spoken["student"]["voice"] is True
     assert spoken["student"]["retell"]["purpose"] == "RETELL"
-    typed = next(t for t in turns if t["actor"] == "student" and t["text"] != "Con không nhớ ạ.")
+    typed = next(
+        t
+        for t in turns
+        if t["actor"] == "student" and t["text"] not in ("Con không nhớ ạ.", "Con vẫn không nhớ ạ.")
+    )
     assert typed["student"]["voice"] is False
 
 

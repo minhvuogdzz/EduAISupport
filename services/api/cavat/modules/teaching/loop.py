@@ -44,10 +44,12 @@ from cavat.core.events import (
     WebLooked,
 )
 from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, ItemResolution, Outcome, TeachAction
+from cavat.core.vi_text import contains_phrase
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
-from cavat.modules.assessment.retell import judge_retell
+from cavat.modules.assessment.retell import judge_retell, with_meaning
 from cavat.modules.assessment.student_intent import (
+    asks_question,
     expand_short_forms,
     intent_of_guess,
     is_affirmation,
@@ -59,6 +61,7 @@ from cavat.modules.assessment.student_intent import (
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 from cavat.modules.content.chapter_package import Chapter, Node, TheoryVariant
 from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
+from cavat.modules.teaching.meaning import MEANING_CONFIDENCE
 from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.teaching.web import WEB_VERSION, web_query
@@ -84,15 +87,23 @@ from cavat.modules.tutor.reader import (
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
+# 0.8.0: REFORM-6 (DI-82), a child who has not understood is taught again once before the step goes on
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.7.0"
+TEMPLATES_VERSION = "teaching-templates/0.8.0"
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
 # REFORM-5: the ref of the question "con muốn nói gì?" asked about a few unreadable letters
 CONFIRM_REF = "ASK_CONFIRM"
+# REFORM-6 (3.3): the ref of the message that teaches again a child who has not understood. One per wait: the
+# next time the approved reply is said and the step goes on.
+HOLD_REF = "RETEACH"
+# What says "I have not understood" ("ko", "không biết", "hả", "là sao má", "???"). Feeling, a demand for the
+# answer and talk outside the lesson keep their own paths.
+_NOT_UNDERSTOOD = frozenset({Outcome.HELP_REQUEST, Outcome.CLARIFY_REQUEST, Outcome.NO_RESPONSE})
+MIN_MEANING_WORDS = 3  # DI-83: fewer words are not an answer worth reading for meaning
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
@@ -177,6 +188,13 @@ PHRASES: dict[str, str] = {
     "retell_good": "{S} nói đúng ý rồi.",
     "retell_partial": "{S} đã nói được một phần ý.",
     "retell_none": "{T} chưa nghe thấy ý chính trong câu trả lời của {s}.",
+    "retell_close": "{T} nhắc lại ý đúng nhé: {idea}",
+    # REFORM-6 (DI-82, drafted for the owner's review): the teaching again of a child who has not understood
+    # (the lead is the model's words when it can speak, else the approved material).
+    "hold_lead": "Không sao đâu, {t} nói lại theo cách khác nhé.",
+    "hold_theory_ask": "{S} thử trả lời lại giúp {t} nhé: {ask}",
+    "hold_retell": "Không sao đâu, mình nói từng ý một nhé. {T} nhắc ý này: {part}",
+    "hold_retell_ask": "{S} nói lại ý đó bằng lời của mình giúp {t} nhé?",
     "example": "{T} làm mẫu cho {s} xem nhé.",
     "pass": "{S} đã hiểu bài {name} rồi. Giỏi lắm!",
     "stop": "Bài {name} {s} chưa vững hẳn. {T} nhắc lại cách làm để {s} nhớ: {rule} "
@@ -424,7 +442,12 @@ class TeachingLoop:
         if self.awaiting == Awaiting.THEORY_REPLY:
             assert self._ref is not None
             variant = next(t for t in self.chapter.node(node_id).theory if t.id == self._ref)
-            spoken = self._theory_feedback(variant, text, intent)
+            by_meaning = False
+            if not self._held() and (intent is None or intent in _NOT_UNDERSTOOD):
+                by_meaning = self._theory_by_meaning(variant, text, intent)
+                if not by_meaning and not self._theory_understood(variant, text, intent):
+                    return self._hold_theory(variant, text, now, messages, events)
+            spoken = self._theory_feedback(variant, text, intent, by_meaning)
             self._flag(now, events, spoken, f"{node_id}:{self._ref}")
             feedback = TeachMessage(
                 MessageKind.FEEDBACK, spoken.text, node_id, source=spoken.source, rejected=spoken.rejected
@@ -432,9 +455,19 @@ class TeachingLoop:
             self._say(now, messages, events, feedback)
             return self._advance(now, messages, events)
         node = self.chapter.node(node_id)
-        judged = judge_retell(node_id, text, node.explain)
         if self._ref == RECALL:
-            return self._on_recall(judged, intent, now, messages, events, text)
+            return self._on_recall(
+                judge_retell(node_id, text, node.explain), intent, now, messages, events, text
+            )
+        words = self._retell_words(node_id)  # REFORM-6: what the child said in this wait, read together
+        judged = self._judge_meaning(judge_retell(node_id, words, node.explain), node, intent)
+        closing = self._held()
+        if (
+            not closing
+            and judged.score < self.config.retell_pass
+            and (intent is None or intent in _NOT_UNDERSTOOD)
+        ):
+            return self._hold_retell(judged, node, text, now, messages, events)
         events.append(self._record(now, EventType.RETELL_JUDGED, judged))
         if intent is not None and not judged.ideas_found:
             # "Con không biết", "là sao ạ?", "chán quá": remind the main idea instead of only saying that
@@ -450,8 +483,191 @@ class TeachingLoop:
             said = self._phrase("retell_good")
         else:
             said = self._phrase("retell_partial" if judged.ideas_found else "retell_none")
+            if closing:  # taught again once already: the right idea is said, then the step goes on
+                said = f"{said} {self._phrase('retell_close', idea=node.description)}"
         self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, node_id))
         return self._advance(now, messages, events)
+
+    # ------------------------------------------------------------------ REFORM-6: taught again, meaning
+
+    def _held(self) -> bool:
+        """The child was already taught again in this wait (read from the events: a resumed session knows)."""
+        last = max(
+            (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
+        )
+        return any(
+            e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("ref") == HOLD_REF
+            for e in self.events[last + 1 :]
+        )
+
+    def _has_content(self, text: str) -> bool:
+        """Words worth reading for meaning: not a question and not a few words."""
+        n = len(re.findall(r"[^\W\d_]+", text))  # words: a number alone is no sentence
+        return n >= MIN_MEANING_WORDS and not (asks_question(text) and n <= MIN_MEANING_WORDS + 1)
+
+    def _accepts(self, variant: TheoryVariant, text: str) -> bool:
+        accept = phrase_regex(variant.accept) if variant.accept else None
+        # "ko" is "không": the short forms children type count as the words they stand for
+        return accept is not None and any(
+            accept.search(t) for t in (normalize_text(text), expand_short_forms(text))
+        )
+
+    def _theory_understood(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> bool:
+        """3.3: the child showed the idea (or the answer is not graded and not a question). The rest is taught
+        again once."""
+        if intent in _NOT_UNDERSTOOD:
+            return False
+        if variant.accept:
+            return self._accepts(variant, text)
+        return not asks_question(text)  # ADR-019: no list of right answers, so a reply is not judged
+
+    def _theory_by_meaning(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> bool:
+        """4.1: an answer in other words than the teacher's phrasings, shown right by a quote of the child."""
+        if self.speaker is None or intent is not None or not variant.accept or not variant.reply:
+            return False
+        if self._accepts(variant, text) or not self._has_content(text):
+            return False
+        assert self._node is not None
+        node = self.chapter.node(self._node)
+        ideas, _ = self.speaker.judge_meaning(
+            text,
+            asked=variant.ask,
+            rule=node.method.rule,
+            reference=[variant.reply],
+            ideas=[[variant.reply]],
+            found=[],
+        )
+        return bool(ideas)
+
+    def _retell_words(self, node_id: str) -> str:
+        """Everything the child said to the retell in this wait: the second try completes the first."""
+        last = max(
+            (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
+        )
+        mine = f"{node_id}:{self._ref or 'RETELL'}"
+        return " ".join(
+            e.payload["text"]
+            for e in self.events[last + 1 :]
+            if e.event_type == EventType.STUDENT_MESSAGE and e.payload.get("item_id") == mine
+        )
+
+    def _judge_meaning(self, judged: RetellJudged, node: Node, intent: Outcome | None) -> RetellJudged:
+        """4.1: the model reads what the keywords did not find, once, only for a reply with content that
+        is not yet enough. It adds ideas that carry a quote of the child, never takes one away."""
+        if (
+            self.speaker is None
+            or intent is not None
+            or judged.score >= self.config.retell_pass
+            or not self._has_content(judged.text)
+        ):
+            return judged
+        ideas, quotes = self.speaker.judge_meaning(
+            judged.text,
+            asked=node.explain.prompt,
+            rule=node.method.rule,
+            reference=[node.description, *[t.reply for t in node.theory if t.reply][:2]],
+            ideas=node.explain.key_ideas,
+            found=judged.ideas_found,
+        )
+        return with_meaning(judged, ideas, quotes, MEANING_CONFIDENCE)
+
+    def _reteach_words(
+        self,
+        text: str,
+        asked: str,
+        node: Node,
+        material: str,
+        hide: re.Pattern[str] | None,
+        forbid: Sequence[str],
+    ) -> Spoken | None:
+        if self.speaker is None:
+            return None
+        return self.speaker.reteach(
+            text, asked=asked, rule=node.method.rule, material=material, forbid=forbid, answer=hide
+        )
+
+    def _hold_theory(
+        self,
+        variant: TheoryVariant,
+        text: str,
+        now: datetime,
+        messages: list[TeachMessage],
+        events: list[LoopEvent],
+    ) -> TeachTurn:
+        """3.3: the question stays; the idea is said again another way (the model's words, else another
+        approved variant or the rule, one that does not give the answer), then asked again. Nothing is
+        judged."""
+        assert self._node is not None
+        node = self.chapter.node(self._node)
+        accept = phrase_regex(variant.accept) if variant.accept else None
+
+        def reveals(t: str) -> bool:
+            return accept is not None and any(
+                accept.search(x) for x in (normalize_text(t), expand_short_forms(t))
+            )
+
+        others = [t.text.strip() for t in node.theory if t.id != variant.id]
+        pieces = [p for p in (*others, node.method.rule.strip()) if p and not reveals(p)]
+        material = pieces[0] if pieces else variant.text.strip()
+        spoken = self._reteach_words(text, variant.ask, node, material, accept, (variant.reply,))
+        lead = spoken.text if spoken else f"{self._phrase('hold_lead')} {material}"
+        asked = self._phrase("hold_theory_ask", ask=variant.ask)
+        source = spoken.source if spoken else "TEMPLATE"
+        if spoken is not None:
+            self._flag(now, events, spoken, f"{self._node}:{self._ref}")
+        return self._hold(now, f"{lead} {asked}", source, spoken, messages, events)
+
+    def _hold_retell(
+        self,
+        judged: RetellJudged,
+        node: Node,
+        text: str,
+        now: datetime,
+        messages: list[TeachMessage],
+        events: list[LoopEvent],
+    ) -> TeachTurn:
+        """3.3: the retell stays; the part of the rule the child has not said is given and asked back in the
+        child's own words (a small question instead of the sample said twice)."""
+        part = self._rule_part(node, judged.ideas_found)
+        spoken = self._reteach_words(text, node.explain.prompt, node, part, None, ())
+        lead = spoken.text if spoken else self._phrase("hold_retell", part=part)
+        source = spoken.source if spoken else "TEMPLATE"
+        if spoken is not None:
+            self._flag(now, events, spoken, f"{self._node}:RETELL")
+        return self._hold(now, f"{lead} {self._phrase('hold_retell_ask')}", source, spoken, messages, events)
+
+    def _rule_part(self, node: Node, found: Sequence[int]) -> str:
+        """The sentence of the rule that says the first idea not said yet (else the first sentence)."""
+        sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", node.method.rule.strip()) if x.strip()]
+        for i, phrasings in enumerate(node.explain.key_ideas):
+            if i in found:
+                continue
+            for sentence in sentences:
+                if any(contains_phrase(sentence, p) for p in phrasings):
+                    return sentence
+            break
+        return sentences[0] if sentences else node.description
+
+    def _hold(
+        self,
+        now: datetime,
+        text: str,
+        source: str,
+        spoken: Spoken | None,
+        messages: list[TeachMessage],
+        events: list[LoopEvent],
+    ) -> TeachTurn:
+        assert self._node is not None
+        rejected = spoken.rejected if spoken else ()
+        self._say(
+            now,
+            messages,
+            events,
+            TeachMessage(MessageKind.FEEDBACK, text, self._node, HOLD_REF, source, rejected=rejected),
+        )
+        return TeachTurn(
+            tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
+        )
 
     def _confirm_open(self) -> bool:
         """REFORM-5: the last thing the tutor said, before the message being read, was the question about
@@ -557,7 +773,9 @@ class TeachingLoop:
         prior = self.chapter.node(prior_id)
         return recall_question(prior) or self._phrase("recall_ask", prior=prior.name)
 
-    def _theory_feedback(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> Spoken:
+    def _theory_feedback(
+        self, variant: TheoryVariant, text: str, intent: Outcome | None, by_meaning: bool = False
+    ) -> Spoken:
         """Right, not quite, or no attempt: the reason (`reply`) in each case. Never graded (ADR-019).
 
         An attempt that is not right gets, with a speaker, one sentence on what the child said before the
@@ -572,12 +790,8 @@ class TeachingLoop:
             # "ko" to "phân số nào?" is "con không biết" (seen live), not a wrong answer; to "có dài hơn
             # không?" it is an answer and goes on to the check below.
             return self._bridged("theory_explain", "reply", reply, text, asked=variant.ask, judged="chưa rõ")
-        accept = phrase_regex(variant.accept) if variant.accept else None
-        # "ko" is "không": the short forms children type count as the words they stand for
-        right = accept is not None and any(
-            accept.search(t) for t in (normalize_text(text), expand_short_forms(text))
-        )
-        if right:
+        # REFORM-6 (4.1): right by the keywords, or by words a quote of the child shows carry the idea
+        if by_meaning or self._accepts(variant, text):
             return self._bridged("theory_right", "reply", reply, text, asked=variant.ask, judged="đúng")
         judged, lead = ("chưa đúng", "theory_check_lead") if variant.accept else ("chưa rõ", "theory_ack")
         if self.speaker is None:

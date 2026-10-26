@@ -317,9 +317,16 @@ def test_the_loop_names_the_later_lesson_and_keeps_the_question_for_the_teacher(
     assert turn.messages[0].text.endswith(first.prompt)
 
 
-def test_a_wrong_theory_answer_gets_a_bridge_then_the_approved_reply(index):
-    router = ScriptedRouter("Con nghĩ phần tô màu là 4/10, mình cùng xem lại nhé.")
-    loop, _ = loop_at_theory(GroundedSpeaker(index, router))
+def test_a_wrong_theory_answer_is_taught_again_once_then_gets_a_bridge_and_the_approved_reply(index):
+    # REFORM-6 (3.3): the first wrong answer keeps the question and teaches the idea again (no bridge, no
+    # reply yet); the second gets the bridge and the approved reply, and the step goes on.
+    router = ScriptedRouter(
+        None, "Con nghĩ phần tô màu là 4/10, mình cùng xem lại nhé."
+    )  # (the voice for the first fails)
+    loop, first = loop_at_theory(GroundedSpeaker(index, router))
+    held = loop.on_student("4/10 ạ", NOW)
+    assert held.awaiting == Awaiting.THEORY_REPLY and held.prompt == first.prompt
+    assert CHAPTER.node("KC-DEC-FRAC").theory[0].reply not in held.messages[0].text
     turn = loop.on_student("4/10 ạ", NOW)
     feedback = turn.messages[0]
     reply = CHAPTER.node("KC-DEC-FRAC").theory[0].reply
@@ -415,8 +422,11 @@ FRAC = CHAPTER.node("KC-DEC-FRAC")
     ],
 )
 def test_the_reply_to_a_theory_question_starts_with_a_bridge(index, said, bridge, judged):
-    router = ScriptedRouter(bridge)
+    # REFORM-6: "ko" is taught again once first (the voice for that is down here); the bridge comes second
+    router = ScriptedRouter(None, bridge) if said == "ko" else ScriptedRouter(bridge)
     loop, _ = loop_at_theory(GroundedSpeaker(index, router))
+    if said == "ko":
+        loop.on_student(said, NOW)
     feedback = loop.on_student(said, NOW).messages[0]
     assert (feedback.kind, feedback.source) == (MessageKind.FEEDBACK, "LLM")
     assert feedback.text == f"{bridge} {FRAC.theory[0].reply}"
@@ -433,6 +443,7 @@ def test_talk_outside_the_lesson_gets_a_bridge_then_the_same_question(index):
 
 def test_without_a_model_the_loop_keeps_its_approved_leads(index):
     loop, _ = loop_at_theory(GroundedSpeaker(index, ScriptedRouter()))  # the provider is down
+    loop.on_student("ko", NOW)  # taught again once (REFORM-6)
     feedback = loop.on_student("ko", NOW).messages[0]
     assert feedback.source == "TEMPLATE"
     assert feedback.text == f"Không sao đâu, cô giải thích nhé: {FRAC.theory[0].reply}"
@@ -445,7 +456,8 @@ def test_a_retell_the_child_cannot_give_gets_a_bridge_then_the_main_idea(index):
         turn = loop.on_student(
             {Awaiting.THEORY_REPLY: "con nghĩ là được ạ"}.get(turn.awaiting, "con không biết"), NOW
         )
-    loop.speaker = GroundedSpeaker(index, ScriptedRouter("Con nói con chưa nhớ, không sao đâu nhé."))
+    loop.speaker = GroundedSpeaker(index, ScriptedRouter(None, "Con nói con chưa nhớ, không sao đâu nhé."))
+    loop.on_student("con không nhớ ạ", NOW)  # the retell is kept and one part of the rule asked (REFORM-6)
     feedback = loop.on_student("con không nhớ ạ", NOW).messages[0]
     assert feedback.source == "LLM"
     assert feedback.text == f"Con nói con chưa nhớ, không sao đâu nhé. {FRAC.description}"

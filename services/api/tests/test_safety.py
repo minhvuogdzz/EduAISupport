@@ -26,7 +26,7 @@ def loop_at_first_item() -> TeachingLoop:
     loop = TeachingLoop(CHAPTER, "s1")
     turn = loop.start(NOW)
     while turn.awaiting != Awaiting.ANSWER:
-        turn = loop.on_student("Con nghĩ là được ạ.", NOW)
+        turn = loop.on_student("Con nghĩ là 4/100 ạ.", NOW)
     return loop
 
 

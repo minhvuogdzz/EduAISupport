@@ -588,6 +588,9 @@ def build_teacher_transcript(
                 "score": p["score"],
                 "ideas_found": len(p["ideas_found"]),
                 "ideas_total": p["ideas_total"],
+                # REFORM-6 (4.1): how it was judged, and the child's words the model's ideas rest on
+                "graded_by": "MODEL" if p.get("model_ideas") else "RULE",
+                "quotes": p.get("quotes", []),
             }
             retell = None
         elif kind == EventType.SESSION_COMPLETED and p.get("summary_text"):

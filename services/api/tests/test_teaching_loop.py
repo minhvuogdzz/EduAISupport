@@ -51,9 +51,11 @@ class Learner:
 
     def reply(self, turn) -> str:
         if turn.awaiting == Awaiting.THEORY_REPLY:
-            return "Con nghĩ là được ạ."
+            # a right answer: a child who is wrong or lost is taught again once first (REFORM-6)
+            variant = next(t for t in CHAPTER.node(turn.node_id).theory if t.ask == turn.prompt)
+            return variant.accept[0] if variant.accept else "Con nghĩ là được ạ."
         if turn.awaiting == Awaiting.RETELL:
-            node_id = next(m.node_id for m in reversed(turn.messages) if m.kind == MessageKind.RETELL_PROMPT)
+            node_id = turn.node_id
             if self.weak_retells.get(node_id, 0):
                 self.weak_retells[node_id] -= 1
                 return "Con không nhớ ạ."
@@ -112,9 +114,12 @@ def test_resuming_from_the_stored_events_continues_the_same_conversation():
 
 
 def test_a_retell_without_the_key_ideas_gets_feedback_and_another_explanation():
-    _, turns = converse(Learner(weak_retells={"KC-DEC-FRAC": 1}))
+    # REFORM-6: the first "Con không nhớ ạ." keeps the retell and asks about one part of the rule; the second
+    # reminds the main idea and the node is taught again
+    _, turns = converse(Learner(weak_retells={"KC-DEC-FRAC": 2}))
     first_retell = next(i for i, t in enumerate(turns) if t.awaiting == Awaiting.RETELL)
-    after = turns[first_retell + 1].messages
+    assert turns[first_retell + 1].awaiting == Awaiting.RETELL
+    after = turns[first_retell + 2].messages
     # "Con không nhớ ạ." asks for help (ADR-019): the tutor reminds the main idea of the node.
     assert after[0].kind == MessageKind.FEEDBACK and "nhắc lại ý chính" in after[0].text
     assert CHAPTER.node("KC-DEC-FRAC").description in after[0].text

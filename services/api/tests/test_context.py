@@ -165,7 +165,7 @@ def test_a_replay_reads_the_record_and_never_calls_the_model():
     loop = TeachingLoop(CHAPTER, "s1", item_reader=LiveReader(ModelReader(router)))
     turn = loop.start(NOW)
     while turn.awaiting != Awaiting.ANSWER:
-        turn = loop.on_student("Con nghĩ là được ạ.", NOW)
+        turn = loop.on_student("Con nghĩ là 4/100 ạ.", NOW)
     loop.on_student(HINT_REQUEST_TEXT, NOW)
     turn = loop.on_student("cái mẫu đó là gì ạ", NOW)
     assert any(e.event_type == EventType.MESSAGE_READ for e in turn.events) and len(router.requests) == 1
@@ -193,9 +193,14 @@ def test_a_bare_ko_is_read_with_the_question_it_answers(node, said, starts):
     turn = loop.start(NOW)
     while not (turn.awaiting == Awaiting.THEORY_REPLY and turn.node_id == node):
         turn = loop.on_student(
-            "Con nghĩ là được ạ." if turn.awaiting == Awaiting.THEORY_REPLY else _right(loop, turn), NOW
+            _theory_answer(turn) if turn.awaiting == Awaiting.THEORY_REPLY else _right(loop, turn), NOW
         )
     assert loop.on_student(said, NOW).messages[0].text.startswith(starts)
+
+
+def _theory_answer(turn) -> str:
+    variant = next(t for t in CHAPTER.node(turn.node_id).theory if t.ask == turn.prompt)
+    return variant.accept[0] if variant.accept else "Con nghĩ là được ạ."
 
 
 def _right(loop: TeachingLoop, turn) -> str:
@@ -272,7 +277,7 @@ def test_the_owner_case_through_the_api_and_the_teacher_sees_the_reading(client)
 
     created = client.post("/v1/sessions", json={"student_display_name": "An"}, headers=an).json()
     state = client.post(f"/v1/sessions/{created['session_id']}/join", headers=an).json()
-    state = answer(state, "Con nghĩ là được ạ.", "k0")  # the theory question: now TP-CC-01
+    state = answer(state, "Con nghĩ là 4/100 ạ.", "k0")  # the theory question: now TP-CC-01
     assert state["item"]["item_id"] == "TP-CC-01"
     hint = {
         "item_attempt_id": state["item"]["item_attempt_id"],
