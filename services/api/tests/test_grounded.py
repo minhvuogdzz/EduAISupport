@@ -500,3 +500,10 @@ def test_a_lead_leaves_the_last_fifth_of_the_calls_to_explanations_and_questions
     assert router.requests == [] and speaker.calls_made == 0
     again = GroundedSpeaker(index, CappedRouter(REAL_LEAD), student_name="Vương", calls_used=7)
     assert again.bridge("ko", asked=T1_ASK, explanation=T1_REPLY, judged="chưa rõ", lead=".").source == "LLM"
+
+
+def test_the_words_about_feelings_are_free_only_in_a_bridge(index):
+    """An answer to a question of the child keeps the strict list: "chắc chắn" there is a claim."""
+    said = "Cô hiểu con ngại, khó và chưa chắc chắn."
+    assert "UNSUPPORTED_CLAIM" in check(said, evidence(index, "phần nguyên là gì"), max_words=50)
+    assert "UNSUPPORTED_CLAIM" not in check(said, evidence(index, "phần nguyên là gì"), max_words=50, bridge=True)

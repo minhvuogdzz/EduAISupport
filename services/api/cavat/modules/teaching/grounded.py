@@ -87,9 +87,12 @@ TUTOR_TALK = frozenset(
     "dung chua xem thu that ra lai nua cau tra loi noi nghi cung nhe day dau oi nao tot lam gang vay ay do "
     "nay kia se dang da van nhung nen neu khi de rang bi tu ban em hoc bai minh hay qua roi phai y dieu "
     "chi moi luc nay vua cach giup cho ca nhau ghi nho dap thay kiem tra giu".split()
-    # DI-75 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa chắc chắn", "con thấy
-    # chán", "cô hiểu con ngại"): feelings, doubt, effort, calm. None of them folds to a word of the chapters.
-    + "biet hieu kho khan chac chan ro ngai vui thich buon met lo ke chuyen muon cham nhanh ky nhan doan "
+)
+# DI-75 (REFORM-1b): what a bridge says of the child, not of the lesson ("con chưa chắc chắn", "con thấy chán",
+# "cô hiểu con ngại"): feelings, doubt, effort, calm. Only a bridge may use them without evidence: an answer
+# to a question of the child keeps the strict list above.
+BRIDGE_TALK = frozenset(
+    "biet hieu kho khan chac chan ro ngai vui thich buon met lo ke chuyen muon cham nhanh ky nhan doan "
     "cam on thoai mai".split()
 )
 _NUMBER = re.compile(r"^[\d.,/]+$")
@@ -138,13 +141,13 @@ class Evidence:
 
     texts: tuple[str, ...]
 
-    def support(self, message: str) -> float:
+    def support(self, message: str, talk: frozenset[str] = TUTOR_TALK) -> float:
         """Share of the message's distinct content words that occur in the evidence (1.0 when none)."""
         have = set(_words(" ".join(self.texts)))
         words = [
             w
             for w in dict.fromkeys(_words(message))
-            if w not in FILLER and w not in TUTOR_TALK and not _NUMBER.match(w)
+            if w not in FILLER and w not in talk and not _NUMBER.match(w)
         ]
         return sum(w in have for w in words) / len(words) if words else 1.0
 
@@ -170,8 +173,10 @@ def check(
     max_words: int,
     forbid: Sequence[str] = (),
     student_address: str = "con",
+    bridge: bool = False,
 ) -> tuple[str, ...]:
-    """Why a message the model wrote may not be said (empty: it may)."""
+    """Why a message the model wrote may not be said (empty: it may). ``bridge``: DI-75, a sentence on the
+    child, which may use the words of ``BRIDGE_TALK`` without evidence."""
     if not message.strip():
         return ("EMPTY",)
     codes: list[str] = []
@@ -188,7 +193,7 @@ def check(
         codes.append("UNGROUNDED_NUMBER")
     if evidence.new_terms(message):
         codes.append("NEW_MATH_TERM")
-    if evidence.support(message) < CLAIM_SUPPORT:
+    if evidence.support(message, TUTOR_TALK | BRIDGE_TALK if bridge else TUTOR_TALK) < CLAIM_SUPPORT:
         codes.append("UNSUPPORTED_CLAIM")
     if any(re.search(p, lowered) for p in PII_PATTERNS):
         codes.append("PII_REQUEST")
@@ -209,7 +214,7 @@ def repeats_idea(lead: str, said: str, lesson: str) -> bool:
     said_numbers = {n.value for n in extract_numbers(said)}
     if any(n.value in said_numbers for n in extract_numbers(lead)):
         return True
-    ideas = {fold(w) for w in content_words(said)} - TUTOR_TALK
+    ideas = {fold(w) for w in content_words(said)} - TUTOR_TALK - BRIDGE_TALK
     return bool(ideas & set(_words(lesson)) & set(_words(lead)))
 
 
@@ -429,6 +434,7 @@ class GroundedSpeaker:
             attribution=attribution,
             needs_attribution=lambda said: repeats_idea(said, student_text, f"{asked} {explanation}"),
             no_praise=judged != "đúng",
+            bridge=True,
         )
         if text:
             return Spoken(f"{text} {explanation}", "LLM", (), rejected, flagged, refused)
@@ -461,6 +467,7 @@ class GroundedSpeaker:
         attribution: Sequence[str] = (),
         needs_attribution: Callable[[str], bool] | None = None,
         no_praise: bool = False,
+        bridge: bool = False,
     ) -> tuple[str | None, tuple[tuple[str, ...], ...], bool, tuple[str, ...]]:
         """The model's words once they pass ``check``; "" when the model wrote nothing (the passages do not
         answer, as the prompt asks it to say); None when there is no usable output (no gateway, quota, cap,
@@ -495,7 +502,7 @@ class GroundedSpeaker:
             text = " ".join(message.split()) if isinstance(message, str) else ""
             if not text:
                 return "", tuple(rejected), flagged, tuple(refused)
-            codes = check(text, evidence, max_words=max_words, forbid=forbid)
+            codes = check(text, evidence, max_words=max_words, forbid=forbid, bridge=bridge)
             lowered = normalize_text(text)
             if (
                 attribution
