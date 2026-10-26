@@ -73,7 +73,7 @@ def classify_intent(text: str, *, verdict: bool = False) -> Outcome | None:
     """Detect messages that are not an attempt at the answer (ADR-019, `student_intent`).
 
     "Con không biết là < hay >" names both answers: it asks for help, it does not answer.
-    ``verdict``: a bare "không" or "chưa" answers the question (REFORM-5, DI-75), see ``no_is_an_answer``.
+    ``verdict``: a bare "không" or "chưa" answers the question (REFORM-5, DI-76), see ``no_is_an_answer``.
     """
     t = normalize_text(text)
     has_answer = (bool(extract_numbers(t)) or bool(_relations(t))) and not _OR_RE.search(t)
@@ -81,7 +81,7 @@ def classify_intent(text: str, *, verdict: bool = False) -> Outcome | None:
 
 
 def no_is_an_answer(item: Item) -> bool:
-    """REFORM-5 (DI-75): a bare "không" or "chưa" is an answer to this item, not "con không biết": a true or
+    """REFORM-5 (DI-76): a bare "không" or "chưa" is an answer to this item, not "con không biết": a true or
     false item, a choice with a "không" or "chưa" option, and a number that is 0 ("không" is the digit)."""
     ans = item.answer
     if isinstance(ans, BooleanAnswer):

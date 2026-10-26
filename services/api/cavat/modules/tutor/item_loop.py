@@ -592,7 +592,7 @@ class ItemTutor:
         return is_gibberish_or_ambiguous_short(text, self._known)
 
     def _on_unclear(self, text: str, trigger: TurnTrigger) -> TutorTurn:
-        """REFORM-5 (3.1, DI-76): the tutor asks what the letters meant (ASK_CONFIRM), once; if the next
+        """REFORM-5 (3.1, DI-77): the tutor asks what the letters meant (ASK_CONFIRM), once; if the next
         message is as unreadable the policy helps instead (R-ASK-CONFIRM, UNCLEAR_TWICE). Nothing is graded,
         counted as unproductive or praised, and the phase stays what it was. The reading (the rule's, or
         the model's guess and the question it proposes) is recorded, so a replay asks the same without a
@@ -816,7 +816,7 @@ class ItemTutor:
             clarification=self._clarification if asking else None,
         )
         if ctx.clarification and (codes := self._refused(ctx.clarification, ctx)):
-            # REFORM-5: the reader's question did not pass; the template asks (DI-76). The record keeps it.
+            # REFORM-5: the reader's question did not pass; the template asks (DI-77). The record keeps it.
             self._emit(
                 EventType.OUTPUT_REJECTED,
                 OutputRejected(item_id=self.item.id, move=d.move, issue_codes=codes, source="LLM"),

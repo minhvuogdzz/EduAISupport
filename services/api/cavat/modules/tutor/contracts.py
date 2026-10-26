@@ -58,7 +58,7 @@ class ItemState:
     choice_offered: bool = False  # "gợi ý thêm hay tự thử lại?" is asked once per item (DI-35)
     explanation_asked_again: bool = False  # "vì sao" asked once more after "là sao?" or off-topic talk
     last_explanation_vague: bool = False  # DI-55: the last "vì sao" reply said nothing of this item
-    # REFORM-5 (DI-76): the tutor's last message asked what a few unreadable letters meant
+    # REFORM-5 (DI-77): the tutor's last message asked what a few unreadable letters meant
     # (ASK_CONFIRM); if the next message is unreadable too, the tutor helps instead of asking a third
     # time.
     confirm_open: bool = False

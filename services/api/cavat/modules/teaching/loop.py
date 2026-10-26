@@ -80,7 +80,7 @@ from cavat.modules.tutor.reader import (
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
-# 0.6.0: REFORM-5 (DI-76), a few unreadable letters at a theory question or a retell are asked about once
+# 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
 TEMPLATES_VERSION = "teaching-templates/0.6.0"
 
@@ -145,7 +145,7 @@ PHRASES: dict[str, str] = {
         "{T} nghe {s} nói rồi. Chuyện này quan trọng lắm: {s} hãy kể ngay với thầy cô hoặc bố mẹ, "
         "người lớn mà {s} tin nhé. {T} ghi lại để thầy cô biết."
     ),
-    # REFORM-5 (DI-76, drafted for the owner's review): the same two questions as the item loop's, for a
+    # REFORM-5 (DI-77, drafted for the owner's review): the same two questions as the item loop's, for a
     # theory question or a retell that waits.
     "confirm_typo": "{T} đoán {s} muốn nói là {s} {meaning}, đúng không, hay {s} định gõ ý khác?",
     "confirm_mash": "Hình như bàn phím của {s} vừa gõ ra mấy chữ lạ. {S} gõ lại ý của mình giúp {t} nhé?",

@@ -23,7 +23,7 @@ from cavat.modules.content.lesson_package import (
 )
 from cavat.modules.tutor.contracts import MessageSource, RenderContext, RenderedMessage
 
-# v9: REFORM-5, ASK_CONFIRM asks about a key slip or a likely typo in its own words (DI-76), or says the
+# v9: REFORM-5, ASK_CONFIRM asks about a key slip or a likely typo in its own words (DI-77), or says the
 #     question the intent agent proposed (checked by the validator)
 # v8: REFORM-2, EXPLAIN_AND_ADVANCE says the approved explanation, the rule answers "lý thuyết là gì",
 #     punctuation no longer hides a word; v7: FIX-6, the counterexample is tied to the item and varies
@@ -38,7 +38,7 @@ PHRASES: dict[str, str] = {
     "try_it": "{S} làm thử giúp {t} được không?",
     "offer_choice": "{S} muốn {t} gợi ý thêm hay {s} muốn tự thử lại một lần nữa?",
     "ask_confirm": "{T} chưa chắc đã hiểu đúng ý {s}. {S} viết lại câu trả lời rõ hơn giúp {t} được không?",
-    # REFORM-5 (DI-76, drafted for the owner's review): a few letters nothing reads. The tutor says what it
+    # REFORM-5 (DI-77, drafted for the owner's review): a few letters nothing reads. The tutor says what it
     # guesses and asks (never takes it for an answer), or says the keys slipped and asks again.
     "ask_confirm_typo": "{T} đoán {s} muốn nói là {s} {meaning}, đúng không, hay {s} định gõ ý khác?",
     "ask_confirm_mash": "Hình như bàn phím của {s} vừa gõ ra mấy chữ lạ. {S} gõ lại ý của mình giúp {t} nhé?",

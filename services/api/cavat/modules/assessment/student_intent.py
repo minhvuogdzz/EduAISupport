@@ -19,7 +19,7 @@ from cavat.core.pedagogy import Outcome
 from cavat.core.vi_text import fold
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex, tolerant_pattern
 
-# 0.3.0: REFORM-5 (DI-75, DI-76), a bare "không"/"chưa" is "con không biết", a bare "gì" asks, and the few
+# 0.3.0: REFORM-5 (DI-76, DI-77), a bare "không"/"chưa" is "con không biết", a bare "gì" asks, and the few
 #        letters nothing reads ("ki", "kk", "ể") are told apart (``is_gibberish_or_ambiguous_short``)
 # 0.2.1: REFORM-2, "là gì", "ra sao", "viết sao" ask; 0.2.0: more teen code, keyword dumps (conductor)
 INTENT_VERSION = "student-intent/0.3.0"
@@ -312,7 +312,7 @@ def keyword_dump(text: str) -> bool:
     return not left
 
 
-# REFORM-5 (DI-75): "không", "ko", "k", "chưa", "không ạ", "không mà" and nothing else. Alone, it answers a
+# REFORM-5 (DI-76): "không", "ko", "k", "chưa", "không ạ", "không mà" and nothing else. Alone, it answers a
 # question that a no can answer (a true/false item, a yes/no question, the number 0); asked "vì sao" or a
 # question with a number to give, it is "con không biết". Seen live: it was praised as an explanation.
 _NO_FILLERS = ("ạ", "à", "mà", "cô", "ơi", "nhé", "nha")
@@ -337,7 +337,7 @@ def read_intent(text: str, has_answer: bool = False, *, verdict: bool = False) -
     ("cho con đáp án câu 2") is not.
     ``verdict``: the question can be answered by a bare "không" or "chưa" (true or false, yes or no, the
     number
-    0): then it is an answer, not "con không biết" (REFORM-5, DI-75).
+    0): then it is an answer, not "con không biết" (REFORM-5, DI-76).
     """
     t = expand_short_forms(text)
     if _SILENT_RE.fullmatch(t):
@@ -368,14 +368,14 @@ def looks_off_topic(text: str) -> bool:
 
 
 # --------------------------------------------------------------------------- the few letters nothing reads
-# REFORM-5 (DI-76, drafted for the owner's review). A child stuck on a question types "ki" (the i sits next
+# REFORM-5 (DI-77, drafted for the owner's review). A child stuck on a question types "ki" (the i sits next
 # to the o: "ko"), "kt", "ể" or "êr" (a Telex slip), "tt", "kk", "kkk" (a key held down, laughter). The
 # lists above read "ko bít", "hả", "chán"; these are what is left when none of them reads the message. They
 # are neither an answer nor an explanation, so the tutor asks what the child meant (ASK_CONFIRM) instead of
 # grading them or praising them. The words below are what a child of grade 5 may type alone in a maths
 # lesson, without diacritics (the match is folded): a short message made only of other letters is
 # "unreadable".
-SHORT_MAX_LETTERS = 6  # DI-76: a longer message is read by the lists, the checker and the context reader
+SHORT_MAX_LETTERS = 6  # DI-77: a longer message is read by the lists, the checker and the context reader
 SHORT_MAX_WORDS = 2
 _KNOWN_WORDS = """
 có không chưa rồi phải đúng sai dạ vâng ừ ừm ờ ạ à ơi ôi ui ồ ok oke yes no hay thôi nhé nha nhỉ nhá

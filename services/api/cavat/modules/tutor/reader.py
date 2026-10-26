@@ -56,7 +56,7 @@ from cavat.modules.tutor.validator import (
     wrong_address,
 )
 
-# 0.3.0: REFORM-5, AMBIGUOUS_TYPO and GIBBERISH, the intent agent (DI-76, DI-77); 0.2.0: REFORM-2, STEP_ANSWER
+# 0.3.0: REFORM-5, AMBIGUOUS_TYPO and GIBBERISH, the intent agent (DI-77, DI-78); 0.2.0: REFORM-2, STEP_ANSWER
 READER_VERSION = "context-reader/0.3.0"
 UNCLEAR_LABELS = ("AMBIGUOUS_TYPO", "GIBBERISH")
 LABELS = (
@@ -71,11 +71,11 @@ LABELS = (
     *UNCLEAR_LABELS,
 )
 MAX_TEXT = 300
-# DI-77: model readings of a few unreadable letters an item may spend. The second time in a row the tutor
+# DI-78: model readings of a few unreadable letters an item may spend. The second time in a row the tutor
 # helps without asking and the rules read a key held down: this only bounds a child who alternates slips
 # and words.
 MAX_INTENT_READS_PER_ITEM = 2
-# DI-77: the intent agent reads only in the first half of the session's model calls (as AUTO-1's chooser
+# DI-78: the intent agent reads only in the first half of the session's model calls (as AUTO-1's chooser
 # does). Its question has a template as good as its own for a key slip; the tutor's own voice has not.
 INTENT_CALL_SHARE = 2
 
@@ -104,7 +104,7 @@ READ_SYSTEM = (
     "guessed_meaning và clarification luôn để chuỗi rỗng."
 )
 
-# REFORM-5 (DI-77): the prompt for a message of a few letters. Short on purpose (Groq: 8.000 token a minute, a
+# REFORM-5 (DI-78): the prompt for a message of a few letters. Short on purpose (Groq: 8.000 token a minute, a
 # call at most 3.000): the child's words, the tutor's last words and the task, nothing else.
 INTENT_SYSTEM = (
     "Bạn đọc một chuỗi RẤT NGẮN (vài chữ cái) mà học sinh lớp 5 vừa gõ khi học Toán với gia sư, "
@@ -242,7 +242,7 @@ class ModelReader:
         short = is_gibberish_or_ambiguous_short(said)
         cap = getattr(self.router, "max_calls_per_session", DEFAULT_MAX_LLM_CALLS_PER_SESSION)
         if short and self.calls_used + self.calls_made >= cap // INTENT_CALL_SHARE:
-            return None  # the rest of the calls are the tutor's voice; the template asks (DI-77)
+            return None  # the rest of the calls are the tutor's voice; the template asks (DI-78)
         request = ChatRequest(
             messages=(
                 ChatMessage("system", INTENT_SYSTEM if short else READ_SYSTEM),

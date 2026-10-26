@@ -1,13 +1,13 @@
 # ADR-033: Tầng đọc ý định cho vài chữ không ai đọc được (REFORM-5)
 
-**Trạng thái:** Đã làm, 2026-10-26. Các câu hỏi lại mới và danh sách từ ngắn chờ chủ dự án duyệt (DI-76).
+**Trạng thái:** Đã làm, 2026-10-26. Các câu hỏi lại mới và danh sách từ ngắn chờ chủ dự án duyệt (DI-77).
 - Chủ dự án yêu cầu (2026-10-25, kế hoạch cải tổ, Task 3.1): con gõ "ki", "kkk", "tt", "ể", "không" mà gia sư vẫn khen "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận".
 - Code:
   - luật không tốn token: `assessment/student_intent.py` (`is_bare_negation`, `is_gibberish_or_ambiguous_short`, `is_keyboard_mash`, `guess_typo`), `teaching/conductor.py` (`clean`);
   - bộ đọc: `tutor/reader.py` (`read_unclear`, `ModelReader`, `clarification_problems`), `ai_gateway/base.py` và `router.py` (`ModelClass.INTENT_AGENT`);
   - chính sách và vòng lặp: `tutor/policy.py` (`R-ASK-CONFIRM`), `tutor/item_loop.py` (`_on_unclear`), `teaching/loop.py` (`_ask_confirm`);
   - sự kiện: `core/events.py` (`MessageRead`).
-- Liên quan: ADR-017 (vai trò model), ADR-019 (hiểu con trước khi chấm), ADR-022 (đọc theo ngữ cảnh), ADR-028 (conductor), ADR-032 (ghi lần gọi model), quy tắc 1, 3, 6, 7 và 8 của CLAUDE.md, DI-75, DI-76, DI-77.
+- Liên quan: ADR-017 (vai trò model), ADR-019 (hiểu con trước khi chấm), ADR-022 (đọc theo ngữ cảnh), ADR-028 (conductor), ADR-032 (ghi lần gọi model), quy tắc 1, 3, 6, 7 và 8 của CLAUDE.md, DI-76, DI-77, DI-78.
 
 ## Bối cảnh
 

@@ -36,7 +36,7 @@ from cavat.core.pedagogy import (
 from cavat.modules.assessment.math_checker import CheckResult
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 
-# 0.12.0: REFORM-5 (DI-76), a few letters nothing reads are asked about once, then the child is helped
+# 0.12.0: REFORM-5 (DI-77), a few letters nothing reads are asked about once, then the child is helped
 # 0.11.0: REFORM-2 (DI-67, DI-68), a right step advances, no praise without an explanation
 # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
 POLICY_VERSION = "hint-policy/0.12.0"
@@ -73,7 +73,7 @@ _NO_EXPLANATION = frozenset(
     }
 )
 
-# REFORM-5 (DI-76): MESSAGE_READ labels of a few letters nothing reads, and the reason each one puts on
+# REFORM-5 (DI-77): MESSAGE_READ labels of a few letters nothing reads, and the reason each one puts on
 # ASK_CONFIRM (the renderer words the question by it).
 UNCLEAR_READS = frozenset({"AMBIGUOUS_TYPO", "GIBBERISH"})
 UNCLEAR_REASONS = frozenset({"TYPO", "GIBBERISH"})
