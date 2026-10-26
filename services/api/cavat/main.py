@@ -1,6 +1,6 @@
 """FastAPI entry point. Domain routers are added by later tasks (docs/tasks/BACKLOG.md).
 
-REL-1 (ADR-034): one port. ``create_app`` also serves the web app of apps/web/dist (``cavat.webapp``),
+REL-1 (ADR-035): one port. ``create_app`` also serves the web app of apps/web/dist (``cavat.webapp``),
 compresses what it sends, adds the light security headers and keeps /docs off unless ``API_DOCS=1``. There is
 no CORS: the web app and the API share one origin, so a page of another site cannot read an answer.
 """

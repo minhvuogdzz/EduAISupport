@@ -7,14 +7,15 @@ Web app React + TypeScript + Vite cho ba vai trò: **học sinh** học với gi
 Yêu cầu: Node ≥ 22.13 (khuyên dùng Node 22 LTS) và pnpm 10. Bật pnpm bằng `corepack enable`.
 
 ```bash
-make demo        # một lệnh cho cả bản demo: API (lưu vào database của .env, cavat_dev) + web ở http://localhost:5173
-make demo-memory # như trên nhưng database trong bộ nhớ: không lưu gì, Ctrl+C là mất
+make run        # bản mới nhất ở MỘT cổng: API phục vụ luôn web đã dựng, http://localhost:8000 (database của .env, cavat_dev)
+make run-memory # như trên nhưng database trong bộ nhớ: không lưu gì, Ctrl+C là mất
+# (make demo và make demo-memory là tên cũ của hai lệnh này)
 make web        # chỉ web, mock API trong trình duyệt, không cần backend
 make web-live   # chỉ web, nối API thật; cần `make api` hoặc `make api-memory` đang chạy ở một terminal khác
 make web-check  # lint + type-check + test + build, giống job `web` của CI
 ```
 
-`make demo` chạy API (database của `services/api/.env`, tức `cavat_dev`) và `make web-live` trong cùng một terminal; bấm Ctrl+C là dừng cả hai. Buổi học và hội thoại được lưu, tắt rồi bật lại vẫn còn. `make demo-memory` dùng database trong bộ nhớ thay vì Atlas. Mỗi lệnh chạy server chiếm một terminal cho tới khi dừng, nên `make api` và `make web-live` phải nằm ở hai tab khác nhau. Khi cổng bận, đổi cổng bằng `make demo API_PORT=8010 WEB_PORT=5183`.
+`make run` dựng web (`VITE_API=http pnpm build`, chỉ khi mã mới hơn bản dựng) rồi chạy API, API phục vụ `apps/web/dist` (ADR-035); bấm Ctrl+C là dừng. Buổi học và hội thoại được lưu, tắt rồi bật lại vẫn còn. `make run-memory` dùng database trong bộ nhớ thay vì Atlas. Khi cổng bận, đổi cổng bằng `make run PORT=8010`. Dev server (`make web`, `make web-live`) chỉ để sửa giao diện.
 
 Hai cách chạy backend cho `make web-live`:
 
@@ -34,7 +35,7 @@ Hệ thống thử nghiệm dùng đúng 3 tài khoản: 1 học sinh, 1 phụ h
 - **Tạo tài khoản:** chủ dự án chạy `make accounts`, nhập tên gọi và mã PIN.
 - **Đăng nhập:** web hiện 3 tài khoản để chọn, rồi nhập PIN. Token được giữ trong `localStorage` (`cavat.auth.token`).
 - **Sau khi đăng nhập:** mỗi tài khoản chỉ thấy phần của mình và có nút "Đăng xuất". Học sinh không phải nhập tên. Phụ huynh xem thẳng tình hình học của con, không cần mã.
-- **Chế độ demo:** mock API và `make demo-memory` (`AUTH_MODE=demo`) không có đăng nhập, mọi vai mở như trước.
+- **Chế độ demo:** mock API và `make run-memory` (`AUTH_MODE=demo`) không có đăng nhập, mọi vai mở như trước.
 
 ## Màn hình
 
@@ -86,7 +87,7 @@ Test (`pnpm test`, Vitest + Testing Library): enum của contract khớp `servic
 
 ## Buổi học theo chương (M1-7)
 
-Với API thật, buổi học mặc định là **buổi học theo chương** Số thập phân: gia sư dạy theo vòng 7 bước trên cây tri thức của chương (kế hoạch v1, `docs/plan/plan-v1-teaching-knowledge-graph.md`). Mock API trong trình duyệt vẫn chỉ chạy bài 1 cũ, nên muốn xem phần này thì chạy `make demo`.
+Với API thật, buổi học mặc định là **buổi học theo chương** Số thập phân: gia sư dạy theo vòng 7 bước trên cây tri thức của chương (kế hoạch v1, `docs/plan/plan-v1-teaching-knowledge-graph.md`). Mock API trong trình duyệt vẫn chỉ chạy bài 1 cũ, nên muốn xem phần này thì chạy `make run`.
 
 - **Lịch sử hội thoại:** mỗi buổi học là một document trên database, giữ toàn bộ hội thoại. Trang học sinh có mục "Lịch sử học" (`GET /v1/sessions/mine`): mở lại buổi đã xong để xem lại, buổi chưa xong thì học tiếp đúng chỗ cũ. Giáo viên xem mọi buổi ở trang giáo viên.
 - **Học tiếp qua nhiều buổi:** buổi mới của cùng học sinh đọc lại sự kiện các buổi trước của chương. Bài đã qua vẫn là đã qua, điểm được cộng dồn, và gia sư vào bài tiếp theo bằng một câu ôn bài nền. Báo cáo giáo viên ghi số buổi trước và đánh dấu bằng chứng "buổi trước".
@@ -118,7 +119,7 @@ Các quy ước có tính diễn giải (DI):
 - **Ngày học** (DI-30) tính theo giờ Việt Nam, là ngày có ít nhất một lượt học sinh trả lời.
 - Bài đang học nhưng chưa có bằng chứng hiện "Đang học", không hiện "Chưa học" (DI-31).
 
-Mock API trong trình duyệt không có hai endpoint này: trang chủ học sinh chỉ hiện phần bắt đầu học, trang phụ huynh báo cần chạy `make demo`.
+Mock API trong trình duyệt không có hai endpoint này: trang chủ học sinh chỉ hiện phần bắt đầu học, trang phụ huynh báo cần chạy `make run`.
 
 ## Bảng theo dõi của giáo viên (UI-2)
 
@@ -158,7 +159,7 @@ Quy ước hiển thị:
 - **Không dùng màu một mình:** mỗi màu luôn đi kèm số hoặc chữ.
 - **Các ngưỡng tự đặt:** những ngưỡng không có trong khung là DI-20 đến DI-28, ghi trong mục 9 của `docs/plan/plan-v1-teaching-knowledge-graph.md`.
 
-Mock API không có hai endpoint này: trang "Lớp học" báo cần chạy `make demo` và dẫn sang "Buổi học".
+Mock API không có hai endpoint này: trang "Lớp học" báo cần chạy `make run` và dẫn sang "Buổi học".
 
 ## Tài liệu của giáo viên (DOC-1)
 

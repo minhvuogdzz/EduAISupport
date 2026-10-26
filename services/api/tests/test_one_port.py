@@ -1,4 +1,4 @@
-"""REL-1 (ADR-034): the API serves the web build at one port, with a JSON 404 for the API's own paths, long
+"""REL-1 (ADR-035): the API serves the web build at one port, with a JSON 404 for the API's own paths, long
 caching for hashed files, light security headers, gzip and no docs. Offline: a fake dist folder."""
 
 import pytest

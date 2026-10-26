@@ -1,4 +1,4 @@
-"""Back up the database to files: `make backup` (REL-1, ADR-034).
+"""Back up the database to files: `make backup` (REL-1, ADR-035).
 
 Atlas M0 has no automatic backup, so before and after a trial with students the owner exports every
 collection of the database of services/api/.env (accounts, sessions and their events, evidence, knowledge

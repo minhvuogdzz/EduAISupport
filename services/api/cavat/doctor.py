@@ -1,4 +1,4 @@
-"""Check the machine before a trial with students: `make doctor` (REL-1, ADR-034). READ-ONLY.
+"""Check the machine before a trial with students: `make doctor` (REL-1, ADR-035). READ-ONLY.
 
 A table of green, yellow and red marks; the exit code is 1 when any is red, so a script can stop on it. It
 reads and pings, it never writes: no database write, no file, no index. What it looks at:

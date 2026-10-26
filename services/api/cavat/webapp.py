@@ -1,4 +1,4 @@
-"""One port (REL-1, ADR-034): the API serves the web app it belongs to.
+"""One port (REL-1, ADR-035): the API serves the web app it belongs to.
 
 ``make run`` builds apps/web (``VITE_API=http``) and starts the API alone; the browser, and through the
 Cloudflare tunnel every student's browser, talks to that one address. Routes win: whatever the API answers is

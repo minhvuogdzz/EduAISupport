@@ -1,6 +1,6 @@
 PY := services/api/.venv/bin/python
 WEB := apps/web
-# REL-1 (ADR-034): ONE port, the API serves the web app. PORT picks it (API_PORT is the old name, kept so
+# REL-1 (ADR-035): ONE port, the API serves the web app. PORT picks it (API_PORT is the old name, kept so
 # `make demo API_PORT=...` still works); BIND_HOST 0.0.0.0 would open it to the local network (no HTTPS there).
 API_PORT ?= 8000
 PORT ?= $(API_PORT)
