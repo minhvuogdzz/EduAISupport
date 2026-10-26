@@ -53,8 +53,11 @@ class Student:
     wrong: dict[str, str | None] = field(default_factory=dict)  # item id -> misconception shown
     weak_retells: dict[str, int] = field(default_factory=dict)  # node id -> failed retells left
     weak_recalls: set[str] = field(default_factory=set)  # DI-52: earlier nodes the student cannot recall
+    stubborn: set[str] = field(default_factory=set)  # FLOW-2: items that stay wrong however often they come
 
     def answer(self, d: NodeDecisionMade, session: str) -> Ev:
+        if d.ref in self.stubborn:
+            return resolved(d.ref, success=False, session=session)
         if d.ref in self.wrong:
             return resolved(d.ref, success=False, misconception=self.wrong.pop(d.ref), session=session)
         return resolved(d.ref, session=session)
@@ -195,10 +198,12 @@ def test_two_failed_checks_with_a_weak_prerequisite_go_back_to_it():
     assert switch[1:5] == ("KC-DEC-FRAC", None, "N-REMEDIATE", ("CHECK_FAILED_TWICE",))
 
 
+FRAC_ITEMS = ("TP-CC-01", "TP-CP-01", "TP-PR-01", "TP-PR-02", "TP-TR-01")
+
+
 def test_a_node_without_progress_is_stopped_and_the_next_node_still_comes():
     """FLOW-1 (DI-75): a weak period never ends the session; the next one comes."""
-    wrong = {i: None for i in ("TP-CC-01", "TP-CP-01", "TP-PR-01", "TP-PR-02", "TP-TR-01")}
-    steps = decisions(run(Student(wrong=wrong)))
+    steps = decisions(run(Student(stubborn=set(FRAC_ITEMS))))
     stop = next(i for i, s in enumerate(steps) if s[0] == A.STOP_NODE)
     assert steps[stop][:4] == (A.STOP_NODE, "KC-DEC-FRAC", None, "N-BUDGET")
     assert "NO_ITEMS_LEFT" in steps[stop][4]
@@ -207,6 +212,59 @@ def test_a_node_without_progress_is_stopped_and_the_next_node_still_comes():
     passed = [s[1] for s in steps if s[0] == A.PASS_NODE]
     assert passed and "KC-DEC-FRAC" not in passed
     assert steps[-1][0] == A.FINISH
+
+
+def second_pass(steps):
+    start = next(i for i, s in enumerate(steps) if s[0] == A.ENTER_NODE and "SECOND_PASS" in s[4])
+    return steps[start:]
+
+
+def test_a_stopped_node_is_taught_again_with_another_example_and_can_pass():
+    """FLOW-2 (DI-80): when no node is left, a stopped one comes back once, with an example not used yet."""
+    events = run(Student(wrong={"TP-CP-01": None}))  # one miss is enough to stop FRAC (DI-75 test below)
+    steps = decisions(events)
+    assert steps[-1][0] == A.FINISH
+    again = second_pass(steps)
+    assert again[0][:4] == (A.ENTER_NODE, "KC-DEC-FRAC", None, "N-NEXT")
+    assert again[1][:3] == (A.SHOW_WORKED_EXAMPLE, "KC-DEC-FRAC", "W2")  # the first pass showed W1
+    assert "SECOND_PASS" in again[1][4]
+    assert (A.PASS_NODE, "KC-DEC-FRAC", None, "N-PASS", ()) in again
+    assert "TP-CP-01" in {s[2] for s in again}  # the item the child missed comes back
+    assert "KC-DEC-FRAC" not in teaching_state(events).stopped  # passed: no longer "cần ôn thêm"
+    assert sum(s[0] in ITEM_ACTIONS and s[1] == "KC-DEC-FRAC" for s in again) <= 4  # the smaller budget
+    assert sum(s[0] == A.ENTER_NODE and s[1] == "KC-DEC-FRAC" for s in steps) == 2
+
+
+def test_a_node_stopped_twice_is_not_taught_a_third_time():
+    steps = decisions(run(Student(stubborn=set(FRAC_ITEMS))))
+    assert sum(s[0] == A.ENTER_NODE and s[1] == "KC-DEC-FRAC" for s in steps) == 2
+    stops = [s for s in steps if s[0] == A.STOP_NODE and s[1] == "KC-DEC-FRAC"]
+    assert len(stops) == 2 and stops[1][3] == "N-BUDGET"
+    assert steps[-1][0] == A.FINISH
+    again = second_pass(steps)
+    assert sum(s[0] in ITEM_ACTIONS and s[1] == "KC-DEC-FRAC" for s in again) <= 4
+
+
+def test_the_second_pass_takes_an_unused_variant_when_the_examples_are_gone_then_the_earliest_example():
+    events = run(Student(stubborn=set(FRAC_ITEMS)))
+    assert "KC-DEC-FRAC" in teaching_state(events).second_pass
+    cut = next(
+        i
+        for i, e in enumerate(events)
+        if e.event_type == EventType.NODE_DECISION
+        and e.payload["node_id"] == "KC-DEC-FRAC"
+        and e.payload["reason_codes"] == ["SECOND_PASS"]
+    )
+    projection = project_chapter(events[:cut], CHAPTER)
+    state = teaching_state(events[: cut + 1])  # just entered the node again
+    state.variants_used["KC-DEC-FRAC"] = ["T1"]
+    state.examples_used["KC-DEC-FRAC"] = ["W2", "W1"]  # no example left
+    d = decide(CHAPTER, projection, state)
+    assert (d.action, d.ref) == (A.TEACH_THEORY, "T2") and "SECOND_PASS" in d.reason_codes
+    state.variants_used["KC-DEC-FRAC"] = ["T1", "T2"]  # nothing left: the earliest example, said so
+    d = decide(CHAPTER, projection, state)
+    assert (d.action, d.ref) == (A.SHOW_WORKED_EXAMPLE, "W2")
+    assert {"SECOND_PASS", "SAME_EXAMPLE"} <= set(d.reason_codes)
 
 
 def test_after_a_pass_an_earlier_node_is_reviewed():
@@ -230,7 +288,7 @@ def test_decisions_are_deterministic_and_carry_the_policy_version():
     first, again = run(Student()), run(Student())
     assert decisions(first) == decisions(again)
     versions = {e.payload["policy_version"] for e in first if e.event_type == EventType.NODE_DECISION}
-    assert versions == {"node-policy/0.4.0"}
+    assert versions == {"node-policy/0.5.0"}
 
 
 def test_item_decisions_carry_the_support_of_the_mastery_band():
@@ -384,5 +442,8 @@ def test_an_item_is_never_retried_twice():
         def answer(self, d, session):
             return resolved(d.ref, success=d.ref != only, session=session)
 
-    events = run(AlwaysWrong())
-    assert sum(1 for _, n, r, _, _ in decisions(events) if r == only) == 2
+    steps = decisions(run(AlwaysWrong()))
+    first_pass = steps[
+        : next(i for i, s in enumerate(steps) if "SECOND_PASS" in s[4])
+    ]  # DI-80 asks it once more
+    assert sum(1 for _, n, r, _, _ in first_pass if r == only) == 2

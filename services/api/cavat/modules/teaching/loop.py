@@ -116,6 +116,9 @@ ACTIVITY_FOR: dict[TeachAction, ActivityType] = {
 PHRASES: dict[str, str] = {
     "enter": "Bây giờ {t} và {s} cùng học: {name}.",
     "resume": "Mình quay lại bài {name} nhé.",
+    # FLOW-2 (DI-80, drafted for the owner's review): the second pass of a period stopped earlier today.
+    "second_pass": "Mình quay lại bài {name} một lần nữa nhé, {t} giảng lại bằng ví dụ khác.",
+    "second_pass_same": "Mình quay lại bài {name} một lần nữa nhé, {t} giải lại chậm hơn từng bước.",
     "switch": "Trước khi học tiếp, mình ôn lại {name} một chút nhé.",
     "warmup": "Trước tiên, {s} trả lời nhanh một câu ôn bài cũ nhé.",
     "review": "Mình ôn lại bài cũ một chút nhé.",
@@ -738,6 +741,12 @@ class TeachingLoop:
 
         if a == TeachAction.ENTER_NODE:
             key = "resume" if "RESUME" in d.reason_codes else "enter"
+            if "SECOND_PASS" in d.reason_codes:
+                key = (
+                    "second_pass_same"
+                    if {"SAME_EXAMPLE", "SAME_VARIANT"} & set(d.reason_codes)
+                    else "second_pass"
+                )
             say(TeachMessage(MessageKind.NODE, self._phrase(key, name=name), node_id))
         elif a == TeachAction.SWITCH_TO_PREREQUISITE:
             say(TeachMessage(MessageKind.NODE, self._phrase("switch", name=name), node_id))
