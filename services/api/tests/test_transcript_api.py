@@ -83,8 +83,8 @@ def test_a_hint_the_conductor_gave_is_in_the_transcript(client):
     ``UNSTICK``, with what the conductor found in the message that led to it."""
     state = advance(client, start(client), "u0")  # the theory question, then the first item
     state = advance(client, state, "u1", "😭😭 ko bít lm jjjj")
-    state = advance(client, state, "u2", "xyz abc")
-    state = advance(client, state, "u3", "xyz abc")
+    state = advance(client, state, "u2", "xyz abc def")
+    state = advance(client, state, "u3", "xyz abc def")
 
     turns = turns_of(client, state)
     unstuck = [t for t in turns if t["student"] and t["student"]["kind"] == "UNSTICK"]
@@ -99,6 +99,32 @@ def test_a_hint_the_conductor_gave_is_in_the_transcript(client):
     }
     routes = [t["student"]["conducted"]["route"] for t in turns if t["student"] and t["student"]["conducted"]]
     assert routes == ["PASS", "UNSTICK"]
+
+
+def test_a_key_slip_is_asked_about_and_the_teacher_sees_how_it_was_read(client):
+    """REFORM-5, through the API: "ki" at the theory question and "kkk" at an item are asked about (nothing
+    graded, nothing praised) and the teacher's transcript says what the tutor made of them (a 200, not a 500
+    on the new labels)."""
+    state = start(client)
+    asked = advance(client, state, "s0", "ki")  # at the theory question
+    assert asked["teaching"]["awaiting"] == "THEORY_REPLY"
+    assert asked["transcript"][-1]["text"].endswith("?") and "Đúng rồi" not in asked["transcript"][-1]["text"]
+    state = advance(client, asked, "s1")  # the right reply, then the first item
+    assert state["teaching"]["awaiting"] == "ANSWER"
+    slipped = advance(client, state, "s2", "kkk")
+    helped = advance(client, slipped, "s3", "tt")
+
+    turns = turns_of(client, helped)
+    reads = [t["student"]["read"] for t in turns if t["student"] and t["student"]["read"]]
+    assert [(r["label"], r["source"]) for r in reads] == [
+        ("AMBIGUOUS_TYPO", "RULE"),
+        ("GIBBERISH", "RULE"),
+        ("GIBBERISH", "RULE"),
+    ]
+    for after in (slipped, helped):  # the tutor's reply to a slip: one question, no praise
+        said = after["transcript"][-1]["text"]
+        assert said.count("?") == 1 and "Đúng rồi" not in said, said
+    assert slipped["transcript"][-1]["text"] != helped["transcript"][-1]["text"]  # asked once, then helped
 
 
 def test_an_answer_from_the_trusted_web_source_is_in_the_transcript(client, monkeypatch):

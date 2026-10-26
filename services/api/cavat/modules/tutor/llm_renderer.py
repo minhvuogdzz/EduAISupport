@@ -60,11 +60,14 @@ from cavat.modules.tutor.contracts import (
     RenderedMessage,
     ValidationCode,
 )
+from cavat.modules.tutor.policy import UNCLEAR_REASONS
 from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, build_request, prompt_view
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import singles_out_choice
 
-LLM_RENDERER_VERSION = "llm-renderer.v6"
+# v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
+# template: no second call for the same message
+LLM_RENDERER_VERSION = "llm-renderer.v7"
 LLM_MOVES = frozenset(
     {
         Move.PROBE,
@@ -200,6 +203,8 @@ def _template_only(ctx: RenderContext) -> bool:
     move = ctx.decision.move
     if ctx.item.is_assessment or move in TEMPLATE_ONLY_MOVES:
         return True
+    if move == Move.ASK_CONFIRM and UNCLEAR_REASONS.intersection(ctx.decision.reason_codes):
+        return True  # REFORM-5: the reader already wrote (or the template has) the question for this slip
     return move == Move.VERIFY and "ASK_AGAIN" not in ctx.decision.reason_codes
 
 

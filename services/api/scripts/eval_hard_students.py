@@ -9,6 +9,11 @@ Cost (free tier, docs/poc/free-tier-quota.md): about 30 to 50 Qwen calls (13 rol
 under a third of its 200 000 tokens a day, and about 25 judge calls on openai/gpt-oss-120b, which has its own
 quota. Not part of `make test`: the tests stay offline. The report goes to
 evals/reports/<date>-hard-students-live.md.
+
+REFORM-5 (3.1) adds three roles that type what the owner's students type when stuck (a key slip, laughter, a
+bare "không"). The report counts the replies that praise such a message ("Đúng rồi!"): it must be 0, and how
+many of the key slips were read by the intent agent (a model call) and how many by rule (none).
+`python scripts/eval_hard_students.py Kiên Tuấn` runs only the roles whose name contains one of the words.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from pathlib import Path
 from statistics import fmean
 
 from cavat.config import REPO_ROOT, get_settings
+from cavat.core.events import EventType
 from cavat.core.pedagogy import ActivityType
 from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, ModelClass
 from cavat.modules.ai_gateway.router import build_router
@@ -56,7 +62,13 @@ SCENARIOS: list[tuple[str, str, list[str]]] = [
     ("Vân, hỏi lại gợi ý (ca của chủ dự án)", "TP-CC-01", ["cho con gợi ý", "mẫu như nào"]),
     ("Khoa, hỏi nghĩa một từ trong gợi ý", "TP-PR-01", ["con cần gợi ý", "phân số thập phân là gì ạ"]),
     ("Hà, trả lời bằng lời", "TP-CC-01", ["cái có mẫu là mười ạ"]),
+    # REFORM-5 (3.1): nothing in these is an answer, an explanation or a reason to praise
+    ("Kiên, gõ nhầm phím", "TP-PR-01", ["kt", "ể"]),
+    ("Tuấn, bấm bừa và cười", "TP-PR-01", ["kkk", "tt"]),
+    ("Linh, chỉ nói không", "TP-PR-01", ["không", "chưa"]),
 ]
+SLIP_ROLES = ("Kiên", "Tuấn", "Linh")
+PRAISE = ("Đúng rồi", "Chính xác", "cẩn thận")
 
 JUDGE_SYSTEM = (
     "Bạn là giáo viên Toán tiểu học có kinh nghiệm, chấm một lượt nói của gia sư AI với học sinh lớp 5. "
@@ -92,6 +104,7 @@ class Turn:
     rejected: str
     reply: str
     judged: dict
+    read: str = ""  # REFORM-5: how the intent agent read a few unreadable letters, "LABEL/SOURCE"
 
 
 def correct_answer(item) -> str:
@@ -141,7 +154,10 @@ def run() -> list[Turn]:
     tutor_router = build_router(for_eval=True)
     judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)}, for_eval=True)
     turns: list[Turn] = []
+    only = sys.argv[1:]
     for role, item_id, messages in SCENARIOS:
+        if only and not any(word in role for word in only):
+            continue
         package = chapter.lesson_of(item_id)
         renderer = LLMRenderer(tutor_router, TemplateRenderer(), validate_message, student_name="An")
         tutor = ItemTutor(
@@ -159,21 +175,23 @@ def run() -> list[Turn]:
             time.sleep(PAUSE_S)
             turn = tutor.on_student(said, 15)
             trace = renderer.last_trace
-            intent = classify_intent(said)
-            judged = judge(
-                judge_router, package.item(item_id), said, str(intent or "ATTEMPT"), before, turn.text
-            )
+            # REFORM-5: a few unreadable letters are read by the tutor (a rule or the model), not by the lists
+            reads = [e.payload for e in turn.events if e.type == EventType.MESSAGE_READ]
+            read = f"{reads[-1]['label']}/{reads[-1]['source']}" if reads else ""
+            intent = str(classify_intent(said) or (reads[-1]["label"] if reads else "ATTEMPT"))
+            judged = judge(judge_router, package.item(item_id), said, intent, before, turn.text)
             turns.append(
                 Turn(
                     role,
                     item_id,
                     said,
-                    str(intent or "ATTEMPT"),
+                    intent,
                     turn.move.value,
                     trace.source if trace else "TEMPLATE",
                     "; ".join(",".join(codes) for codes in trace.rejected) if trace else "",
                     turn.text,
                     judged,
+                    read,
                 )
             )
             print(f"{role}: {said!r} -> [{turn.move.value}, {turns[-1].source}] {turn.text}", flush=True)
@@ -203,6 +221,15 @@ def report(turns: list[Turn]) -> str:
         f" {sum(t.source != 'LLM' for t in turns)}.",
         f"- Giám khảo thấy lộ đáp án: {sum(bool(t.judged.get('leaked_answer')) for t in turns)} lượt.",
     ]
+    slips = [t for t in turns if t.role.split(",")[0] in SLIP_ROLES]
+    if slips:
+        lines += [
+            f"- Câu gõ nhầm, bấm bừa hoặc chỉ nói không: {len(slips)} lượt;"
+            f' khen sai ("Đúng rồi" và tương tự): {sum(any(p in t.reply for p in PRAISE) for t in slips)}'
+            " lượt (phải là 0).",
+            f"- Trong đó đọc bằng model: {sum(t.read.endswith('/LLM') for t in slips)} lượt,"
+            f" bằng luật: {sum(t.read.endswith('/RULE') for t in slips)} lượt.",
+        ]
     for key, label in zip(
         SCORES, ("Đáp đúng ý học sinh", "Socratic", "Hợp với trẻ 10 tuổi", "Bám bài"), strict=True
     ):
@@ -235,7 +262,9 @@ def main() -> None:
     if key is None or not key.get_secret_value():
         sys.exit("GROQ_API_KEY chưa có trong services/api/.env: bản chạy thật cần Qwen.")
     turns = run()
-    out = REPO_ROOT / "evals" / "reports" / f"{date.today().isoformat()}-hard-students-live.md"
+    # a run of some roles only (REFORM-5) does not overwrite the report of all of them
+    name = "-".join(["hard-students-live", *sys.argv[1:]]).replace(" ", "")
+    out = REPO_ROOT / "evals" / "reports" / f"{date.today().isoformat()}-{name}.md"
     out.write_text(report(turns), encoding="utf-8")
     print(f"\nBáo cáo: {Path(out).relative_to(REPO_ROOT)}")
 

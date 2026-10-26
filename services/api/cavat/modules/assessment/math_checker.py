@@ -69,14 +69,28 @@ _NOT = ("không", "ko", "k", "hông", "hok", "khg")
 _OR_RE = phrase_regex(["hay", "hoặc"])
 
 
-def classify_intent(text: str) -> Outcome | None:
+def classify_intent(text: str, *, verdict: bool = False) -> Outcome | None:
     """Detect messages that are not an attempt at the answer (ADR-019, `student_intent`).
 
     "Con không biết là < hay >" names both answers: it asks for help, it does not answer.
+    ``verdict``: a bare "không" or "chưa" answers the question (REFORM-5, DI-76), see ``no_is_an_answer``.
     """
     t = normalize_text(text)
     has_answer = (bool(extract_numbers(t)) or bool(_relations(t))) and not _OR_RE.search(t)
-    return read_intent(text, has_answer=has_answer)
+    return read_intent(text, has_answer=has_answer, verdict=verdict)
+
+
+def no_is_an_answer(item: Item) -> bool:
+    """REFORM-5 (DI-76): a bare "không" or "chưa" is an answer to this item, not "con không biết": a true or
+    false item, a choice with a "không" or "chưa" option, and a number that is 0 ("không" is the digit)."""
+    ans = item.answer
+    if isinstance(ans, BooleanAnswer):
+        return True
+    if isinstance(ans, NumericAnswer):
+        return parse_literal(ans.value).value == 0
+    if isinstance(ans, ChoiceAnswer):
+        return any(fold(n) in ("khong", "chua") for o in ans.options for n in (o.text, *o.aliases))
+    return False
 
 
 # --------------------------------------------------------------------------- relations
@@ -616,7 +630,7 @@ def _check_boolean(spec: BooleanAnswer, text: str) -> CheckResult:
 
 def check_answer(item: Item, text: str, pkg: LessonPackage) -> CheckResult:
     """Check one student message against `item`. Never calls an LLM."""
-    intent = classify_intent(text)
+    intent = classify_intent(text, verdict=no_is_an_answer(item))
     if intent is not None:
         if intent == Outcome.CLARIFY_REQUEST and keyword_dump(text) and isinstance(item.answer, OpenAnswer):
             # An open answer may be a list of terms ("phần nguyên, phần thập phân, dấu phẩy"): graded first.

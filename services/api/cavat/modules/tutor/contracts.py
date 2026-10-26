@@ -58,6 +58,10 @@ class ItemState:
     choice_offered: bool = False  # "gợi ý thêm hay tự thử lại?" is asked once per item (DI-35)
     explanation_asked_again: bool = False  # "vì sao" asked once more after "là sao?" or off-topic talk
     last_explanation_vague: bool = False  # DI-55: the last "vì sao" reply said nothing of this item
+    # REFORM-5 (DI-77): the tutor's last message asked what a few unreadable letters meant
+    # (ASK_CONFIRM); if the next message is unreadable too, the tutor helps instead of asking a third
+    # time.
+    confirm_open: bool = False
     probes_sent: int = 0  # "con làm thế nào?" asked after the first wrong answer (R-FIRST-WRONG asks once)
     counter_examples_shown: int = 0  # FIX-6: the next counterexample of the item is a different one
     misconception_counts: dict[str, int] = field(default_factory=dict)
@@ -110,6 +114,10 @@ class RenderContext:
     focus: str | None = None
     last_tutor: str | None = None
     evidence: tuple[str, ...] = ()
+    # REFORM-5 (ASK_CONFIRM): what the reader guessed the child meant, and the question it proposed, already
+    # passed by the validator (the tutor says it as it is). Empty: the template asks.
+    guessed_meaning: str | None = None
+    clarification: str | None = None
 
 
 @dataclass(frozen=True)

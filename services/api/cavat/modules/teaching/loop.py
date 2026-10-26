@@ -29,6 +29,7 @@ from cavat.core.events import (
     EventType,
     HintRequested,
     ItemRestarted,
+    MessageRead,
     NodeDecisionMade,
     QuestionParked,
     RagRetrieved,
@@ -42,7 +43,15 @@ from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, ItemResolution, Outc
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
 from cavat.modules.assessment.retell import judge_retell
-from cavat.modules.assessment.student_intent import expand_short_forms, signals_distress
+from cavat.modules.assessment.student_intent import (
+    expand_short_forms,
+    intent_of_guess,
+    is_affirmation,
+    is_gibberish_or_ambiguous_short,
+    known_words,
+    signals_distress,
+    without_subject,
+)
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 from cavat.modules.content.chapter_package import Chapter, Node, TheoryVariant
 from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
@@ -55,19 +64,30 @@ from cavat.modules.tutor.item_loop import (
     CHOICE_HINT,
     CHOICE_RETRY,
     CHOICES,
+    CONFIRMED_TEXT,
     HINT_REQUEST_TEXT,
     ItemTutor,
     Phase,
     TutorEvent,
 )
-from cavat.modules.tutor.reader import ContextReader, recorded
+from cavat.modules.tutor.reader import (
+    MAX_INTENT_READS_PER_ITEM,
+    ContextReader,
+    clarification_problems,
+    read_unclear,
+    recorded,
+)
 from cavat.modules.tutor.renderer import TemplateRenderer
 from cavat.modules.tutor.validator import validate_message
 
-TEMPLATES_VERSION = "teaching-templates/0.5.0"  # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
+# 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
+# 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
+TEMPLATES_VERSION = "teaching-templates/0.6.0"
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
+# REFORM-5: the ref of the question "con muốn nói gì?" asked about a few unreadable letters
+CONFIRM_REF = "ASK_CONFIRM"
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
@@ -125,6 +145,10 @@ PHRASES: dict[str, str] = {
         "{T} nghe {s} nói rồi. Chuyện này quan trọng lắm: {s} hãy kể ngay với thầy cô hoặc bố mẹ, "
         "người lớn mà {s} tin nhé. {T} ghi lại để thầy cô biết."
     ),
+    # REFORM-5 (DI-77, drafted for the owner's review): the same two questions as the item loop's, for a
+    # theory question or a retell that waits.
+    "confirm_typo": "{T} đoán {s} muốn nói là {s} {meaning}, đúng không, hay {s} định gõ ý khác?",
+    "confirm_mash": "Hình như bàn phím của {s} vừa gõ ra mấy chữ lạ. {S} gõ lại ý của mình giúp {t} nhé?",
     "question_limit": (
         "{T} ghi lại các câu {s} hỏi để mình nói sau nhé. Bây giờ {s} trả lời câu của {t}: {ask}"
     ),
@@ -357,7 +381,11 @@ class TeachingLoop:
         )
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
         messages: list[TeachMessage] = []
-        intent = classify_intent(text)
+        said = self._confirmed(text)  # REFORM-5: "ừ" to a guess says what was guessed
+        # a bare "không" answers a question that a no can answer ("... có dài hơn không?"), else it
+        # is "con không biết"
+        verdict = self.awaiting == Awaiting.THEORY_REPLY and _yes_no(self._prompt or "")
+        intent = classify_intent(said, verdict=verdict)
         if signals_distress(text):  # DI-41: care and the teacher first, whatever else the message is
             flagged = SafetyFlagged(item_id=f"{node_id}:{self._ref or 'RETELL'}", source="RULE")
             events.append(self._record(now, EventType.SAFETY_FLAGGED, flagged))
@@ -367,6 +395,13 @@ class TeachingLoop:
             return TeachTurn(
                 tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=self._prompt
             )
+        if intent is None and is_gibberish_or_ambiguous_short(text, known_words(self._prompt or "")):
+            # REFORM-5 (3.1): "ki", "ể", "kkk" are neither the reply nor "con không biết". Asked once what
+            # they meant (the question still waits, nothing is judged, nothing advances); as unreadable the
+            # second time in a row, the child is helped as when they say "con không biết".
+            if not self._confirm_open():
+                return self._ask_confirm(text, now, node_id, messages, events)
+            intent = Outcome.HELP_REQUEST
         if self.speaker is not None and intent not in _OWN_PATH and self.speaker.is_question(text):
             return self._on_question(text, now, node_id, messages, events)
         if intent == Outcome.OFF_TOPIC and self._replies_since_decision() <= MAX_OFF_TOPIC_REDIRECTS:
@@ -403,6 +438,76 @@ class TeachingLoop:
             said = self._phrase("retell_partial" if judged.ideas_found else "retell_none")
         self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, node_id))
         return self._advance(now, messages, events)
+
+    def _confirm_open(self) -> bool:
+        """REFORM-5: the last thing the tutor said, before the message being read, was the question about
+        a few unreadable letters. Read from the events, so a resumed session knows it too."""
+        for e in reversed(self.events[:-1]):  # the last event is the message being read
+            if e.event_type == EventType.TEACH_MESSAGE_SENT:
+                return e.payload.get("ref") == CONFIRM_REF
+        return False
+
+    def _confirmed(self, text: str) -> str:
+        """REFORM-5: "ừ", "đúng rồi" after "cô đoán con muốn nói là con chưa biết làm, đúng không?" is read
+        as the guess it confirms ("con không biết"); anywhere else it is read as typed."""
+        if not is_affirmation(text) or not self._confirm_open():
+            return text
+        guess = next(
+            (e.payload for e in reversed(self.events) if e.event_type == EventType.MESSAGE_READ), None
+        )
+        intent = intent_of_guess((guess or {}).get("guessed_meaning", ""))
+        return CONFIRMED_TEXT[intent] if intent is not None else text
+
+    def _ask_confirm(
+        self, text: str, now: datetime, node_id: str, messages: list[TeachMessage], events: list[LoopEvent]
+    ) -> TeachTurn:
+        """REFORM-5 (3.1): ask what a few unreadable letters meant, in the question's own wait. The reading
+        (a rule's, or the model's guess and question) is recorded; the question the model proposed is said
+        only if ``clarification_problems`` finds nothing wrong with it."""
+        ref = f"{node_id}:{self._ref or 'RETELL'}"
+        turn = self._replies_since_decision()
+        last = max(
+            (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
+        )
+        spent = sum(
+            1
+            for e in self.events[last + 1 :]
+            if e.event_type == EventType.MESSAGE_READ and e.payload.get("source") == "LLM"
+        )
+        reading = read_unclear(
+            self.item_reader,
+            stem=self._prompt or "",
+            last_tutor=self._prompt or "",
+            said=text,
+            turn=turn,
+            allow_model=spent < MAX_INTENT_READS_PER_ITEM,
+        )
+        events.append(
+            self._record(
+                now,
+                EventType.MESSAGE_READ,
+                MessageRead(
+                    item_id=ref,
+                    turn=turn,
+                    label=reading.label,  # type: ignore[arg-type]
+                    source=reading.source,
+                    guessed_meaning=reading.guessed_meaning,
+                    clarification=reading.clarification,
+                ),
+            )
+        )
+        question, source = reading.clarification, "LLM"
+        if not question or clarification_problems(question, self._persona["s"]):
+            meaning = without_subject(reading.guessed_meaning)
+            if reading.label == "AMBIGUOUS_TYPO" and meaning:
+                question = self._phrase("confirm_typo", meaning=meaning)
+            else:
+                question = self._phrase("confirm_mash")
+            source = "TEMPLATE"
+        self._say(
+            now, messages, events, TeachMessage(MessageKind.FEEDBACK, question, node_id, CONFIRM_REF, source)
+        )
+        return TeachTurn(tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=self._prompt)
 
     def _on_recall(
         self,
