@@ -12,6 +12,7 @@ import re
 from collections.abc import Callable
 
 from cavat.core.pedagogy import HintLevel, HintTarget, ItemResolution, Move
+from cavat.modules.assessment.student_intent import without_subject
 from cavat.modules.assessment.vi_numbers import fold
 from cavat.modules.content.lesson_package import (
     ChoiceAnswer,
@@ -384,16 +385,13 @@ def _teach_back(ctx: RenderContext) -> RenderedMessage:
     return _with_rule(ctx, _msg(_say(ctx, "teach_back"), "TEMPLATE"))
 
 
-_SUBJECT_RE = re.compile(r"^(?:con|em|cô)\s+", re.IGNORECASE)
-
-
 def _ask_confirm(ctx: RenderContext) -> RenderedMessage:
     """REFORM-5: the intent agent's question when it proposed one that the validator passed (said as it is);
     else the template for a likely typo (with the guess) or for a key slip; else the old fixed sentence."""
     if ctx.clarification:
         return _msg(ctx.clarification, "LLM")
     reasons = ctx.decision.reason_codes
-    meaning = _SUBJECT_RE.sub("", (ctx.guessed_meaning or "").strip(" .?!"))
+    meaning = without_subject(ctx.guessed_meaning or "")
     if "TYPO" in reasons and meaning:
         return _msg(_say(ctx, "ask_confirm_typo", meaning=meaning), "TEMPLATE")
     if "TYPO" in reasons or "GIBBERISH" in reasons:

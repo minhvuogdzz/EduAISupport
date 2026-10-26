@@ -387,9 +387,8 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
 
 
 def _ask_confirm(chk: CheckResult | None) -> PolicyDecision:
-    """R-ASK-CONFIRM: the tutor asks again what the child meant, and nothing is graded, praised or
-    counted. A key
-    slip or a likely typo (REFORM-5) says so in its reason, for the words of the question."""
+    """R-ASK-CONFIRM: the tutor asks again what the child meant, and nothing is graded, praised or counted.
+    A key slip or a likely typo (REFORM-5) says so in its reason, for the words of the question."""
     kind = _REASON_OF_READ.get(unclear_read(chk) or "")
     return PolicyDecision(
         move=Move.ASK_CONFIRM,
@@ -540,8 +539,7 @@ def _after_explanation(
     "Là sao ạ?", talk outside the lesson or "chán quá" in reply to "vì sao" gets the question once more,
     with a word for what the child said (DI-38); the second time the item ends as before.
     A few letters nothing reads ("ki", "kkk") are asked about first (REFORM-5): the item goes on waiting
-    for the
-    explanation, and the "vì sao" is not yet asked again.
+    for the explanation, and the "vì sao" is not yet asked again.
     """
     if outcome == Outcome.NEEDS_CONFIRMATION:
         return _ask_confirm(chk)

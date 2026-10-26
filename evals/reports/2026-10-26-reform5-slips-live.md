@@ -13,18 +13,18 @@ Chạy bằng `make eval-hard` (`services/api/scripts/eval_hard_students.py`, TQ
 - Giám khảo thấy lộ đáp án: 0 lượt.
 - Câu gõ nhầm, bấm bừa hoặc chỉ nói không: 6 lượt; khen sai ("Đúng rồi" và tương tự): 0 lượt (phải là 0).
 - Trong đó đọc bằng model: 1 lượt, bằng luật: 3 lượt.
-- Đáp đúng ý học sinh: trung bình 4.67/5.
-- Socratic: trung bình 4.33/5.
-- Hợp với trẻ 10 tuổi: trung bình 4.83/5.
-- Bám bài: trung bình 5.00/5.
+- Đáp đúng ý học sinh: trung bình 5.00/5.
+- Socratic: trung bình 4.17/5.
+- Hợp với trẻ 10 tuổi: trung bình 5.00/5.
+- Bám bài: trung bình 4.83/5.
 
 ## Từng lượt
 
 | Vai | Câu | Con nói | Ý định | Nước đi | Nguồn | Lời gia sư | Ý | Soc | Trẻ | Bài | Lộ | Nhận xét |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Kiên, gõ nhầm phím | TP-PR-01 | kt | AMBIGUOUS_TYPO | ASK_CONFIRM | LLM | Cô đoán con muốn nói là không biết làm, đúng không ạ? | 3 | 2 | 4 | 5 | không | Cô đã nhận diện cảm xúc và trấn an, nhưng chưa đưa câu hỏi gợi ý Socratic để học sinh tự tìm đáp án. |
+| Kiên, gõ nhầm phím | TP-PR-01 | kt | AMBIGUOUS_TYPO | ASK_CONFIRM | LLM | Cô đoán con muốn nói là con chưa biết làm, đúng không, hay con định gõ ý khác? | 5 | 3 | 5 | 5 | không | Tutor nhẹ nhàng, xác nhận cảm xúc và hỏi lại ý định của học sinh, không đưa đáp án; tuy nhiên chưa đưa câu hỏi gợi dẫn suy nghĩ nên điểm Socratic trung bình. |
 | Kiên, gõ nhầm phím | TP-PR-01 | ể | GIBBERISH | OFFER_CHOICE | TEMPLATE | Không sao đâu, mình cùng nghĩ từng bước nhé. Con muốn cô gợi ý thêm hay con muốn tự thử lại một lần nữa? | 5 | 5 | 5 | 5 | không | Câu trả lời an ủi, khuyến khích tự làm, không đưa đáp án, phù hợp với phong cách Socratic. |
-| Tuấn, bấm bừa và cười | TP-PR-01 | kkk | GIBBERISH | ASK_CONFIRM | TEMPLATE | Hình như bàn phím của con vừa gõ ra mấy chữ lạ. Con gõ lại ý của mình giúp cô nhé? | 5 | 4 | 5 | 5 | không | Cô đã an ủi, nhận xét cảm xúc và yêu cầu học sinh nhập lại, phù hợp và không đưa đáp án. |
-| Tuấn, bấm bừa và cười | TP-PR-01 | tt | GIBBERISH | OFFER_CHOICE | TEMPLATE | Không sao đâu, mình cùng nghĩ từng bước nhé. Con muốn cô gợi ý thêm hay con muốn tự thử lại một lần nữa? | 5 | 5 | 5 | 5 | không | Câu trả lời an ủi, đặt câu hỏi khuyến khích tự làm, không đưa đáp án. |
-| Linh, chỉ nói không | TP-PR-01 | không | HELP_REQUEST | OFFER_CHOICE | TEMPLATE | Không sao đâu, mình cùng nghĩ từng bước nhé. Con muốn cô gợi ý thêm hay con muốn tự thử lại một lần nữa? | 5 | 5 | 5 | 5 | không | Câu trả lời an ủi, khuyến khích học sinh tự suy nghĩ, không đưa đáp án, phù hợp với phong cách Socratic. |
-| Linh, chỉ nói không | TP-PR-01 | chưa | HELP_REQUEST | HINT | LLM | Chưa sao, mình cùng làm nhé. Con hãy đọc to phân số 9/10 cho cô nghe, rồi xem mẫu số 10 gợi cho con điều gì? | 5 | 5 | 5 | 5 | không | Câu hỏi gợi ý, khuyến khích học sinh tự nghĩ, không đưa đáp án, phù hợp với yêu cầu Socratic. |
+| Tuấn, bấm bừa và cười | TP-PR-01 | kkk | GIBBERISH | ASK_CONFIRM | TEMPLATE | Hình như bàn phím của con vừa gõ ra mấy chữ lạ. Con gõ lại ý của mình giúp cô nhé? | 5 | 2 | 5 | 4 | không | Câu trả lời nhẹ nhàng, khuyến khích học sinh nhập lại, phù hợp với tình huống nhưng chưa thực hiện phương pháp Socratic. |
+| Tuấn, bấm bừa và cười | TP-PR-01 | tt | GIBBERISH | OFFER_CHOICE | TEMPLATE | Không sao đâu, mình cùng nghĩ từng bước nhé. Con muốn cô gợi ý thêm hay con muốn tự thử lại một lần nữa? | 5 | 5 | 5 | 5 | không | Câu trả lời an ủi, khuyến khích tự làm, không đưa đáp án, phù hợp với yêu cầu. |
+| Linh, chỉ nói không | TP-PR-01 | không | HELP_REQUEST | OFFER_CHOICE | TEMPLATE | Không sao đâu, mình cùng nghĩ từng bước nhé. Con muốn cô gợi ý thêm hay con muốn tự thử lại một lần nữa? | 5 | 5 | 5 | 5 | không | Câu trả lời an ủi, khuyến khích tự suy nghĩ, không đưa đáp án. |
+| Linh, chỉ nói không | TP-PR-01 | chưa | HELP_REQUEST | HINT | LLM | Không sao đâu, mình cùng nghĩ từng bước nhé. Con đọc phân số này giúp cô nhé? | 5 | 5 | 5 | 5 | không | Câu hỏi khuyến khích học sinh tự đọc và suy nghĩ, không đưa đáp án, phù hợp và thân thiện. |

@@ -124,6 +124,9 @@ INTENT_SYSTEM = (
     "GIBBERISH: nhẹ nhàng nói hình như bàn phím vừa gõ ra chữ lạ và mời con gõ lại ý của mình. "
     "Không nêu đáp án hay số nào của bài, không khen, không trách, "
     "không nhắc lại chuỗi con gõ. "
+    "Ví dụ AMBIGUOUS_TYPO: 'Cô đoán con muốn nói là con chưa biết làm, đúng không, hay con định gõ ý khác?' "
+    "(chỉ MỘT dấu hỏi, ở cuối câu). "
+    "Ví dụ GIBBERISH: 'Hình như bàn phím của con vừa gõ ra mấy chữ lạ. Con gõ lại ý của mình giúp cô nhé?' "
     "Trả về JSON đúng schema; focus và answer luôn để chuỗi rỗng."
 )
 
@@ -338,11 +341,10 @@ def read_unclear(
 
     The rule first (no token). Then the model through ``reader``, when the caller may spend a call
     (``allow_model``); whatever label it gives, nothing is graded, so it is a typo when it guessed a
-    meaning and
-    gibberish when it did not. A reader that has nothing (no key, quota, session cap, a replay without a
-    record)
-    leaves gibberish: the tutor asks all the same, with its own words. The caller has already checked that the
-    string is a few letters nothing else reads (``is_gibberish_or_ambiguous_short``)."""
+    meaning and gibberish when it did not. A reader that has nothing (no key, quota, session cap, a
+    replay without a record) leaves gibberish: the tutor asks all the same, with its own words. The
+    caller has already checked that the string is a few letters nothing else reads
+    (``is_gibberish_or_ambiguous_short``)."""
     ruled = rule_unclear_reading(said)
     if ruled is not None:
         return ruled

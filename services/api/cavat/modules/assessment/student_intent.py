@@ -444,13 +444,18 @@ def is_affirmation(text: str) -> bool:
 
 def intent_of_guess(meaning: str) -> Outcome | None:
     """What a guessed meaning ("chưa biết làm", "muốn nghỉ", "chưa hiểu đề") asks of the tutor: the same
-    lists that
-    read the child's own words read it. Only a request the tutor answers without grading (help, a feeling, a
-    question) counts; anything else is None."""
+    lists that read the child's own words read it. Only a request the tutor answers without grading
+    (help, a feeling, a question) counts; anything else is None."""
     intent = read_intent(f"con {meaning}") if meaning.strip() else None
     return (
         intent if intent in (Outcome.HELP_REQUEST, Outcome.NEGATIVE_AFFECT, Outcome.CLARIFY_REQUEST) else None
     )
+
+
+def without_subject(meaning: str) -> str:
+    """A guessed meaning as a phrase with no subject, which the question adds: "con chưa biết làm" and
+    "chưa biết làm." are both "chưa biết làm"."""
+    return re.sub(r"^(?:con|em|cô)(?:\s+|$)", "", meaning.strip(" .?!"), flags=re.IGNORECASE)
 
 
 def known_words(*texts: str) -> frozenset[str]:

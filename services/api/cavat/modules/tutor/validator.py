@@ -40,8 +40,7 @@ MOVES_SKIPPING_LEAK_CHECK = MOVES_ALLOWED_TO_REVEAL | MOVES_AFTER_SOLVED
 def _closes_a_solved_item(ctx: RenderContext) -> bool:
     """REFORM-5: the item closed because the child, who had answered right, would not or could not say why
     ("NO_EXPLANATION"): the tutor says the approved explanation, which states the answer the child already
-    gave.
-    Not after the full explanation of a child who never answered ("NOT_SOLVED")."""
+    gave. Not after the full explanation of a child who never answered ("NOT_SOLVED")."""
     d = ctx.decision
     return (
         d.move == Move.CLOSE_ITEM

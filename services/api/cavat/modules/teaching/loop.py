@@ -50,6 +50,7 @@ from cavat.modules.assessment.student_intent import (
     is_gibberish_or_ambiguous_short,
     known_words,
     signals_distress,
+    without_subject,
 )
 from cavat.modules.assessment.vi_numbers import normalize_text, phrase_regex
 from cavat.modules.content.chapter_package import Chapter, Node, TheoryVariant
@@ -85,9 +86,8 @@ TEMPLATES_VERSION = "teaching-templates/0.6.0"
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
-CONFIRM_REF = (
-    "ASK_CONFIRM"  # REFORM-5: the ref of the question "con muốn nói gì?" asked about a few unreadable letters
-)
+# REFORM-5: the ref of the question "con muốn nói gì?" asked about a few unreadable letters
+CONFIRM_REF = "ASK_CONFIRM"
 
 # DI-38: how many times talk outside the lesson is parked before the tutor explains and goes on.
 MAX_OFF_TOPIC_REDIRECTS = 2
@@ -395,10 +395,9 @@ class TeachingLoop:
                 tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=self._prompt
             )
         if intent is None and is_gibberish_or_ambiguous_short(text, known_words(self._prompt or "")):
-            # REFORM-5 (3.1): "ki", "ể", "kkk" are neither the reply nor "con không biết". Asked
-            # once what they meant (the question still waits, nothing is judged, nothing
-            # advances); as unreadable the second time in a row, the child is helped as when
-            # they say "con không biết".
+            # REFORM-5 (3.1): "ki", "ể", "kkk" are neither the reply nor "con không biết". Asked once what
+            # they meant (the question still waits, nothing is judged, nothing advances); as unreadable the
+            # second time in a row, the child is helped as when they say "con không biết".
             if not self._confirm_open():
                 return self._ask_confirm(text, now, node_id, messages, events)
             intent = Outcome.HELP_REQUEST
@@ -440,18 +439,16 @@ class TeachingLoop:
         return self._advance(now, messages, events)
 
     def _confirm_open(self) -> bool:
-        """REFORM-5: the last thing the tutor said, before the message being read, was the question
-        about a few
-        unreadable letters. Read from the events, so a resumed session knows it too."""
+        """REFORM-5: the last thing the tutor said, before the message being read, was the question about
+        a few unreadable letters. Read from the events, so a resumed session knows it too."""
         for e in reversed(self.events[:-1]):  # the last event is the message being read
             if e.event_type == EventType.TEACH_MESSAGE_SENT:
                 return e.payload.get("ref") == CONFIRM_REF
         return False
 
     def _confirmed(self, text: str) -> str:
-        """REFORM-5: "ừ", "đúng rồi" after "cô đoán con muốn nói là con chưa biết làm, đúng không?" is
-        read as the
-        guess it confirms ("con không biết"); anywhere else it is read as typed."""
+        """REFORM-5: "ừ", "đúng rồi" after "cô đoán con muốn nói là con chưa biết làm, đúng không?" is read
+        as the guess it confirms ("con không biết"); anywhere else it is read as typed."""
         if not is_affirmation(text) or not self._confirm_open():
             return text
         guess = next(
@@ -463,10 +460,9 @@ class TeachingLoop:
     def _ask_confirm(
         self, text: str, now: datetime, node_id: str, messages: list[TeachMessage], events: list[LoopEvent]
     ) -> TeachTurn:
-        """REFORM-5 (3.1): ask what a few unreadable letters meant, in the question's own wait. The
-        reading (a rule's,
-        or the model's guess and question) is recorded; the question the model proposed is said only if
-        ``clarification_problems`` finds nothing wrong with it."""
+        """REFORM-5 (3.1): ask what a few unreadable letters meant, in the question's own wait. The reading
+        (a rule's, or the model's guess and question) is recorded; the question the model proposed is said
+        only if ``clarification_problems`` finds nothing wrong with it."""
         ref = f"{node_id}:{self._ref or 'RETELL'}"
         turn = self._replies_since_decision()
         last = max(
@@ -501,8 +497,7 @@ class TeachingLoop:
         )
         question, source = reading.clarification, "LLM"
         if not question or clarification_problems(question, self._persona["s"]):
-            meaning = reading.guessed_meaning.strip(" .?!")
-            meaning = meaning.split(" ", 1)[1] if meaning.split(" ", 1)[0] in ("con", "em", "cô") else meaning
+            meaning = without_subject(reading.guessed_meaning)
             if reading.label == "AMBIGUOUS_TYPO" and meaning:
                 question = self._phrase("confirm_typo", meaning=meaning)
             else:

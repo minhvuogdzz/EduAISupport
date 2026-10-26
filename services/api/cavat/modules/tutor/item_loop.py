@@ -254,10 +254,9 @@ class ItemTutor:
         self._explanation_asked = False
         self._explained: bool | None = None
         self._misconceptions: list[str] = []
-        # REFORM-5: words of the task a child may quote (a name, an option), which are not a key
-        # slip; the model readings spent on this item; the question the reader proposed and the
-        # guess it made for the message being answered, and what the guess asks of the tutor if the
-        # child says yes.
+        # REFORM-5: words of the task a child may quote (a name, an option), which are not a key slip; the
+        # model readings spent on this item; the question the reader proposed and the guess it made for the
+        # message being answered, and what the guess asks of the tutor if the child says yes.
         self._known = known_words(item.stem, item.rephrase or "", *_option_words(item))
         self._intent_reads = 0
         self._clarification: str | None = None
@@ -576,11 +575,9 @@ class ItemTutor:
     # ------------------------------------------------------------------ a few letters nothing reads
 
     def _ambiguous(self, text: str, check: CheckResult | None = None) -> bool:
-        """REFORM-5 (3.1): nothing reads the message and it is a few letters ("ki", "kk", "ể"): a key
-        slip or a
-        typo, not an answer, an explanation or a request. ``check``: what the checker made of it in a
-        phase that
-        grades (None in a phase that waits for words); a graded outcome is never a slip."""
+        """REFORM-5 (3.1): nothing reads the message and it is a few letters ("ki", "kk", "ể"): a key slip
+        or a typo, not an answer, an explanation or a request. ``check``: what the checker made of it in a
+        phase that grades (None in a phase that waits for words); a graded outcome is never a slip."""
         if check is None:
             if classify_intent(text) is not None:
                 return False
@@ -595,12 +592,11 @@ class ItemTutor:
         return is_gibberish_or_ambiguous_short(text, self._known)
 
     def _on_unclear(self, text: str, trigger: TurnTrigger) -> TutorTurn:
-        """REFORM-5 (3.1, DI-76): the tutor asks what the letters meant (ASK_CONFIRM), once; if the
-        next message is
-        as unreadable the policy helps instead (R-ASK-CONFIRM, UNCLEAR_TWICE). Nothing is graded, counted as
-        unproductive or praised, and the phase stays what it was. The reading (the rule's, or the
-        model's guess
-        and the question it proposes) is recorded, so a replay asks the same without a model."""
+        """REFORM-5 (3.1, DI-76): the tutor asks what the letters meant (ASK_CONFIRM), once; if the next
+        message is as unreadable the policy helps instead (R-ASK-CONFIRM, UNCLEAR_TWICE). Nothing is graded,
+        counted as unproductive or praised, and the phase stays what it was. The reading (the rule's, or
+        the model's guess and the question it proposes) is recorded, so a replay asks the same without a
+        model."""
         st = self.state
         twice = st.confirm_open
         asks_model = (

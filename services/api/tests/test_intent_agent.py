@@ -384,6 +384,28 @@ def test_the_model_guesses_and_its_question_is_what_the_child_reads():
     assert t.phase == Phase.VERIFYING and counts(t) == before
 
 
+@pytest.mark.parametrize(
+    ("meaning", "said"),
+    [("con chưa biết làm", "chưa biết làm"), ("chưa biết làm.", "chưa biết làm"), ("con", None), ("", None)],
+)
+def test_the_guess_is_said_without_a_second_subject(meaning, said):
+    """A model may write "con chưa biết làm" for the guess: the question must not say "con con"."""
+    router = ScriptedRouter(reading("AMBIGUOUS_TYPO", meaning, ""))
+    t = scene("answer", reader=LiveReader(ModelReader(router)))
+    turn = t.on_student("kt")
+    assert turn.move == Move.ASK_CONFIRM and "con con" not in turn.text and turn.text.count("?") == 1
+    assert (said in turn.text) if said else ("chưa biết làm" not in turn.text)
+    # the same in a theory question: nothing raises on a guess that is only the subject
+    loop = TeachingLoop(
+        CH, "s1", item_reader=LiveReader(ModelReader(ScriptedRouter(reading("AMBIGUOUS_TYPO", meaning, ""))))
+    )
+    waiting, n = until(Awaiting.THEORY_REPLY, loop, loop.start(T0))
+    asked = loop.on_student("kt", clock(n + 1), 10)
+    assert asked.awaiting == Awaiting.THEORY_REPLY and "con con" not in " ".join(
+        m.text for m in asked.messages
+    )
+
+
 def test_the_model_is_not_called_for_laughter_nor_for_the_second_time_nor_for_what_is_read():
     router = ScriptedRouter(reading("GIBBERISH"), reading("GIBBERISH"), reading("GIBBERISH"))
     t = scene("answer", reader=LiveReader(ModelReader(router)))
