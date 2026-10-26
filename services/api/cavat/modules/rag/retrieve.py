@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from cavat.core.vi_text import fold, normalize
+from cavat.modules.assessment.math_terms import MATH_TERMS
 from cavat.modules.rag.bm25 import TwoFormBM25
 from cavat.modules.rag.chunks import Chunk
 from cavat.modules.rag.embed import Embedder, cosine
@@ -79,7 +80,21 @@ DEFINES_FACTOR = 1.6  # DI-50: a passage that defines the term asked about, in a
 # the question to be taken as about that earlier period (cosine with vectors, keyword coverage without).
 ROUTE_MARGIN_COSINE = 0.02
 ROUTE_MARGIN_COVERAGE = 0.15
+# DI-57, second rule (RAG-7): with vectors, an earlier period closer by less than the margin is taken when its
+# keywords cover the question at least as well as the period being learnt does (False: the margin alone).
+ROUTE_WHEN_KEYWORDS_AGREE = True
 _FILLERS = ("cua tam giac", "cua hinh thang", "trong so thap phan")
+# DI-79 (RAG-7): a question that names a term of grade-5 mathematics the corpus never uses is about
+# mathematics outside the chapters ("diện tích hình tròn", "thể tích hình hộp chữ nhật"): no passage grounds
+# it, however close its vector comes (such questions reached cosine 0.66, above the threshold). Matched
+# folded, as children type without diacritics. The terms of the claim check (DI-40) and grade-5 terms
+# of other chapters.
+OUTSIDE_TERMS = (
+    "thể tích", "hình hộp chữ nhật", "hình lập phương", "hình thoi", "bán kính", "đường kính", "số nguyên tố",
+    "tối giản", "quy đồng", "số đo góc", "tỉ số", "tỉ số phần trăm", "trung bình cộng",
+)  # fmt: skip
+_TERMS_FOLDED = sorted({fold(normalize(t)) for t in (*MATH_TERMS, *OUTSIDE_TERMS)}, key=len, reverse=True)
+_TERM_FOLDED_RE = re.compile(r"(?<!\w)(" + "|".join(map(re.escape, _TERMS_FOLDED)) + r")(?!\w)")
 
 
 def defined_term(query: str) -> str | None:
@@ -189,6 +204,7 @@ class RagIndex:
     ) -> None:
         self.chunks = chunks
         self.keyword = TwoFormBM25([c.text for c in chunks])
+        self._vocabulary = " " + " ".join(fold(normalize(c.text)) for c in chunks) + " "
         self.graph = {n: set(neighbours) for n, neighbours in graph.items()}
         self.embedder: Embedder | None = None
         self.vectors: np.ndarray | None = None
@@ -245,22 +261,39 @@ class RagIndex:
                 todo.extend(self.graph.get(n, ()))
         return seen
 
+    def foreign_terms(self, query: str) -> list[str]:
+        """DI-79: the mathematical terms of a question that no passage of the corpus uses (folded)."""
+        named = dict.fromkeys(_TERM_FOLDED_RE.findall(fold(normalize(query))))
+        return [t for t in named if f" {t} " not in self._vocabulary]
+
     def _route(
         self, node_id: str, cos_all: np.ndarray, coverage_all: list[float], semantic: bool
     ) -> str | None:
         """DI-57: the earlier period a question is about, when it matches clearly better than the period being
         learnt ("1 m bằng bao nhiêu cm" while learning areas is about lengths). Each period is scored by its
-        best passage; only periods this one builds on (never a later one: no teaching ahead)."""
+        best passage; only periods this one builds on (never a later one: no teaching ahead).
+
+        RAG-7 (DI-57, second rule): with vectors, an earlier period that comes closer by less than the margin
+        is taken too when its keywords cover the question at least as well as the period being learnt does
+        ("hình thang có mấy cạnh song song" while learning trapezoid areas: 0.015 closer, same keywords)."""
         candidates = {node_id, *self.ancestors(node_id)}
         best: dict[str, float] = {}
+        covered: dict[str, float] = {}
         for i, c in enumerate(self.chunks):
             if c.node_id in candidates:
                 value = float(cos_all[i]) if semantic else coverage_all[i]
                 best[c.node_id] = max(best.get(c.node_id, 0.0), value)
+                covered[c.node_id] = max(covered.get(c.node_id, 0.0), coverage_all[i])
         here = best.get(node_id, 0.0)
         top = max((n for n in best if n != node_id), key=lambda n: best[n], default=None)
+        if top is None:
+            return None
         margin = ROUTE_MARGIN_COSINE if semantic else ROUTE_MARGIN_COVERAGE
-        return top if top is not None and best[top] - here >= margin else None
+        closer = best[top] - here
+        if closer >= margin:
+            return top
+        keywords_agree = covered[top] >= covered.get(node_id, 0.0)
+        return top if ROUTE_WHEN_KEYWORDS_AGREE and semantic and closer > 0 and keywords_agree else None
 
     def distances(self, node_id: str | None) -> dict[str, int]:
         if node_id is None:
@@ -420,6 +453,9 @@ class RagIndex:
             best = max((s.coverage for s in chosen), default=0.0)
             grounded = best >= GROUNDED_COVERAGE
             why = f"độ phủ từ khóa {best:.2f} {'≥' if grounded else '<'} {GROUNDED_COVERAGE:.2f}"
+        foreign = self.foreign_terms(query)
+        if grounded and foreign:  # DI-79: mathematics the chapters do not teach
+            grounded, why = False, f"thuật ngữ ngoài chương: {', '.join(foreign)}"
         return Retrieval(
             query=query,
             node_id=node_id,

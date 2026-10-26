@@ -50,6 +50,8 @@ SETS = {
     "published_holdout_v2": ("published", DATA / "rag-published-holdout-v2.yaml"),
     # RAG-6: written as children type, frozen (tag eval-freeze-rag-v3) before the DI-50 fix
     "published_holdout_v3": ("published", DATA / "rag-published-holdout-v3.yaml"),
+    # RAG-7: earlier-lesson and off-chapter questions, frozen (tag eval-freeze-rag-v4) before RAG-7's analysis
+    "published_holdout_v4": ("published", DATA / "rag-published-holdout-v4.yaml"),
     "sample_tune": ("sample", DATA / "rag-decimals-v1.yaml"),
     "sample_holdout": ("sample", DATA / "rag-decimals-holdout-v1.yaml"),
 }
@@ -262,13 +264,22 @@ def with_routing(margin: float):
 
     class _Margin:
         def __enter__(self):
-            self.saved = (retrieve_module.ROUTE_MARGIN_COSINE, retrieve_module.ROUTE_MARGIN_COVERAGE)
+            self.saved = (
+                retrieve_module.ROUTE_MARGIN_COSINE,
+                retrieve_module.ROUTE_MARGIN_COVERAGE,
+                retrieve_module.ROUTE_WHEN_KEYWORDS_AGREE,
+            )
             retrieve_module.ROUTE_MARGIN_COSINE = margin
             retrieve_module.ROUTE_MARGIN_COVERAGE = margin if margin > 1 else margin * 7.5
+            retrieve_module.ROUTE_WHEN_KEYWORDS_AGREE = margin < 1  # 9.0: routing off, both rules
             return self
 
         def __exit__(self, *exc):
-            retrieve_module.ROUTE_MARGIN_COSINE, retrieve_module.ROUTE_MARGIN_COVERAGE = self.saved
+            (
+                retrieve_module.ROUTE_MARGIN_COSINE,
+                retrieve_module.ROUTE_MARGIN_COVERAGE,
+                retrieve_module.ROUTE_WHEN_KEYWORDS_AGREE,
+            ) = self.saved
 
     return _Margin()
 
@@ -382,6 +393,7 @@ def main() -> None:
             "published_holdout_v1",
             "published_holdout_v2",
             "published_holdout_v3",
+            "published_holdout_v4",
         ):
             index = indexes["published"]
             with with_routing(margin):
@@ -404,7 +416,13 @@ def main() -> None:
 
     # Statistics of the paired comparisons that the paper reports.
     stats: dict = {}
-    for name in ("published_tune", "published_holdout_v1", "published_holdout_v2", "published_holdout_v3"):
+    for name in (
+        "published_tune",
+        "published_holdout_v1",
+        "published_holdout_v2",
+        "published_holdout_v3",
+        "published_holdout_v4",
+    ):
         before = result["sets"][name]["configs"][PRODUCTION]["off"]["rows"]
         after = result["sets"][name]["configs"][PRODUCTION]["on"]["rows"]
         pairs = [(b, a) for b, a in zip(before, after, strict=True) if b["relevant"]]
@@ -455,7 +473,13 @@ def main() -> None:
     stats["contrasts_v2"] = contrasts
     # What the graph adds to a conventional RAG: in-scope retrieval, teaching ahead, answering a later period.
     flat_stats = {}
-    for name in ("published_tune", "published_holdout_v1", "published_holdout_v2", "published_holdout_v3"):
+    for name in (
+        "published_tune",
+        "published_holdout_v1",
+        "published_holdout_v2",
+        "published_holdout_v3",
+        "published_holdout_v4",
+    ):
         entry = {}
         for config in (PRODUCTION, *FLAT):
             rows = result["sets"][name]["configs"][config]["on"]["rows"]
@@ -488,6 +512,7 @@ def main() -> None:
                 "published_holdout_v1",
                 "published_holdout_v2",
                 "published_holdout_v3",
+                "published_holdout_v4",
             )
         }
         groups["all_published"] = list(groups)
@@ -533,7 +558,13 @@ def main() -> None:
     }
     pools = {
         name: [name]
-        for name in ("published_tune", "published_holdout_v1", "published_holdout_v2", "published_holdout_v3")
+        for name in (
+            "published_tune",
+            "published_holdout_v1",
+            "published_holdout_v2",
+            "published_holdout_v3",
+            "published_holdout_v4",
+        )
     }
     pools["heldout"] = ["published_holdout_v1", "published_holdout_v2"]
 

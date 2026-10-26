@@ -1,8 +1,8 @@
 \begin{tikzpicture}
 \begin{axis}[cavat,width=0.8\linewidth,height=5.2cm,ymin=0.4,ymax=1.0,ymajorgrids,xmin=-0.4,xmax=9.4,xlabel={lề định tuyến $\varepsilon$ (cosine)},ylabel={MRR},xtick={0,1,2,3,4,5,6,7,8,9},xticklabels={{0},{0,005},{0,01},{0,02},{0,03},{0,05},{0,08},{0,12},{0,2},{tắt}},x tick label style={font=\scriptsize}]
-\addplot[color=ink!60,mark=square*,mark size=1.6pt] coordinates {(0,0.944) (1,0.944) (2,0.944) (3,0.944) (4,0.944) (5,0.944) (6,0.893) (7,0.804) (8,0.804) (9,0.804)};
-\addplot[color=llm,mark=triangle*,mark size=1.6pt] coordinates {(0,0.911) (1,0.911) (2,0.911) (3,0.964) (4,0.893) (5,0.821) (6,0.737) (7,0.679) (8,0.679) (9,0.679)};
-\addplot[color=cavat,mark=*,mark size=1.6pt] coordinates {(0,0.954) (1,0.954) (2,0.954) (3,0.912) (4,0.867) (5,0.737) (6,0.600) (7,0.504) (8,0.504) (9,0.504)};
+\addplot[color=ink!60,mark=square*,mark size=1.6pt] coordinates {(0,0.944) (1,0.944) (2,0.944) (3,0.944) (4,0.944) (5,0.944) (6,0.944) (7,0.944) (8,0.944) (9,0.804)};
+\addplot[color=llm,mark=triangle*,mark size=1.6pt] coordinates {(0,0.911) (1,0.911) (2,0.911) (3,0.964) (4,0.964) (5,0.964) (6,0.964) (7,0.964) (8,0.964) (9,0.679)};
+\addplot[color=cavat,mark=*,mark size=1.6pt] coordinates {(0,0.954) (1,0.954) (2,0.954) (3,0.954) (4,0.909) (5,0.909) (6,0.909) (7,0.909) (8,0.909) (9,0.504)};
 \draw[dashed,color=ink!60] (axis cs:3,0.4) -- (axis cs:3,1.0);
 \node[font=\scriptsize,color=ink!70,anchor=south west] at (axis cs:3.1,0.41) {sản phẩm $\varepsilon=0{,}02$};
 \end{axis}
