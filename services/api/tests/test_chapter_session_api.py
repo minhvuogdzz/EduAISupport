@@ -52,8 +52,11 @@ def start(client) -> dict:
 
 def reply_text(state: dict, weak_retell: bool = False) -> str:
     teaching = state["teaching"]
-    if teaching["awaiting"] == "THEORY_REPLY":
-        return "Con nghĩ là được ạ."
+    if teaching["awaiting"] == "THEORY_REPLY":  # a right answer: a wrong one is taught again once (REFORM-6)
+        variant = next(
+            t for t in CHAPTER.node(teaching["current_node_id"]).theory if t.ask == teaching["prompt"]
+        )
+        return variant.accept[0] if variant.accept else "Con nghĩ là được ạ."
     if teaching["awaiting"] == "RETELL":
         if weak_retell:
             return "Con không nhớ ạ."
@@ -124,8 +127,8 @@ def test_commands_must_fit_what_the_tutor_waits_for(client):
     stale = send(client, {**state, "teaching": {**state["teaching"], "input_id": "old"}}, "hi", "s1")
     assert stale.status_code == 409 and stale.json()["error"]["code"] == "STALE_ITEM"
 
-    first = send(client, state, "Con nghĩ là được ạ.", "same")
-    again = send(client, state, "Con nghĩ là được ạ.", "same")  # the same command sent twice
+    first = send(client, state, "Con nghĩ là 4/100 ạ.", "same")
+    again = send(client, state, "Con nghĩ là 4/100 ạ.", "same")  # the same command sent twice
     assert first.status_code == again.status_code == 200 and first.json() == again.json()
     after = client.get(f"/v1/sessions/{sid}/state", headers=MINH).json()
     assert sum(t["actor"] == "student" for t in after["transcript"]) == 1
@@ -141,7 +144,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.3.0",
         "policy": "node-policy/0.5.0",
-        "templates": "teaching-templates/0.7.0",
+        "templates": "teaching-templates/0.8.0",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None
@@ -163,6 +166,9 @@ def test_the_teacher_transcript_shows_the_rules_and_the_retell_verdict(client):
         state = advance(client, state, f"k{n}")
         n += 1
     state = advance(client, state, "weak", text=reply_text(state, weak_retell=True))
+    state = advance(
+        client, state, "weak2", text=reply_text(state, weak_retell=True)
+    )  # taught again once first
     sid = state["session_id"]
     transcript = client.get(f"/v1/sessions/{sid}/transcript", headers=TEACHER).json()
     turns = [t for segment in transcript["segments"] for t in segment["turns"]]

@@ -317,9 +317,16 @@ def test_the_loop_names_the_later_lesson_and_keeps_the_question_for_the_teacher(
     assert turn.messages[0].text.endswith(first.prompt)
 
 
-def test_a_wrong_theory_answer_gets_a_bridge_then_the_approved_reply(index):
-    router = ScriptedRouter("Con nghĩ phần tô màu là 4/10, mình cùng xem lại nhé.")
-    loop, _ = loop_at_theory(GroundedSpeaker(index, router))
+def test_a_wrong_theory_answer_is_taught_again_once_then_gets_a_bridge_and_the_approved_reply(index):
+    # REFORM-6 (3.3): the first wrong answer keeps the question and teaches the idea again (no bridge, no
+    # reply yet); the second gets the bridge and the approved reply, and the step goes on.
+    router = ScriptedRouter(
+        None, "Con nghĩ phần tô màu là 4/10, mình cùng xem lại nhé."
+    )  # (the voice for the first fails)
+    loop, first = loop_at_theory(GroundedSpeaker(index, router))
+    held = loop.on_student("4/10 ạ", NOW)
+    assert held.awaiting == Awaiting.THEORY_REPLY and held.prompt == first.prompt
+    assert CHAPTER.node("KC-DEC-FRAC").theory[0].reply not in held.messages[0].text
     turn = loop.on_student("4/10 ạ", NOW)
     feedback = turn.messages[0]
     reply = CHAPTER.node("KC-DEC-FRAC").theory[0].reply

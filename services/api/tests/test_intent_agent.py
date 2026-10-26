@@ -528,7 +528,8 @@ def until(awaiting: Awaiting, loop: TeachingLoop, turn, n: int = 0):
     while turn.awaiting != awaiting:
         assert turn.awaiting != Awaiting.NOTHING
         if turn.awaiting == Awaiting.THEORY_REPLY:
-            said = "Con nghĩ là được ạ."
+            variant = next(t for t in CH.node(turn.node_id).theory if t.ask == turn.prompt)
+            said = variant.accept[0] if variant.accept else "Con nghĩ là được ạ."
         elif turn.awaiting == Awaiting.RETELL:
             said = ". ".join(ideas[0] for ideas in CH.node(turn.node_id).explain.key_ideas)
         else:

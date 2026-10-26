@@ -214,7 +214,7 @@ def test_the_teaching_loop_replays_the_recorded_pick():
     loop = TeachingLoop(CHAPTER, "s1")
     turn = loop.start(now)
     while turn.awaiting != Awaiting.ANSWER:
-        turn = loop.on_student("Con nghĩ là được ạ.", now)
+        turn = loop.on_student("Con nghĩ là 4/100 ạ.", now)
     loop.go_live(chooser=Picks("B", "B", "B"))
     for said in ("3/7", HINT_REQUEST_TEXT):
         if loop.awaiting == Awaiting.ANSWER:
