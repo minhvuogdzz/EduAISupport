@@ -38,7 +38,7 @@ class Models:
     def __init__(
         self,
         ideas=None,
-        voice="Mình thử nghĩ lại từng bước nhé. Mẫu số là 10, 100 hay 1000 thì mình gọi là phân số thập phân.",
+        voice="Mình thử nghĩ lại từng bước nhé. Mẫu số là 10, 100 hay 1000 thì gọi là phân số thập phân.",
     ) -> None:
         self.ideas = ideas if ideas is not None else []
         self.voice = voice

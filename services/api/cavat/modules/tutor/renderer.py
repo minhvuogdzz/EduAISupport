@@ -402,7 +402,7 @@ def _ask_confirm(ctx: RenderContext) -> RenderedMessage:
 def reteach_material(ctx: RenderContext) -> str | None:
     """BRAIN-1 (C2): what the tutor says again to a child who could not say why, when no model can say it:
     the item's approved explanation or worked steps, else the sentences of the approved passages on the item's
-    question, else the statements of the lesson's strongest hints, else the answer the child gave (right, or
+    question, else the statements of the item's strongest hints, else the answer the child gave (right, or
     they would not be taught again). None only when the lesson has nothing at all on this item."""
     item = ctx.item
     if explanation := approved_explanation(item):
@@ -410,7 +410,7 @@ def reteach_material(ctx: RenderContext) -> str | None:
     passages = [s for p in ctx.evidence for s in _SENTENCE_END.split(" ".join(p.split())) if s.strip()]
     if statements := [s for s in passages if not s.endswith("?")][:2]:
         return " ".join(statements)
-    hints = sorted((*item.hints, *fitting_generic_hints(item, ctx.package)), key=lambda h: -h.level)
+    hints = sorted(item.hints, key=lambda h: -h.level)  # the generic ones say nothing of this item
     said = [s for h in hints for s in _SENTENCE_END.split(h.text) if s.strip() and not s.endswith("?")][:2]
     if said:
         return " ".join(said)
