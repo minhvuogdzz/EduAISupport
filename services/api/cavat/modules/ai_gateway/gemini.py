@@ -103,13 +103,22 @@ class GeminiChat:
     baseline); ``chat_with`` is one model, as the router's chain wants it (each free model has its own
     daily quota)."""
 
-    def __init__(self, api_key: str | SecretStr, *, models: tuple[str, ...] = (), client: Any = None) -> None:
+    def __init__(
+        self,
+        api_key: str | SecretStr,
+        *,
+        models: tuple[str, ...] = (),
+        client: Any = None,
+        timeout_s: float = 25.0,
+    ) -> None:
         self.models = models
         if client is None:
             from google import genai
+            from google.genai import types
 
             key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
-            client = genai.Client(api_key=key)
+            # a tutor turn waits for this call: a Gemini that hangs must fail, and the chain goes on
+            client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=int(timeout_s * 1000)))
         self._client = client
 
     def chat(self, request: ChatRequest) -> ChatResult:

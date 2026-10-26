@@ -337,6 +337,14 @@ def router_for(model: str, settings) -> AIRouter:
     )
 
 
+def flush(model: str, answers: list[Answer]) -> None:
+    """Keep what a model has answered so far: a run that is stopped loses nothing."""
+    name = re.sub(r"[^\w.-]", "_", model)
+    (REPORT / f"BRAIN-1-partial-{name}.json").write_text(
+        json.dumps([a.__dict__ for a in answers], ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+
+
 def run_model(model: str, cases: list[Case], settings) -> list[Answer]:
     router = router_for(model, settings)
     vendor = "gemini" if model.startswith("gemini") else "groq"
@@ -372,6 +380,7 @@ def run_model(model: str, cases: list[Case], settings) -> list[Answer]:
                     usage.prompt_tokens + usage.completion_tokens,
                 )
             )
+        flush(model, answers)
         time.sleep(PACE_S[vendor])
     return answers
 
