@@ -58,9 +58,11 @@ from cavat.modules.assessment.student_intent import asks_question, expand_short_
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text
 from cavat.modules.content.chapter_package import Node
 from cavat.modules.rag.bm25 import FILLER, content_words
-from cavat.modules.rag.retrieve import RagIndex, Retrieval
+from cavat.modules.rag.retrieve import RagIndex, Retrieval, defines, term_and_shape
+from cavat.modules.teaching.answer_support import support_request, supported
 from cavat.modules.teaching.meaning import meaning_request, verified_ideas
-from cavat.modules.teaching.web import ALLOWED_HOSTS, WebPage, WebSource, eligible, relevant, web_query
+from cavat.modules.teaching.official_web import HOST, OFFICIAL_URLS, scoped_query
+from cavat.modules.teaching.web import ALLOWED_HOSTS, WebPage, WebSource, eligible, relevant
 from cavat.modules.tutor import brain
 from cavat.modules.tutor.brain import BrainPack
 from cavat.modules.tutor.prompt_builder import TUTOR_OUTPUT_SCHEMA, Turn, clean_text, given_name
@@ -72,7 +74,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.4.0: REFORM-6 (DI-82, DI-83), teaching again and the meaning check; 0.3.0: REFORM-1b, DI-81
-GROUNDED_VERSION = "grounded-speech/0.4.0"
+GROUNDED_VERSION = "grounded-speech/0.5.0"
 PROMPT_FILE = "grounded.v2.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -547,6 +549,11 @@ class GroundedSpeaker:
 
     def same_as_check(self, text: str, pending: str | None) -> bool:
         """The child asks back the question the tutor is waiting on (DI-39)."""
+        # Asking what a term means is different from asking us to solve the exercise. In particular,
+        # folding Vietnamese loses the distinction between 'mẫu số' and 'tô màu ... phân số nào'.
+        definition = term_and_shape(text)
+        if definition is not None and definition != term_and_shape(pending or ""):
+            return False
         words = [fold(w) for w in content_words(text)]
         if not words or not pending:
             return False
@@ -573,6 +580,7 @@ class GroundedSpeaker:
         pending: str | None,
         hide: Sequence[str] = (),
         recent: Sequence[tuple[str, str]] = (),
+        output_guard: Callable[[str], Sequence[str]] | None = None,
     ) -> QuestionTurn:
         """``hide``: approved text the passages must not carry here (the reply of the question waiting).
         ``recent``: the last turns (role, text): "còn 0,500 thì sao?" is read with what came before."""
@@ -587,8 +595,21 @@ class GroundedSpeaker:
         if later_node is not None:
             return QuestionTurn("LATER", retrieval=found, later_node=later_node)
         if not found.grounded or not found.results:
-            return self._from_web(question, query, found)
+            return self._from_web(question, query, found, output_guard=output_guard)
         passages = [(s.chunk.title, _without(s.chunk.text, hide)) for s in found.results]
+        # Keyword-only routing may favour an old numerical example over the current rule (0,30/0,3
+        # once retrieved the fraction lesson). Keep that rule alongside the retrieved passages. It is
+        # already part of this lesson, never a later node or a solution to the pending check.
+        rule = next(
+            (
+                c
+                for c in self.index.chunks
+                if c.node_id == node_id and c.source == "chapter" and c.kind == "method"
+            ),
+            None,
+        )
+        if rule is not None and not any(title == rule.title for title, _ in passages):
+            passages.insert(0, (rule.title, _without(rule.text, hide)))
         titles = tuple(title for title, _ in passages)
         earlier = [_without(text, hide) for _, text in recent]  # what was already said may be said again
         evidence = self._evidence([text for _, text in passages] + earlier, query)
@@ -605,30 +626,59 @@ class GroundedSpeaker:
             clean_text(question, MAX_STUDENT_CHARS),
             f"[GIỚI HẠN] Tối đa {MAX_ANSWER_WORDS} từ, không đặt câu hỏi.",
         ]
-        text, rejected, flagged, refused = self._ask_model(lines, evidence, MAX_ANSWER_WORDS)
+        text, rejected, flagged, refused = self._ask_model(
+            lines,
+            evidence,
+            MAX_ANSWER_WORDS,
+            answer_sources=[text for _, text in passages],
+            question=query,
+            output_guard=output_guard,
+        )
         if text:
             return QuestionTurn("ANSWERED", Spoken(text, "LLM", titles, rejected, flagged, refused), found)
         if text == "":  # the model found nothing in the passages that answers the question
-            return self._from_web(question, query, found)
+            return self._from_web(question, query, found, output_guard=output_guard)
+        definition = term_and_shape(query)
+        if definition and not any(defines(text, *definition) for _, text in passages):
+            return self._from_web(question, query, found, output_guard=output_guard)
         sentence = self._extract(query, passages)
         if sentence is None:  # no sentence covers the question: better not to answer
-            return self._from_web(question, query, found)
+            return self._from_web(question, query, found, output_guard=output_guard)
         said = f"{self.t[:1].upper() + self.t[1:]} trả lời {self.s} nhé: {sentence}"
+        if output_guard and output_guard(said):
+            return QuestionTurn("PARKED", retrieval=found)
         return QuestionTurn("ANSWERED", Spoken(said, "EXTRACT", titles, rejected, flagged, refused), found)
 
-    def _from_web(self, question: str, query: str, found: Retrieval) -> QuestionTurn:
+    def _from_web(
+        self,
+        question: str,
+        query: str,
+        found: Retrieval,
+        *,
+        output_guard: Callable[[str], Sequence[str]] | None = None,
+    ) -> QuestionTurn:
         """WEB-1 (DI-51): the documents do not answer; a safe question is looked up in the trusted source and
         answered from its article, checked like any answer. Else the question is kept for the teacher."""
         if self.web is None or not eligible(question):
             return QuestionTurn("PARKED", retrieval=found)
-        sent = web_query(question)
+        sent = scoped_query(question, self.index, found.node_id)
         try:
             page = self.web.lookup(sent) if sent else None
         except Exception:  # noqa: BLE001 - network, timeout, a changed API: the question is kept
             page = None
-        if page is None or page.host not in ALLOWED_HOSTS or not relevant(page, sent):
+        from urllib.parse import urlparse
+
+        if (
+            page is None
+            or page.host not in ALLOWED_HOSTS
+            or not relevant(page, sent)
+            or urlparse(page.url).scheme != "https"
+            or urlparse(page.url).hostname != page.host
+            or (page.host in OFFICIAL_URLS and page.url != OFFICIAL_URLS[page.host])
+        ):
             return QuestionTurn("PARKED", retrieval=found)
-        source = (f"{self.web.name}: {page.title} · {page.url}",)
+        publisher = page.publisher or self.web.name
+        source = (f"{publisher}: {page.title} · {page.url}",)
         evidence = self._evidence([page.text], query)
         lines = [
             "[NHIỆM VỤ] TRẢ_LỜI",
@@ -639,14 +689,27 @@ class GroundedSpeaker:
             clean_text(question, MAX_STUDENT_CHARS),
             f"[GIỚI HẠN] Tối đa {MAX_ANSWER_WORDS} từ, lời dễ hiểu cho học sinh lớp 5, không đặt câu hỏi.",
         ]
-        text, rejected, flagged, refused = self._ask_model(lines, evidence, MAX_ANSWER_WORDS)
-        lead = f"Theo {self.web.name}, {self.t} kể {self.s} nghe nhé:"
+        text, rejected, flagged, refused = self._ask_model(
+            lines,
+            evidence,
+            MAX_ANSWER_WORDS,
+            answer_sources=[page.text],
+            question=query,
+            output_guard=output_guard,
+        )
+        lead = (
+            "Sách Toán 5 giải thích thế này:"
+            if page.host == HOST
+            else "Cô tìm được lời giải thích thế này:"
+            if page.host in OFFICIAL_URLS
+            else f"Theo {publisher}, {self.t} kể {self.s} nghe nhé:"
+        )
         if text:
             spoken = Spoken(f"{lead} {text}", "WEB", source, rejected, flagged, refused)
             return QuestionTurn("ANSWERED", spoken, found, web=page)
-        if text is None:  # no model (quota, no key): the sentence of the article that covers the question
+        if text is None and page.host == "vi.wikipedia.org":  # legacy adapter's exact-quote fallback
             sentence = self._extract(query, [(page.title, page.text)])
-            if sentence is not None:
+            if sentence is not None and not (output_guard and output_guard(sentence)):
                 spoken = Spoken(f"{lead} {sentence}", "WEB", source, rejected, flagged, refused)
                 return QuestionTurn("ANSWERED", spoken, found, web=page)
         return QuestionTurn("PARKED", Spoken("", "WEB", source, rejected, flagged, refused), found, web=page)
@@ -903,6 +966,9 @@ class GroundedSpeaker:
         needs_attribution: Callable[[str], bool] | None = None,
         no_praise: bool = False,
         bridge: bool = False,
+        answer_sources: Sequence[str] | None = None,
+        question: str = "",
+        output_guard: Callable[[str], Sequence[str]] | None = None,
     ) -> tuple[str | None, tuple[tuple[str, ...], ...], bool, tuple[str, ...]]:
         """The model's words once they pass ``check``; "" when the model wrote nothing (the passages do not
         answer, as the prompt asks it to say); None when there is no usable output (no gateway, quota, cap,
@@ -915,10 +981,32 @@ class GroundedSpeaker:
         for _ in range(MAX_ATTEMPTS):
             user = list(lines)
             if rejected:
-                notes = "; ".join(f"{c} ({CHECK_NOTES.get(c, 'không đạt')})" for c in rejected[-1])
+                notes_map = dict(CHECK_NOTES)
+                if answer_sources is not None:
+                    notes_map.update(
+                        {
+                            "UNSUPPORTED_MEANING": (
+                                "chỉ nói ý nguồn giải thích; bỏ suy diễn và ví dụ về quy tắc khác"
+                            ),
+                            "UNGROUNDED_NUMBER": (
+                                "số mới cần phép tính đã kiểm hoặc đúng định nghĩa trong nguồn"
+                            ),
+                            "WRONG_MATH": "phép tính sai, tính lại chính xác",
+                            "SUPPORT_UNAVAILABLE": "chưa kiểm chứng được ý nghĩa với nguồn",
+                        }
+                    )
+                notes = "; ".join(f"{c} ({notes_map.get(c, 'không đạt')})" for c in rejected[-1])
                 user.append(f"[LẦN TRƯỚC BỊ TỪ CHỐI] {notes}. Viết lại, tránh đúng các lỗi này.")
             request = ChatRequest(
-                messages=(ChatMessage("system", system_prompt()), ChatMessage("user", "\n".join(user))),
+                messages=(
+                    ChatMessage(
+                        "system",
+                        brain._prompt_file("grounded.v3.md")
+                        if answer_sources is not None
+                        else system_prompt(),
+                    ),
+                    ChatMessage("user", "\n".join(user)),
+                ),
                 json_schema=TUTOR_OUTPUT_SCHEMA,
                 schema_name="grounded_turn",
                 max_output_tokens=300,
@@ -938,6 +1026,61 @@ class GroundedSpeaker:
             if not text:
                 return "", tuple(rejected), flagged, tuple(refused)
             codes = check(text, evidence, max_words=max_words, forbid=forbid, bridge=bridge)
+            if output_guard:
+                codes = (*codes, *output_guard(text))
+            if answer_sources is not None:
+                # An answer may paraphrase freely. Numerical examples still need a true, parsed
+                # arithmetic equality; a semantic support check replaces the lexical overlap score.
+                codes = tuple(
+                    c for c in codes if c not in ("UNSUPPORTED_CLAIM", "UNGROUNDED_NUMBER", "NEW_MATH_TERM")
+                )
+                source_evidence = Evidence(tuple(answer_sources))
+                if source_evidence.new_terms(text):
+                    codes = (*codes, "NEW_MATH_TERM")
+                source_values = {n.value for s in answer_sources for n in extract_numbers(s)}
+                known = set(source_values)
+                # The student's given numbers may be discussed; their claims still are not evidence.
+                known.update(n.value for n in extract_numbers(question))
+                known |= brain.checked_number_values(text)
+                # A new decimal fraction can illustrate its definition without an artificial identity
+                # ('3/100 = 3/100'). Its denominator must be one explicitly listed by that definition.
+                source_text = " ".join(answer_sources).lower()
+                if "mẫu số" in source_text and "gạch ngang" in source_text:
+                    # The explicit fraction notation definition supports a new illustrative a/b, with
+                    # a nonnegative integer numerator and a strictly positive integer denominator.
+                    for n in extract_numbers(text):
+                        match = re.fullmatch(r"(\d+)\s*/\s*(\d+)", n.text.strip())
+                        if match and int(match[2]) > 0:
+                            known.update((n.value, int(match[1]), int(match[2])))
+                if "phân số thập phân" in source_text and "mẫu số" in source_text:
+                    for n in extract_numbers(text):
+                        if "/" in n.text and n.value >= 0:
+                            denominator = n.text.split("/")[-1].strip()
+                            if (
+                                denominator.isdigit()
+                                and int(denominator) in (10, 100, 1000)
+                                and int(denominator) in source_values
+                            ):
+                                known.add(n.value)
+                if any(n.value not in known for n in extract_numbers(text)):
+                    codes = (*codes, "UNGROUNDED_NUMBER")
+                if brain.math_errors(text):
+                    codes = (*codes, "WRONG_MATH")
+                if brain.wrong_voice(text):
+                    codes = (*codes, "WRONG_ADDRESS")
+                if not codes:
+                    verification = support_request(text, answer_sources, question)
+                    if estimate_prompt_tokens(verification) > MAX_PROMPT_TOKENS:
+                        codes = ("SUPPORT_UNAVAILABLE",)
+                    else:
+                        verified = self.router.chat(
+                            ModelClass.TUTOR_REASONING,
+                            verification,
+                            calls_used=self.calls_used + self.calls_made,
+                        )
+                        self.calls_made += verified.calls_made
+                        if verified.result is None or not supported(verified.result.data, answer_sources):
+                            codes = ("UNSUPPORTED_MEANING",)
             lowered = normalize_text(text)
             if (
                 attribution

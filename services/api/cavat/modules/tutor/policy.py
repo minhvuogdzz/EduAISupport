@@ -39,7 +39,7 @@ from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 # 0.12.0: REFORM-5 (DI-77), a few letters nothing reads are asked about once, then the child is helped
 # 0.11.0: REFORM-2 (DI-67, DI-68), a right step advances, no praise without an explanation
 # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
-POLICY_VERSION = "hint-policy/0.12.0"
+POLICY_VERSION = "hint-policy/0.12.1"  # DI-87: R-SOCIAL preserves the pending item and all counters
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})

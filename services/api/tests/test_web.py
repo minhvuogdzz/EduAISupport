@@ -79,48 +79,23 @@ def test_an_article_is_used_only_when_it_is_the_concept():
 
 def test_the_documents_come_first_and_the_source_is_not_asked(index):
     source = FakeSource(BOILING)
-    router = ScriptedRouter("Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị không đổi.")
+    router = ScriptedRouter(
+        "Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị không đổi.",
+        {"supported": True, "quotes": ["viết thêm chữ số 0 vào tận cùng bên phải phần thập phân"]},
+    )
     turn = GroundedSpeaker(index, router, web=source).answer(
         "sao thêm số 0 vào cuối mà số không đổi", node_id=EQ, pending=None
     )
     assert turn.kind == "ANSWERED" and turn.spoken.source == "LLM" and not source.queries
 
 
-def test_a_question_the_documents_do_not_answer_is_answered_from_the_article(index):
+@pytest.mark.parametrize("question", ["điểm sôi là gì vậy cô", "số nguyên tố là gì", "vận tốc là gì"])
+def test_outside_the_two_chapters_is_never_looked_up_even_with_an_available_page(index, question):
     source = FakeSource(BOILING)
-    router = ScriptedRouter("Nước sôi ở 100 độ C khi ở áp suất khí quyển tiêu chuẩn.")
-    turn = GroundedSpeaker(index, router, web=source).answer(
-        "điểm sôi là gì vậy cô", node_id=EQ, pending=None
-    )
-    assert turn.kind == "ANSWERED" and turn.spoken.source == "WEB" and turn.web == BOILING
-    assert turn.spoken.text.startswith("Theo Wikipedia tiếng Việt, cô kể con nghe nhé:")
-    assert turn.spoken.sources == ("Wikipedia tiếng Việt: Điểm sôi · https://vi.wikipedia.org/wiki/Điểm_sôi",)
-    assert source.queries == ["điểm sôi"]
-    assert "Điểm sôi" in router.user_text()
-
-
-def test_an_answer_the_article_does_not_carry_is_not_said(index):
-    """Two refused answers: the article's own sentence is said, word for word (as for the documents)."""
-    router = ScriptedRouter("Nước sôi ở 90 độ.", "Nước sôi ở 80 độ.")  # numbers the article does not have
-    turn = GroundedSpeaker(index, router, web=FakeSource(BOILING)).answer(
-        "điểm sôi là gì vậy cô", node_id=EQ, pending=None
-    )
-    assert turn.kind == "ANSWERED" and len(turn.spoken.rejected) == 2
-    assert "90" not in turn.spoken.text and "Điểm sôi là nhiệt độ" in turn.spoken.text
-
-
-def test_an_article_the_model_finds_no_answer_in_is_kept_for_the_teacher(index):
-    turn = GroundedSpeaker(index, ScriptedRouter(""), web=FakeSource(BOILING)).answer(
-        "điểm sôi là gì vậy cô", node_id=EQ, pending=None
-    )
-    assert turn.kind == "PARKED" and turn.web == BOILING
-
-
-def test_without_a_model_a_sentence_of_the_article_is_said_word_for_word(index):
-    turn = GroundedSpeaker(index, None, web=FakeSource(BOILING)).answer(
-        "điểm sôi là gì", node_id=EQ, pending=None
-    )
-    assert turn.kind == "ANSWERED" and "Điểm sôi là nhiệt độ" in turn.spoken.text
+    router = ScriptedRouter("Nước sôi ở 100 độ C.")
+    turn = GroundedSpeaker(index, router, web=source).answer(question, node_id=EQ, pending=None)
+    assert turn.kind == "PARKED" and turn.web is None
+    assert not source.queries and not router.requests
 
 
 def test_unsafe_questions_and_later_periods_are_never_looked_up(index):

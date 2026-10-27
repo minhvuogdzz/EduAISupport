@@ -79,6 +79,40 @@ const TRANSCRIPT: SessionTranscript = {
 };
 
 describe("teacher transcript of grounded speech (RAG-2)", () => {
+  it("lets the teacher inspect the actual external excerpt and publication", () => {
+    const web = {
+      query: "phân số thập phân",
+      title: "SGV – Toán 5",
+      url: "https://sachdientu.nxbgd.vn/thu-vien-so/doc-sach/sgv-toan.4491495468",
+      excerpt: "Phân số có mẫu số là 10, 100, 1000.",
+      excerpt_hash: "hash",
+    };
+    render(
+      <TranscriptView
+        transcript={{
+          ...TRANSCRIPT,
+          segments: [
+            {
+              kind: "session",
+              turns: [
+                turn(1, "Lời giải thích", {
+                  kind: "ANSWER",
+                  node_id: "KC-DEC-FRAC",
+                  rule_ids: [],
+                  reason_codes: [],
+                  source: "WEB",
+                  web,
+                }),
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText("Đoạn nguồn ngoài đã dùng")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: web.title, hidden: true })).toHaveAttribute("href", web.url);
+    expect(screen.getByText(web.excerpt)).toBeInTheDocument();
+  });
   it("shows who wrote each answer, what it rests on and why a question was kept", () => {
     render(<TranscriptView transcript={TRANSCRIPT} />);
     expect(screen.getAllByText("Trả lời câu con hỏi")).toHaveLength(2);

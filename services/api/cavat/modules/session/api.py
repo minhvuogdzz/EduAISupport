@@ -284,6 +284,7 @@ class TeachAnnotation(BaseModel):
     rejected: list[list[str]] = []  # check codes of each refused model output
     grounded: bool | None = None  # a question of the child: did the passages ground it
     grounding: str | None = None
+    web: dict[str, str] | None = None  # BRAIN-2: canonical query and the exact external evidence
     parked: Literal["NOT_GROUNDED", "SAME_AS_CHECK", "LIMIT", "LATER"] | None = None  # kept for the teacher
 
 
@@ -945,8 +946,12 @@ def _ack_for_key(session: LearningSession, key: str) -> CommandAck | None:
 def _web_source() -> Any:
     """WEB-1 (DI-51): the trusted source a question the documents do not answer may be looked up in."""
     settings = get_settings()
-    if settings.web_lookup != "wikipedia":
+    if settings.web_lookup == "off":
         return None
+    if settings.web_lookup == "official":
+        from cavat.modules.teaching.official_web import OfficialEducation
+
+        return OfficialEducation(cache_dir=settings.storage_dir / "web")
     from cavat.modules.teaching.web import WikipediaVi
 
     return WikipediaVi(cache_dir=settings.storage_dir / "web")

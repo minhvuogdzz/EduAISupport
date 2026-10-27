@@ -259,6 +259,20 @@ function TeachChips({ annotation }: { annotation: TeachAnnotation }) {
         )}
       </p>
       {sources.length > 0 && <p className="text-xs text-slate-600">Nguồn: {sources.join(" · ")}</p>}
+      {annotation.web && (
+        <details className="text-xs text-slate-600">
+          <summary className="cursor-pointer">Đoạn nguồn ngoài đã dùng</summary>
+          <p>Khái niệm: {annotation.web.query}</p>
+          {annotation.web.url.startsWith("https://") && (
+            <a href={annotation.web.url} target="_blank" rel="noopener noreferrer" className="underline">
+              {annotation.web.title}
+            </a>
+          )}
+          <p className="mt-1 whitespace-pre-wrap">
+            {annotation.web.excerpt || "Sự kiện cũ chưa lưu đoạn nguồn."}
+          </p>
+        </details>
+      )}
     </div>
   );
 }

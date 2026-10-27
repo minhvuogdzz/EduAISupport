@@ -106,6 +106,7 @@ from cavat.modules.tutor.reader import (
     rule_unclear_reading,
 )
 from cavat.modules.tutor.renderer import PHRASES, TemplateRenderer, counter_example, ladder_top
+from cavat.modules.tutor.social import social_reply
 
 # DI, approved by the owner on 2026-10-01: hard stop for one item. Every policy path ends well before
 # this (frustration -> worked -> full -> teach-back); the guard only makes sure that no sequence of
@@ -288,12 +289,34 @@ class ItemTutor:
         )
         return self._act(self._decide("START", None), None)
 
-    def on_student(self, text: str, seconds: float = 0.0) -> TutorTurn:
+    def on_student(self, text: str, seconds: float = 0.0, *, allow_social: bool = True) -> TutorTurn:
         """Handle one student message. ``seconds``: time since the previous tutor message."""
         if self.phase is None:
             raise RuntimeError("call start() first")
         if self.phase == Phase.RESOLVED:
             raise RuntimeError("item already resolved")
+        reply = social_reply(text, self.package.persona.tutor_self, self.package.persona.student_address)
+        if allow_social and reply is not None:
+            # R-SOCIAL: preserve phase, pending confirmation, timing, turn/hint counters and mastery.
+            self._emit(
+                EventType.POLICY_DECISION,
+                PolicyDecisionMade(
+                    item_id=self.item.id, move=Move.REDIRECT, reason_codes=["SOCIAL"], rule_ids=["R-SOCIAL"]
+                ),
+            )
+            self._emit(
+                EventType.TUTOR_MESSAGE_SENT,
+                TutorMessageSent(
+                    item_id=self.item.id,
+                    move=Move.REDIRECT,
+                    text=reply,
+                    source="TEMPLATE",
+                    words=len(reply.split()),
+                    attempts_to_pass_validator=1,
+                ),
+            )
+            events, self._pending = tuple(self._pending), []
+            return TutorTurn(text=reply, move=Move.REDIRECT, phase=self.phase, events=events)
         st = self.state
         self._turns += 1
         if st.confirm_open and self._guess_intent is not None and is_affirmation(text):

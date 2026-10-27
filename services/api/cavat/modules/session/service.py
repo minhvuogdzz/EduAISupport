@@ -167,7 +167,7 @@ def rebuild_tutor(pkg: LessonPackage, item: dict[str, Any]) -> ItemTutor:
     tutor = _new_tutor(pkg, item["item_id"], item["activity"])
     tutor.start()
     for inp in item["inputs"]:
-        tutor.on_student(inp["text"], inp["seconds"])
+        tutor.on_student(inp["text"], inp["seconds"], allow_social=inp.get("social_routing", False))
     return tutor
 
 
@@ -325,7 +325,7 @@ def apply_command(
     if trace is not None and trace.safety_flag:
         flagged = SafetyFlagged(item_id=item_id).model_dump(mode="json")
         events.append(_event(EventType.SAFETY_FLAGGED, flagged, session, attempt_id, activity_id))
-    item["inputs"] = [*item["inputs"], {"text": loop_text, "seconds": seconds}]
+    item["inputs"] = [*item["inputs"], {"text": loop_text, "seconds": seconds, "social_routing": True}]
     item["phase"] = turn.phase.value
     item["choice_open"] = turn.phase == Phase.AWAITING_CHOICE
 
@@ -556,6 +556,10 @@ def build_teacher_transcript(
             grounding.update(grounded=p["grounded"], grounding=p["grounding"])
         elif kind == EventType.QUESTION_PARKED:
             grounding["parked"] = p["reason"]
+        elif kind == EventType.WEB_LOOKED:
+            grounding["web"] = {k: p.get(k, "") for k in ("query", "title", "url", "excerpt", "excerpt_hash")}
+            if p.get("answered"):
+                grounding.update(grounded=True, grounding="Nguồn ngoài trong phạm vi bài học")
         elif kind == EventType.TEACH_MESSAGE_SENT:
             teach = {
                 "kind": p["kind"],
@@ -569,6 +573,7 @@ def build_teacher_transcript(
                 "grounded": grounding.get("grounded"),
                 "grounding": grounding.get("grounding"),
                 "parked": grounding.get("parked"),
+                "web": grounding.get("web"),
             }
             grounding = {}
             add(
