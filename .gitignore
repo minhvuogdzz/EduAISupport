@@ -36,3 +36,7 @@ evals/reports/*
 
 # Tài liệu thật của giáo viên (SGK, bài tập, đề): chỉ nằm trên máy, không bao giờ lên git
 tailieu/
+
+# Bản xuất database (có tài khoản và lời các em đã nói): chỉ nằm trên máy và đi qua kênh riêng, không bao giờ lên git
+db-dump/*
+!db-dump/README.md

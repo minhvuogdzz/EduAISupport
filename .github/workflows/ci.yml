@@ -39,3 +39,67 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+
+  docker:
+    # A clean deployment on Linux, without any real keys or production database.
+    runs-on: ubuntu-latest
+    env:
+      MONGODB_DB: cavat_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare isolated configuration and transfer fixtures
+        run: |
+          sh deploy/setup.sh
+          sed -i 's|^GROQ_API_KEY=.*|GROQ_API_KEY=ci-not-a-key|' .env
+          python3 - <<'PYTHON'
+          import io, json, tarfile
+          docs = [{"_id": "a", "n": 1}, {"_id": "b", "n": 2}]
+          manifest = {"database": "ci", "documents": {"ci_probe": len(docs)}}
+          with tarfile.open("db-dump/ci.tar.gz", "w:gz") as tar:
+              for name, text in (
+                  ("manifest.json", json.dumps(manifest)),
+                  ("ci_probe.jsonl", "".join(json.dumps(d) + "\n" for d in docs)),
+              ):
+                  data = text.encode()
+                  info = tarfile.TarInfo(name)
+                  info.size = len(data)
+                  tar.addfile(info, io.BytesIO(data))
+          with tarfile.open("db-dump/ci-storage.tar.gz", "w:gz") as tar:
+              data = b"original teacher file"
+              info = tarfile.TarInfo("documents/ci/original.txt")
+              info.size = len(data)
+              tar.addfile(info, io.BytesIO(data))
+          PYTHON
+      - name: Build, import, and start like the operator
+        run: sh deploy/start.sh ci.tar.gz ci-storage.tar.gz
+      - name: Verify the one-port app, database, storage and accounts
+        run: |
+          python3 - <<'PYTHON'
+          import json, urllib.request
+          base = "http://localhost:8080"
+          def get(path):
+              return urllib.request.urlopen(base + path)
+          assert json.load(get("/health"))["status"] == "ok"
+          assert json.load(get("/health/db"))["status"] == "ok"
+          assert b'<div id="root"' in get("/").read()
+          body = json.dumps({"username": "CI student", "passcode": "728394"}).encode()
+          request = urllib.request.Request(base + "/v1/auth/student/register", body, {"Content-Type": "application/json"})
+          result = json.load(urllib.request.urlopen(request))
+          request = urllib.request.Request(base + "/v1/auth/me", headers={"Authorization": "Bearer " + result["token"]})
+          assert json.load(urllib.request.urlopen(request))["kind"] == "STUDENT"
+          PYTHON
+          curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/v1/nope | grep -q 404
+          docker compose exec -T app python -c 'from pathlib import Path; assert Path("/data/storage/documents/ci/original.txt").read_text() == "original teacher file"'
+      - name: Refuse a second database import with the documented exit code
+        run: |
+          set +e
+          docker compose run --rm --no-deps app python -m cavat.restore /dump/ci.tar.gz
+          result=$?
+          set -e
+          test "$result" -eq 2
+      - name: Logs
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+      - name: Clean up isolated test volumes
+        if: always()
+        run: docker compose down -v

@@ -5,6 +5,7 @@ compresses what it sends, adds the light security headers and keeps /docs off un
 no CORS: the web app and the API share one origin, so a page of another site cannot read an answer.
 """
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -40,7 +41,11 @@ def create_app(*, web_dist: Path | None = None, api_docs: bool | None = None) ->
 
     @app.get("/health")
     async def health() -> dict:
-        return {"status": "ok", "version": __version__}
+        return {
+            "status": "ok",
+            "version": __version__,
+            "revision": os.environ.get("CAVAT_REVISION", "development"),
+        }
 
     @app.get("/health/db")
     async def health_db():

@@ -39,11 +39,8 @@ Chỉ học trong nhà, cùng máy hoặc cùng mạng? Không cần bước 8: 
 - Database là Atlas M0 (không có sao lưu tự động). `make doctor` báo vàng khi đang dùng `cavat_dev`: bài làm của các em nằm chung với dữ liệu phát triển. Chấp nhận được cho vài buổi thử có giám sát nếu có sao lưu trước và sau; học sinh thật lâu dài nên dùng `cavat_prod` (đặt `MONGODB_DB`, rồi `make accounts`, nhập lại tài liệu và duyệt lại).
 - `make backup` chỉ đọc. Ghi mỗi bộ sưu tập thành `var/storage/backups/<thời điểm UTC>/<tên>.jsonl` (mỗi dòng một bản ghi, MongoDB extended JSON) cùng `manifest.json` và in số bản ghi. Thư mục này có tài khoản (PIN dạng băm scrypt) và lời các em nói: để trên máy này, quyền chỉ chủ máy đọc.
 - Tệp gốc của thư viện tài liệu và âm thanh nằm ở `var/storage/` (không có trong database). Chép cả thư mục `var/storage` sang ổ khác (ví dụ `rsync -a var/storage/ /Volumes/<ổ>/cavat-storage/`).
-- **Khôi phục** (chưa có lệnh `restore`; làm tay, có chủ ý): khôi phục vào một database trống mới, không bao giờ đè lên database đang dùng.
-  1. Đặt `MONGODB_DB` sang tên mới trống (hoặc dùng `mongoimport --uri "$MONGODB_URI" --db <tên mới> --collection <bộ sưu tập> --file <bộ sưu tập>.jsonl`, một lệnh cho mỗi tệp `.jsonl`; `mongoimport` đọc đúng định dạng này).
-  2. `make db-indexes` để tạo lại chỉ mục.
-  3. Chạy `make doctor` rồi `make run`, kiểm tra số bản ghi so với `manifest.json`.
-  4. Cần lấy lại vài bản ghi thì mở tệp `.jsonl` (mỗi dòng đọc được bằng `bson.json_util.loads`) và chèn riêng những bản ghi đó.
+- **Khôi phục** (DEPLOY-1, ADR-036): `cd services/api && .venv/bin/python -m cavat.restore ../../var/storage/backups/<thời điểm> --db <tên mới trống>`. Lệnh kiểm tra thư mục (hoặc tệp `.tar.gz` do `make db-pack` tạo), từ chối database đã có dữ liệu (thêm `--replace` để nạp đè đúng các bộ sưu tập có trong sao lưu), tạo chỉ mục và đếm lại với `manifest.json`. Khôi phục vào một database trống mới, không đè lên database đang dùng; rồi đặt `MONGODB_DB` sang tên đó, chạy `make doctor` và `make run`.
+- **Chuyển lên server:** `make db-pack` tạo `db-dump/cavat-db-….tar.gz`; devops nạp bằng lệnh ở `deploy/README.md`.
 
 ## Khi có sự cố
 

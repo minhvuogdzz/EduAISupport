@@ -395,3 +395,6 @@ class InMemoryDatabase:
 
     async def list_collection_names(self) -> list[str]:
         return sorted(self._collections)
+
+    async def drop_collection(self, name: str) -> None:
+        self._collections.pop(name, None)

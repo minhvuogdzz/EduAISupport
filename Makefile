@@ -7,7 +7,7 @@ PORT ?= $(API_PORT)
 BIND_HOST ?= 127.0.0.1
 VOICE_PORT ?= 8010
 
-.PHONY: setup test lint fmt api api-memory run run-memory web-build doctor tunnel backup smoke demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
+.PHONY: setup test lint fmt api api-memory run run-memory web-build doctor tunnel backup db-pack storage-pack smoke demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -162,6 +162,14 @@ tunnel: ## A public HTTPS address for the app at PORT (Cloudflare quick tunnel) 
 
 backup: ## Export every collection of the database of services/api/.env to var/storage/backups/<time>/*.jsonl (read-only)
 	cd services/api && .venv/bin/python -m cavat.backup
+
+db-pack: ## Pack the database of services/api/.env into db-dump/cavat-db-<time>.tar.gz for the server's restore (read-only; the file holds the children's words, never on git)
+	@mkdir -p db-dump
+	cd services/api && .venv/bin/python -m cavat.backup --archive ../../db-dump/cavat-db-$$(date -u +%Y%m%dT%H%M%SZ).tar.gz
+
+storage-pack: ## Pack documents, voice files and runtime caches for the server (private; no backup or trial outputs)
+	@mkdir -p db-dump
+	cd services/api && .venv/bin/python -m cavat.storage_transfer pack ../../db-dump/cavat-storage-$$(date -u +%Y%m%dT%H%M%SZ).tar.gz
 
 smoke: ## Start make run-memory on a free port, curl /health and /, stop it (what CI does for the one-port build)
 	services/api/.venv/bin/python services/api/scripts/smoke_one_port.py
