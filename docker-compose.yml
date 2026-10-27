@@ -1,0 +1,83 @@
+# CAVAT AI Tutor on one machine: the app (web + API on one port) and its MongoDB. ADR-036, deploy/README.md.
+#   sh deploy/setup.sh && docker compose up -d --build
+name: cavat
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: cavat
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD:?MONGO_PASSWORD chưa có trong .env, chạy sh deploy/setup.sh}"
+    volumes:
+      - mongo-data:/data/db
+    # no ports: only the app, on this compose network, can reach the database
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mongosh --quiet -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.runCommand({ping:1}).ok" | grep -q 1'
+      interval: 10s
+      timeout: 8s
+      retries: 12
+      start_period: 20s
+    logging: *logging
+
+  app:
+    build:
+      context: .
+      args:
+        CAVAT_REVISION: "${CAVAT_REVISION:-unknown}"
+    image: cavat-app:latest
+    restart: unless-stopped
+    init: true
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: "mongodb://cavat:${MONGO_PASSWORD:?MONGO_PASSWORD chưa có trong .env, chạy sh deploy/setup.sh}@mongo:27017/?authSource=admin"
+      MONGODB_DB: "${MONGODB_DB:-cavat_prod}"
+      GROQ_API_KEY: "${GROQ_API_KEY:?GROQ_API_KEY chưa có trong .env}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET chưa có trong .env, chạy sh deploy/setup.sh}"
+      AUTH_MODE: accounts
+      TUTOR_RENDERER: llm
+      MAX_LLM_CALLS_PER_SESSION: "${MAX_LLM_CALLS_PER_SESSION:-40}"
+      TUTOR_MODELS: "${TUTOR_MODELS:-}"
+      # the tutor's voice server (VieNeu) is not part of this package: the browser reads with its own voice
+      TTS: "off"
+    volumes:
+      - app-data:/data/storage
+      # where the database export is put to be loaded (deploy/README.md); read-only
+      - ./db-dump:/dump:ro
+    ports:
+      - "${PORT:-8080}:8000"
+    logging: *logging
+
+  # Optional HTTPS in front of the app (the microphone only works on HTTPS): docker compose --profile https up -d
+  https:
+    profiles: ["https"]
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    command: ["caddy", "reverse-proxy", "--from", "${DOMAIN:-localhost}", "--to", "app:8000"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    logging: *logging
+
+volumes:
+  mongo-data:
+  app-data:
+  caddy-data:
+  caddy-config:

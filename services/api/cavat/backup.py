@@ -15,8 +15,10 @@ folder too. How to restore: docs/pilot/README.md ("Khôi phục").
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import sys
+import tarfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -65,12 +67,37 @@ async def export_database(database: Any, out_dir: Path) -> dict[str, int]:
     return counts
 
 
+def pack_archive(folder: Path, archive: Path) -> str:
+    """Pack an export folder into one ``.tar.gz`` (the manifest first, then the collections): the file to hand
+    over to ``python -m cavat.restore``. Never over a file that is there; 0600. Returns its sha256."""
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    names = [MANIFEST, *sorted(p.name for p in folder.iterdir() if p.name != MANIFEST)]
+    fd = os.open(archive, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as raw, tarfile.open(fileobj=raw, mode="w:gz") as tar:
+        for name in names:
+            info = tar.gettarinfo(folder / name, arcname=name)
+            info.uid = info.gid = 0
+            info.uname = info.gname = ""
+            info.mode = 0o600
+            with (folder / name).open("rb") as handle:
+                tar.addfile(info, handle)
+    digest = hashlib.sha256()
+    with archive.open("rb") as packed:
+        for chunk in iter(lambda: packed.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 async def main() -> int:
     settings = get_settings()
     if settings.mongodb_uri is None:
         print("MONGODB_URI chưa có trong services/api/.env.")
         return 1
     out_dir = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else backup_dir(settings)
+    archive = Path(sys.argv[sys.argv.index("--archive") + 1]) if "--archive" in sys.argv else None
+    if archive is not None and archive.exists():
+        print(f"{archive} đã có: không ghi đè. Đặt tên khác.")
+        return 1
     print(f"Database: {settings.mongodb_db} (chỉ đọc, không ghi gì vào database)")
     try:
         counts = await export_database(db.get_db(settings), out_dir)
@@ -80,6 +107,10 @@ async def main() -> int:
     for name, count in counts.items():
         print(f"  {name:<{width}}  {count:>7}")
     print(f"Đã sao lưu {sum(counts.values())} bản ghi của {len(counts)} bộ sưu tập vào {out_dir}")
+    if archive is not None:
+        digest = pack_archive(out_dir, archive)
+        print(f"Đã đóng gói {archive} ({archive.stat().st_size / 1e6:.1f} MB, sha256 {digest}).")
+        print("Nạp vào server: python -m cavat.restore <tệp này> (deploy/README.md).")
     print("Thư mục này có tài khoản và lời các em nói: giữ trên máy này.")
     print("Chép cả var/storage (tài liệu gốc, âm thanh): sao lưu này chỉ có database.")
     return 0

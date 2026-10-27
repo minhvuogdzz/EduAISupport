@@ -1,0 +1,27 @@
+# What the image build does not see. Above all: no secret and no child's data ever goes into an image layer.
+.git
+.github
+.claude
+**/.env
+**/.env.*
+db-dump
+var
+tailieu
+space
+evals
+
+# dependencies and builds are made inside the image
+**/node_modules
+**/.venv
+**/dist
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+**/.pytest_cache
+**/.ruff_cache
+
+# the image needs only the lessons of docs/, the voice server is not part of it, tests are not run in it
+docs/*
+!docs/pedagogy
+services/voice
+services/api/tests
