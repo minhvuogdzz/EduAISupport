@@ -1,4 +1,4 @@
-"""The figures of the questions (FIG-1, ADR-034).
+"""The figures of the questions (FIG-1, ADR-037).
 
 - ``GET /v1/figures?chapter_id=``: the figures a child may see (approved by the teacher, or found with
   confidence and not rejected), for the web to put above the words of a question. A student, a parent or

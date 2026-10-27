@@ -117,11 +117,12 @@ export interface SessionApi {
   };
   /** Pictures of the questions (FIG-1, real API only). `as` is who asks: a child sees only what is shown. */
   figures?: {
-    list(chapterId: string, as: "student" | "teacher"): Promise<FigureView[]>;
-    image(figureId: string, version: string, as: "student" | "teacher"): Promise<Blob>;
-    all(chapterId: string): Promise<TeacherFigure[]>;
-    decide(figureId: string, action: "approve" | "reject" | "undo"): Promise<TeacherFigure>;
+    list(this: void, chapterId: string, as: "student" | "teacher"): Promise<FigureView[]>;
+    image(this: void, figureId: string, version: string, as: "student" | "teacher"): Promise<Blob>;
+    all(this: void, chapterId: string): Promise<TeacherFigure[]>;
+    decide(this: void, figureId: string, action: "approve" | "reject" | "undo"): Promise<TeacherFigure>;
     replace(
+      this: void,
       file: File,
       meta: { chapterId: string; questionId: string; order: number; tag: string },
     ): Promise<TeacherFigure>;

@@ -1,4 +1,4 @@
-"""Build the figures of a chapter from the documents of the database and keep them (FIG-1, ADR-034):
+"""Build the figures of a chapter from the documents of the database and keep them (FIG-1, ADR-037):
 ``make figures`` and the teacher's page share this.
 
 ``plan`` only reads (the documents, the item bank, the original PDFs) and returns what would be stored.
@@ -32,7 +32,9 @@ def storage_reader(storage_dir: Path):
     """The original file of a document, or None when it is not on this disk."""
 
     def read(doc: Any) -> bytes | None:
-        path = storage_dir / doc.stored_path
+        path = (storage_dir / doc.stored_path).resolve()
+        if (storage_dir / "documents").resolve() not in path.parents:
+            return None
         return path.read_bytes() if path.is_file() else None
 
     return read
@@ -85,6 +87,8 @@ async def store(database: Any, school_id: str, built: ChapterFigures, storage_di
     for old in await repo.list_chapter(built.chapter_id):
         if (old.question_id, old.order) not in slots and old.method == "VECTOR":
             result.stale += 1
+            # Do not keep serving a drawing that the current source no longer matches.
+            await repo.mark_stale(old.id)
     return result
 
 
@@ -111,7 +115,7 @@ def _figure_of(
     )
     if before is not None:
         figure.id = before.id
-    figure.file = f"figures/{figure.id}.png"
+    figure.file = f"figures/{figure.id}-{figure.sha256[:16]}.png"
     return figure
 
 
@@ -132,8 +136,10 @@ def normalise_upload(data: bytes) -> tuple[bytes, int, int]:
         image = Image.open(io.BytesIO(data))
         if image.format not in ("PNG", "JPEG", "WEBP"):
             raise ValueError("NOT_AN_IMAGE")
+        if image.width * image.height > 16_000_000:
+            raise ValueError("TOO_BIG")
         image.load()
-    except (UnidentifiedImageError, OSError) as exc:
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError) as exc:
         raise ValueError("NOT_AN_IMAGE") from exc
     image = image.convert("RGBA")
     background = Image.new("RGBA", image.size, "white")  # a transparent picture on a white card
@@ -182,7 +188,7 @@ async def put_upload(
     )
     if before is not None:
         figure.id = before.id
-    figure.file = f"figures/{figure.id}.png"
+    figure.file = f"figures/{figure.id}-{figure.sha256[:16]}.png"
     from cavat.core.repository import utc_now
 
     figure.decided_by, figure.decided_at = by, utc_now()

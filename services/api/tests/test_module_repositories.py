@@ -8,6 +8,7 @@ from cavat.db import repository_classes
 from cavat.modules.assessment.repository import Evidence, EvidenceRepository
 from cavat.modules.content.lesson_package import load_lesson_package
 from cavat.modules.content.repository import LessonRepository, LessonVersion, package_hash
+from cavat.modules.figures.repository import Figure, FigureRepository
 from cavat.modules.identity.repository import User, UserRepository
 from cavat.modules.ingest.repository import ItemBank, ItemBankRepository, TeachingPlan, TeachingPlanRepository
 from cavat.modules.learner.repository import StudentKCStateRepository
@@ -325,6 +326,16 @@ async def test_every_stored_learner_document_has_school_id(db, package):
         TeachingPlan(school_id="sch-A", chapter_id="c", version="v")
     )
     await SafetyReviewRepository(db, "sch-A").mark(session.id, "s", 1, "t", utc_now())
+    await FigureRepository(db, "sch-A").save(
+        Figure(
+            school_id="sch-A",
+            chapter_id="c",
+            question_id="q",
+            order=1,
+            tag="[Hình: tam giác]",
+            alt="tam giác",
+        )
+    )
 
     for repo in repository_classes():
         docs = await db[repo.collection_name].find({}).to_list()

@@ -134,6 +134,7 @@ async def test_tenant_repositories_are_isolated(db):
 # --- registry -----------------------------------------------------------------------------------
 
 EXPECTED_COLLECTIONS = {
+    "figures",
     "schools",
     "users",
     "classes",

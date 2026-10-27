@@ -126,6 +126,11 @@ def test_equal_counts_pair_by_order_and_wait_for_the_teacher():
     assert len(match.pairs) == 1 and match.pairs[0].confidence == "REVIEW"
 
 
+def test_a_description_without_labels_or_measures_waits_for_the_teacher():
+    match = match_page(1, ["[Hình: một tam giác]"], [region("A", "B", "C")])
+    assert len(match.pairs) == 1 and match.pairs[0].confidence == "REVIEW"
+
+
 def test_a_description_of_panels_takes_a_row_of_drawings():
     row = [region("A", "B", "C", "h", "a", left=left) for left in (0, 130, 260)]
     match = match_page(3, [TAG_ROW], row)
@@ -216,6 +221,32 @@ async def test_figures_of_one_school_are_invisible_to_another(pdf_file, tmp_path
     built = plan_chapter(CHAPTER, [document()], ITEMS, service.storage_reader(tmp_path))
     await service.store(database, SCHOOL, built, tmp_path)
     assert await FigureRepository(database, "other-school").list_chapter(CHAPTER) == []
+
+
+async def test_a_figure_no_longer_matched_is_hidden_without_rewriting_lesson_approvals(pdf_file, tmp_path):
+    database = InMemoryDatabase()
+    await database["teaching_plans"].insert_one({"_id": "plan", "decisions": {"node:x": "approved"}})
+    built = plan_chapter(CHAPTER, [document()], ITEMS, service.storage_reader(tmp_path))
+    await service.store(database, SCHOOL, built, tmp_path)
+    repo = FigureRepository(database, SCHOOL)
+    first = (await repo.list_chapter(CHAPTER))[0]
+    await repo.decide(first.id, "APPROVED", "teacher")
+    built.matches = [m for m in built.matches if m.question_id != first.question_id]
+    stored = await service.store(database, SCHOOL, built, tmp_path)
+    assert stored.stale == 1
+    stale = await repo.get(first.id)
+    assert stale is not None and not stale.shown and stale.score == 0
+    assert await database["teaching_plans"].find_one({"_id": "plan"}) == {
+        "_id": "plan",
+        "decisions": {"node:x": "approved"},
+    }
+
+
+def test_a_source_path_outside_the_library_is_not_read(tmp_path):
+    outside = tmp_path / "outside.pdf"
+    outside.write_bytes(b"private")
+    doc = document().model_copy(update={"stored_path": str(outside)})
+    assert service.storage_reader(tmp_path / "storage")(doc) is None
 
 
 def test_a_picture_that_is_not_an_image_is_refused():

@@ -1,4 +1,4 @@
-"""The figures of a chapter from the teacher's documents (FIG-1, ADR-034): ``make figures`` and the tests
+"""The figures of a chapter from the teacher's documents (FIG-1, ADR-037): ``make figures`` and the tests
 share this. No database and no model here: documents, bank items and the original PDFs go in, matched and
 rendered figures come out (``ChapterFigures``), and ``service`` stores them.
 

@@ -208,3 +208,10 @@ Các giả định trước đây của web app, nay backend đã làm theo:
 - `Idempotency-Key` được kiểm tra trước các kiểm tra khác, để lệnh gửi lại nhận đúng kết quả cũ thay vì 409.
 - Giáo viên có `GET /v1/sessions` và `GET /v1/sessions/{id}/transcript`.
 - Lựa chọn của học sinh được ghi bằng event `CHOICE_MADE`.
+
+
+## Hình minh họa (FIG-1, ADR-037)
+
+Màn học hiển thị ảnh đã trích từ tài liệu, gồm cả hình chung cho các câu nhỏ. Ảnh dùng API cùng cổng, có đăng nhập. Chưa có ảnh hoặc tải ảnh lỗi thì giữ mô tả để học sinh không mất dữ kiện; có thể thử tải lại. Trang nội dung bài và trang duyệt phương án có mục Hình minh họa để giáo viên duyệt/bỏ/thay, độc lập với duyệt chữ.
+
+Công cụ nội dung: `make figures DRY=1` tạo gallery chỉ đọc; `make figures` nhập các hình đã kiểm. Không chạy tự động khi ứng dụng khởi động. Gói chuyển DB/storage của ADR-036 mang theo cả hình; không cần xuất bản lại kế hoạch.

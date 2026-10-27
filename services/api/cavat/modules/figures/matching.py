@@ -1,4 +1,4 @@
-"""Which figure of a page is which "[Hình: …]" description (FIG-1, ADR-034).
+"""Which figure of a page is which "[Hình: …]" description (FIG-1, ADR-037).
 
 The document's text (read by Gemini, page by page) says "[Hình: tam giác ABC, đáy BC = 12 cm …]" where a
 figure is drawn; ``finder`` returns the figures of the same page in reading order. Two signals pair them:
@@ -98,7 +98,7 @@ def score(tag: str, region: Region) -> float:
     any drawing: the order alone decides, and the pair waits for the teacher."""
     said = evidence(tag)
     if not said:
-        return SURE_SCORE
+        return MIN_SCORE  # order alone can propose a pair, never auto-show it
     seen = drawn(region)
     if not seen:
         return 0.0

@@ -1,4 +1,4 @@
-"""Storage of the figures of the questions (FIG-1, ADR-034): a collection of its own, keyed by the question
+"""Storage of the figures of the questions (FIG-1, ADR-037): a collection of its own, keyed by the question
 and the order of the figure ("Hình 1", "Hình 2"), so the text of a question never changes (the teacher's
 approvals are bound to the words, DI-74). The picture is a PNG on disk under ``var/storage/figures/``.
 """
@@ -99,3 +99,6 @@ class FigureRepository(TenantScopedRepository):
 
     async def delete(self, figure_id: str) -> bool:
         return await self._delete_one({"_id": figure_id})
+
+    async def mark_stale(self, figure_id: str) -> None:
+        await self._update_one({"_id": figure_id}, {"$set": {"status": "REVIEW", "score": 0.0}})

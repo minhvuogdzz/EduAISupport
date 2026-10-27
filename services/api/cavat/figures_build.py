@@ -1,4 +1,4 @@
-"""Cut the figures of the two demo chapters out of the teacher's documents (FIG-1, ADR-034):
+"""Cut the figures of the two demo chapters out of the teacher's documents (FIG-1, ADR-037):
 ``make figures`` (``make figures DRY=1`` first).
 
 Reads the documents and the item banks of the database of services/api/.env and their original PDFs under

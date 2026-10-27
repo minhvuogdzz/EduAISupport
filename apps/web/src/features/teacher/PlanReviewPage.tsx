@@ -5,6 +5,8 @@ import { Link, useParams } from "react-router";
 import { useApi } from "../../api/apiContext";
 import type { ContentItem, ContentNode, PlanItemNote, TeachingPlanReview } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
+import { FiguresProvider } from "../../components/Figures";
+import { FigureReview } from "./FigureReview";
 import { MathText } from "../../components/MathText";
 import { TeacherHeader } from "./TeacherHeader";
 
@@ -178,16 +180,21 @@ export function PlanReviewPage() {
       />
     );
   return (
-    <AppShell>
-      <title>Duyệt phương án · Giáo viên · CAVAT</title>
-      <TeacherHeader title={plan.data ? `Duyệt phương án: ${plan.data.content.title}` : "Duyệt phương án"} />
-      <div className="mx-auto max-w-7xl px-4 pb-10">
-        <Link to="/teacher/lessons" className="mb-3 inline-block text-sm text-brand-800 hover:underline">
-          ← Các chương
-        </Link>
-        {body}
-      </div>
-    </AppShell>
+    <FiguresProvider chapterId={chapterId} who="teacher">
+      <AppShell>
+        <title>Duyệt phương án · Giáo viên · CAVAT</title>
+        <TeacherHeader
+          title={plan.data ? `Duyệt phương án: ${plan.data.content.title}` : "Duyệt phương án"}
+        />
+        <div className="mx-auto max-w-7xl px-4 pb-10">
+          <Link to="/teacher/lessons" className="mb-3 inline-block text-sm text-brand-800 hover:underline">
+            ← Các chương
+          </Link>
+          <FigureReview chapterId={chapterId} />
+          {body}
+        </div>
+      </AppShell>
+    </FiguresProvider>
   );
 }
 
@@ -538,7 +545,7 @@ function ItemReview({
         </span>
       </div>
       <p className="mt-1">
-        <MathText text={item.stem} />
+        <MathText text={item.stem} questionId={item.item_id} />
       </p>
       <Editable
         label="Đáp án"
@@ -610,7 +617,7 @@ function LeftOut({ plan, actions }: { plan: TeachingPlanReview; actions: Actions
             {it.page ? <span className="text-xs text-slate-500">trang {it.page}</span> : null}
           </div>
           <p className="mt-1">
-            <MathText text={it.stem} />
+            <MathText text={it.stem} questionId={it.item_id} />
           </p>
           {it.findings.length > 0 && (
             <p className="text-xs text-rose-800">Bộ kiểm: {it.findings.map((f) => f.detail).join("; ")}</p>

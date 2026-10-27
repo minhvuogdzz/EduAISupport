@@ -1,5 +1,6 @@
 import { splitNumbers } from "../lib/viNumber";
-import { FigureImage, pullFigures, useFigures } from "./Figures";
+import { FigureImage } from "./Figures";
+import { pullFigures, useFigures } from "./figureModel";
 
 // "0,25 … 0,3": the blank means nothing without both numbers, so the three stay on one line.
 const FILL_IN = /(\d+(?:[.,]\d+)?\s*…\s*\d+(?:[.,]\d+)?)/;
@@ -8,9 +9,17 @@ const FILL_IN = /(\d+(?:[.,]\d+)?\s*…\s*\d+(?:[.,]\d+)?)/;
  * Text with its numbers styled as one unit ("0,25" never breaks at the comma, digits line up).
  * The text itself is never changed. With `blanks`, the "…" of a fill-in stem becomes a visible box.
  */
-export function MathText({ text, blanks = false }: { text: string; blanks?: boolean }) {
+export function MathText({
+  text,
+  blanks = false,
+  questionId,
+}: {
+  text: string;
+  blanks?: boolean;
+  questionId?: string;
+}) {
   const figures = useFigures();
-  const { text: words, found } = pullFigures(text, figures);
+  const { text: words, found } = pullFigures(text, figures, questionId);
   if (found.length === 0) return <Words text={text} blanks={blanks} />;
   // FIG-1: the picture of a "[Hình: …]" goes above the words; the description stays its alternative text.
   return (

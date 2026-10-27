@@ -5,6 +5,8 @@ import { Link, useParams } from "react-router";
 import { useApi } from "../../api/apiContext";
 import type { ChapterContent, ContentItem, ContentNode } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
+import { FiguresProvider } from "../../components/Figures";
+import { FigureReview } from "./FigureReview";
 import { MathText } from "../../components/MathText";
 import { TeacherHeader } from "./TeacherHeader";
 
@@ -93,22 +95,25 @@ export function ChapterContentPage() {
     retry: false,
   });
   return (
-    <AppShell>
-      <title>Bài học · Giáo viên · CAVAT</title>
-      <TeacherHeader title={content.data?.title ?? "Bài học"} />
-      <div className="mx-auto max-w-7xl px-4 pb-10">
-        <Link to="/teacher/lessons" className="mb-3 inline-block text-sm text-brand-800 hover:underline">
-          ← Các chương
-        </Link>
-        {content.isPending ? (
-          <Notice>Đang tải nội dung…</Notice>
-        ) : content.isError ? (
-          <Notice>Không tìm thấy chương này.</Notice>
-        ) : (
-          <Chapter content={content.data} />
-        )}
-      </div>
-    </AppShell>
+    <FiguresProvider chapterId={chapterId} who="teacher">
+      <AppShell>
+        <title>Bài học · Giáo viên · CAVAT</title>
+        <TeacherHeader title={content.data?.title ?? "Bài học"} />
+        <div className="mx-auto max-w-7xl px-4 pb-10">
+          <Link to="/teacher/lessons" className="mb-3 inline-block text-sm text-brand-800 hover:underline">
+            ← Các chương
+          </Link>
+          <FigureReview chapterId={chapterId} />
+          {content.isPending ? (
+            <Notice>Đang tải nội dung…</Notice>
+          ) : content.isError ? (
+            <Notice>Không tìm thấy chương này.</Notice>
+          ) : (
+            <Chapter content={content.data} />
+          )}
+        </div>
+      </AppShell>
+    </FiguresProvider>
   );
 }
 
@@ -276,7 +281,7 @@ function ItemCard({ item, misName }: { item: ContentItem; misName: Map<string, s
         {item.item_id} · mức {item.cognitive_level} · độ khó {item.difficulty}
       </p>
       <p className="mt-1 font-medium">
-        <MathText text={item.stem} />
+        <MathText text={item.stem} questionId={item.item_id} />
       </p>
       <p className="mt-1 text-emerald-800">
         <span className="font-semibold">Đáp án: </span>

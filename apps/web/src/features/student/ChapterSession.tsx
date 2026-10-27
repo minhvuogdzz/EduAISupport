@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { CurrentItem, MicroChoice, Modality, SessionState, TeachingView } from "../../api/contract";
 import { FiguresProvider } from "../../components/Figures";
+import { pullFigures, questionFigures, useFigures } from "../../components/figureModel";
 import { StarIcon } from "../../components/icons";
 import { capitalize, TEACHING_STEPS } from "../../components/labels";
 import { MathText } from "../../components/MathText";
@@ -45,7 +46,15 @@ const ITEM_STEP_LABEL: Record<number, string> = {
  * where the student is in the chapter; the step bar shows where the student is in the teaching cycle of
  * the current node. The tutor's theory and worked examples are cards in the conversation.
  */
-export function ChapterSession({
+export function ChapterSession(props: ChapterSessionProps) {
+  return (
+    <FiguresProvider chapterId={props.teaching.chapter.chapter_id} who="student">
+      <ChapterSessionContent {...props} />
+    </FiguresProvider>
+  );
+}
+
+function ChapterSessionContent({
   state,
   teaching,
   turns,
@@ -95,103 +104,106 @@ export function ChapterSession({
   // it comes back (pinned) once the tutor says something else, a hint for instance.
   const lastTutor = [...turns].reverse().find((turn) => turn.actor === "tutor")?.text ?? "";
   const promptShown = Boolean(teaching.prompt) && !lastTutor.includes(teaching.prompt ?? "");
-  const itemShown = Boolean(state.item) && !lastTutor.includes(state.item?.stem ?? "");
+  const figures = useFigures();
+  const hasImage =
+    state.item &&
+    (questionFigures(figures, state.item.item_id, state.item.stem).length > 0 ||
+      pullFigures(state.item.stem, figures, state.item.item_id).found.length > 0);
+  const itemShown = Boolean(state.item) && (!lastTutor.includes(state.item?.stem ?? "") || hasImage);
 
   return (
-    <FiguresProvider chapterId={teaching.chapter.chapter_id} who="student">
-      <div className="flex h-dvh flex-col bg-paper">
-        <title>{`${teaching.chapter.title} · CAVAT`}</title>
-        <MockBanner />
-        <ChapterHeader state={state} teaching={teaching} nodeName={current?.name ?? null} />
-        <div className="flex min-h-0 flex-1">
-          <div
-            ref={scrollerRef}
-            className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none]"
-          >
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-3 py-3 sm:px-4">
-              <div className="flex flex-col gap-2 lg:hidden">
-                {steps && <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">{steps}</div>}
-                <details className="rounded-2xl bg-white px-4 py-2.5 ring-1 ring-slate-200">
-                  <summary className="cursor-pointer text-sm font-semibold">
-                    Bản đồ bài học · {teaching.passed}/{teaching.total} bài đã qua
-                  </summary>
-                  <div className="mt-3">{map}</div>
-                </details>
-              </div>
-              {state.item
-                ? itemShown && (
-                    <div className="md:sticky md:top-0 md:z-10 md:-mt-3 md:bg-paper md:pt-3 md:pb-1">
-                      <QuestionCard
-                        item={state.item}
-                        total={0}
-                        label={ITEM_STEP_LABEL[teaching.step ?? 0] ?? "Câu hỏi"}
-                      />
-                    </div>
-                  )
-                : reply &&
-                  teaching.prompt &&
-                  promptShown && (
-                    <div className="md:sticky md:top-0 md:z-10 md:-mt-3 md:bg-paper md:pt-3 md:pb-1">
-                      <PromptCard prompt={teaching.prompt} retell={teaching.awaiting === "RETELL"} />
-                    </div>
-                  )}
-              <Conversation
-                turns={turns}
-                typing={typing}
-                tutorName={tutorName}
-                studentName={state.student_display_name}
-              />
-              {notice}
-            </main>
-          </div>
-          <aside
-            aria-label="Bản đồ bài học"
-            className="hidden w-[22rem] shrink-0 overflow-y-auto border-l border-slate-200 bg-white px-4 py-3 lg:block"
-          >
-            {steps && <div className="mb-4 rounded-2xl bg-brand-50/70 px-3 py-3">{steps}</div>}
-            <h2 className="text-sm font-semibold">Bản đồ bài học</h2>
-            <p className="mb-2 text-xs text-slate-500">
-              {teaching.passed}/{teaching.total} bài đã qua
-            </p>
-            {map}
-          </aside>
+    <div className="flex h-dvh flex-col bg-paper">
+      <title>{`${teaching.chapter.title} · CAVAT`}</title>
+      <MockBanner />
+      <ChapterHeader state={state} teaching={teaching} nodeName={current?.name ?? null} />
+      <div className="flex min-h-0 flex-1">
+        <div
+          ref={scrollerRef}
+          className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none]"
+        >
+          <main className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-3 py-3 sm:px-4">
+            <div className="flex flex-col gap-2 lg:hidden">
+              {steps && <div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">{steps}</div>}
+              <details className="rounded-2xl bg-white px-4 py-2.5 ring-1 ring-slate-200">
+                <summary className="cursor-pointer text-sm font-semibold">
+                  Bản đồ bài học · {teaching.passed}/{teaching.total} bài đã qua
+                </summary>
+                <div className="mt-3">{map}</div>
+              </details>
+            </div>
+            {state.item
+              ? itemShown && (
+                  <div className="md:sticky md:top-0 md:z-10 md:-mt-3 md:bg-paper md:pt-3 md:pb-1">
+                    <QuestionCard
+                      item={state.item}
+                      total={0}
+                      label={ITEM_STEP_LABEL[teaching.step ?? 0] ?? "Câu hỏi"}
+                    />
+                  </div>
+                )
+              : reply &&
+                teaching.prompt &&
+                promptShown && (
+                  <div className="md:sticky md:top-0 md:z-10 md:-mt-3 md:bg-paper md:pt-3 md:pb-1">
+                    <PromptCard prompt={teaching.prompt} retell={teaching.awaiting === "RETELL"} />
+                  </div>
+                )}
+            <Conversation
+              turns={turns}
+              typing={typing}
+              tutorName={tutorName}
+              studentName={state.student_display_name}
+            />
+            {notice}
+          </main>
         </div>
-        <footer className="shrink-0 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
-          {state.lifecycle_state !== "COMPLETED" && <VoiceStatus voice={voice} />}
-          {state.lifecycle_state === "COMPLETED" ? (
-            <ChapterComplete teaching={teaching} />
-          ) : state.item ? (
-            <AnswerPanel
-              item={state.item}
-              pendingChoice={state.pending_choice}
-              allowed={state.allowed_commands}
-              busy={busy}
-              onSubmit={onSubmit}
-              onHint={onHint}
-              onChoose={onChoose}
-              leading={<VoiceToggle voice={voice} />}
-            />
-          ) : reply ? (
-            <AnswerPanel
-              item={reply}
-              pendingChoice={null}
-              allowed={state.allowed_commands}
-              busy={busy}
-              onSubmit={onSubmit}
-              onHint={onHint}
-              onChoose={onChoose}
-              showHint={false}
-              leading={<VoiceToggle voice={voice} />}
-              placeholder={
-                teaching.awaiting === "RETELL" ? "Con nói lại bằng lời của con…" : "Con trả lời cô ở đây…"
-              }
-            />
-          ) : (
-            <p className="px-4 py-3 text-center text-sm text-slate-600">Con chờ cô một chút nhé…</p>
-          )}
-        </footer>
+        <aside
+          aria-label="Bản đồ bài học"
+          className="hidden w-[22rem] shrink-0 overflow-y-auto border-l border-slate-200 bg-white px-4 py-3 lg:block"
+        >
+          {steps && <div className="mb-4 rounded-2xl bg-brand-50/70 px-3 py-3">{steps}</div>}
+          <h2 className="text-sm font-semibold">Bản đồ bài học</h2>
+          <p className="mb-2 text-xs text-slate-500">
+            {teaching.passed}/{teaching.total} bài đã qua
+          </p>
+          {map}
+        </aside>
       </div>
-    </FiguresProvider>
+      <footer className="shrink-0 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
+        {state.lifecycle_state !== "COMPLETED" && <VoiceStatus voice={voice} />}
+        {state.lifecycle_state === "COMPLETED" ? (
+          <ChapterComplete teaching={teaching} />
+        ) : state.item ? (
+          <AnswerPanel
+            item={state.item}
+            pendingChoice={state.pending_choice}
+            allowed={state.allowed_commands}
+            busy={busy}
+            onSubmit={onSubmit}
+            onHint={onHint}
+            onChoose={onChoose}
+            leading={<VoiceToggle voice={voice} />}
+          />
+        ) : reply ? (
+          <AnswerPanel
+            item={reply}
+            pendingChoice={null}
+            allowed={state.allowed_commands}
+            busy={busy}
+            onSubmit={onSubmit}
+            onHint={onHint}
+            onChoose={onChoose}
+            showHint={false}
+            leading={<VoiceToggle voice={voice} />}
+            placeholder={
+              teaching.awaiting === "RETELL" ? "Con nói lại bằng lời của con…" : "Con trả lời cô ở đây…"
+            }
+          />
+        ) : (
+          <p className="px-4 py-3 text-center text-sm text-slate-600">Con chờ cô một chút nhé…</p>
+        )}
+      </footer>
+    </div>
   );
 }
 

@@ -1,4 +1,4 @@
-"""Find the figures of a PDF page from its vector structure (FIG-1, ADR-034). No model is called.
+"""Find the figures of a PDF page from its vector structure (FIG-1, ADR-037). No model is called.
 
 The teacher's documents draw every figure with PDF path operators (lines, polygons, dashes) and write its
 labels ("A", "h", "12 cm") as short text runs. A figure is therefore a group of path objects that touch one

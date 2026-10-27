@@ -173,8 +173,10 @@ def build(pages: list[Page]) -> bytes:
         resources = f"<< /Font << /F1 {font1} 0 R /F2 {font2} 0 R >> >>".encode()
         kids.append(
             add(
-                f"<< /Type /Page /Parent {pages_obj} 0 R /MediaBox [0 0 {WIDTH} {HEIGHT}] /Contents {content} 0 R "
-                f"/Resources ".encode()
+                (
+                    f"<< /Type /Page /Parent {pages_obj} 0 R /MediaBox [0 0 {WIDTH} {HEIGHT}] "
+                    f"/Contents {content} 0 R /Resources "
+                ).encode()
                 + resources
                 + b" >>"
             )
