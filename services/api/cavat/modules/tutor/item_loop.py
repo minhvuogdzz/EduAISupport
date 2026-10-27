@@ -87,6 +87,7 @@ from cavat.modules.tutor.contracts import (
     ValidationIssue,
     ValidationResult,
 )
+from cavat.modules.tutor.dialogue import DIALOGUE_VERSION, boolean_read, parts_read, relation_step
 from cavat.modules.tutor.llm_renderer import teaches_again, word_cap
 from cavat.modules.tutor.policy import (
     DEFAULT_CONFIG,
@@ -217,6 +218,8 @@ class ItemTutor:
         chooser: MoveChooser | None = None,
         first_on_kc: bool = False,
         kc_mastery: float | None = None,
+        reason_seen: bool = False,
+        knowledge: Sequence[str] = (),
     ) -> None:
         """``reader``: reads an unclear message in context (CTX-1; a ``RecordedReader`` on replay).
         ``explainer``: approved passages on what the child asks about (the Hybrid RAG of the chapter).
@@ -227,6 +230,10 @@ class ItemTutor:
         self.chooser = chooser
         self._said = ""  # the child's message of this turn: what the chooser reads
         self.explainer = explainer
+        self.knowledge = tuple(knowledge)
+        self._dialogue_version = DIALOGUE_VERSION
+        self._parts: dict[str, str] = {}
+        self._follow_up = ""
         self.last_tutor = ""  # what the tutor said last on this item: what "mẫu như nào" asks about
         self._focus: str | None = None  # what the child asks about (EXPLAIN)
         self.package = package
@@ -245,6 +252,7 @@ class ItemTutor:
             top_hint_level=ladder_top(item, package),
             first_on_kc=first_on_kc,
             kc_mastery=kc_mastery,
+            reason_seen=reason_seen,
         )
         self.phase: Phase | None = None
         self.events: list[TutorEvent] = []
@@ -289,12 +297,20 @@ class ItemTutor:
         )
         return self._act(self._decide("START", None), None)
 
-    def on_student(self, text: str, seconds: float = 0.0, *, allow_social: bool = True) -> TutorTurn:
+    def on_student(
+        self,
+        text: str,
+        seconds: float = 0.0,
+        *,
+        allow_social: bool = True,
+        dialogue_version: int = DIALOGUE_VERSION,
+    ) -> TutorTurn:
         """Handle one student message. ``seconds``: time since the previous tutor message."""
         if self.phase is None:
             raise RuntimeError("call start() first")
         if self.phase == Phase.RESOLVED:
             raise RuntimeError("item already resolved")
+        self._dialogue_version = dialogue_version
         reply = social_reply(text, self.package.persona.tutor_self, self.package.persona.student_address)
         if allow_social and reply is not None:
             # R-SOCIAL: preserve phase, pending confirmation, timing, turn/hint counters and mastery.
@@ -318,6 +334,7 @@ class ItemTutor:
             events, self._pending = tuple(self._pending), []
             return TutorTurn(text=reply, move=Move.REDIRECT, phase=self.phase, events=events)
         st = self.state
+        st.dialogue_version = dialogue_version
         self._turns += 1
         if st.confirm_open and self._guess_intent is not None and is_affirmation(text):
             text = CONFIRMED_TEXT[self._guess_intent]  # the child confirmed what the tutor guessed
@@ -359,6 +376,15 @@ class ItemTutor:
 
     def _check(self, text: str) -> CheckResult:
         check = check_answer(self.item, text, self.package)
+        if self._dialogue_version >= DIALOGUE_VERSION and not self.item.is_assessment:
+            contextual = boolean_read(self.item, text, self.package, self.last_tutor)
+            if contextual is None and check.outcome != Outcome.CORRECT:
+                contextual = parts_read(self.item, text, self.last_tutor, self._parts)
+            if contextual is None and check.outcome not in (Outcome.CORRECT, Outcome.PARTIAL):
+                contextual = relation_step(self.item, text, self.last_tutor, self.knowledge)
+            if contextual is not None:
+                check = contextual
+                self._follow_up = check.detail.get("follow_up", "")
         if check.outcome == Outcome.HELP_REQUEST and (text == HINT_REQUEST_TEXT or asks_for_hint(text)):
             check = replace(check, detail={**check.detail, "asked_hint": True})
         if self._probe_asked and check.detail.get("probe_option"):
@@ -479,6 +505,24 @@ class ItemTutor:
                 answer_changes=st.answer_changes,
             ),
         )
+        if (
+            self._dialogue_version >= DIALOGUE_VERSION
+            and check.outcome == Outcome.CORRECT
+            and check.detail.get("reason_supplied")
+        ):
+            quality = max(0.6, judge_reason(self.item, text, self.package).quality)
+            self._emit(
+                EventType.EXPLANATION_SUBMITTED,
+                ExplanationSubmitted(
+                    item_id=self.item.id,
+                    text=text,
+                    reasoning_quality=quality,
+                    label_source="RUBRIC_RULE",
+                    label_confidence=1.0,
+                ),
+            )
+            self.state.verified = True
+            self.facts = replace(self.facts, reason_seen=True)
         if check.misconception_id:
             self._misconception(check.misconception_id, check.misconception_confidence, self._source())
 
@@ -510,15 +554,24 @@ class ItemTutor:
         )
 
     def _on_explanation(self, text: str) -> TutorTurn:
-        if self._ambiguous(text):
+        contextual = (
+            boolean_read(self.item, text, self.package, self.last_tutor)
+            if self._dialogue_version >= DIALOGUE_VERSION and not self.item.is_assessment
+            else None
+        )
+        if contextual is None and self._ambiguous(text):
             return self._on_unclear(text, "EXPLANATION")
-        intent = classify_intent(text)
+        intent = None if contextual is not None else classify_intent(text)
         self._explained = intent is None
         self.state.last_explanation_vague = False
         if intent is None:
             # DI-55: judged by the rubric (numbers, terms, the item's own solution); a vague reply is asked
             # once more, and whatever comes is recorded with its quality as evidence on R.
             judged = judge_reason(self.item, text, self.package)
+            if contextual is not None and contextual.outcome == Outcome.CORRECT:
+                judged = replace(judged, quality=max(0.6, judged.quality), cues=(*judged.cues, "CONTEXT"))
+            elif contextual is not None and contextual.outcome == Outcome.WRONG:
+                judged = replace(judged, quality=0.2, cues=())
             self.state.last_explanation_vague = judged.vague
             self._emit(
                 EventType.EXPLANATION_SUBMITTED,
@@ -532,6 +585,8 @@ class ItemTutor:
             )
         self.state.verified = True
         check = CheckResult(intent) if intent is not None else None
+        if contextual is not None and contextual.outcome == Outcome.WRONG:
+            check = replace(contextual, detail={**contextual.detail, "reason_error": True})
         decision = self._decide("EXPLANATION", check)
         if decision is not None and "ASK_AGAIN" in decision.reason_codes:
             self.state.explanation_asked_again = True  # once (DI-38)
@@ -739,7 +794,7 @@ class ItemTutor:
         st.confirm_open = d.move == Move.ASK_CONFIRM
         if d.move == Move.NUDGE:
             st.nudges_sent += 1
-        if d.move == Move.EXPLAIN:
+        if d.move == Move.EXPLAIN and "ASK_REMAINING" not in d.reason_codes:
             st.explanations += 1
         if d.move in HINT_MOVES and d.level is not None and d.target is not None:
             st.hint_levels.append(d.level)
@@ -832,7 +887,7 @@ class ItemTutor:
         # passages on the item's own question as one more ground
         reteaching = teaches_again(d)
         focus = self._focus if explaining else (self.item.stem if reteaching else None)
-        evidence = (
+        evidence = self.knowledge + (
             tuple(self.explainer(focus or "", self.last_tutor))
             if (explaining or reteaching) and self.explainer
             else ()
@@ -853,6 +908,7 @@ class ItemTutor:
             clarification=self._clarification if asking else None,
             check=graded,
             solved=graded is not None and graded.outcome == Outcome.CORRECT,
+            follow_up=self._follow_up if "ASK_REMAINING" in d.reason_codes else "",
         )
         if ctx.clarification and (codes := self._refused(ctx.clarification, ctx)):
             # REFORM-5: the reader's question did not pass; the template asks (DI-77). The record keeps it.

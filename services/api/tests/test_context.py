@@ -103,13 +103,19 @@ def test_asking_about_the_hint_gets_an_explanation_not_a_redirect():
 
 def test_qwen_says_the_explanation_in_context_and_the_checks_hold():
     said = "Mẫu số đặc biệt là 10, 100 hay 1000 đó con. Trong ba phân số, phân số nào có mẫu số như vậy?"
-    router = ScriptedRouter(None, {"message": said, "safety_flag": False, "policy_feedback": ""})
+    router = ScriptedRouter(
+        None,
+        {"message": said, "safety_flag": False, "policy_feedback": ""},
+        {"supported": True, "quotes": [PASSAGE]},
+    )
     renderer = LLMRenderer(router, TemplateRenderer(), validate_message)
     t = tutor(renderer=renderer)
     t.on_student(HINT_REQUEST_TEXT)  # the H1 hint: the model is down, the template says it
     turn = t.on_student("mẫu như nào")
     assert turn.move == Move.EXPLAIN and turn.text == said
-    user = router.requests[-1][1].messages[1].content
+    user = next(
+        r.messages[1].content for _, r in router.requests if "điều con hỏi (mẫu)" in r.messages[1].content
+    )
     assert "điều con hỏi (mẫu)" in user and "[CĂN CỨ ĐÃ DUYỆT]" in user and PASSAGE[:40] in user
 
 

@@ -53,7 +53,7 @@ docker compose logs --tail 100 app
 
 `/health` có commit `revision` khi dựng bằng `deploy/start.sh`; `/health/db` phải trả `{"status":"ok"}`. Image chỉ được coi là healthy khi DB trả lời được. Web gọi `/v1/*` cùng origin, không phụ thuộc cổng Vite 5173 hay địa chỉ máy phát triển.
 
-Bộ não được bật rõ bằng `TUTOR_RENDERER=llm`. `TUTOR_MODELS` trống dùng gpt-oss-120b → gpt-oss-20b → Qwen (ADR-034); có thể cấu hình lại thứ tự. Đây vẫn là hệ thống có fallback: model hết quota, lời bị validator bác hoặc buổi học chạm `MAX_LLM_CALLS_PER_SESSION` (mặc định 40, DI-71) thì dùng nội dung đã duyệt/câu mẫu. Không có bảo đảm mọi lượt đều do model viết. Thay đổi ngưỡng dạy/học vẫn thuộc quyền chủ dự án.
+Bộ não được bật rõ bằng `TUTOR_RENDERER=llm`. `TUTOR_MODELS` trống dùng gpt-oss-120b → gpt-oss-20b → Qwen (ADR-034); có thể cấu hình lại thứ tự. Đây vẫn là hệ thống có fallback: model hết quota, lời bị validator bác hoặc buổi học chạm `MAX_LLM_CALLS_PER_SESSION` (buổi một bài: 40, DI-71) / `MAX_LLM_CALLS_PER_CHAPTER` (cả chương: 160, DI-90) thì dùng nội dung đã duyệt/câu mẫu. Không có bảo đảm mọi lượt đều do model viết. Thay đổi ngưỡng dạy/học vẫn thuộc quyền chủ dự án.
 
 Giọng VieNeu nặng không nằm trong image này; phần nghe vẫn dùng Groq Whisper, phần đọc dự phòng dùng giọng trình duyệt khi máy có giọng tiếng Việt. Gói này không hứa giọng giống máy local. Hình học thật do FIG-1 cung cấp: nhập gói dữ liệu mới có ảnh; các hình REVIEW/REJECTED không hiện cho học sinh.
 

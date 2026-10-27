@@ -66,6 +66,7 @@ class ItemState:
     counter_examples_shown: int = 0  # FIX-6: the next counterexample of the item is a different one
     misconception_counts: dict[str, int] = field(default_factory=dict)
     verified: bool = False  # a "why" question was asked and answered
+    dialogue_version: int = 1  # policy changes opt in per recorded student input
     worked_shown: bool = False  # H6/H7 content was delivered
     resolution: ItemResolution | None = None  # set when the item ends
 
@@ -125,6 +126,7 @@ class RenderContext:
     check: CheckResult | None = None
     solved: bool = False
     free_numbers: bool = False
+    follow_up: str = ""  # only the uncompleted part of a multi-part task (BRAIN-3)
 
 
 @dataclass(frozen=True)

@@ -122,7 +122,7 @@ def test_a_retell_without_the_key_ideas_gets_feedback_and_another_explanation():
     after = turns[first_retell + 2].messages
     # "Con không nhớ ạ." asks for help (ADR-019): the tutor reminds the main idea of the node.
     assert after[0].kind == MessageKind.FEEDBACK and "nhắc lại ý chính" in after[0].text
-    assert CHAPTER.node("KC-DEC-FRAC").description in after[0].text
+    assert CHAPTER.node("KC-DEC-FRAC").method.rule in after[0].text
     assert (after[1].kind, after[1].ref) == (MessageKind.THEORY, "T2")
 
 
@@ -192,7 +192,7 @@ def test_a_good_recall_is_praised_bridged_and_judged_as_evidence_on_the_earlier_
 def test_a_child_who_does_not_remember_hears_the_earlier_idea_then_the_new_node_is_taught():
     loop, _ = until_recall(Learner())
     turn = loop.on_student("con ko nhớ ạ", T0 + timedelta(minutes=30), 8)
-    assert CHAPTER.node("KC-DEC-FRAC").description in turn.messages[0].text
+    assert CHAPTER.node("KC-DEC-FRAC").method.rule in turn.messages[0].text
     assert (turn.messages[1].kind, turn.messages[1].node_id) == (MessageKind.THEORY, "KC-DEC-CONCEPT")
     before = [s for s in loop.projection().trace if s.node_id == "KC-DEC-FRAC"]
     assert before[-1].mastery < before[-2].mastery  # the failed recall counts against the earlier node
@@ -252,7 +252,7 @@ def test_a_first_wrong_answer_brings_back_the_closest_prerequisite_once():
     wrong = loop.on_student(flip[correct_text(item_id)], T0 + timedelta(hours=1), 5)
     hint = [m for m in wrong.messages if m.ref == "RECALL_HINT"]
     assert len(hint) == 1 and hint[0].node_id == "KC-DEC-EQ"  # the closest of PLACE and EQ
-    assert CHAPTER.node("KC-DEC-EQ").description in hint[0].text and "Gợi ý từ bài cũ" in hint[0].text
+    assert CHAPTER.node("KC-DEC-EQ").method.rule in hint[0].text and "Gợi ý từ bài cũ" in hint[0].text
     if wrong.awaiting == Awaiting.ANSWER and wrong.item_id == item_id and wrong.item_phase == Phase.AWAITING:
         again = loop.on_student("456", T0 + timedelta(hours=1, seconds=30), 5)
         assert not [m for m in again.messages if m.ref == "RECALL_HINT"]

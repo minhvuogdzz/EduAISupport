@@ -39,7 +39,7 @@ from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 # 0.12.0: REFORM-5 (DI-77), a few letters nothing reads are asked about once, then the child is helped
 # 0.11.0: REFORM-2 (DI-67, DI-68), a right step advances, no praise without an explanation
 # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
-POLICY_VERSION = "hint-policy/0.12.1"  # DI-87: R-SOCIAL preserves the pending item and all counters
+POLICY_VERSION = "hint-policy/0.13.0"  # DI-88/89: contextual parts and avoiding repeated explanations
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -147,6 +147,7 @@ class ItemFacts:
     top_hint_level: int = HintLevel.H5  # DI-37: the strongest hint this item has (its own or a fitting one)
     first_on_kc: bool = False  # DI-65: no item of the session was solved yet on one of the item's KCs
     kc_mastery: float | None = None  # DI-65: mastery (0..1) of the item's node so far, None when unknown
+    reason_seen: bool = False  # BRAIN-3: already demonstrated an explanation on this KC this session
 
 
 def decide(
@@ -267,6 +268,7 @@ def _why_option(inp: PolicyInput, d: PolicyDecision) -> PolicyDecision | None:
         or d.move != Move.CONFIRM_ADVANCE
         or d.rule_ids != ("R-CORRECT",)
         or st.verified
+        or "ALREADY_EXPLAINED_KC" in d.reason_codes
         or st.worked_shown
         or st.activity == ActivityType.EXIT_ASSESSMENT
     ):
@@ -306,6 +308,17 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         return PolicyDecision(move=Move.PRESENT, reason_codes=("ITEM_START",), rule_ids=("R-PRESENT",))
     if inp.trigger == "EXPLANATION":
         return _after_explanation(st, outcome, chk)
+    if (
+        outcome == Outcome.PARTIAL
+        and chk is not None
+        and chk.detail.get("partial_reason") in ("FACTS_PROGRESS", "VERBAL_STEP")
+    ):
+        return PolicyDecision(
+            move=Move.EXPLAIN,
+            target=HintTarget.TASK,
+            reason_codes=("PART_CORRECT", "ASK_REMAINING", "NOT_COUNTED_AS_WRONG"),
+            rule_ids=("R-PARTS",),
+        )
     if outcome == Outcome.CORRECT:
         return _correct(st, facts, cfg)
 
@@ -493,6 +506,13 @@ def _next_hint(
 def _correct(st: ItemState, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecision:
     """R-TEACH-BACK after worked guidance, else R-VERIFY ("vì sao") when required, on a new or weak KC
     (DI-65), or sampled."""
+    if st.dialogue_version >= 2 and facts.reason_seen and not facts.requires_explanation:
+        return PolicyDecision(
+            move=Move.CONFIRM_ADVANCE,
+            resolution=resolution_for(st.max_hint_level),
+            reason_codes=("CORRECT", "ALREADY_EXPLAINED_KC"),
+            rule_ids=("R-CORRECT",),
+        )
     if st.worked_shown:
         return PolicyDecision(
             move=Move.TEACH_BACK,
@@ -541,6 +561,13 @@ def _after_explanation(
     A few letters nothing reads ("ki", "kkk") are asked about first (REFORM-5): the item goes on waiting
     for the explanation, and the "vì sao" is not yet asked again.
     """
+    if chk is not None and chk.detail.get("reason_error"):
+        return PolicyDecision(
+            move=Move.CONFIRM_ADVANCE,
+            resolution=resolution_for(st.max_hint_level),
+            reason_codes=("EXPLAIN_AND_ADVANCE", "REASON_CORRECTED"),
+            rule_ids=("R-VERIFY",),
+        )
     if outcome == Outcome.NEEDS_CONFIRMATION:
         return _ask_confirm(chk)
     rule = "R-TEACH-BACK" if st.worked_shown else "R-VERIFY"
