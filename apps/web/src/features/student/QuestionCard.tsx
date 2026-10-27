@@ -1,7 +1,9 @@
 import type { CurrentItem } from "../../api/contract";
+import { FigureImage, questionFigures, useFigures } from "../../components/Figures";
 import { MathText } from "../../components/MathText";
 
 export function QuestionCard({ item, total, label }: { item: CurrentItem; total: number; label?: string }) {
+  const extra = questionFigures(useFigures(), item.item_id, item.stem);
   return (
     <section
       aria-labelledby="question-title"
@@ -17,6 +19,9 @@ export function QuestionCard({ item, total, label }: { item: CurrentItem; total:
           </span>
         )}
       </div>
+      {extra.map((figure) => (
+        <FigureImage key={figure.figure_id} figure={figure} />
+      ))}
       <p className="mt-1 text-[17px] leading-snug font-medium text-pretty md:text-lg">
         <MathText text={item.stem} blanks />
       </p>

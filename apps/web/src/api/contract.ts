@@ -938,6 +938,35 @@ export interface TeachingPlanReview {
   ai_verify?: string[];
 }
 
+// ---------------------------------------------------------------- figures of the questions (FIG-1)
+
+/** GET /v1/figures: a picture cut from the teacher's own document, shown above the words of a question. */
+export interface FigureView {
+  figure_id: string;
+  question_id: string;
+  order: number;
+  /** The "[Hình: …]" the question's words hold: the picture takes its place. */
+  tag: string;
+  alt: string;
+  width: number;
+  height: number;
+  /** Changes when the picture does. */
+  version: string;
+}
+
+/** GET /v1/teachers/figures: every figure found, with what the teacher decided. */
+export interface TeacherFigure extends FigureView {
+  chapter_id: string;
+  /** AUTO and APPROVED are shown to children; REVIEW waits for the teacher; REJECTED is hidden. */
+  status: "AUTO" | "REVIEW" | "APPROVED" | "REJECTED";
+  method: "VECTOR" | "UPLOAD";
+  score: number;
+  page: number;
+  document_id: string;
+  shown: boolean;
+  decided_by: string | null;
+}
+
 // ---------------------------------------------------------------- Hybrid RAG, teacher view (RAG-1)
 
 /** GET /v1/teachers/rag/status: where the RAG takes its passages from. */

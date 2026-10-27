@@ -17,6 +17,8 @@ import {
   type AuthConfig,
   type AuthUser,
   type TeachingPlanReview,
+  type FigureView,
+  type TeacherFigure,
   type ChapterContent,
   type ChapterSummary,
   type ChatTurn,
@@ -431,6 +433,46 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       },
       publish(chapterId) {
         return request<unknown>("POST", `${planPath(chapterId)}/publish`, teacher());
+      },
+    },
+
+    figures: {
+      list(chapterId, who) {
+        const headers = who === "teacher" ? teacher() : studentHeaders();
+        return request<FigureView[]>(
+          "GET",
+          `/v1/figures?chapter_id=${encodeURIComponent(chapterId)}`,
+          headers,
+        );
+      },
+      async image(figureId, version, who) {
+        const headers = who === "teacher" ? teacher() : studentHeaders();
+        const path = `/v1/figures/${encodeURIComponent(figureId)}/image?v=${encodeURIComponent(version)}`;
+        return (await send("GET", path, headers)).blob();
+      },
+      all(chapterId) {
+        return request<TeacherFigure[]>(
+          "GET",
+          `/v1/teachers/figures?chapter_id=${encodeURIComponent(chapterId)}`,
+          teacher(),
+        );
+      },
+      decide(figureId, action) {
+        return request<TeacherFigure>(
+          "POST",
+          `/v1/teachers/figures/${encodeURIComponent(figureId)}/decision`,
+          teacher(),
+          { action },
+        );
+      },
+      async replace(file, meta) {
+        const form = new FormData();
+        form.set("file", file);
+        form.set("chapter_id", meta.chapterId);
+        form.set("question_id", meta.questionId);
+        form.set("order", String(meta.order));
+        form.set("tag", meta.tag);
+        return (await (await send("POST", "/v1/teachers/figures", teacher(), form)).json()) as TeacherFigure;
       },
     },
 

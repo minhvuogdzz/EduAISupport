@@ -48,9 +48,7 @@ class Page:
         dashed: bool = False,
         close: bool = True,
     ) -> Page:
-        path = " ".join(
-            f"{x} {_y(y)} {'m' if i == 0 else 'l'}" for i, (x, y) in enumerate(points)
-        )
+        path = " ".join(f"{x} {_y(y)} {'m' if i == 0 else 'l'}" for i, (x, y) in enumerate(points))
         paint = "B" if fill else "S"
         if close:
             path += " h"
@@ -91,7 +89,9 @@ class Page:
         self.line(82, top, 545, top, dashed=True)
         return self
 
-    def triangle(self, left: float, top: float, *, labels: tuple[str, ...] = ("A", "B", "C", "H", "h", "a")) -> Page:
+    def triangle(
+        self, left: float, top: float, *, labels: tuple[str, ...] = ("A", "B", "C", "H", "h", "a")
+    ) -> Page:
         """Triangle ABC (base 100, height 80) with its dashed height AH, the right-angle mark and labels."""
         a, b, c, h = (left + 40, top), (left, top + 80), (left + 100, top + 80), (left + 40, top + 80)
         self.poly([a, b, c], fill="0.99 0.93 0.88")
@@ -234,15 +234,9 @@ TEXT = (
     "Hình 3: Tam giác ABC tù, đáy a.]\n"
 )
 
-TAG_TRIANGLE = (
-    "[Hình: tam giác ABC, đáy BC = a, đường cao AH = h vuông góc với BC tại H]"
-)
-TAG_TRAPEZOID = (
-    "[Hình: hình thang ABCD có đáy bé AB = 8 cm, đáy lớn CD = 14 cm, đường cao AH = 6 cm]"
-)
-TAG_HOUSE = (
-    "[Hình: mặt trước ngôi nhà, hình chữ nhật 6 m x 4 m, trên là hình tam giác đáy 6 m, cao 2 m]"
-)
+TAG_TRIANGLE = "[Hình: tam giác ABC, đáy BC = a, đường cao AH = h vuông góc với BC tại H]"
+TAG_TRAPEZOID = "[Hình: hình thang ABCD có đáy bé AB = 8 cm, đáy lớn CD = 14 cm, đường cao AH = 6 cm]"
+TAG_HOUSE = "[Hình: mặt trước ngôi nhà, hình chữ nhật 6 m x 4 m, trên là hình tam giác đáy 6 m, cao 2 m]"
 TAG_ROW = (
     "[Hình: Hình 1: Tam giác ABC nhọn, AH = h. Hình 2: Tam giác ABC vuông tại B. "
     "Hình 3: Tam giác ABC tù, đáy a.]"

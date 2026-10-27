@@ -1,4 +1,5 @@
 import { splitNumbers } from "../lib/viNumber";
+import { FigureImage, pullFigures, useFigures } from "./Figures";
 
 // "0,25 … 0,3": the blank means nothing without both numbers, so the three stay on one line.
 const FILL_IN = /(\d+(?:[.,]\d+)?\s*…\s*\d+(?:[.,]\d+)?)/;
@@ -8,6 +9,21 @@ const FILL_IN = /(\d+(?:[.,]\d+)?\s*…\s*\d+(?:[.,]\d+)?)/;
  * The text itself is never changed. With `blanks`, the "…" of a fill-in stem becomes a visible box.
  */
 export function MathText({ text, blanks = false }: { text: string; blanks?: boolean }) {
+  const figures = useFigures();
+  const { text: words, found } = pullFigures(text, figures);
+  if (found.length === 0) return <Words text={text} blanks={blanks} />;
+  // FIG-1: the picture of a "[Hình: …]" goes above the words; the description stays its alternative text.
+  return (
+    <>
+      {found.map((figure) => (
+        <FigureImage key={figure.figure_id} figure={figure} />
+      ))}
+      <Words text={words} blanks={blanks} />
+    </>
+  );
+}
+
+function Words({ text, blanks }: { text: string; blanks: boolean }) {
   if (!blanks) return <Numbers text={text} />;
   return (
     <>
