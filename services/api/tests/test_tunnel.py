@@ -72,7 +72,13 @@ def test_cloudflared_is_started_for_the_port_given(tmp_path, capsys):
 
 def test_caffeinate_rides_with_the_tunnel_when_the_machine_has_it(tmp_path, capsys):
     record = tmp_path / "args"
-    fake = stub(tmp_path, f"cat <<'EOF'\n{LOG}EOF")
+    # Keep the fake tunnel alive until its companion has executed. Otherwise a fast fake can exit
+    # before the OS schedules caffeinate, and normal cleanup kills it before it writes the arguments.
+    fake = stub(
+        tmp_path,
+        f'i=0; while [ ! -f "{record}" ] && [ "$i" -lt 100 ]; do '
+        f"i=$((i + 1)); sleep 0.01; done\ncat <<'EOF'\n{LOG}EOF",
+    )
     awake = stub(tmp_path, f'echo "$@" > {record}', name="caffeinate")
     run(
         ["--port", "18080", "--cloudflared", fake],
