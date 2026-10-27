@@ -32,7 +32,7 @@ T1_REPLY = CHAPTER.node(EQ).theory[0].reply
 class ScriptedRouter:
     """Answers each chat request with the next scripted message (None: the provider is down)."""
 
-    def __init__(self, *messages: str | None) -> None:
+    def __init__(self, *messages: str | dict | None) -> None:
         self.messages = list(messages)
         self.requests: list = []
 
@@ -41,6 +41,8 @@ class ScriptedRouter:
         message = self.messages.pop(0) if self.messages else None
         if message is None:
             return ChatOutcome(None, FallbackReason.QUOTA_EXCEEDED, 0)
+        if isinstance(message, dict):
+            return ChatOutcome(ChatResult("qwen-test", "", message), None, 1)
         data = {"message": message, "safety_flag": False, "policy_feedback": ""}
         return ChatOutcome(ChatResult("qwen-test", message, data), None, 1)
 
@@ -116,18 +118,21 @@ def test_a_bridge_may_not_copy_the_explanation(index):
 
 
 def test_a_grounded_question_is_answered_from_the_passages(index):
-    router = ScriptedRouter("Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị không đổi.")
+    router = ScriptedRouter(
+        "Viết thêm chữ số 0 vào tận cùng bên phải phần thập phân thì giá trị không đổi.",
+        {"supported": True, "quotes": ["viết thêm chữ số 0 vào tận cùng bên phải phần thập phân"]},
+    )
     speaker = GroundedSpeaker(index, router)
     turn = speaker.answer("sao thêm số 0 vào cuối mà số không đổi", node_id=EQ, pending=None)
     assert turn.kind == "ANSWERED" and turn.spoken.source == "LLM"
     assert turn.retrieval.grounded and turn.spoken.sources
-    assert speaker.calls_made == 1
-    assert "[ĐOẠN NGUỒN]" in router.user_text() and "sao thêm số 0" in router.user_text()
+    assert speaker.calls_made == 2
+    assert "[ĐOẠN NGUỒN]" in router.user_text(0) and "sao thêm số 0" in router.user_text(0)
 
 
 def test_a_refused_answer_falls_back_to_a_sentence_of_the_passages(index):
     router = ScriptedRouter(
-        "Vì 2 × 5 = 10 nên số không đổi.", "Do phép nhân với 10."
+        "Vì 2 × 5 = 10 nên số không đổi.", {"supported": False, "quotes": []}, "Do phép nhân với 999."
     )  # new numbers, new rule
     turn = GroundedSpeaker(index, router).answer(
         "sao thêm số 0 vào cuối mà số không đổi", node_id=EQ, pending=None
@@ -136,7 +141,7 @@ def test_a_refused_answer_falls_back_to_a_sentence_of_the_passages(index):
     assert turn.spoken.text.startswith("Cô trả lời con nhé: ")
     sentence = turn.spoken.text.removeprefix("Cô trả lời con nhé: ")
     assert any(sentence in c.text for c in index.chunks)  # word for word from a passage
-    assert "UNGROUNDED_NUMBER" in turn.spoken.rejected[0]
+    assert "UNSUPPORTED_MEANING" in turn.spoken.rejected[0]
 
 
 def test_without_a_model_the_answer_is_a_passage_word_for_word(index):
@@ -272,7 +277,10 @@ def loop_at_theory(speaker) -> tuple[TeachingLoop, object]:
 
 
 def test_a_question_during_theory_is_answered_and_the_theory_question_asked_again(index):
-    router = ScriptedRouter("Mẫu số 10 thì sau dấu phẩy có một chữ số, mẫu số 100 thì có hai chữ số.")
+    router = ScriptedRouter(
+        "Mẫu số 10 thì sau dấu phẩy có một chữ số, mẫu số 100 thì có hai chữ số.",
+        {"supported": True, "quotes": ["Mẫu số 10 thì sau dấu phẩy có một chữ số"]},
+    )
     loop, first = loop_at_theory(GroundedSpeaker(index, router))
     turn = loop.on_student("mẫu số 100 thì sau dấu phẩy có mấy chữ số ạ?", NOW)
     assert turn.awaiting == Awaiting.THEORY_REPLY and turn.prompt == first.prompt

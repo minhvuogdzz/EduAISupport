@@ -407,6 +407,8 @@ class WebLooked(_Payload):
     url: str
     answered: bool
     version: str
+    excerpt: str = ""  # exact evidence used; old events remain readable
+    excerpt_hash: str = ""
 
 
 class SafetyFlagged(_Payload):

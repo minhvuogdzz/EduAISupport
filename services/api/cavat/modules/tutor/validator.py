@@ -140,6 +140,10 @@ _ADDRESSES = ("em", "cháu", "cậu")
 def wrong_address(text: str, student_address: str) -> str | None:
     """A word that calls the child something else than the lesson does ("em" in a lesson that says "con")."""
     lowered = text.lower()
+    from cavat.modules.tutor.social import reversed_greeting
+
+    if reversed_greeting(text):
+        return "reversed_greeting"
     for word in _ADDRESSES:
         if word != student_address and re.search(rf"(?<!\w){word}(?!\w)(?! bé)", lowered):
             return word

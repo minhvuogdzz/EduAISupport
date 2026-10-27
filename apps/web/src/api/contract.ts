@@ -360,6 +360,8 @@ export interface TeachAnnotation {
   /** A question of the child: did the retrieved passages ground it, and why. */
   grounded?: boolean | null;
   grounding?: string | null;
+  /** BRAIN-2: the public source actually used, available for teacher review. */
+  web?: { query: string; title: string; url: string; excerpt: string; excerpt_hash: string } | null;
   /** The question was not answered but kept for the teacher. */
   parked?: "NOT_GROUNDED" | "SAME_AS_CHECK" | "LIMIT" | "LATER" | null;
 }

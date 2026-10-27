@@ -43,7 +43,7 @@ from cavat.core.events import (
     TeachMessageSent,
     WebLooked,
 )
-from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, ItemResolution, Outcome, TeachAction
+from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, ItemResolution, Move, Outcome, TeachAction
 from cavat.core.vi_text import contains_phrase
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
@@ -64,11 +64,18 @@ from cavat.modules.content.chapter_package import Chapter, Node, TheoryVariant
 from cavat.modules.teaching.grounded import GroundedSpeaker, Spoken, retrieval_payload
 from cavat.modules.teaching.meaning import MEANING_CONFIDENCE
 from cavat.modules.teaching.node_policy import decide
+from cavat.modules.teaching.official_web import scoped_query
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.teaching.web import WEB_VERSION, web_query
 from cavat.modules.tutor import brain
 from cavat.modules.tutor.chooser import MoveChooser, recorded_choices
-from cavat.modules.tutor.contracts import MessageRenderer, MessageValidator, StudentSnapshot
+from cavat.modules.tutor.contracts import (
+    MessageRenderer,
+    MessageValidator,
+    PolicyDecision,
+    RenderContext,
+    StudentSnapshot,
+)
 from cavat.modules.tutor.item_loop import (
     CHOICE_HINT,
     CHOICE_RETRY,
@@ -87,13 +94,14 @@ from cavat.modules.tutor.reader import (
     recorded,
 )
 from cavat.modules.tutor.renderer import TemplateRenderer
-from cavat.modules.tutor.validator import validate_message
+from cavat.modules.tutor.social import social_reply
+from cavat.modules.tutor.validator import singles_out_choice, validate_message
 
 # 0.8.0: REFORM-6 (DI-82), a child who has not understood is taught again once before the step goes on
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.8.0"
+TEMPLATES_VERSION = "teaching-templates/0.9.0"  # DI-87: social turns; DI-86: practice concept questions
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -384,6 +392,23 @@ class TeachingLoop:
     def on_student(self, text: str, now: datetime, seconds: float = 0.0, modality: str = "TEXT") -> TeachTurn:
         if self.awaiting in (None, Awaiting.NOTHING):
             raise RuntimeError(f"no student input expected (awaiting {self.awaiting})")
+        # ItemTutor owns its social path and replay. Theory/retell social turns are kept outside the
+        # assessment reference, so they cannot count as failed theory replies or retells after resume.
+        persona = self.chapter.package.persona
+        reply = social_reply(text, persona.tutor_self, persona.student_address)
+        if reply is not None:
+            ref = self.tutor.item.id if self.awaiting == Awaiting.ANSWER and self.tutor else self._node
+            message = StudentMessage(
+                item_id=f"{ref}:SOCIAL", kind="MESSAGE", text=text, seconds=seconds, modality=modality
+            )
+            events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
+            messages: list[TeachMessage] = []
+            self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, reply, self._node))
+            if self.awaiting == Awaiting.ANSWER:
+                return self._waiting_for_item(messages, events)
+            return TeachTurn(
+                tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
+            )
         if self.awaiting == Awaiting.ANSWER:
             assert self.tutor is not None
             item_id = self.tutor.item.id
@@ -399,6 +424,26 @@ class TeachingLoop:
                 care = TeachMessage(MessageKind.FEEDBACK, self._phrase("distress"), self._item_node(item_id))
                 self._say(now, messages, events, care)
                 return self._waiting_for_item(messages, events)
+            node_id = self._item_node(item_id)
+            if (
+                self.speaker is not None
+                and node_id is not None
+                and self.tutor.state.activity
+                in (ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE)
+                and self.speaker.is_question(text)
+                and scoped_query(text, self.speaker.index, node_id)
+            ):
+                # A pure concept question in practice is not a failed numerical attempt. Assessment
+                # retains its existing policy path. :QUESTION keeps this outside the item's replay.
+                said = StudentMessage(
+                    item_id=f"{item_id}:QUESTION",
+                    kind="MESSAGE",
+                    text=text,
+                    seconds=seconds,
+                    modality=modality,
+                )
+                events = [self._record(now, EventType.STUDENT_MESSAGE, said)]
+                return self._on_question(text, now, node_id, [], events)
             kind = "EXPLANATION" if self.tutor.phase in _WORDS else "ANSWER"
             message = StudentMessage(
                 item_id=item_id, kind=kind, text=text, seconds=seconds, modality=modality
@@ -864,8 +909,13 @@ class TeachingLoop:
     ) -> TeachTurn:
         """A question of the child while a theory question or a retell waits (RAG-2, DI-39): answered from the
         retrieved passages, or kept for the teacher; then the question that waits is asked again."""
-        assert self.speaker is not None and self._prompt is not None
-        ask, ref = self._prompt, f"{node_id}:{self._ref or 'RETELL'}"
+        assert self.speaker is not None
+        if self.awaiting == Awaiting.ANSWER:
+            assert self.tutor is not None
+            ask, ref = self.tutor.last_tutor, f"{self.tutor.item.id}:QUESTION"
+        else:
+            assert self._prompt is not None
+            ask, ref = self._prompt, f"{node_id}:{self._ref or 'RETELL'}"
         if self._answers_since_decision() >= MAX_QUESTIONS_PER_WAIT:
             parked = QuestionParked(node_id=node_id, text=text, reason="LIMIT")
             events.append(self._record(now, EventType.QUESTION_PARKED, parked))
@@ -875,19 +925,47 @@ class TeachingLoop:
             if self.awaiting == Awaiting.THEORY_REPLY and self._ref is not None:
                 variant = next(t for t in self.chapter.node(node_id).theory if t.id == self._ref)
                 hide = [variant.reply]  # the question that waits keeps its answer to itself
-            turn = self.speaker.answer(text, node_id=node_id, pending=ask, hide=hide, recent=self._recent(4))
+            guard = None
+            if self.awaiting == Awaiting.ANSWER:
+                assert self.tutor is not None
+                graded = self.tutor._last_graded
+                ctx = RenderContext(
+                    decision=PolicyDecision(Move.EXPLAIN),
+                    item=self.tutor.item,
+                    package=self.tutor.package,
+                    state=self.tutor.state,
+                    persona=self.tutor.package.persona,
+                    free_numbers=True,
+                    solved=graded is not None and graded.outcome == Outcome.CORRECT,
+                )
+
+                def guard(message: str) -> Sequence[str]:
+                    if ctx.solved:
+                        return ()
+                    codes = tuple(
+                        c
+                        for c in validate_message(message, ctx).codes
+                        if c in ("ANSWER_LEAK", "WRONG_PRAISE")
+                    )
+                    return (*codes, "ANSWER_LEAK") if singles_out_choice(message, ctx.item) else codes
+
+            turn = self.speaker.answer(
+                text, node_id=node_id, pending=ask, hide=hide, recent=self._recent(4), output_guard=guard
+            )
             if turn.retrieval is not None:
                 payload = RagRetrieved(**retrieval_payload(turn.retrieval, "QUESTION", node_id))
                 events.append(self._record(now, EventType.RAG_RETRIEVED, payload))
             if turn.web is not None:  # WEB-1: what was looked up, and whether the child heard it
                 looked = WebLooked(
                     node_id=node_id,
-                    query=web_query(text),
-                    source=self.speaker.web.name if self.speaker.web else "",
+                    query=turn.web.asked or web_query(text),
+                    source=turn.web.publisher or (self.speaker.web.name if self.speaker.web else ""),
                     title=turn.web.title,
                     url=turn.web.url,
                     answered=turn.kind == "ANSWERED",
                     version=WEB_VERSION,
+                    excerpt=turn.web.text,
+                    excerpt_hash=turn.web.excerpt_hash,
                 )
                 events.append(self._record(now, EventType.WEB_LOOKED, looked))
             if turn.kind == "ANSWERED":
@@ -917,6 +995,8 @@ class TeachingLoop:
                     key = "question_parked" if turn.kind == "PARKED" else "question_same"
                     said = TeachMessage(MessageKind.ANSWER, self._phrase(key, ask=ask), node_id)
         self._say(now, messages, events, said)
+        if self.awaiting == Awaiting.ANSWER:
+            return self._waiting_for_item(messages, events)
         return TeachTurn(tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=ask)
 
     def _recent(self, n: int) -> list[tuple[str, str]]:
@@ -950,7 +1030,12 @@ class TeachingLoop:
         last = max(
             (i for i, e in enumerate(self.events) if e.event_type == EventType.NODE_DECISION), default=-1
         )
-        return sum(1 for e in self.events[last + 1 :] if e.event_type == EventType.STUDENT_MESSAGE)
+        return sum(
+            1
+            for e in self.events[last + 1 :]
+            if e.event_type == EventType.STUDENT_MESSAGE
+            and not str(e.payload.get("item_id", "")).endswith(":SOCIAL")
+        )
 
     def on_hint_request(self, now: datetime, seconds: float = 0.0) -> TeachTurn:
         if self.awaiting != Awaiting.ANSWER or self.tutor is None:
@@ -1308,7 +1393,9 @@ class TeachingLoop:
                 seconds = e.payload.get("seconds", 0.0)
                 if e.event_type == EventType.STUDENT_MESSAGE:
                     self._retry = False
-                    self.tutor.on_student(e.payload["text"], seconds)
+                    # New social events have :SOCIAL and are outside `mine`. Old, already graded 'hi'
+                    # messages must keep the old routing on replay rather than rewriting past attempts.
+                    self.tutor.on_student(e.payload["text"], seconds, allow_social=False)
                 elif e.event_type == EventType.HINT_REQUESTED or (
                     e.event_type == EventType.CHOICE_MADE and e.payload.get("choice_id") == CHOICE_HINT
                 ):

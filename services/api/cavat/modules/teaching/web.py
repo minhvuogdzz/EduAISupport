@@ -29,8 +29,8 @@ from typing import Protocol
 
 from cavat.core.vi_text import fold, normalize
 
-WEB_VERSION = "web-lookup/0.1.0"
-ALLOWED_HOSTS = ("vi.wikipedia.org",)  # DI-51: the only source; a new one is an owner's decision
+WEB_VERSION = "web-lookup/0.2.0"
+ALLOWED_HOSTS = ("sachdientu.nxbgd.vn", "sj.ctu.edu.vn", "vi.wikipedia.org")  # ADR-038
 MAX_QUESTION_CHARS = 150
 EXCERPT_CHARS = 1200  # what the model reads: the article's lead, the prompt stays < 3 000 token
 TIMEOUT_S = 5.0
@@ -52,6 +52,8 @@ class WebPage:
     text: str  # the lead of the article, plain text
     host: str
     asked: str = ""  # the title asked for, when Wikipedia redirected it to this article
+    excerpt_hash: str = ""
+    publisher: str = ""
 
 
 class WebSource(Protocol):

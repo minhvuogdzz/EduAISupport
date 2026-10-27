@@ -48,8 +48,8 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.0.0"
-CONSTITUTION = "constitution.v6.md"
+BRAIN_VERSION = "brain/1.1.0"
+CONSTITUTION = "constitution.v7.md"
 SUBJECT_MODULE = "math_g5.v1.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)
@@ -257,7 +257,11 @@ def math_errors(text: str) -> list[str]:
     cannot read."""
     spans = [(m.start(1), m.end(1), m.group(1)) for m in _EXPR.finditer(normalize_text(text))]
     plain = normalize_text(text)
-    errors: list[str] = []
+    errors: list[str] = re.findall(r"(?<![\w/])\d+\s*/\s*0(?![\d/])", plain)
+    for m in re.finditer(r"(\d+)\s*/\s*(\d+)[^.!?;]{0,20}?(tử số|mẫu số)\s+(?:là\s+)?(\d+)", plain):
+        expected = int(m[1]) if m[3] == "tử số" else int(m[2])
+        if int(m[4]) != expected:
+            errors.append(m[0])
     for (_, e1, a), (s2, e2, b) in zip(spans, spans[1:], strict=False):
         rel = _REL_BETWEEN.match(plain[e1:s2])
         if rel is None:
@@ -271,6 +275,26 @@ def math_errors(text: str) -> list[str]:
         if not _COMPARE[_REL_SYMBOLS[rel.group(1)]](left, right):
             errors.append(f"{a.strip()} {rel.group(1)} {b.strip()}")
     return errors
+
+
+def checked_number_values(text: str) -> set[Fraction]:
+    """Numbers inside a true, fully parsed arithmetic equality/comparison (DI-86).
+
+    A new example is allowed as arithmetic, never because a model merely says it checked the numbers.
+    Natural-language quantities and unparsed expressions give no permission for new numbers.
+    """
+    plain = normalize_text(text)
+    spans = [(m.start(1), m.end(1), m.group(1)) for m in _EXPR.finditer(plain)]
+    values: set[Fraction] = set()
+    for (_, e1, a), (s2, e2, b) in zip(spans, spans[1:], strict=False):
+        relation = _REL_BETWEEN.match(plain[e1:s2])
+        after = _AFTER.match(plain[e2:])
+        if relation is None or (after and after.group(1) in _QUANTITY_AFTER):
+            continue
+        left, right = _evaluate(a), _evaluate(b)
+        if left is not None and right is not None and _COMPARE[_REL_SYMBOLS[relation.group(1)]](left, right):
+            values.update(n.value for n in extract_numbers(f"{a} {b}"))
+    return values
 
 
 def _number_forms(text: str) -> set[str]:
@@ -356,8 +380,10 @@ _BAN_AS_YOU = re.compile(
 
 
 def wrong_voice(text: str) -> bool:
+    from cavat.modules.tutor.social import reversed_greeting
+
     lowered = normalize_text(text)
-    return bool(_WRONG_SELF.search(lowered) or _BAN_AS_YOU.search(lowered))
+    return bool(reversed_greeting(text) or _WRONG_SELF.search(lowered) or _BAN_AS_YOU.search(lowered))
 
 
 def repeats(text: str, recent: Sequence[Turn]) -> bool:
