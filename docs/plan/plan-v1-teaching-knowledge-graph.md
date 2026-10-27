@@ -666,6 +666,9 @@ Chạy song song từ Mốc 1:
     - trang hội thoại của giáo viên hiện "(chấm theo nghĩa)" và các câu con nói làm căn cứ khi model thêm ý; thêm chữ tiếng Việt cho nhãn `AMBIGUOUS_TYPO`, `GIBBERISH` (REFORM-5 để thiếu).
   - **DI cần chủ dự án duyệt [OPEN]:** dùng chuỗi `LIGHTWEIGHT` (Qwen trước) theo kế hoạch 4.1; chuỗi `INTENT_AGENT` (gpt-oss-120b trước, hạn mức riêng) có thể hợp hơn khi hạn mức Qwen căng, không tự đổi; ngưỡng 3 từ, 2 từ và 5 chữ cái của trích dẫn, 3/4 trần gọi, độ tin cậy 0,8; chưa đo trực tiếp (hạn mức Qwen ngày 26/10 gần hết, chưa có `GROQ_API_KEY_EVAL`): các lời của model được kiểm bằng test với model giả, chưa có số đúng/sai trên tập lời thật của học sinh.
 
+- **DI-85, ghép hình câu hỏi (FIG-1, ADR-037, 2026-10-27, ngưỡng kỹ thuật chờ duyệt):**
+  - Ghép đơn điệu theo trang/thứ tự, đo Jaccard giữa nhãn điểm/chữ và số đo trên vùng vẽ với mô tả. Từ 0,3 có thể đề xuất cặp; từ 0,5 mới đánh dấu AUTO nếu có nhãn/số để so. Không có bằng chứng hoặc chỉ trùng thứ tự: REVIEW, không tự hiện. Cùng số hình/mô tả nhưng không khớp từ: cho giáo viên xem cặp theo thứ tự, không tự chấp nhận.
+  - Ngưỡng nhóm/cắt PDF ở `figures/finder.py` là tham số kỹ thuật đo trên tài liệu hiện có, không phải công thức đánh giá học sinh. Vùng không ghép được được báo thiếu. Không sửa chữ/đáp án/điểm hay tự xuất bản lại kế hoạch.
 - **DI-84, bộ não hội thoại: model trả lời con, không đọc câu mẫu (BRAIN-1, ADR-034, `llm-renderer.v9`, `constitution.v6`, 2026-10-27, chờ duyệt):**
   - **Vấn đề:** chủ dự án thử bản đã gộp (26/10) và thấy gia sư đọc câu mẫu: con viết `9/10` cho "0,9 = ……" lại bị hỏi "vì sao con đặt dấu phẩy"; con đúng mà không giải thích được thì lời đóng chỉ là "Mình sang câu tiếp theo nhé"; bước "con nói lại" bỏ qua "mấy giờ rồi", đọc cho con mục tiêu bài ("Bé nhận ra…") và in lại cả đề dài. Lời do model viết chỉ khoảng 29% ở vòng luyện tập và 5% ở vòng dạy.
   - **Luật:**

@@ -3,6 +3,8 @@ import type {
   AccountKind,
   AuthConfig,
   TeachingPlanReview,
+  FigureView,
+  TeacherFigure,
   AuthUser,
   ChapterContent,
   ChapterSummary,
@@ -112,6 +114,18 @@ export interface SessionApi {
     ): Promise<unknown>;
     undo(chapterId: string, target: string): Promise<unknown>;
     publish(chapterId: string): Promise<unknown>;
+  };
+  /** Pictures of the questions (FIG-1, real API only). `as` is who asks: a child sees only what is shown. */
+  figures?: {
+    list(this: void, chapterId: string, as: "student" | "teacher"): Promise<FigureView[]>;
+    image(this: void, figureId: string, version: string, as: "student" | "teacher"): Promise<Blob>;
+    all(this: void, chapterId: string): Promise<TeacherFigure[]>;
+    decide(this: void, figureId: string, action: "approve" | "reject" | "undo"): Promise<TeacherFigure>;
+    replace(
+      this: void,
+      file: File,
+      meta: { chapterId: string; questionId: string; order: number; tag: string },
+    ): Promise<TeacherFigure>;
   };
   /** Teacher: the Hybrid RAG, its sources and a search with every signal (RAG-1, real API only). */
   rag?: {

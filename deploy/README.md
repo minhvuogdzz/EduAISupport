@@ -1,6 +1,6 @@
 # Triển khai CAVAT — bản có bộ não BRAIN-1
 
-Web và API cùng một địa chỉ. Một image ứng dụng, MongoDB 7 trên mạng nội bộ Compose; tùy chọn Caddy cho HTTPS. `main` đã có REFORM-1…6, FLOW-1/2, BRAIN-1 và REL-1. FIG-1 chưa hoàn chỉnh, giữ riêng, không tự gộp phần dở vào bản bàn giao.
+Web và API cùng một địa chỉ. Một image ứng dụng, MongoDB 7 trên mạng nội bộ Compose; tùy chọn Caddy cho HTTPS. `main` đã có REFORM-1…6, FLOW-1/2, BRAIN-1 và REL-1. FIG-1 (ADR-037) bổ sung ảnh câu hỏi từ PDF và nút duyệt/bỏ/thay hình. Gói dữ liệu sau FIG-1 phải có collection figures và thư mục storage/figures.
 
 ## Chạy lần đầu
 
@@ -55,7 +55,7 @@ docker compose logs --tail 100 app
 
 Bộ não được bật rõ bằng `TUTOR_RENDERER=llm`. `TUTOR_MODELS` trống dùng gpt-oss-120b → gpt-oss-20b → Qwen (ADR-034); có thể cấu hình lại thứ tự. Đây vẫn là hệ thống có fallback: model hết quota, lời bị validator bác hoặc buổi học chạm `MAX_LLM_CALLS_PER_SESSION` (mặc định 40, DI-71) thì dùng nội dung đã duyệt/câu mẫu. Không có bảo đảm mọi lượt đều do model viết. Thay đổi ngưỡng dạy/học vẫn thuộc quyền chủ dự án.
 
-Giọng VieNeu nặng không nằm trong image này; phần nghe vẫn dùng Groq Whisper, phần đọc dự phòng dùng giọng trình duyệt khi máy có giọng tiếng Việt. Gói này không hứa giọng giống máy local. Hình học thật thuộc FIG-1, còn chờ hoàn thiện/duyệt hình; bản này giữ mô tả hiện tại.
+Giọng VieNeu nặng không nằm trong image này; phần nghe vẫn dùng Groq Whisper, phần đọc dự phòng dùng giọng trình duyệt khi máy có giọng tiếng Việt. Gói này không hứa giọng giống máy local. Hình học thật do FIG-1 cung cấp: nhập gói dữ liệu mới có ảnh; các hình REVIEW/REJECTED không hiện cho học sinh.
 
 ## HTTPS
 

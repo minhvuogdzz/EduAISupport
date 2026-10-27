@@ -2,6 +2,8 @@ import type { ReactNode, Ref } from "react";
 import { Link } from "react-router";
 
 import type { CurrentItem, MicroChoice, Modality, SessionState, TeachingView } from "../../api/contract";
+import { FiguresProvider } from "../../components/Figures";
+import { pullFigures, questionFigures, useFigures } from "../../components/figureModel";
 import { StarIcon } from "../../components/icons";
 import { capitalize, TEACHING_STEPS } from "../../components/labels";
 import { MathText } from "../../components/MathText";
@@ -44,7 +46,15 @@ const ITEM_STEP_LABEL: Record<number, string> = {
  * where the student is in the chapter; the step bar shows where the student is in the teaching cycle of
  * the current node. The tutor's theory and worked examples are cards in the conversation.
  */
-export function ChapterSession({
+export function ChapterSession(props: ChapterSessionProps) {
+  return (
+    <FiguresProvider chapterId={props.teaching.chapter.chapter_id} who="student">
+      <ChapterSessionContent {...props} />
+    </FiguresProvider>
+  );
+}
+
+function ChapterSessionContent({
   state,
   teaching,
   turns,
@@ -94,7 +104,12 @@ export function ChapterSession({
   // it comes back (pinned) once the tutor says something else, a hint for instance.
   const lastTutor = [...turns].reverse().find((turn) => turn.actor === "tutor")?.text ?? "";
   const promptShown = Boolean(teaching.prompt) && !lastTutor.includes(teaching.prompt ?? "");
-  const itemShown = Boolean(state.item) && !lastTutor.includes(state.item?.stem ?? "");
+  const figures = useFigures();
+  const hasImage =
+    state.item &&
+    (questionFigures(figures, state.item.item_id, state.item.stem).length > 0 ||
+      pullFigures(state.item.stem, figures, state.item.item_id).found.length > 0);
+  const itemShown = Boolean(state.item) && (!lastTutor.includes(state.item?.stem ?? "") || hasImage);
 
   return (
     <div className="flex h-dvh flex-col bg-paper">

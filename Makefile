@@ -7,7 +7,7 @@ PORT ?= $(API_PORT)
 BIND_HOST ?= 127.0.0.1
 VOICE_PORT ?= 8010
 
-.PHONY: setup test lint fmt api api-memory run run-memory web-build doctor tunnel backup db-pack storage-pack smoke demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
+.PHONY: setup test lint fmt api api-memory run run-memory web-build doctor tunnel backup db-pack storage-pack smoke demo demo-memory accounts library-import item-bank teaching-plan figures draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -42,6 +42,9 @@ item-bank: ## Build the draft item bank of each chapter from the imported teache
 
 teaching-plan: ## Build the draft teaching plan (graph, periods, items) of each chapter from the teacher documents
 	cd services/api && .venv/bin/python -m cavat.teaching_plan
+
+figures: ## Cut the figures of the questions out of the teacher's PDFs (DRY=1: read and preview only, nothing is written)
+	cd services/api && .venv/bin/python -m cavat.figures_build $(if $(DRY),--dry,)
 
 draft-teaching: ## Draft with Qwen the hints, answers, key ideas and "vì sao" the documents leave out, checked (free-tier quota; ONLY=VERIFY: only those)
 	cd services/api && .venv/bin/python -m cavat.draft_teaching "$(ONLY)"
