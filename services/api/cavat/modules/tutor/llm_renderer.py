@@ -38,8 +38,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from cavat.core.pedagogy import Move
+from cavat.modules.ai_gateway.base import ChatMessage, ModelClass
 from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.assessment.vi_numbers import normalize_text
+from cavat.modules.content.lesson_package import BooleanAnswer
+from cavat.modules.teaching.answer_support import support_request, supported
 from cavat.modules.tutor import brain
 from cavat.modules.tutor.brain import BRAIN_MAX_WORDS, BrainPack
 from cavat.modules.tutor.contracts import (
@@ -59,7 +62,7 @@ from cavat.modules.tutor.validator import singles_out_choice
 # v8: REFORM-1b (DI-81), OFFER_CHOICE, CONFIRM_ADVANCE and a lead before the approved explanation
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v9"
+LLM_RENDERER_VERSION = "llm-renderer.v10"
 # PRESENT is the stem as it is; CLOSE_ITEM is the model's only when it teaches (``teaches``)
 TEMPLATE_ONLY_MOVES = frozenset({Move.PRESENT, Move.CLOSE_ITEM})
 LLM_MOVES = frozenset(Move) - TEMPLATE_ONLY_MOVES
@@ -70,6 +73,11 @@ CHOICE_MISSING = "CHOICE_MISSING"
 ASKS_ON_ADVANCE = "ASKS_ON_ADVANCE"
 # DI-60: words a model message may add to its anchor when the anchor is already near the cap (final check)
 ANCHOR_SLACK = 15
+ALTITUDE_RULE = (
+    "Trong tam giác tù, đường cao từ đỉnh có góc tù nằm trong tam giác; "
+    "hai đường cao từ hai đỉnh còn lại nằm ngoài tam giác. "
+    "Đường cao vuông góc với đường thẳng chứa cạnh đối diện."
+)
 _TALK = frozenset({"OFF_TOPIC", "CLARIFY", "NEGATIVE_AFFECT"})
 _SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
 
@@ -126,7 +134,10 @@ def verdict_line(ctx: RenderContext) -> str:
     check = ctx.check
     if check is None:
         return ""
-    shown = f' (con viết "{check.normalized}")' if check.normalized else ""
+    if set(ctx.decision.reason_codes) & {"OFF_TOPIC", "ASKS_ABOUT", "CLARIFY", "NEGATIVE_AFFECT"}:
+        return "Lượt hiện tại chưa chấm đáp án; không dùng kết luận cũ để phủ nhận điều con vừa nói."
+    normalized = {"true": "Đúng", "false": "Sai"}.get(check.normalized, check.normalized)
+    shown = f' (con viết "{normalized}")' if normalized else ""
     outcome = check.outcome.value
     if outcome == "CORRECT":
         said = "ĐÚNG"
@@ -160,6 +171,8 @@ def grounds_for(ctx: RenderContext, anchor: str, reveal: bool) -> tuple[str, ...
         if item.worked_solution:
             out.append("Các bước: " + " ".join(item.worked_solution))
     out += list(ctx.evidence)
+    if any("đường cao" in s.lower() and "tam giác" in s.lower() for s in ctx.evidence):
+        out.append(ALTITUDE_RULE)
     if ctx.decision.move == Move.VERIFY and (item.verify_prompt or ctx.package.default_verify_prompt):
         out.append(
             "Ý câu hỏi vì sao của giáo viên: "
@@ -223,6 +236,7 @@ class LLMRenderer:
         self._history: list[Turn] = list(history)[-RECENT_TURNS:]
         self._history_item: str | None = history_item
         self.last_trace: RenderTrace | None = None
+        self._support_calls = 0
 
     def render(self, ctx: RenderContext) -> RenderedMessage:
         if ctx.item.id != self._history_item:
@@ -258,9 +272,14 @@ class LLMRenderer:
             asks=ctx.focus,
             reasons=d.reason_codes,
         )
+        if ctx.follow_up:
+            task = (
+                "Con đã làm ĐÚNG một phần. Công nhận ngắn phần con vừa trả lời, không chấm nó sai. "
+                f"Chỉ hỏi phần còn thiếu: {ctx.follow_up} Không đổi sang câu hỏi lý thuyết khác."
+            )
         answer = ""
         if reveal and ctx.check is not None and ctx.check.normalized:
-            answer = ctx.check.normalized
+            answer = {"true": "Đúng", "false": "Sai"}.get(ctx.check.normalized, ctx.check.normalized)
         return BrainPack(
             task=task,
             question=item.rephrase or item.stem,
@@ -273,6 +292,11 @@ class LLMRenderer:
             student_address=ctx.persona.student_address,
             name=given_name(self._student_name),
             lesson=f"{ctx.package.title} (lớp {ctx.package.grade})",
+            question_kind="TRUE_FALSE" if isinstance(item.answer, BooleanAnswer) else "TASK",
+            max_words=60
+            if d.move
+            in (Move.EXPLAIN, Move.HINT, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION, Move.CLOSE_ITEM)
+            else 45,
         )
 
     def _codes(self, text: str, ctx: RenderContext, pack: BrainPack) -> tuple[str, ...]:
@@ -286,29 +310,84 @@ class LLMRenderer:
                 text,
                 pack,
                 ask_target=asks,
-                rephrase=d.move == Move.EXPLAIN or teaches(ctx) or "CLARIFY" in d.reason_codes,
+                rephrase=(
+                    (d.move == Move.EXPLAIN and not ctx.follow_up)
+                    or teaches(ctx)
+                    or "CLARIFY" in d.reason_codes
+                ),
             )
             codes += move_codes(text, ctx)
             if not pack.answer and singles_out_choice(text, ctx.item):
                 codes.append(ValidationCode.ANSWER_LEAK)
+            teaching = ctx.decision.move in (
+                Move.EXPLAIN,
+                Move.HINT,
+                Move.WORKED_GUIDANCE,
+                Move.FULL_EXPLANATION,
+                Move.CLOSE_ITEM,
+            )
+            if (
+                not codes
+                and not ctx.item.is_assessment
+                and (isinstance(ctx.item.answer, BooleanAnswer) or (ctx.evidence and teaching))
+            ):
+                # The statement is a test proposition, not a source of truth. Only the verifier sees
+                # the practice key; it cannot change the grade or write any student state.
+                premises = tuple(ctx.evidence)
+                if ALTITUDE_RULE in pack.grounds:
+                    premises += (ALTITUDE_RULE,)
+                if isinstance(ctx.item.answer, BooleanAnswer):
+                    truth = "đúng" if ctx.item.answer.value else "sai"
+                    premises += (f"Giáo viên đã xác nhận nhận định “{ctx.item.stem}” là {truth}.",)
+                else:
+                    premises += (f"Đề bài để tham chiếu: {ctx.item.stem}",)
+                if ctx.check is not None:
+                    premises += (f"Kết quả câu trả lời đã chấm của học sinh: {verdict_line(ctx)}",)
+                request = support_request(text, premises, ctx.student_text or ctx.item.stem)
+                request = replace(
+                    request,
+                    messages=(
+                        ChatMessage(
+                            "system",
+                            request.messages[0].content
+                            + " Đây là lời gia sư: động viên, câu hỏi gợi mở và chuyển bước "
+                            "không phải kiến thức Toán mới. Nhận xét học sinh phải khớp kết quả "
+                            "đã chấm. Nhận định trong đề có thể SAI, tuyệt đối không lấy nó làm định lý. "
+                            "Nếu lời cô có mệnh đề sai hoặc tự mâu thuẫn, dù sửa ở câu sau, supported=false. "
+                            "Vẫn trích đoạn NGUỒN làm căn cứ cho bước dạy, không trích lời học sinh.",
+                        ),
+                        request.messages[1],
+                    ),
+                    schema_name="classroom_support_v1",
+                )
+                result = self._router.chat(
+                    ModelClass.TUTOR_REASONING,
+                    request,
+                    calls_used=self.calls_used + self._support_calls + 1,
+                )
+                self._support_calls += result.calls_made
+                if result.result is None or not supported(result.result.data, premises):
+                    codes.append("UNSUPPORTED_MEANING")
         return tuple(dict.fromkeys(codes))
 
     def _render_with_brain(self, ctx: RenderContext, fallback: RenderedMessage) -> RenderedMessage:
         move = ctx.decision.move
         pack = self._pack(ctx, fallback)
+        self._support_calls = 0
         out = brain.speak(
             self._router,
             pack,
             lambda text: self._codes(text, ctx, pack),
             calls_used=self.calls_used,
         )
-        self.calls_used += out.calls
+        total_calls = out.calls + self._support_calls
+        self.calls_used += total_calls
         if out.text is None:
             self.last_trace = RenderTrace(
-                move, fallback.source, out.calls, out.fallback_reason, out.rejected, out.flagged
+                move, fallback.source, total_calls, out.fallback_reason, out.rejected, out.flagged
             )
             return fallback
         self.last_trace = RenderTrace(
-            move, "LLM", out.calls, None, out.rejected, out.flagged, out.feedback, out.model
+            move, "LLM", total_calls, None, out.rejected, out.flagged, out.feedback, out.model
         )
         return RenderedMessage(text=out.text, source="LLM", hint_ref=fallback.hint_ref)

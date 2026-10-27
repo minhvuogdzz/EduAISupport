@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     # prompt <= 3.000, reasoning off): a full session about 45.000 of the 200.000 token a day of a Groq
     # project, at worst (2.600 a call) 104.000 (docs/poc/free-tier-quota.md).
     max_llm_calls_per_session: int = 40
+    # DI-90: a chapter has 7–8 lessons; its voice must not disappear during lesson one.
+    max_llm_calls_per_chapter: int = 160
     # "template": approved sentences only. "llm": Qwen phrases the moves, templates as fallback. REFORM-1:
     # unset, it is "llm" when a Groq key is set and "template" without one (the tests blank the key).
     tutor_renderer: Literal["template", "llm"] = "template"

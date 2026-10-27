@@ -200,7 +200,7 @@ def test_retell_closes_the_second_time_with_the_main_idea_and_is_judged():
     loop.on_student("???", clock(n + 1), 5)
     closed = loop.on_student("là sao má", clock(n + 2), 5)
     assert len(judged(loop)) == 1 and judged(loop)[0].payload["score"] == 0.0
-    assert NODE.description in said(closed) and not praised(said(closed))
+    assert NODE.method.rule in said(closed) and not praised(said(closed))
 
 
 def test_retell_what_was_said_in_the_two_tries_is_read_together():

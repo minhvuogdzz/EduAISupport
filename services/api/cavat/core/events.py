@@ -372,6 +372,7 @@ class StudentMessage(_Payload):
     text: str
     modality: Literal["TEXT", "VOICE"] = "TEXT"
     seconds: float = Field(default=0.0, ge=0)
+    dialogue_version: int = 1  # old inputs keep old routing on replay
 
 
 class HintRequested(_Payload):

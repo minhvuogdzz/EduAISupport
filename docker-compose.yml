@@ -48,6 +48,7 @@ services:
       AUTH_MODE: accounts
       TUTOR_RENDERER: llm
       MAX_LLM_CALLS_PER_SESSION: "${MAX_LLM_CALLS_PER_SESSION:-40}"
+      MAX_LLM_CALLS_PER_CHAPTER: "${MAX_LLM_CALLS_PER_CHAPTER:-160}"
       TUTOR_MODELS: "${TUTOR_MODELS:-}"
       WEB_LOOKUP: "${WEB_LOOKUP:-official}"
       # the tutor's voice server (VieNeu) is not part of this package: the browser reads with its own voice

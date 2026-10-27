@@ -48,8 +48,8 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.1.0"
-CONSTITUTION = "constitution.v7.md"
+BRAIN_VERSION = "brain/1.2.0"
+CONSTITUTION = "constitution.v8.md"
 SUBJECT_MODULE = "math_g5.v1.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)
@@ -81,7 +81,9 @@ CODE_NOTES: dict[str, str] = {
     "ANSWER_LEAK": "đã nêu đáp án",
     "MULTIPLE_QUESTIONS": "có nhiều hơn một câu hỏi",
     "MISSING_QUESTION": "phải kết thúc bằng một câu hỏi",
-    "TOO_LONG": "quá dài",
+    "TOO_LONG": "quá dài: giữ đúng số từ quy định của lượt này",
+    "SYSTEM_VOICE": "nói như cô giáo, không đọc true/false hay kết quả nội bộ của máy chấm",
+    "UNSUPPORTED_MEANING": "nhận định thiếu căn cứ hoặc trái kiến thức đã duyệt; viết lại theo căn cứ",
     "PII_REQUEST": "hỏi thông tin cá nhân",
     "INTELLIGENCE_PRAISE": "khen trí thông minh",
     "EMPTY": "message trống",
@@ -116,6 +118,7 @@ class BrainPack:
     max_words: int = BRAIN_MAX_WORDS
     lesson: str = ""
     retry_codes: tuple[str, ...] = ()
+    question_kind: str = "TASK"
 
 
 def system_prompt() -> str:
@@ -130,6 +133,11 @@ def _lines(pack: BrainPack, grounds: Sequence[str], turns: Sequence[Turn]) -> st
     if pack.lesson:
         lines.append(f"[BÀI] {pack.lesson}")
     lines.append(f"[CÂU ĐANG LÀM] {pack.question}")
+    if pack.question_kind == "TRUE_FALSE":
+        lines.append(
+            "[LOẠI CÂU] Đúng/sai: câu trên là NHẬN ĐỊNH CẦN KIỂM TRA, có thể sai. "
+            "Tuyệt đối không lấy nó làm quy tắc để giảng. Dùng căn cứ kiến thức bên dưới."
+        )
     if pack.verdict:
         lines.append(f"[MÁY CHẤM] {pack.verdict}")
     if pack.hints_given:
@@ -258,6 +266,18 @@ def math_errors(text: str) -> list[str]:
     spans = [(m.start(1), m.end(1), m.group(1)) for m in _EXPR.finditer(normalize_text(text))]
     plain = normalize_text(text)
     errors: list[str] = re.findall(r"(?<![\w/])\d+\s*/\s*0(?![\d/])", plain)
+    # DI-88: the altitude from the obtuse vertex lies inside; the other two lie outside.
+    # Catch the false hint seen in live evaluation, including its anaphoric 'đỉnh đó'.
+    for sentence in re.split(r"[.!?;]", plain):
+        if "đường cao" not in sentence or "không" in sentence:
+            continue
+        explicit = re.search(r"từ đỉnh (?:của )?(?:có )?góc tù", sentence)
+        anaphoric = re.search(r"góc lớn hơn 90.{0,30}đường cao từ đỉnh đó", sentence)
+        universal = re.search(r"(?:mọi|tất cả).{0,35}đường cao.{0,35}trong", sentence) or re.search(
+            r"đường cao.{0,45}luôn.{0,30}trong", sentence
+        )
+        if ((explicit or anaphoric) and "ngoài" in sentence) or universal:
+            errors.append(sentence.strip())
     for m in re.finditer(r"(\d+)\s*/\s*(\d+)[^.!?;]{0,20}?(tử số|mẫu số)\s+(?:là\s+)?(\d+)", plain):
         expected = int(m[1]) if m[3] == "tử số" else int(m[2])
         if int(m[4]) != expected:
@@ -406,6 +426,10 @@ def speech_codes(
     """The codes the net that does not depend on a RenderContext raises: wrong arithmetic, a copied ground, a
     repeated turn, and for ``ask_target`` a question that does not name what the child wrote."""
     codes: list[str] = []
+    if re.search(r"\b(?:true|false|máy chấm|được chấm|hệ thống chấm)\b", text.lower()):
+        codes.append("SYSTEM_VOICE")
+    if len(text.split()) > pack.max_words:
+        codes.append("TOO_LONG")
     if math_errors(text) or _BAD_DENOMINATOR.search(normalize_text(text)):
         codes.append(WRONG_MATH)
     if wrong_voice(text):

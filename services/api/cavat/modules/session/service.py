@@ -167,7 +167,12 @@ def rebuild_tutor(pkg: LessonPackage, item: dict[str, Any]) -> ItemTutor:
     tutor = _new_tutor(pkg, item["item_id"], item["activity"])
     tutor.start()
     for inp in item["inputs"]:
-        tutor.on_student(inp["text"], inp["seconds"], allow_social=inp.get("social_routing", False))
+        tutor.on_student(
+            inp["text"],
+            inp["seconds"],
+            allow_social=inp.get("social_routing", False),
+            dialogue_version=inp.get("dialogue_version", 1),
+        )
     return tutor
 
 
@@ -325,7 +330,10 @@ def apply_command(
     if trace is not None and trace.safety_flag:
         flagged = SafetyFlagged(item_id=item_id).model_dump(mode="json")
         events.append(_event(EventType.SAFETY_FLAGGED, flagged, session, attempt_id, activity_id))
-    item["inputs"] = [*item["inputs"], {"text": loop_text, "seconds": seconds, "social_routing": True}]
+    item["inputs"] = [
+        *item["inputs"],
+        {"text": loop_text, "seconds": seconds, "social_routing": True, "dialogue_version": 2},
+    ]
     item["phase"] = turn.phase.value
     item["choice_open"] = turn.phase == Phase.AWAITING_CHOICE
 

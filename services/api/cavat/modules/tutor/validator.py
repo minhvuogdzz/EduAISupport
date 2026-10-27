@@ -13,7 +13,7 @@ from collections.abc import Callable
 from fractions import Fraction
 from itertools import combinations
 
-from cavat.core.pedagogy import MOVES_ALLOWED_TO_REVEAL, MOVES_REQUIRING_QUESTION, Move
+from cavat.core.pedagogy import MOVES_ALLOWED_TO_REVEAL, MOVES_REQUIRING_QUESTION, Move, Outcome
 from cavat.core.vi_text import fold
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text, parse_literal, parse_number
 from cavat.modules.content.lesson_package import (
@@ -304,6 +304,12 @@ def echoes_child(text: str, ctx: RenderContext) -> str | None:
         return " ".join(said)
     if len(said) < ECHO_RUN_WORDS:
         return None
+    if (
+        ctx.check is not None
+        and ctx.check.outcome == Outcome.CORRECT
+        and ctx.decision.move in (Move.CONFIRM_ADVANCE, Move.VERIFY)
+    ):
+        return None  # acknowledging a correct mathematical explanation can reuse its terms
     copied = _runs(own, ECHO_RUN_WORDS) & _runs(said, ECHO_RUN_WORDS)
     for w in lesson:
         copied -= _runs(w, ECHO_RUN_WORDS)
@@ -325,7 +331,9 @@ _NOT_AFTER_CORRECT = frozenset(
         Move.EXPLAIN,
     }
 )
-_PRAISE_OPENING = re.compile(r"^\W*(đúng rồi|chính xác|giỏi lắm|tuyệt vời|rất tốt|con làm đúng|làm đúng rồi)")
+_PRAISE_OPENING = re.compile(
+    r"^\W*(đúng rồi|chính xác|giỏi lắm|tuyệt vời|rất tốt|con làm đúng|con đúng là|con nói đúng|làm đúng rồi)"
+)
 
 
 def wrong_praise(text: str, ctx: RenderContext) -> str | None:
@@ -336,7 +344,7 @@ def wrong_praise(text: str, ctx: RenderContext) -> str | None:
         or "VERIFY_BEFORE_HINT" in d.reason_codes
         or "EXPLAIN_AND_ADVANCE" in d.reason_codes  # the child could not explain (REFORM-2, DI-68)
     )
-    if not after_wrong or "STEP_CORRECT_AFTER_HINT" in d.reason_codes:
+    if not after_wrong or "STEP_CORRECT_AFTER_HINT" in d.reason_codes or "PART_CORRECT" in d.reason_codes:
         return None
     m = _PRAISE_OPENING.search(normalize_text(text))
     return m.group(1) if m else None

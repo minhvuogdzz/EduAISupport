@@ -983,6 +983,8 @@ async def _command(
         raise ApiError(409, "STALE_ITEM", "this item is no longer the current one")
 
     shared = tutor_router()
+    if shared is not None and isinstance(shared, AIRouter) and chapter_service.is_chapter(session):
+        shared = shared.with_session_cap(get_settings().max_llm_calls_per_chapter)
     # CFG-2: the model calls of this command, written down with its events (MODEL_CALLED, MODEL_FALLBACK)
     router = RecordingRouter(shared) if shared is not None else None
     if chapter_service.is_chapter(session):

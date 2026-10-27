@@ -67,7 +67,6 @@ from cavat.modules.teaching.node_policy import decide
 from cavat.modules.teaching.official_web import scoped_query
 from cavat.modules.teaching.state import DEFAULT_CONFIG, NodePolicyConfig, teaching_state
 from cavat.modules.teaching.web import WEB_VERSION, web_query
-from cavat.modules.tutor import brain
 from cavat.modules.tutor.chooser import MoveChooser, recorded_choices
 from cavat.modules.tutor.contracts import (
     MessageRenderer,
@@ -101,7 +100,7 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.9.0"  # DI-87: social turns; DI-86: practice concept questions
+TEMPLATES_VERSION = "teaching-templates/0.10.0"  # DI-89: explain the rule, acknowledge a correct part
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -446,7 +445,12 @@ class TeachingLoop:
                 return self._on_question(text, now, node_id, [], events)
             kind = "EXPLANATION" if self.tutor.phase in _WORDS else "ANSWER"
             message = StudentMessage(
-                item_id=item_id, kind=kind, text=text, seconds=seconds, modality=modality
+                item_id=item_id,
+                kind=kind,
+                text=text,
+                seconds=seconds,
+                modality=modality,
+                dialogue_version=2,
             )
             return self._item_input(now, self._record(now, EventType.STUDENT_MESSAGE, message), text, seconds)
         assert self._node is not None
@@ -671,8 +675,8 @@ class TeachingLoop:
         return self._hold(now, f"{lead} {asked}", source, spoken, messages, events)
 
     def _idea(self, node: Node) -> str:
-        """The node's goal as the tutor says it to the child (the plan writes it for the teacher: "Bé…")."""
-        return brain.child_voice(node.description, self._persona["s"])
+        """An actual explanation, never a goal such as 'Con xác định đúng…' read out as teaching."""
+        return node.method.rule or next((t.reply for t in node.theory if t.reply), "")
 
     def _chat_back(self, text: str) -> Spoken:
         """Talk outside the lesson: the model answers like a person and rejoins the step, else the approved
@@ -730,6 +734,8 @@ class TeachingLoop:
         part = self._rule_part(node, judged.ideas_found)
         spoken = self._reteach_words(text, node.explain.prompt, node, part, None, ())
         lead = spoken.text if spoken else self._phrase("hold_retell", part=part)
+        if judged.ideas_found and spoken is None:
+            lead = f"Ý đó con nói đúng rồi. {lead}"
         source = spoken.source if spoken else "TEMPLATE"
         if spoken is not None:
             self._flag(now, events, spoken, f"{self._node}:RETELL")
@@ -737,7 +743,8 @@ class TeachingLoop:
 
     def _rule_part(self, node: Node, found: Sequence[int]) -> str:
         """The sentence of the rule that says the first idea not said yet (else the first sentence)."""
-        sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", node.method.rule.strip()) if x.strip()]
+        source = " ".join([node.method.rule, *(t.reply for t in node.theory if t.reply)])
+        sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", source.strip()) if x.strip()]
         for i, phrasings in enumerate(node.explain.key_ideas):
             if i in found:
                 continue
@@ -1226,6 +1233,38 @@ class TeachingLoop:
         assert d.ref is not None
         item, lesson = self.chapter.item(d.ref), self.chapter.lesson_of(d.ref)
         first_on_kc, kc_mastery, snapshot = self._kc_facts(d.ref)
+        visit_start = max(
+            (
+                i
+                for i, e in enumerate(self.events)
+                if e.event_type == EventType.NODE_DECISION
+                and e.payload.get("action") == TeachAction.TEACH_THEORY
+            ),
+            default=-1,
+        )
+        prior_items = {
+            e.payload.get("item_id")
+            for e in self.events[visit_start + 1 :]
+            if e.event_type == EventType.EXPLANATION_SUBMITTED
+            and (e.payload.get("reasoning_quality") or 0) >= 0.6
+        }
+        previous = next((e for e in reversed(self.events) if e.event_type == EventType.ITEM_RESOLVED), None)
+        reason_seen = bool(
+            previous
+            and previous.payload.get("item_id") in prior_items
+            and previous.payload.get("resolution") in (ItemResolution.INDEPENDENT, ItemResolution.SUPPORTED)
+            and set(previous.payload.get("kc_ids", ())) & set(item.kc_ids)
+            and item.transfer == "none"
+            and self.chapter.item(previous.payload["item_id"]).answer.type == item.answer.type
+            and self.chapter.item(previous.payload["item_id"]).cognitive_level == item.cognitive_level
+        )
+        node_id = self._item_node(d.ref)
+        node = self.chapter.node(node_id) if node_id else None
+        knowledge = (
+            (node.method.rule, *(t.text for t in node.theory), *(t.reply for t in node.theory))
+            if node
+            else ()
+        )
         return ItemTutor(
             item,
             lesson,
@@ -1238,6 +1277,8 @@ class TeachingLoop:
             first_on_kc=first_on_kc,
             kc_mastery=kc_mastery,
             snapshot=snapshot,
+            reason_seen=reason_seen,
+            knowledge=knowledge if not item.is_assessment else (),
         )
 
     def _kc_facts(self, item_id: str) -> tuple[bool, float | None, StudentSnapshot]:
@@ -1395,7 +1436,12 @@ class TeachingLoop:
                     self._retry = False
                     # New social events have :SOCIAL and are outside `mine`. Old, already graded 'hi'
                     # messages must keep the old routing on replay rather than rewriting past attempts.
-                    self.tutor.on_student(e.payload["text"], seconds, allow_social=False)
+                    self.tutor.on_student(
+                        e.payload["text"],
+                        seconds,
+                        allow_social=False,
+                        dialogue_version=e.payload.get("dialogue_version", 1),
+                    )
                 elif e.event_type == EventType.HINT_REQUESTED or (
                     e.event_type == EventType.CHOICE_MADE and e.payload.get("choice_id") == CHOICE_HINT
                 ):

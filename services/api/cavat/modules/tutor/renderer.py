@@ -27,7 +27,7 @@ from cavat.modules.tutor.contracts import MessageSource, RenderContext, Rendered
 #     question the intent agent proposed (checked by the validator)
 # v8: REFORM-2, EXPLAIN_AND_ADVANCE says the approved explanation, the rule answers "lý thuyết là gì",
 #     punctuation no longer hides a word; v7: FIX-6, the counterexample is tied to the item and varies
-TEMPLATE_VERSION = "template-renderer.v9"
+TEMPLATE_VERSION = "template-renderer.v10"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -533,4 +533,6 @@ class TemplateRenderer:
     version = TEMPLATE_VERSION
 
     def render(self, ctx: RenderContext) -> RenderedMessage:
+        if ctx.follow_up:
+            return _msg(f"Phần này con trả lời đúng rồi. {ctx.follow_up}", "TEMPLATE")
         return _with_lead(ctx, _RENDERERS[ctx.decision.move](ctx))

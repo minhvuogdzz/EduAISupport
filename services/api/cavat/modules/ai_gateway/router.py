@@ -154,6 +154,14 @@ class AIRouter:
             raise ValueError(f"{model_class} is not a chat model class")
         return self._chains[model_class]
 
+    def with_session_cap(self, limit: int) -> AIRouter:
+        """Same providers and quota tracker, a separate finite limit for a full chapter (DI-90)."""
+        from copy import copy
+
+        scoped = copy(self)
+        scoped.max_calls_per_session = limit
+        return scoped
+
     def chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
         """Try the chain for ``model_class``. ``calls_used`` comes from the session state (SessionContext)."""
         chain = self.chain(model_class)
@@ -276,9 +284,15 @@ class RecordingRouter:
     def __init__(self, router: AIRouter) -> None:
         self._router = router
         self.calls: list[ChatCall] = []
+        self._start_calls: int | None = None
+        self._spent = 0
 
     def chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
-        outcome = self._router.chat(model_class, request, calls_used=calls_used)
+        if self._start_calls is None:
+            self._start_calls = calls_used
+        used = max(calls_used, self._start_calls + self._spent)
+        outcome = self._router.chat(model_class, request, calls_used=used)
+        self._spent += outcome.calls_made
         schema = "" if request.json_schema is None else json.dumps(request.json_schema, ensure_ascii=False)
         self.calls.append(
             ChatCall(
