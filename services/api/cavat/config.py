@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     auth_mode: Literal["accounts", "demo"] = "accounts"
     # Key that signs login tokens. Unset: a random key per process (every restart logs everyone out).
     auth_secret: SecretStr | None = None
+    # REL-1 (ADR-035): one port. The API serves the web app that `make run` built in this folder, with
+    # index.html for the app's own paths; no build there, it is the API alone (the dev server on 5173).
+    web_dist: Path = REPO_ROOT / "apps" / "web" / "dist"
+    # /docs, /redoc and /openapi.json are off unless API_DOCS=1: a public address should not list the API.
+    api_docs: bool = False
 
     @model_validator(mode="after")
     def _renderer_from_key(self) -> Settings:

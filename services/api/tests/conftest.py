@@ -21,6 +21,10 @@ os.environ["GEMINI_API_KEY"] = ""
 # Nor the web (WEB-1): tests that look something up pass a fake source.
 os.environ["WEB_LOOKUP"] = "off"
 os.environ["TTS"] = "off"  # ADR-030: tests never reach a voice server
+# REL-1: the module-level app of cavat.main serves no web build, even where apps/web/dist exists (after a
+# `make run`); the tests of the web serving pass a folder of their own to ``create_app``.
+os.environ["WEB_DIST"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "no-web-build")
+os.environ["API_DOCS"] = "0"
 
 import pytest  # noqa: E402
 from cavat.config import get_settings  # noqa: E402

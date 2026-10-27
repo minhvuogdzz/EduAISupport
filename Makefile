@@ -1,9 +1,13 @@
 PY := services/api/.venv/bin/python
 WEB := apps/web
+# REL-1 (ADR-035): ONE port, the API serves the web app. PORT picks it (API_PORT is the old name, kept so
+# `make demo API_PORT=...` still works); BIND_HOST 0.0.0.0 would open it to the local network (no HTTPS there).
 API_PORT ?= 8000
-WEB_PORT ?= 5173
+PORT ?= $(API_PORT)
+BIND_HOST ?= 127.0.0.1
+VOICE_PORT ?= 8010
 
-.PHONY: setup test lint fmt api api-memory demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
+.PHONY: setup test lint fmt api api-memory run run-memory web-build doctor tunnel backup smoke demo demo-memory accounts library-import item-bank teaching-plan draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -119,21 +123,48 @@ voice-setup: ## Install the tutor's voice (VieNeu-TTS, local, CPU) in its own en
 voice: ## Run the tutor's voice server on 127.0.0.1:8010 (make voice-setup first; the first start downloads the model)
 	cd services/voice && exec .venv/bin/python server.py
 
-demo: web-install ## The whole demo, saved: API on the database of services/api/.env (cavat_dev) + web app. Ctrl+C stops both
-	@echo "Buổi học và hội thoại được lưu vào database trong services/api/.env (cavat_dev). Chạy thử không lưu: make demo-memory."
-	@cd services/api && .venv/bin/python -m cavat.db --ensure-indexes
-	@echo "Mở http://localhost:$(WEB_PORT) khi thấy dòng 'Local:'. Bấm Ctrl+C để dừng cả hai server."
-	@trap 'kill 0' EXIT; \
-	if [ -x services/voice/.venv/bin/python ]; then (cd services/voice && exec .venv/bin/python server.py) & \
-	else echo "Giọng gia sư: chưa cài VieNeu (make voice-setup), trình duyệt sẽ tự đọc."; fi; \
-	(cd services/api && exec .venv/bin/uvicorn cavat.main:app --port $(API_PORT)) & \
-	cd $(WEB) && CAVAT_API_PORT=$(API_PORT) VITE_API=http pnpm dev --port $(WEB_PORT) --strictPort
+# The tutor's voice server (VieNeu, local), started by make run when `make voice-setup` was done (VOICE=off: not).
+VOICE ?= on
+VOICE_START := if [ "$(VOICE)" = off ]; then :; elif [ -x services/voice/.venv/bin/python ]; then \
+		(cd services/voice && VOICE_PORT=$(VOICE_PORT) exec .venv/bin/python server.py) & \
+		else echo "Giọng gia sư: chưa cài VieNeu (make voice-setup), trình duyệt sẽ tự đọc."; fi
 
-demo-memory: web-install ## The demo on an in-memory database: nothing is saved, everything is lost on Ctrl+C
-	@echo "Database trong bộ nhớ: không lưu gì, Ctrl+C là mất hết. Mở http://localhost:$(WEB_PORT) khi thấy dòng 'Local:'."
-	@trap 'kill 0' EXIT; \
-	(cd services/api && AUTH_MODE=demo CAVAT_API_PORT=$(API_PORT) exec .venv/bin/python scripts/dev_memory_api.py) & \
-	cd $(WEB) && CAVAT_API_PORT=$(API_PORT) VITE_API=http pnpm dev --port $(WEB_PORT) --strictPort
+web-build: web-install ## Build the web app (VITE_API=http) into apps/web/dist, only when the sources are newer than the last build
+	@if services/api/.venv/bin/python -m cavat.webbuild; then :; else \
+		echo "Dựng web (VITE_API=http)..."; \
+		(cd $(WEB) && VITE_API=http pnpm build) && services/api/.venv/bin/python -m cavat.webbuild --mark; fi
+
+run: web-build ## The latest build at ONE port (PORT=8000): web app + API together, saved in the database of services/api/.env. Ctrl+C stops it
+	@echo "Buổi học và hội thoại được lưu vào database $$(cd services/api && .venv/bin/python -c 'from cavat.config import get_settings; print(get_settings().mongodb_db)') trong services/api/.env. Chạy thử không lưu: make run-memory."
+	@cd services/api && .venv/bin/python -m cavat.db --ensure-indexes
+	@echo "Mở http://localhost:$(PORT) khi thấy dòng 'Uvicorn running'. Học sinh ở máy khác: make tunnel. Ctrl+C để dừng."
+	@trap 'kill 0' EXIT; $(VOICE_START); \
+	cd services/api && VIENEU_URL=http://127.0.0.1:$(VOICE_PORT) .venv/bin/uvicorn cavat.main:app --host $(BIND_HOST) --port $(PORT) --no-server-header
+
+run-memory: web-build ## Like make run on an in-memory database: nothing is saved, everything is lost on Ctrl+C
+	@echo "Database trong bộ nhớ: không lưu gì, Ctrl+C là mất hết. Mở http://localhost:$(PORT) khi thấy dòng 'Uvicorn running'."
+	@trap 'kill 0' EXIT; $(VOICE_START); \
+	cd services/api && AUTH_MODE=$${AUTH_MODE:-demo} VIENEU_URL=http://127.0.0.1:$(VOICE_PORT) CAVAT_API_HOST=$(BIND_HOST) CAVAT_API_PORT=$(PORT) .venv/bin/python scripts/dev_memory_api.py
+
+demo: ## Old name of make run
+	@echo "make demo đã đổi tên thành make run (một cổng, $(PORT)): chạy make run."
+	@$(MAKE) --no-print-directory run
+
+demo-memory: ## Old name of make run-memory
+	@echo "make demo-memory đã đổi tên thành make run-memory (một cổng, $(PORT)): chạy make run-memory."
+	@$(MAKE) --no-print-directory run-memory
+
+doctor: ## Before a trial: check keys, database, models, voice, port, disk, build (read-only; LIVE=1 also calls each model once)
+	cd services/api && .venv/bin/python -m cavat.doctor --port $(PORT) $(if $(LIVE),--live,)
+
+tunnel: ## A public HTTPS address for the app at PORT (Cloudflare quick tunnel) while this runs; start make run first
+	cd services/api && .venv/bin/python -m cavat.tunnel --port $(PORT)
+
+backup: ## Export every collection of the database of services/api/.env to var/storage/backups/<time>/*.jsonl (read-only)
+	cd services/api && .venv/bin/python -m cavat.backup
+
+smoke: ## Start make run-memory on a free port, curl /health and /, stop it (what CI does for the one-port build)
+	services/api/.venv/bin/python services/api/scripts/smoke_one_port.py
 
 web-check: web-install ## Lint, type-check, test and build the web app (same as CI)
 	cd $(WEB) && pnpm lint && pnpm test && pnpm build
