@@ -2,7 +2,9 @@
 caching for hashed files, light security headers, gzip and no docs. Offline: a fake dist folder."""
 
 import pytest
+from cavat.core.memory_db import InMemoryDatabase
 from cavat.main import create_app
+from cavat.modules.session.api import get_database
 from fastapi.testclient import TestClient
 
 INDEX = '<!doctype html><html><head><title>CAVAT</title></head><body><div id="root"></div></body></html>'
@@ -23,7 +25,10 @@ def dist(tmp_path):
 
 @pytest.fixture
 def client(dist):
-    return TestClient(create_app(web_dist=dist, api_docs=False))
+    app = create_app(web_dist=dist, api_docs=False)
+    database = InMemoryDatabase()
+    app.dependency_overrides[get_database] = lambda: database
+    return TestClient(app)
 
 
 def test_the_root_is_the_web_app(client):
@@ -139,6 +144,24 @@ def test_the_docs_come_back_with_api_docs(dist):
     on = TestClient(create_app(web_dist=dist, api_docs=True))
     assert on.get("/openapi.json").status_code == 200
     assert "swagger" in on.get("/docs").text.lower()
+
+
+def test_creating_another_app_does_not_duplicate_auth_routes(dist):
+    create_app(web_dist=dist)
+    app = create_app(web_dist=dist)
+    schema = app.openapi()
+    operation_ids = [
+        operation["operationId"]
+        for path in schema["paths"].values()
+        for operation in path.values()
+        if isinstance(operation, dict) and "operationId" in operation
+    ]
+    assert len(operation_ids) == len(set(operation_ids))
+    # OpenAPI collapses duplicate paths: inspect the concrete auth router as well.
+    from cavat.modules.identity.api import register_auth
+
+    auth = register_auth(get_database, "test-school")
+    assert len(auth.routes) == 4
 
 
 def test_without_a_build_it_is_the_api_alone(tmp_path):

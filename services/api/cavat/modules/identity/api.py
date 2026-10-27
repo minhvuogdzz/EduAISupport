@@ -33,7 +33,6 @@ from cavat.modules.identity.accounts import (
 )
 from cavat.modules.identity.repository import User, UserRepository
 
-auth = APIRouter(prefix="/v1/auth", tags=["auth"])
 _guard = LoginGuard()
 
 
@@ -160,6 +159,7 @@ def _result(user: User, role: str | None) -> dict[str, Any]:
 
 def register_auth(router_database_dependency: Any, school_id: str) -> APIRouter:
     """The auth routes, on the same database dependency and school as the session API."""
+    auth = APIRouter(prefix="/v1/auth", tags=["auth"])
     database_dependency = Depends(router_database_dependency)
 
     @auth.get("/config", response_model=AuthConfig)
