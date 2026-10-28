@@ -19,6 +19,6 @@ Ngày: 28/10/2026 · BRAIN-7 · DI-97
 
 Regression dùng MockTransport: tìm URL mới → tải trang gốc → trả lời có URL; không dùng snippet, không gửi câu cá nhân, chống URL sai/redirect, cache, lỗi provider và nguồn cũ. Suite offline dùng MONGODB_URI rỗng. Không ghi thử vào database học thật.
 
-[FACT] Thử công cụ công khai thật: có kết quả lệch chủ đề hoặc challenge. Sau lọc nguồn/độ liên quan, ba chủ đề thử cuối chưa tìm thêm trang đạt tiêu chí: hai dùng ấn phẩm đã xác minh, một không có đoạn. Không báo các kết quả này như đã chứng minh độ phủ tìm kiếm rộng. API Tavily chưa được kiểm live nếu chưa có key; đường đó kiểm bằng mock. Cần đo tiếp với key/provider thực trước khi tuyên bố chất lượng tìm kiếm ổn định.
+[FACT] Công cụ công khai thật có kết quả lệch/challenge. Sau lọc nguồn/độ liên quan, ba chủ đề thử không key có hai dùng nguồn cố định và một không có đoạn. Sau khi chủ dự án cung cấp key, Tavily tìm được trang mới về phân số thập phân và hình tam giác/đường cao; bộ đọc lấy được lần lượt đoạn 80 và 162 ký tự. Test sinh lời từ trang thật trong bộ nhớ trả ANSWERED, nhãn LLM khi lời cuối dùng tri thức nền, có URL trang đã đọc trong kết quả audit. Không gán citation WEB cho lời từ tri thức nền. Hai phép thử có key xác nhận đường nối hoạt động, chưa chứng minh độ phủ và chất lượng mọi câu hỏi.
 
 Tham khảo kỹ thuật: [Tavily Search](https://docs.tavily.com/documentation/api-reference/endpoint/search), [gói API miễn phí](https://www.tavily.com/pricing). Key là cấu hình server riêng, không vào repo, URL, trình duyệt hoặc log học sinh.

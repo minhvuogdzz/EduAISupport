@@ -721,7 +721,9 @@ class GroundedSpeaker:
             output_guard=output_guard,
         )
         lead = (
-            "Sách Toán 5 giải thích thế này:"
+            "Cô giải thích ngắn nhé:"
+            if discovered
+            else "Sách Toán 5 giải thích thế này:"
             if page.host == HOST
             else "Cô tìm được lời giải thích thế này:"
             if page.host in OFFICIAL_URLS

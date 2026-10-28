@@ -114,14 +114,22 @@ class SearchLinks(HTMLParser):
             self.href = ""
 
 
+def aliases_for(concept: str) -> tuple[str, ...]:
+    return CONCEPTS[concept][0] + {
+        "đường cao của hình tam giác": (
+            "duong cao cua tam giac",
+            "chieu cao cua hinh tam giac",
+            "chieu cao cua tam giac",
+        ),
+        "đường cao của hình thang": ("duong cao cua hinh thang", "chieu cao cua hinh thang"),
+    }.get(concept, ())
+
+
 def passages(text: str, concept: str) -> str:
     """Relevant theory paragraphs, not search snippets or task/answer lists."""
     if concept not in CONCEPTS:
         return ""
-    aliases = CONCEPTS[concept][0] + {
-        "đường cao của hình tam giác": ("duong cao cua tam giac",),
-        "đường cao của hình thang": ("duong cao cua hinh thang",),
-    }.get(concept, ())
+    aliases = aliases_for(concept)
     paragraphs = re.split(r"\n+|(?<=[.!?])\s+(?=[A-ZÀ-Ỹ])", text)
     choices = []
     for line in paragraphs:
@@ -238,7 +246,7 @@ class SearchEducation:
                     if not publisher_for(target) or target in seen:
                         continue
                     label = fold(normalize(title + " " + urlsplit(target).path.replace("-", " ")))
-                    if not any(alias in label for alias in CONCEPTS[concept][0]):
+                    if not any(alias in label for alias in (*aliases_for(concept), *CONCEPTS[concept][1])):
                         continue
                     grades = {int(n) for n in re.findall(r"lop (\d+)", label)}
                     if grades and not grades.intersection({4, 5} if grade == "Toán tiểu học" else {5}):

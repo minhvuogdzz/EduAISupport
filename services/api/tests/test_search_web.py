@@ -216,3 +216,18 @@ def test_background_knowledge_does_not_pretend_the_web_page_supports_every_claim
     turn = speaker._background("phân số thập phân là gì", found, TOPIC, page=page)
     assert turn.kind == "ANSWERED" and turn.web == page
     assert turn.spoken.source == "LLM" and not turn.spoken.sources
+
+
+def test_height_definition_with_the_word_cua_can_be_discovered_not_only_extracted():
+    text = "Đường cao của tam giác là đoạn thẳng kẻ từ một đỉnh vuông góc với cạnh đối diện."
+
+    def handler(req):
+        if req.url.host == "www.bing.com":
+            return httpx.Response(200, text=feed(NEW_URL, "Hình tam giác · Toán lớp 5"))
+        if str(req.url) == NEW_URL:
+            return httpx.Response(200, text=f"<p>{text}</p>", headers={"content-type": "text/html"})
+        return httpx.Response(503)
+
+    source = SearchEducation(client=httpx.Client(transport=httpx.MockTransport(handler)))
+    page = source.lookup("đường cao của hình tam giác")
+    assert page and page.text == text and page.retrieval == "search"
