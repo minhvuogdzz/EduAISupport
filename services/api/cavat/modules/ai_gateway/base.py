@@ -286,8 +286,6 @@ class QuotaTracker:
         snap = self._snapshots.get(model)
         if snap is None:
             return None
-        if snap.blocked_until is not None:
-            return snap.blocked_until
         candidates = [
             reset
             for remaining, reset in (
@@ -296,4 +294,6 @@ class QuotaTracker:
             )
             if remaining == 0 and reset is not None
         ]
+        if snap.blocked_until is not None:
+            candidates.append(snap.blocked_until)
         return max(candidates) if candidates else None

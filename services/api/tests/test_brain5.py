@@ -125,6 +125,11 @@ def test_token_minute_backoff_does_not_use_an_unexhausted_daily_request_reset():
     assert not quota.is_exhausted("model", now + timedelta(seconds=9))
     assert _reset_at({**headers, "retry-after": "20"}, now, "TPM") == now + timedelta(seconds=20)
     assert _reset_at(headers, now, "RPD") == now + timedelta(minutes=12)
+    # If the daily bucket really is empty too, its longer reset must remain visible.
+    quota.update("both", {**headers, "x-ratelimit-remaining-requests": "0"}, now)
+    quota.mark_exhausted("both", until, now)
+    assert quota.reset_at("both") == now + timedelta(minutes=12)
+    assert quota.is_exhausted("both", now + timedelta(seconds=9))
 
 
 @pytest.mark.parametrize("raw", ["phải", "đúng", "vâng"])
