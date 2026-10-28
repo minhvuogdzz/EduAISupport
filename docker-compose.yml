@@ -51,7 +51,8 @@ services:
       MAX_LLM_CALLS_PER_CHAPTER: "${MAX_LLM_CALLS_PER_CHAPTER:-160}"
       TUTOR_MODELS: "${TUTOR_MODELS:-}"
       ALLOW_TUTOR_KNOWLEDGE: "${ALLOW_TUTOR_KNOWLEDGE:-true}"
-      WEB_LOOKUP: "${WEB_LOOKUP:-official}"
+      WEB_LOOKUP: "${WEB_LOOKUP:-search}"
+      TAVILY_API_KEY: "${TAVILY_API_KEY:-}"
       # the tutor's voice server (VieNeu) is not part of this package: the browser reads with its own voice
       TTS: "off"
     volumes:

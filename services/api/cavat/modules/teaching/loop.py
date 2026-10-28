@@ -1045,6 +1045,8 @@ class TeachingLoop:
                     version=WEB_VERSION,
                     excerpt=turn.web.text,
                     excerpt_hash=turn.web.excerpt_hash,
+                    retrieval=turn.web.retrieval,
+                    search_engine=turn.web.search_engine,
                 )
                 events.append(self._record(now, EventType.WEB_LOOKED, looked))
             if turn.kind == "ANSWERED":

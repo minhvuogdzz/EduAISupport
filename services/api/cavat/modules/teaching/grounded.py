@@ -74,7 +74,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.4.0: REFORM-6 (DI-82, DI-83), teaching again and the meaning check; 0.3.0: REFORM-1b, DI-81
-GROUNDED_VERSION = "grounded-speech/0.8.0"
+GROUNDED_VERSION = "grounded-speech/0.9.0"
 PROMPT_FILE = "grounded.v2.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -687,13 +687,17 @@ class GroundedSpeaker:
             page = None
         from urllib.parse import urlparse
 
+        from cavat.modules.teaching.search_web import accepts
+
+        discovered = page is not None and accepts(page, sent)
         if (
             page is None
-            or page.host not in ALLOWED_HOSTS
+            or (page.retrieval == "search" and not discovered)
+            or (not discovered and page.host not in ALLOWED_HOSTS)
             or not relevant(page, sent)
             or urlparse(page.url).scheme != "https"
             or urlparse(page.url).hostname != page.host
-            or (page.host in OFFICIAL_URLS and page.url != OFFICIAL_URLS[page.host])
+            or (not discovered and page.host in OFFICIAL_URLS and page.url != OFFICIAL_URLS[page.host])
         ):
             return self._background(question, found, sent, output_guard)
         publisher = page.publisher or self.web.name
@@ -717,7 +721,9 @@ class GroundedSpeaker:
             output_guard=output_guard,
         )
         lead = (
-            "Sách Toán 5 giải thích thế này:"
+            "Cô giải thích ngắn nhé:"
+            if discovered
+            else "Sách Toán 5 giải thích thế này:"
             if page.host == HOST
             else "Cô tìm được lời giải thích thế này:"
             if page.host in OFFICIAL_URLS
@@ -836,9 +842,9 @@ class GroundedSpeaker:
         )
         spoken = self._teacher_say(pack, output_guard=output_guard)
         return (
-            QuestionTurn("ANSWERED", spoken, found)
+            QuestionTurn("ANSWERED", spoken, found, web=page)
             if spoken.text
-            else QuestionTurn("PARKED", retrieval=found)
+            else QuestionTurn("PARKED", retrieval=found, web=page)
         )
 
     def _teacher_say(self, pack, *, output_guard=None, questions=False):

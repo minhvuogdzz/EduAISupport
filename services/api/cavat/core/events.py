@@ -416,6 +416,8 @@ class WebLooked(_Payload):
     version: str
     excerpt: str = ""  # exact evidence used; old events remain readable
     excerpt_hash: str = ""
+    retrieval: str = "fixed"
+    search_engine: str = ""
 
 
 class SafetyFlagged(_Payload):
