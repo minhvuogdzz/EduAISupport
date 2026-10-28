@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -100,7 +100,7 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.11.0"  # DI-89: explain the rule, acknowledge a correct part
+TEMPLATES_VERSION = "teaching-templates/0.12.0"  # DI-89: explain the rule, acknowledge a correct part
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -929,7 +929,6 @@ class TeachingLoop:
     def _conversational_input(self, text, now, seconds, modality):
         if (
             not self.speaker
-            or not self.speaker.knowledge_active
             or not getattr(self.item_reader, "semantic", False)
             or not self._node
             or signals_distress(text)
@@ -944,31 +943,55 @@ class TeachingLoop:
         if self.speaker.is_question(text) and scoped_query(text, self.speaker.index, self._node):
             return None
         recent = self._recent(6, include_last=True)
-        reading = self.item_reader.read_dialogue(
-            stem=self._prompt or "",
-            last_tutor=next((said for role, said in reversed(recent) if role == "tutor"), self._prompt or ""),
-            said=text,
-            turn=self._replies_since_decision() + 1,
-            recent=[Turn(role, said) for role, said in recent],
-            phase=str(self.awaiting),
-        )
+        from cavat.core.vi_text import fold, normalize
+        from cavat.modules.tutor.conversation import conversation_signal
+
+        if (
+            self.awaiting == Awaiting.THEORY_REPLY
+            and _yes_no(self._prompt or "")
+            and fold(normalize(text)) in {"u", "vang", "dung", "phai", "co", "khong", "sai"}
+        ):
+            return None  # these may answer the mathematics, rather than acknowledge instruction
+        last = next((said for role, said in reversed(recent) if role == "tutor"), self._prompt or "")
+        reading = conversation_signal(text, last)
+        if (reading is None or reading.label != "CONTINUE") and not self.speaker.allow_knowledge:
+            return None  # strict-source mode still resumes a pending question without teaching outside RAG
+        if reading is None:
+            if not self.speaker.knowledge_active:
+                return None
+            reading = self.item_reader.read_dialogue(
+                stem=self._prompt or "",
+                last_tutor=last,
+                said=text,
+                turn=self._replies_since_decision() + 1,
+                recent=[Turn(role, said) for role, said in recent],
+                phase=str(self.awaiting),
+            )
         if reading is None and is_bare_negation(text):
             reading = Reading("AMBIGUOUS_REPLY")
-        if not reading or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE"):
+        if not reading or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE"):
             return None
         ref = f"{self._node}:DIALOGUE"
         message = StudentMessage(
             item_id=ref, kind="MESSAGE", text=text, seconds=seconds, modality=modality, dialogue_version=3
         )
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
-        spoken = self.speaker.conversation_reply(
-            text,
-            asked=self._prompt or "",
-            node=self.chapter.node(self._node),
-            focus=reading.focus,
-            label=reading.label,
-            recent=recent,
-        )
+        node = self.chapter.node(self._node)
+        if reading.label == "CONTINUE":
+            spoken = Spoken(f"Ừ, mình thử nhé. {self._prompt}", "TEMPLATE")
+        else:
+            ground = next((t.reply for t in node.theory if t.id == self._ref), "") or node.method.rule
+            spoken = self.speaker.conversation_reply(
+                text,
+                asked=self._prompt or "",
+                node=node,
+                focus=reading.focus,
+                label=reading.label,
+                recent=recent,
+                ground=ground,
+            )
+            if reading.label == "REPAIR" and self._prompt and "?" not in spoken.text:
+                spoken = replace(spoken, text=f"{spoken.text} {self._prompt}")
         messages = []
         self._flag(now, events, spoken, ref)
         self._say(
@@ -991,7 +1014,10 @@ class TeachingLoop:
         assert self.speaker is not None
         if self.awaiting == Awaiting.ANSWER:
             assert self.tutor is not None
-            ask, ref = self.tutor.last_tutor, f"{self.tutor.item.id}:QUESTION"
+            from cavat.modules.tutor.dialogue import question_tail
+
+            ask = question_tail(self.tutor.last_tutor) or self.tutor._resume_question()
+            ref = f"{self.tutor.item.id}:QUESTION"
         else:
             assert self._prompt is not None
             ask, ref = self._prompt, f"{node_id}:{self._ref or 'RETELL'}"
@@ -1055,8 +1081,8 @@ class TeachingLoop:
                 said = TeachMessage(
                     MessageKind.ANSWER,
                     (
-                        turn.spoken.text
-                        if self.speaker.knowledge_active
+                        f"{turn.spoken.text} {ask}"
+                        if self.speaker.allow_knowledge
                         else f"{turn.spoken.text} {self._phrase('question_back', ask=ask)}"
                     ),
                     node_id,

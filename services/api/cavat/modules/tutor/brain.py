@@ -48,8 +48,8 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.5.0"
-CONSTITUTION = "constitution.v11.md"
+BRAIN_VERSION = "brain/1.6.0"
+CONSTITUTION = "constitution.v12.md"
 SUBJECT_MODULE = "math_g5.v2.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)

@@ -74,7 +74,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.4.0: REFORM-6 (DI-82, DI-83), teaching again and the meaning check; 0.3.0: REFORM-1b, DI-81
-GROUNDED_VERSION = "grounded-speech/0.9.0"
+GROUNDED_VERSION = "grounded-speech/0.10.0"
 PROMPT_FILE = "grounded.v2.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -741,7 +741,7 @@ class GroundedSpeaker:
             return self._background(question, found, sent, output_guard, page)
         return QuestionTurn("PARKED", Spoken("", "WEB", source, rejected, flagged, refused), found, web=page)
 
-    def conversation_reply(self, text, *, asked, node, focus, label, recent=()):
+    def conversation_reply(self, text, *, asked, node, focus, label, recent=(), ground=""):
         task = (
             "Con đang trao đổi chứ chưa nộp đáp án. Giữ nguyên bước dạy, lắng nghe ý con. "
             f"Điều cần đáp: {focus}. "
@@ -756,16 +756,17 @@ class GroundedSpeaker:
         else:
             task += (
                 "Giảng đúng chỗ con vướng, được vận dụng Toán chuẩn của bài và đổi ví dụ. "
-                "Cô sai thì nhận và sửa ngắn. Không ép nhắc lại; trả lời trọn ý, không giao câu hỏi mới."
+                "Cô sai thì nhận và sửa ngắn. Giảng một bước bằng 2 câu ngắn; không giao câu hỏi mới "
+                "vì hệ thống sẽ nối câu hỏi đang chờ cho con làm tiếp."
             )
         pack = loop_pack(
             task,
             asked,
             student_text=text,
             lesson=node.name,
-            grounds=(node.method.rule, *(t.text for t in node.theory[:2])),
+            grounds=(ground or node.method.rule, *(t.text for t in node.theory[:2])),
             recent=recent,
-            max_words=70,
+            max_words=40,
             **self._who(),
         )
         guard = (
@@ -781,7 +782,7 @@ class GroundedSpeaker:
             if label == "AMBIGUOUS_REPLY"
             else "Mình nghỉ một chút nhé. Khi sẵn sàng, con nhắn cô."
             if label == "DECLINE"
-            else f"Cô nói lại cho rõ nhé: {node.method.rule}"
+            else f"Mình xem từng chút nhé: {ground or node.method.rule}"
         )
         return Spoken(fallback, "TEMPLATE", (), spoken.rejected)
 

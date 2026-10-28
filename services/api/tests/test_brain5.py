@@ -22,10 +22,11 @@ from test_brain4 import ITEM, OK, PKG, tutor
 def test_ok_without_provider_is_not_a_typo_or_an_incorrect_math_answer():
     t = tutor(LiveReader(None, semantic=True))
     turn = t.on_student("ok", dialogue_version=3)
-    assert turn.move == Move.EXPLAIN and not turn.resolved
+    assert turn.move == Move.REDIRECT and not turn.resolved
+    assert turn.text.endswith("?") and t.state.max_hint_level == 0
     assert t.state.attempt_no == 0 and t.state.unproductive_turns == 0
     reads = [e.payload for e in turn.events if e.type == EventType.MESSAGE_READ]
-    assert [p["label"] for p in reads] == ["REPAIR"]
+    assert [p["label"] for p in reads] == ["CONTINUE"]
     assert not any(p.get("guessed_meaning") for p in reads)
 
 
