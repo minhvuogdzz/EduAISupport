@@ -39,7 +39,7 @@ from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 # 0.12.0: REFORM-5 (DI-77), a few letters nothing reads are asked about once, then the child is helped
 # 0.11.0: REFORM-2 (DI-67, DI-68), a right step advances, no praise without an explanation
 # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
-POLICY_VERSION = "hint-policy/0.14.0"  # DI-88/89: contextual parts and avoiding repeated explanations
+POLICY_VERSION = "hint-policy/0.15.0"  # DI-88/89: contextual parts and avoiding repeated explanations
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -311,7 +311,11 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         label = chk.detail["dialogue"]
         teaching = label == "REPAIR" and st.max_hint_level < HintLevel.H2
         return PolicyDecision(
-            move=Move.ASK_CONFIRM if label == "AMBIGUOUS_REPLY" else Move.EXPLAIN,
+            move=Move.ASK_CONFIRM
+            if label == "AMBIGUOUS_REPLY"
+            else Move.REDIRECT
+            if label == "CONTINUE"
+            else Move.EXPLAIN,
             level=HintLevel.H2 if teaching else None,
             target=HintTarget.CONCEPT if teaching else None,
             reason_codes=("CONVERSATION", label, "NOT_COUNTED_AS_WRONG"),

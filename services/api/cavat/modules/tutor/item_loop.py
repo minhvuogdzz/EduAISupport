@@ -395,16 +395,11 @@ class ItemTutor:
 
     def _conversation(self, text: str, seconds: float) -> TutorTurn | None:
         """Hear raw conversational language before it is collapsed into a wrong/help answer."""
-        from cavat.core.vi_text import fold, normalize
+        from cavat.modules.tutor.conversation import conversation_signal
         from cavat.modules.tutor.reader import Reading, rule_unclear_reading
 
-        acknowledgment = fold(normalize(text)).strip(" .!?") in {
-            "ok",
-            "okay",
-            "uh",
-            "u",
-            "vang",
-        }
+        signal = conversation_signal(text, self.last_tutor)
+        acknowledgment = signal is not None and signal.label == "CONTINUE"
         if not acknowledgment and rule_unclear_reading(text) is not None:
             return self._on_unclear(text, "EXPLANATION" if self.phase in _WORDS_PHASES else "ANSWER")
         if not text.strip() or text == HINT_REQUEST_TEXT:
@@ -437,7 +432,7 @@ class ItemTutor:
         )
         if acknowledgment and (reading is None or reading.label == "PASS"):
             reading = Reading(
-                "REPAIR", focus="con tiếp nhận lời hướng dẫn; nối tiếp bước đang chờ, chưa chấm hiểu"
+                "CONTINUE", focus="tiếp nhận lời cô; trở lại câu đang chờ, chưa là bằng chứng hiểu"
             )
         if (reading is None or reading.label == "PASS") and (
             is_bare_negation(text) or is_gibberish_or_ambiguous_short(text)
@@ -489,7 +484,7 @@ class ItemTutor:
                     self.state.seconds_since_last_message = seconds
                     self._record_answer(checked, text, seconds)
                     return self._act(self._decide("ANSWER", checked), text)
-        if reading is None or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE"):
+        if reading is None or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE"):
             return None
         self._emit(
             EventType.MESSAGE_READ,
@@ -1051,6 +1046,29 @@ class ItemTutor:
             self._why_pending = True  # R-STRONG-PRIOR: "vì sao" before a hint; the reply is an answer
         return Phase.AWAITING
 
+    def _resume_question(self) -> str:
+        """Ask for the evidence the current phase expects; never introduce an untracked exercise."""
+        if self.phase == Phase.AWAITING_PROBE and self._probe_option and self._probe_option.probe:
+            return self._probe_option.probe.prompt
+        if self.phase == Phase.AWAITING_CHOICE:
+            return "Con muốn tự thử lại hay để cô gợi ý thêm?"
+        if self.phase in (Phase.VERIFYING, Phase.TEACH_BACK):
+            return "Con kể cô nghe cách con làm câu này nhé?"
+        if self.phase == Phase.AWAITING_REASON:
+            return "Con đã bắt đầu từ bước nào?"
+        from cavat.modules.tutor.dialogue import question_tail
+
+        before = (
+            self.events[:-1]
+            if self.events and self.events[-1].type == EventType.POLICY_DECISION
+            else self.events
+        )
+        prior = next((e for e in reversed(before) if e.type == EventType.POLICY_DECISION), None)
+        if prior and {"REPAIR", "CONTINUE"}.intersection(prior.payload.get("reason_codes", ())):
+            if asked := question_tail(self.last_tutor):
+                return asked
+        return "Kết quả bài trên thẻ là gì con?"
+
     def _render(self, d: PolicyDecision, student_text: str | None) -> tuple[RenderedMessage, int]:
         explaining = d.move == Move.EXPLAIN
         # BRAIN-1 (C2): a child who answered right and could not say why is taught again, with the approved
@@ -1085,6 +1103,9 @@ class ItemTutor:
             solved=graded is not None and graded.outcome == Outcome.CORRECT,
             answer_revealed=self.state.max_hint_level >= 7 and not self.item.is_assessment,
             follow_up=self._follow_up if "ASK_REMAINING" in d.reason_codes else "",
+            resume_prompt=self._resume_question()
+            if {"REPAIR", "CONTINUE"}.intersection(d.reason_codes)
+            else "",
         )
         if ctx.clarification and (codes := self._refused(ctx.clarification, ctx)):
             # REFORM-5: the reader's question did not pass; the template asks (DI-77). The record keeps it.
@@ -1102,7 +1123,7 @@ class ItemTutor:
             if msg.source == "LLM":
                 # the model's words were checked by the brain (its arithmetic, its length): here the validator
                 # runs again, with the numbers left to the arithmetic check and the cap of a spoken turn
-                cap = max(word_cap(ctx, anchor), BRAIN_MAX_WORDS)
+                cap = max(word_cap(ctx, anchor), BRAIN_MAX_WORDS + len(ctx.resume_prompt.split()))
                 final = replace(ctx, max_words=cap, free_numbers=True)
             else:
                 final = replace(ctx, max_words=max(ctx.max_words, len(msg.text.split())))

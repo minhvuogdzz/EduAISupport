@@ -310,3 +310,15 @@ def conversion_ground(item: Item) -> str | None:
         f"Bỏ dấu phẩy được tử {numerator}, viết {numerator}/{denominator}. "
         "Phân số thập phân không cần rút gọn."
     )
+
+
+def question_tail(text: str) -> str:
+    """Keep the question actually asked, without the preceding lecture or splitting decimal points."""
+    return next(
+        (
+            sentence.strip()
+            for sentence in reversed(re.split(r"(?<=[.!?])\s+", text))
+            if sentence.strip().endswith("?")
+        ),
+        "",
+    )

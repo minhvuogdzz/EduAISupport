@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, ModelClass
 from cavat.modules.tutor.prompt_builder import Turn, _prompt_file, clean_text
 
-DIALOGUE_LABELS = ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "PASS")
+DIALOGUE_LABELS = ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE", "PASS")
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -27,7 +27,7 @@ def listen(model, *, stem: str, last_tutor: str, said: str, recent: Sequence[Tur
 
     request = ChatRequest(
         messages=(
-            ChatMessage("system", _prompt_file("listener.v3.md")),
+            ChatMessage("system", _prompt_file("listener.v4.md")),
             ChatMessage(
                 "user",
                 json.dumps(
@@ -43,7 +43,7 @@ def listen(model, *, stem: str, last_tutor: str, said: str, recent: Sequence[Tur
             ),
         ),
         json_schema=SCHEMA,
-        schema_name="dialogue_listen_v3",
+        schema_name="dialogue_listen_v4",
         max_output_tokens=400,
         temperature=0,
     )
@@ -67,16 +67,33 @@ def conversation_signal(said: str, last_tutor: str):
     from cavat.core.vi_text import fold, normalize
     from cavat.modules.tutor.reader import Reading
 
-    words = fold(normalize(said))
+    normalized = normalize(said)
+    words = fold(normalized)
     previous = fold(normalize(last_tutor))
     if words in {"ha", "chua hieu", "con chua hieu"} or said.strip() == "?":
         return Reading("REPAIR", focus="giải thích lại ý cô vừa nói bằng một bước đơn giản hơn")
     if (
         words in {"phai", "dung", "dung roi", "vang", "u"}
         and any(phrase in previous for phrase in ("chua hieu", "chua ro"))
+        and previous.endswith(("phai khong", "dung khong"))
         and "?" in last_tutor
     ):
         return Reading("REPAIR", focus="con xác nhận chưa hiểu; giảng ngay chỗ vừa hỏi, không hỏi lại")
-    if words in {"ok", "okay", "uh", "u", "vang", "lam tiep"}:
-        return Reading("REPAIR", focus="con tiếp nhận lời hướng dẫn; nối tiếp bước đang chờ, chưa chấm hiểu")
+    if normalized in {"à", "ừ"} or words in {
+        "ok",
+        "okok",
+        "okay",
+        "uh",
+        "vang",
+        "a ok",
+        "a okok",
+        "roi",
+        "lam tiep",
+        "tiep tuc",
+        "hieu roi",
+        "con hieu roi",
+        "ra la vay a",
+        "vay a",
+    }:
+        return Reading("CONTINUE", focus="tiếp nhận lời cô; trở lại câu đang chờ, chưa là bằng chứng hiểu")
     return None

@@ -62,7 +62,7 @@ from cavat.modules.tutor.validator import singles_out_choice
 # v8: REFORM-1b (DI-81), OFFER_CHOICE, CONFIRM_ADVANCE and a lead before the approved explanation
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v13"
+LLM_RENDERER_VERSION = "llm-renderer.v14"
 # PRESENT is the stem as it is; CLOSE_ITEM is the model's only when it teaches (``teaches``)
 TEMPLATE_ONLY_MOVES = frozenset({Move.PRESENT, Move.CLOSE_ITEM})
 LLM_MOVES = frozenset(Move) - TEMPLATE_ONLY_MOVES
@@ -250,7 +250,7 @@ class LLMRenderer:
         if ctx.item.id != self._history_item:
             self._history, self._history_item = [], ctx.item.id
         fallback = self._template.render(ctx)
-        if _template_only(ctx):
+        if _template_only(ctx) or "CONTINUE" in ctx.decision.reason_codes:
             message = fallback
             self.last_trace = RenderTrace(ctx.decision.move, fallback.source)
         elif not self._may_call(ctx.decision.move):
@@ -258,6 +258,8 @@ class LLMRenderer:
             self.last_trace = RenderTrace(ctx.decision.move, fallback.source, 0, "call_budget")
         else:
             message = self._render_with_brain(ctx, fallback)
+        if ctx.resume_prompt and "REPAIR" in ctx.decision.reason_codes and "?" not in message.text:
+            message = replace(message, text=f"{message.text} {ctx.resume_prompt}")
         if ctx.student_text:
             self._history.append(Turn("student", ctx.student_text))
         self._history.append(Turn("tutor", message.text))

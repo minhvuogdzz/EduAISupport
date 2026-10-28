@@ -57,7 +57,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.3.0: REFORM-5, AMBIGUOUS_TYPO and GIBBERISH, the intent agent (DI-77, DI-78); 0.2.0: REFORM-2, STEP_ANSWER
-READER_VERSION = "context-reader/0.6.0"
+READER_VERSION = "context-reader/0.7.0"
 UNCLEAR_LABELS = ("AMBIGUOUS_TYPO", "GIBBERISH")
 LABELS = (
     "ANSWER",
@@ -70,6 +70,7 @@ LABELS = (
     "OTHER",
     "AMBIGUOUS_REPLY",
     "REPAIR",
+    "CONTINUE",
     "DECLINE",
     "PASS",
     *UNCLEAR_LABELS,
@@ -323,7 +324,7 @@ class RecordedReader:
     def __init__(self, readings: Mapping[int, Reading]) -> None:
         self.readings = dict(readings)
         self.semantic = any(
-            r.label in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "PASS") for r in readings.values()
+            r.label in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE", "PASS") for r in readings.values()
         )
 
     def read_dialogue(self, *, stem, last_tutor, said, turn, recent=(), phase=""):

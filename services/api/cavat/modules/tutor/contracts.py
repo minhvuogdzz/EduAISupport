@@ -128,6 +128,7 @@ class RenderContext:
     answer_revealed: bool = False  # answer was already shown at H7, not evidence the child solved it
     free_numbers: bool = False
     follow_up: str = ""  # only the uncompleted part of a multi-part task (BRAIN-3)
+    resume_prompt: str = ""  # DI-98: server-owned question matching the phase that still waits
 
 
 @dataclass(frozen=True)
