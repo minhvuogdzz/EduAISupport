@@ -99,3 +99,5 @@ make storage-pack
 ```
 
 Nếu có nhiều lần xuất, chỉ giữ trong `SHA256SUMS` hai tên của lần bàn giao. Export chỉ đọc DB. Gói storage giữ documents, voice, rag, web, cache, figures; bỏ backup cũ, báo cáo thử nghiệm, model weights VieNeu ở `voice/hf` và hình preview chưa duyệt. Không có tài khoản API/`.env` trong image hay các archive này. Repo công khai nên dữ liệu được chuyển riêng tới DevOps, không commit, không đính vào PR/Release công khai.
+
+BRAIN-4 (ADR-040): `ALLOW_TUTOR_KNOWLEDGE=true` cho gia sư giảng kiến thức Toán chuẩn ngoài đoạn RAG với lượt kiểm riêng, trong bài hiện tại và nền cần thiết. `false` giữ kiểm nguồn cũ. `WEB_LOOKUP=official` vẫn chỉ tra các ấn phẩm đã xác minh, không web tự do; `off` tắt truy xuất internet, không tự tắt kiến thức nền của model.

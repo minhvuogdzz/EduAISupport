@@ -48,9 +48,9 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.2.0"
-CONSTITUTION = "constitution.v8.md"
-SUBJECT_MODULE = "math_g5.v1.md"
+BRAIN_VERSION = "brain/1.3.0"
+CONSTITUTION = "constitution.v9.md"
+SUBJECT_MODULE = "math_g5.v2.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)
 )
@@ -83,6 +83,8 @@ CODE_NOTES: dict[str, str] = {
     "MISSING_QUESTION": "phải kết thúc bằng một câu hỏi",
     "TOO_LONG": "quá dài: giữ đúng số từ quy định của lượt này",
     "SYSTEM_VOICE": "nói như cô giáo, không đọc true/false hay kết quả nội bộ của máy chấm",
+    "NEW_TASK_QUESTION": "ví dụ cô giảng có thể dùng số khác; câu con làm vẫn là đề đang mở",
+    "CHANGES_TASK": "đổi yêu cầu đề: phân số thập phân không cần rút gọn; giữ đúng dạng đề hỏi",
     "UNSUPPORTED_MEANING": "nhận định thiếu căn cứ hoặc trái kiến thức đã duyệt; viết lại theo căn cứ",
     "PII_REQUEST": "hỏi thông tin cá nhân",
     "INTELLIGENCE_PRAISE": "khen trí thông minh",
@@ -178,7 +180,7 @@ def build_request(pack: BrainPack, *, max_tokens: int = MAX_PROMPT_TOKENS_BRAIN)
         )
         if estimate_prompt_tokens(request) <= max_tokens or not (turns or len(grounds) > 1):
             return request
-        if turns:
+        if len(turns) > 2 or (turns and len(grounds) <= 1):
             turns.pop(0)
         else:
             grounds.pop()
@@ -268,15 +270,26 @@ def math_errors(text: str) -> list[str]:
     errors: list[str] = re.findall(r"(?<![\w/])\d+\s*/\s*0(?![\d/])", plain)
     # DI-88: the altitude from the obtuse vertex lies inside; the other two lie outside.
     # Catch the false hint seen in live evaluation, including its anaphoric 'đỉnh đó'.
-    for sentence in re.split(r"[.!?;]", plain):
+    for sentence in re.split(r"[.!?;]|,?\s+(?:còn|nhưng|trong khi|ngược lại|tuy nhiên)\s+", plain):
         if "đường cao" not in sentence or "không" in sentence:
             continue
-        explicit = re.search(r"từ đỉnh (?:của )?(?:có )?góc tù", sentence)
+        explicit = re.search(r"từ (?:đỉnh (?:của )?(?:có )?)?góc tù", sentence)
         anaphoric = re.search(r"góc lớn hơn 90.{0,30}đường cao từ đỉnh đó", sentence)
         universal = re.search(r"(?:mọi|tất cả).{0,35}đường cao.{0,35}trong", sentence) or re.search(
             r"đường cao.{0,45}luôn.{0,30}trong", sentence
         )
-        if ((explicit or anaphoric) and "ngoài" in sentence) or universal:
+        right_or_acute = re.search(r"tam giác (?:vuông|nhọn)", sentence)
+        if ((explicit or anaphoric) and "ngoài" in sentence) or (
+            universal and not right_or_acute and not explicit
+        ):
+            errors.append(sentence.strip())
+        if right_or_acute and "ngoài" in sentence:
+            errors.append(sentence.strip())
+        if (
+            "tam giác tù" in sentence
+            and "ngoài" in sentence
+            and re.search(r"(?:mọi|tất cả|luôn).{0,30}đường cao|đường cao.{0,30}luôn", sentence)
+        ):
             errors.append(sentence.strip())
     for m in re.finditer(r"(\d+)\s*/\s*(\d+)[^.!?;]{0,20}?(tử số|mẫu số)\s+(?:là\s+)?(\d+)", plain):
         expected = int(m[1]) if m[3] == "tử số" else int(m[2])

@@ -39,7 +39,7 @@ from __future__ import annotations
 import math
 import re
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from importlib.resources import files
 from typing import Any, Literal
@@ -74,7 +74,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.4.0: REFORM-6 (DI-82, DI-83), teaching again and the meaning check; 0.3.0: REFORM-1b, DI-81
-GROUNDED_VERSION = "grounded-speech/0.5.0"
+GROUNDED_VERSION = "grounded-speech/0.6.0"
 PROMPT_FILE = "grounded.v2.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -528,10 +528,12 @@ class GroundedSpeaker:
         calls_used: int = 0,
         order: Sequence[str] = (),
         web: WebSource | None = None,
+        allow_knowledge: bool = False,
     ) -> None:
         """``order``: the chapter's nodes in teaching order, to tell a question on a later node. ``web``: the
         trusted source a question the documents do not answer may be looked up in (WEB-1, DI-51)."""
         self.index, self.router, self.web = index, router, web
+        self.allow_knowledge = allow_knowledge
         self.order = list(order)
         self.t, self.s = tutor_self, student_address
         self.name = given_name(student_name)
@@ -540,6 +542,15 @@ class GroundedSpeaker:
         folded = index.keyword.folded
         self._idf = folded.idf
         self._unknown = math.log(1 + (folded.n + 0.5) / 0.5)
+
+    @property
+    def knowledge_active(self):
+        return (
+            self.allow_knowledge
+            and self.router is not None
+            and self.calls_used + self.calls_made
+            < getattr(self.router, "max_calls_per_session", DEFAULT_MAX_LLM_CALLS_PER_SESSION)
+        )
 
     # ------------------------------------------------------------------ questions
 
@@ -584,7 +595,9 @@ class GroundedSpeaker:
     ) -> QuestionTurn:
         """``hide``: approved text the passages must not carry here (the reply of the question waiting).
         ``recent``: the last turns (role, text): "còn 0,500 thì sao?" is read with what came before."""
-        if self.same_as_check(question, pending):
+        if self.same_as_check(question, pending) and not (
+            self.knowledge_active and scoped_query(question, self.index, node_id)
+        ):
             return QuestionTurn("SAME_AS_CHECK")
         # The retrieval reads the words the child means: "là j vậy" is "là gì vậy" (conductor, CTX-2). The
         # child's own words still go to the model as typed.
@@ -638,6 +651,8 @@ class GroundedSpeaker:
             return QuestionTurn("ANSWERED", Spoken(text, "LLM", titles, rejected, flagged, refused), found)
         if text == "":  # the model found nothing in the passages that answers the question
             return self._from_web(question, query, found, output_guard=output_guard)
+        if self.allow_knowledge and self.router is not None and text is None:
+            return self._from_web(question, query, found, output_guard=output_guard)
         definition = term_and_shape(query)
         if definition and not any(defines(text, *definition) for _, text in passages):
             return self._from_web(question, query, found, output_guard=output_guard)
@@ -659,11 +674,15 @@ class GroundedSpeaker:
     ) -> QuestionTurn:
         """WEB-1 (DI-51): the documents do not answer; a safe question is looked up in the trusted source and
         answered from its article, checked like any answer. Else the question is kept for the teacher."""
-        if self.web is None or not eligible(question):
+        if not eligible(question, max_chars=500 if self.allow_knowledge else 150) or (
+            self.web is None and not self.allow_knowledge
+        ):
             return QuestionTurn("PARKED", retrieval=found)
         sent = scoped_query(question, self.index, found.node_id)
+        if not sent and self.allow_knowledge:
+            sent = self._theory_topic(question, found.node_id)
         try:
-            page = self.web.lookup(sent) if sent else None
+            page = self.web.lookup(sent) if sent and self.web else None
         except Exception:  # noqa: BLE001 - network, timeout, a changed API: the question is kept
             page = None
         from urllib.parse import urlparse
@@ -676,7 +695,7 @@ class GroundedSpeaker:
             or urlparse(page.url).hostname != page.host
             or (page.host in OFFICIAL_URLS and page.url != OFFICIAL_URLS[page.host])
         ):
-            return QuestionTurn("PARKED", retrieval=found)
+            return self._background(question, found, sent, output_guard)
         publisher = page.publisher or self.web.name
         source = (f"{publisher}: {page.title} · {page.url}",)
         evidence = self._evidence([page.text], query)
@@ -712,7 +731,158 @@ class GroundedSpeaker:
             if sentence is not None and not (output_guard and output_guard(sentence)):
                 spoken = Spoken(f"{lead} {sentence}", "WEB", source, rejected, flagged, refused)
                 return QuestionTurn("ANSWERED", spoken, found, web=page)
+        if self.allow_knowledge:
+            return self._background(question, found, sent, output_guard, page)
         return QuestionTurn("PARKED", Spoken("", "WEB", source, rejected, flagged, refused), found, web=page)
+
+    def conversation_reply(self, text, *, asked, node, focus, label, recent=()):
+        task = (
+            "Con đang trao đổi chứ chưa nộp đáp án. Giữ nguyên bước dạy, lắng nghe ý con. "
+            f"Điều cần đáp: {focus}. "
+        )
+        if label == "AMBIGUOUS_REPLY":
+            task += "Hỏi nhẹ một lần con chưa hiểu hay chưa muốn làm tiếp, không gán thành không biết."
+        elif label == "DECLINE":
+            task += "Tôn trọng việc con muốn nghỉ. Không hỏi ép hoặc đóng/chấm bài thay hệ thống."
+        else:
+            task += (
+                "Giảng đúng chỗ con vướng, được vận dụng Toán chuẩn của bài và đổi ví dụ. "
+                "Cô sai thì nhận và sửa ngắn. Không ép nhắc lại; trả lời trọn ý, không giao câu hỏi mới."
+            )
+        pack = loop_pack(
+            task,
+            asked,
+            student_text=text,
+            lesson=node.name,
+            grounds=(node.method.rule, *(t.text for t in node.theory[:2])),
+            recent=recent,
+            max_words=70,
+            **self._who(),
+        )
+        guard = (
+            (lambda said: ("MISSING_QUESTION",) if said.count("?") != 1 else ())
+            if label == "AMBIGUOUS_REPLY"
+            else None
+        )
+        spoken = self._teacher_say(pack, questions=label == "AMBIGUOUS_REPLY", output_guard=guard)
+        if spoken.text:
+            return spoken
+        fallback = (
+            "Con chưa hiểu cách làm hay chưa muốn làm tiếp?"
+            if label == "AMBIGUOUS_REPLY"
+            else "Mình nghỉ một chút nhé. Khi sẵn sàng, con nhắn cô."
+            if label == "DECLINE"
+            else f"Cô nói lại cho rõ nhé: {node.method.rule}"
+        )
+        return Spoken(fallback, "TEMPLATE", (), spoken.rejected)
+
+    def _theory_topic(self, question: str, node_id: str | None) -> str:
+        """Semantic scope gate chooses only a server-listed concept; never a URL or search query."""
+        if not self.router or not node_id:
+            return ""
+        from cavat.modules.teaching.curriculum import scope_request
+        from cavat.modules.teaching.official_web import CONCEPTS
+
+        ids = {node_id, *self.index.ancestors(node_id)}
+        titles = " ".join(
+            fold(normalize(c.title.split(" · ")[0]))
+            for c in self.index.chunks
+            if c.node_id in ids and c.source == "chapter"
+        )
+        topics = [concept for concept, (_, terms) in CONCEPTS.items() if any(t in titles for t in terms)]
+        if not topics:
+            return ""
+        out = self.router.chat(
+            ModelClass.TUTOR_REASONING,
+            scope_request(question, topics),
+            calls_used=self.calls_used + self.calls_made,
+        )
+        self.calls_made += out.calls_made
+        data = out.result.data if out.result else None
+        chosen = data.get("concept") if data else ""
+        return chosen if chosen in topics else ""
+
+    def _background(self, question, found, topic, output_guard=None, page=None):
+        if not self.allow_knowledge or not topic:
+            return QuestionTurn("PARKED", retrieval=found)
+        grounds = tuple(
+            c.text for c in self.index.chunks if c.node_id == found.node_id and c.kind == "method"
+        )[:2]
+        if page is not None:
+            grounds = (page.text, *grounds)
+        if "tam giác" in topic and ("cao" in topic or "cao" in question):
+            from cavat.modules.tutor.llm_renderer import ALTITUDE_RULE
+
+            grounds = (ALTITUDE_RULE, *grounds)
+        if topic in ("mẫu số", "tử số", "phân số"):
+            grounds = (
+                "Trong một phân số, mẫu số chỉ tổng số phần BẰNG NHAU mà một đơn vị được chia; "
+                "tử số chỉ số phần được lấy. Không đảo hai vai trò này.",
+                *grounds,
+            )
+        pack = loop_pack(
+            "GIẢNG LÝ THUYẾT: trả lời đúng điều con hỏi, dùng kiến thức Toán chuẩn lớp 5 của chủ đề "
+            f"{topic} và nền trực tiếp. Đổi ví dụ, không đọc lại RAG; chưa chắc thì không suy đoán. "
+            "Giải thích 2–4 câu dễ hiểu, không tự giải bài tập đang chờ, không thêm yêu cầu mới. "
+            "Lượt này trả lời trọn ý, không bắt con nói lại hoặc chép đáp án, không đặt câu hỏi.",
+            question,
+            lesson=topic,
+            grounds=grounds,
+            max_words=80,
+            **self._who(),
+        )
+        spoken = self._teacher_say(pack, output_guard=output_guard)
+        return (
+            QuestionTurn("ANSWERED", spoken, found)
+            if spoken.text
+            else QuestionTurn("PARKED", retrieval=found)
+        )
+
+    def _teacher_say(self, pack, *, output_guard=None, questions=False):
+        """Fluent teaching with an independent mathematical/scope check, no lexical copy requirement."""
+        if self.router is None:
+            return Spoken("", "TEMPLATE")
+        from cavat.modules.teaching.curriculum import verification, verified
+
+        pack = replace(
+            pack,
+            task=pack.task + " Được dùng kiến thức Toán chuẩn của chủ đề và nền trực tiếp để giải thích, "
+            "đổi ví dụ; không buộc mọi ý phải có nguyên văn trong RAG. Không mở thêm chủ đề.",
+        )
+        checked_calls = 0
+
+        def codes(text):
+            nonlocal checked_calls
+            problems = list(brain.speech_codes(text, pack))
+            if foreign_text(text) or wrong_address(text, self.s):
+                problems.append("WRONG_ADDRESS")
+            if text.count("?") > (1 if questions else 0):
+                problems.append("HAS_QUESTION")  # the loop supplies the planned Socratic question
+            if output_guard:
+                problems += list(output_guard(text))
+            if not problems:
+                out = self.router.chat(
+                    ModelClass.TUTOR_REASONING,
+                    verification(
+                        text,
+                        question=pack.question,
+                        scope=pack.lesson,
+                        references=pack.grounds,
+                        student=pack.student_text,
+                        may_reveal=False,
+                    ),
+                    calls_used=self.calls_used + self.calls_made + checked_calls + 1,
+                )
+                checked_calls += out.calls_made
+                if not out.result or not verified(out.result.data):
+                    problems.append("UNSUPPORTED_MEANING")
+                    if out.result and out.result.data.get("reason"):
+                        problems.append("CHECK: " + clean_text(out.result.data["reason"], 180))
+            return tuple(dict.fromkeys(problems))
+
+        out = brain.speak(self.router, pack, codes, calls_used=self.calls_used + self.calls_made)
+        self.calls_made += out.calls + checked_calls
+        return Spoken(out.text or "", "LLM" if out.text else "TEMPLATE", (), out.rejected, out.flagged, ())
 
     # ------------------------------------------------------------------ bridge
 
@@ -838,7 +1008,7 @@ class GroundedSpeaker:
         pack, codes = lecture_request(
             ground, ask=ask, node_name=node_name, rule=rule, recent=recent, **self._who()
         )
-        return self._say(pack, codes)
+        return self._teacher_say(pack) if self.allow_knowledge else self._say(pack, codes)
 
     def invite_retell(self, node: Node, *, prompt: str, recent: Sequence[tuple[str, str]] = ()) -> Spoken:
         """The invitation to say the idea back, written for what the child has just done (BRAIN-1); the

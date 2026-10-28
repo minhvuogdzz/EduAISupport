@@ -400,7 +400,8 @@ def test_a_question_through_the_session_api_is_answered_and_shown_to_the_teacher
     assert sent.status_code == 200, sent.text
     state = client.get(f"/v1/sessions/{sid}/state", headers=MINH).json()
     assert state["teaching"]["awaiting"] == "THEORY_REPLY" and state["teaching"]["prompt"] == prompt
-    assert state["transcript"][-1]["kind"] == "ANSWER" and state["transcript"][-1]["text"].endswith(prompt)
+    assert state["transcript"][-1]["kind"] == "ANSWER"
+    assert state["transcript"][-1]["text"].endswith(prompt)  # offline fallback keeps the planned question
 
     transcript = client.get(f"/v1/sessions/{sid}/transcript", headers=TEACHER).json()
     teach = [t["teach"] for s in transcript["segments"] for t in s["turns"] if t.get("teach")]

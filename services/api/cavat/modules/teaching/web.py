@@ -62,9 +62,9 @@ class WebSource(Protocol):
     def lookup(self, query: str) -> WebPage | None: ...
 
 
-def eligible(question: str) -> bool:
+def eligible(question: str, *, max_chars: int = MAX_QUESTION_CHARS) -> bool:
     """A question the tutor may look up for a child: short, no contact data, none of the unsafe topics."""
-    if len(question) > MAX_QUESTION_CHARS or _CONTACT.search(question):
+    if len(question) > max_chars or _CONTACT.search(question):
         return False
     # lower case and no marks first: "MA TÚY" and "SEX?" are the words of the list, as the child typed them
     folded = f" {fold(normalize(question))} "

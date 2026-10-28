@@ -1001,10 +1001,13 @@ async def _command(
             calls_used=(session.state.activity or {}).get("llm_calls", 0),
             order=content.topological_order(),
             web=_web_source(),
+            allow_knowledge=get_settings().allow_tutor_knowledge,
         )
         # CTX-1: an unclear item message is read in context: by Qwen when it may be called, else by rule.
         calls = (session.state.activity or {}).get("llm_calls", 0)
-        reader = LiveReader(ModelReader(router, calls_used=calls) if router is not None else None)
+        reader = LiveReader(
+            ModelReader(router, calls_used=calls) if router is not None else None, semantic=True
+        )
         # AUTO-1: Qwen picks one of the moves the policy allows, within the first half of the call budget.
         choosing = router is not None and get_settings().tutor_chooser == "llm"
         command_fn: Any = partial(

@@ -16,6 +16,7 @@ from cavat.modules.assessment.student_intent import asks_question
 from cavat.modules.content.lesson_package import BooleanAnswer, Item, KeyFacts, LessonPackage, OpenAnswer
 
 DIALOGUE_VERSION = 2
+CURRENT_DIALOGUE_VERSION = 3
 _OPPOSITES = (("trong", "ngoài"),)
 
 
@@ -221,3 +222,71 @@ def remaining_question(item: Item, remaining: list[str]) -> str:
         if part:
             return f"Còn {part[1].strip().rstrip('.?')}?"
     return "Con làm tiếp phần còn lại của đề nhé?"
+
+
+def numeric_helper(item: Item, text: str, asked: str, package: LessonPackage) -> CheckResult | None:
+    """Grade the actual small question about a decimal conversion, using exact numbers, never a model."""
+    from cavat.modules.assessment.vi_numbers import extract_numbers, parse_literal
+    from cavat.modules.content.lesson_package import NumericAnswer
+
+    if not isinstance(item.answer, NumericAnswer) or "phân số thập phân" not in item.stem.lower():
+        return None
+    question = asked.rsplit("?", 2)[-2].rsplit(".", 1)[-1].lower() if "?" in asked else ""
+    numbers = extract_numbers(item.stem)
+    decimal = next((n for n in numbers if n.form == "decimal"), None)
+    if not decimal or not question:
+        return None
+    scale = len(decimal.text.replace(".", ",").split(",")[-1])
+    form = None
+    if "số nào" in question and "đề" in question:
+        expected = decimal.value
+        form = "decimal"
+    elif "mẫu số" in question and re.search(r"(?:chữ số|số)\s*0", question):
+        expected = scale
+    elif "mẫu số" in question and "tử số" not in question:
+        expected = 10**scale
+    elif "chữ số" in question and ("thập phân" in question or "dấu phẩy" in question):
+        expected = scale
+    elif "tử số" in question and "mẫu số" not in question:
+        expected = parse_literal(item.answer.value).value * 10**scale
+    else:
+        return None
+    spec = NumericAnswer(type="numeric", value=str(expected), form=form)
+    check = check_answer(item.model_copy(update={"answer": spec}), text, package)
+    if check.outcome != Outcome.CORRECT:
+        return None
+    return replace(
+        check,
+        outcome=Outcome.PARTIAL,
+        detail={
+            "partial_reason": "VERBAL_STEP",
+            "follow_up": "Con áp dụng vào số trên đề rồi viết phân số nhé?",
+        },
+    )
+
+
+def conversion_ground(item: Item) -> str | None:
+    """A verified analogous example, with the same place-value difficulty, not the pupil's answer."""
+    from cavat.modules.assessment.vi_numbers import extract_numbers, parse_literal
+    from cavat.modules.content.lesson_package import NumericAnswer
+
+    if not isinstance(item.answer, NumericAnswer) or "phân số thập phân" not in item.stem.lower():
+        return None
+    decimal = next((n for n in extract_numbers(item.stem) if n.form == "decimal"), None)
+    if decimal is None:
+        return None
+    places = len(decimal.text.replace(".", ",").split(",")[-1])
+    examples = {1: ("2,7", "4,6"), 2: ("2,35", "4,76"), 3: ("1,234", "4,567")}
+    if places not in examples:
+        return None
+    pair = examples[places]
+    if decimal.text.replace(".", ",").split(",")[-1].startswith("0") and places > 1:
+        pair = ("0," + "0" * (places - 1) + "4", "0," + "0" * (places - 1) + "7")
+    example = next(v for v in pair if parse_literal(v).value != decimal.value)
+    denominator = 10**places
+    numerator = int(parse_literal(example).value * denominator)
+    return (
+        f"Bài trên thẻ có {places} chữ số sau dấu phẩy. Đổi số thập phân thành phân số thập phân: "
+        "số chữ số 0 ở mẫu bằng số chữ số sau dấu phẩy; tử là số viết khi bỏ dấu phẩy. "
+        f"Ví dụ KHÁC: {example} = {numerator}/{denominator}. Không yêu cầu rút gọn."
+    )

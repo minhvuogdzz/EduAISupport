@@ -442,7 +442,7 @@ def _conversation(folded: Folded) -> dict[str, Any]:
         kind, p = e.event_type, e.payload
         if kind == EventType.STUDENT_MESSAGE:
             counts["messages"] += 1
-        elif kind == EventType.HINT_REQUESTED:
+        elif kind == EventType.HINT_REQUESTED and p.get("source", "BUTTON") == "BUTTON":
             counts["hint_button"] += 1
         elif kind == EventType.CONTEXT_ROUTED:
             signals.update(p.get("signals", []))
@@ -458,7 +458,9 @@ def _conversation(folded: Folded) -> dict[str, Any]:
             counts["parked"] += 1
         elif kind == EventType.SAFETY_FLAGGED:
             counts["safety"] += 1
-    counts["hint_button"] -= signals["UNSTICK"]  # the conductor's own hint requests are not the child's
+    # New events identify the actual source. Old logs had no source and mixed two UNSTICK routes.
+    if not any(e.event_type == EventType.HINT_REQUESTED and "source" in e.payload for e in folded.events):
+        counts["hint_button"] = max(0, counts["hint_button"] - signals["UNSTICK"])
     return {**dict(counts), "signals": dict(signals), "intents": dict(intents)}
 
 

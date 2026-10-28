@@ -57,7 +57,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.3.0: REFORM-5, AMBIGUOUS_TYPO and GIBBERISH, the intent agent (DI-77, DI-78); 0.2.0: REFORM-2, STEP_ANSWER
-READER_VERSION = "context-reader/0.3.0"
+READER_VERSION = "context-reader/0.4.0"
 UNCLEAR_LABELS = ("AMBIGUOUS_TYPO", "GIBBERISH")
 LABELS = (
     "ANSWER",
@@ -68,6 +68,10 @@ LABELS = (
     "OFF_TOPIC",
     "AFFECT",
     "OTHER",
+    "AMBIGUOUS_REPLY",
+    "REPAIR",
+    "DECLINE",
+    "PASS",
     *UNCLEAR_LABELS,
 )
 MAX_TEXT = 300
@@ -285,12 +289,22 @@ class ModelReader:
 class LiveReader:
     """The model's reading when it gives one, else the rule's."""
 
-    def __init__(self, model: ModelReader | None = None) -> None:
+    def __init__(self, model: ModelReader | None = None, *, semantic: bool = False) -> None:
         self.model = model
+        self.semantic = semantic
 
     @property
     def calls_made(self) -> int:
         return self.model.calls_made if self.model is not None else 0
+
+    def read_dialogue(self, *, stem, last_tutor, said, turn, recent=(), phase=""):
+        from cavat.modules.tutor.conversation import listen
+
+        return (
+            listen(self.model, stem=stem, last_tutor=last_tutor, said=said, recent=recent, phase=phase)
+            if self.model is not None and self.semantic
+            else None
+        )
 
     def read(self, *, stem: str, last_tutor: str, said: str, turn: int) -> Reading | None:
         reading = (
@@ -306,6 +320,12 @@ class RecordedReader:
 
     def __init__(self, readings: Mapping[int, Reading]) -> None:
         self.readings = dict(readings)
+        self.semantic = any(
+            r.label in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "PASS") for r in readings.values()
+        )
+
+    def read_dialogue(self, *, stem, last_tutor, said, turn, recent=(), phase=""):
+        return self.readings.get(turn)
 
     def read(self, *, stem: str, last_tutor: str, said: str, turn: int) -> Reading | None:
         return self.readings.get(turn)

@@ -295,6 +295,10 @@ def _runs(words: list[str], n: int) -> set[tuple[str, ...]]:
 
 def echoes_child(text: str, ctx: RenderContext) -> str | None:
     """The child's words the turn repeats as the tutor's own, if any (FIX-5)."""
+    from cavat.modules.assessment.math_terms import terms_in
+
+    if "REPAIR" in ctx.decision.reason_codes and set(terms_in(ctx.student_text or "")) & set(terms_in(text)):
+        return None  # repeating the mathematical subject of a question is not speaking as the child
     said = _words(ctx.student_text or "")
     if len(said) < ECHO_OPENING_WORDS:
         return None
@@ -339,6 +343,8 @@ _PRAISE_OPENING = re.compile(
 def wrong_praise(text: str, ctx: RenderContext) -> str | None:
     """The opening praise of a turn that follows an answer that is not right, if any (FIX-2)."""
     d = ctx.decision
+    if "CONVERSATION" in d.reason_codes:
+        return None  # a stale exercise verdict cannot forbid acknowledging a correct theoretical point
     after_wrong = (
         d.move in _NOT_AFTER_CORRECT
         or "VERIFY_BEFORE_HINT" in d.reason_codes
@@ -358,15 +364,27 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
     move = ctx.decision.move
     lowered = normalize_text(text)
 
-    if move not in MOVES_SKIPPING_LEAK_CHECK and not _closes_a_solved_item(ctx):
+    if move not in MOVES_SKIPPING_LEAK_CHECK and not _closes_a_solved_item(ctx) and not ctx.answer_revealed:
         leak = _leak(text, ctx)
         if leak:
             issues.append(ValidationIssue(ValidationCode.ANSWER_LEAK, leak))
 
     questions = len(_QUESTION_RE.findall(text))
-    if questions > 1:
+    opening = text.split("?", 1)[0]
+    reflective = (
+        "REPAIR" in ctx.decision.reason_codes
+        and questions == 2
+        and len(opening.split()) <= 8
+        and re.search(r"chưa (?:hiểu|rõ)", opening.lower())
+        and len(text.split("?", 1)[1].split()) >= 8
+    )
+    if questions > 1 and not reflective:
         issues.append(ValidationIssue(ValidationCode.MULTIPLE_QUESTIONS, f"{questions} questions"))
-    if move in MOVES_REQUIRING_QUESTION and (questions == 0 or not _is_question(text.strip())):
+    if (
+        move in MOVES_REQUIRING_QUESTION
+        and not {"REPAIR", "DECLINE"}.intersection(ctx.decision.reason_codes)
+        and (questions == 0 or not _is_question(text.strip()))
+    ):
         detail = "no question" if questions == 0 else "the question must come last"
         issues.append(ValidationIssue(ValidationCode.MISSING_QUESTION, detail))
 

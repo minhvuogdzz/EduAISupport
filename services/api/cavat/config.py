@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     max_llm_calls_per_session: int = 40
     # DI-90: a chapter has 7–8 lessons; its voice must not disappear during lesson one.
     max_llm_calls_per_chapter: int = 160
+    # DI-92: teacher knowledge, verified independently, current topic/prerequisites only.
+    allow_tutor_knowledge: bool = True
     # "template": approved sentences only. "llm": Qwen phrases the moves, templates as fallback. REFORM-1:
     # unset, it is "llm" when a Groq key is set and "template" without one (the tests blank the key).
     tutor_renderer: Literal["template", "llm"] = "template"

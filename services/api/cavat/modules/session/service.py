@@ -16,7 +16,7 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Any, Literal
 
-from cavat.config import REPO_ROOT
+from cavat.config import REPO_ROOT, get_settings
 from cavat.core.events import ChoiceMade, EventType, HintRequested, SafetyFlagged, StudentMessage
 from cavat.core.pedagogy import HINT_MOVES, ActivityType
 from cavat.core.repository import new_id
@@ -205,6 +205,7 @@ def llm_renderer(session: LearningSession, router: AIRouter) -> LLMRenderer:
         student_name=session.student_display_name,
         calls_used=(session.state.activity or {}).get("llm_calls", 0),
         history=item_history(session),
+        allow_knowledge=get_settings().allow_tutor_knowledge,
         history_item=(session.state.item or {}).get("item_id"),
     )
 
@@ -332,7 +333,7 @@ def apply_command(
         events.append(_event(EventType.SAFETY_FLAGGED, flagged, session, attempt_id, activity_id))
     item["inputs"] = [
         *item["inputs"],
-        {"text": loop_text, "seconds": seconds, "social_routing": True, "dialogue_version": 2},
+        {"text": loop_text, "seconds": seconds, "social_routing": True, "dialogue_version": 3},
     ]
     item["phase"] = turn.phase.value
     item["choice_open"] = turn.phase == Phase.AWAITING_CHOICE

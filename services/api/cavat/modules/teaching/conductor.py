@@ -31,7 +31,7 @@ from cavat.modules.assessment.vi_numbers import normalize_text
 
 # 0.2.0: REFORM-5, a message that is one letter typed over ("kk", "kkk", "tt") is kept, not shrunk to "k" (=
 # không)
-CONDUCTOR_VERSION = "conductor/0.2.0"
+CONDUCTOR_VERSION = "conductor/0.3.0"
 MAX_CHARS = 300  # a longer message keeps its end: a child writes the answer last
 _STRETCH_RE = re.compile(r"([^\W\d_])\1{2,}")  # three or more of the same letter: "đúnggg"
 _ONE_LETTER_RE = re.compile(r"([^\W\d_])\1+")  # the whole message: "kk", "kkk", "tttt"

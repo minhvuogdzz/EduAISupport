@@ -125,6 +125,7 @@ class RenderContext:
     # by arithmetic (``brain.math_errors``) and not by being in the lesson.
     check: CheckResult | None = None
     solved: bool = False
+    answer_revealed: bool = False  # answer was already shown at H7, not evidence the child solved it
     free_numbers: bool = False
     follow_up: str = ""  # only the uncompleted part of a multi-part task (BRAIN-3)
 
