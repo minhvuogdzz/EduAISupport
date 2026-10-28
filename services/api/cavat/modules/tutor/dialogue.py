@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import replace
+from fractions import Fraction
 
 from cavat.core.pedagogy import Outcome
 from cavat.core.vi_text import fold, normalize
@@ -280,7 +281,7 @@ def conversion_ground(item: Item) -> str | None:
         if denominator not in (10, 100, 1000):
             return None
         places = len(str(denominator)) - 1
-        numerator = next(n for n in (3, 6, 8) if n / denominator != fraction.value)
+        numerator = next(n for n in (3, 6, 8) if Fraction(n, denominator) != fraction.value)
         example = "0," + str(numerator).zfill(places)
         unit = {10: "mười", 100: "trăm", 1000: "nghìn"}[denominator]
         return (

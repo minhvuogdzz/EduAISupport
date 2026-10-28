@@ -164,3 +164,17 @@ def test_before_recording_student_input_history_keeps_the_actual_last_teacher_me
     ]
     assert loop._recent(6, include_last=True) == [("tutor", "Con chưa hiểu cách viết, phải không?")]
     assert loop._recent(6) == []  # the existing post-input convention remains
+
+
+@pytest.mark.parametrize("denominator", [10, 100, 1000])
+def test_analogous_fraction_example_never_reuses_the_original_value(denominator):
+    item = ITEM.model_copy(
+        update={
+            "stem": f"Viết thành số thập phân: 3/{denominator} = …",
+            "answer": NumericAnswer(
+                type="numeric", value="0," + "3".zfill(len(str(denominator)) - 1), form="decimal"
+            ),
+        }
+    )
+    ground = conversion_ground(item)
+    assert f"6/{denominator}" in ground and f"Ví dụ 3/{denominator}" not in ground
