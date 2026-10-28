@@ -943,10 +943,10 @@ class TeachingLoop:
         # Named theory questions keep the RAG/internet path and its source log.
         if self.speaker.is_question(text) and scoped_query(text, self.speaker.index, self._node):
             return None
-        recent = self._recent(6)
+        recent = self._recent(6, include_last=True)
         reading = self.item_reader.read_dialogue(
             stem=self._prompt or "",
-            last_tutor=self._prompt or "",
+            last_tutor=next((said for role, said in reversed(recent) if role == "tutor"), self._prompt or ""),
             said=text,
             turn=self._replies_since_decision() + 1,
             recent=[Turn(role, said) for role, said in recent],
@@ -1082,10 +1082,10 @@ class TeachingLoop:
             return self._waiting_for_item(messages, events)
         return TeachTurn(tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=ask)
 
-    def _recent(self, n: int) -> list[tuple[str, str]]:
+    def _recent(self, n: int, *, include_last: bool = False) -> list[tuple[str, str]]:
         """The last ``n`` turns before the message being answered: (role, text), oldest first."""
         said = []
-        for e in self.events[:-1]:  # the last event is the message being answered
+        for e in self.events if include_last else self.events[:-1]:
             if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT):
                 said.append(("tutor", e.payload.get("text", "")))
             elif e.event_type == EventType.STUDENT_MESSAGE:

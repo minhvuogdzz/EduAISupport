@@ -270,7 +270,26 @@ def conversion_ground(item: Item) -> str | None:
     from cavat.modules.assessment.vi_numbers import extract_numbers, parse_literal
     from cavat.modules.content.lesson_package import NumericAnswer
 
-    if not isinstance(item.answer, NumericAnswer) or "phân số thập phân" not in item.stem.lower():
+    if not isinstance(item.answer, NumericAnswer):
+        return None
+    if "thành số thập phân" in item.stem.lower():
+        fraction = next((n for n in extract_numbers(item.stem) if n.form == "fraction"), None)
+        if fraction is None:
+            return None
+        denominator = int(fraction.text.split("/")[-1].replace(" ", ""))
+        if denominator not in (10, 100, 1000):
+            return None
+        places = len(str(denominator)) - 1
+        numerator = next(n for n in (3, 6, 8) if n / denominator != fraction.value)
+        example = "0," + str(numerator).zfill(places)
+        unit = {10: "mười", 100: "trăm", 1000: "nghìn"}[denominator]
+        return (
+            f"Mẫu {denominator} nghĩa là chia một đơn vị thành {denominator} phần bằng nhau. "
+            f"Ví dụ {numerator}/{denominator} là {numerator} phần {unit}: "
+            f"viết {places} chữ số sau dấu phẩy, được {example}. "
+            f"Chữ số {numerator} ở hàng phần {unit}. Con áp dụng cách này vào bài trên thẻ nhé."
+        )
+    if "phân số thập phân" not in item.stem.lower():
         return None
     decimal = next((n for n in extract_numbers(item.stem) if n.form == "decimal"), None)
     if decimal is None:

@@ -48,8 +48,8 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.3.0"
-CONSTITUTION = "constitution.v9.md"
+BRAIN_VERSION = "brain/1.4.0"
+CONSTITUTION = "constitution.v10.md"
 SUBJECT_MODULE = "math_g5.v2.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)
@@ -419,9 +419,12 @@ def wrong_voice(text: str) -> bool:
     return bool(reversed_greeting(text) or _WRONG_SELF.search(lowered) or _BAN_AS_YOU.search(lowered))
 
 
-def repeats(text: str, recent: Sequence[Turn]) -> bool:
+def repeats(text: str, recent: Sequence[Turn], *, flexible: bool = False) -> bool:
     """The turn says again what the tutor said, or opens with the same words as one of its last two turns."""
     said = [t for t in recent if t.role == "tutor"]
+    if flexible:
+        # Shared technical terms or an opening are not evidence of repeating an explanation.
+        return any(normalize_text(text) == normalize_text(t.text) for t in said[-2:])
     if any(_similar(text, t.text) >= REPEAT_SIMILARITY for t in said):
         return True
     opening = _opening(text)
@@ -435,6 +438,7 @@ def speech_codes(
     ask_target: bool = False,
     rephrase: bool = False,
     copy_run: int = COPY_RUN_WORDS,
+    flexible: bool = False,
 ) -> tuple[str, ...]:
     """The codes the net that does not depend on a RenderContext raises: wrong arithmetic, a copied ground, a
     repeated turn, and for ``ask_target`` a question that does not name what the child wrote."""
@@ -449,7 +453,7 @@ def speech_codes(
         codes.append("WRONG_ADDRESS")
     if rephrase and copied_run(text, pack.grounds, copy_run):
         codes.append(COPIES_GROUND)
-    if repeats(text, pack.recent):
+    if repeats(text, pack.recent, flexible=flexible):
         codes.append(REPEATS_PREVIOUS)
     if teacher_voice(text):
         codes.append(TEACHER_VOICE)

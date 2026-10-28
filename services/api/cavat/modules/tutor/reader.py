@@ -57,7 +57,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.3.0: REFORM-5, AMBIGUOUS_TYPO and GIBBERISH, the intent agent (DI-77, DI-78); 0.2.0: REFORM-2, STEP_ANSWER
-READER_VERSION = "context-reader/0.4.0"
+READER_VERSION = "context-reader/0.5.0"
 UNCLEAR_LABELS = ("AMBIGUOUS_TYPO", "GIBBERISH")
 LABELS = (
     "ANSWER",
@@ -298,8 +298,10 @@ class LiveReader:
         return self.model.calls_made if self.model is not None else 0
 
     def read_dialogue(self, *, stem, last_tutor, said, turn, recent=(), phase=""):
-        from cavat.modules.tutor.conversation import listen
+        from cavat.modules.tutor.conversation import conversation_signal, listen
 
+        if self.semantic and (signal := conversation_signal(said, last_tutor)) is not None:
+            return signal
         return (
             listen(self.model, stem=stem, last_tutor=last_tutor, said=said, recent=recent, phase=phase)
             if self.model is not None and self.semantic

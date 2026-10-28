@@ -132,7 +132,7 @@ class GroqClient:
         self.quota.update(model, response.headers, now)
         status = response.status_code
         if status == 429:
-            reset_at = _reset_at(response.headers, now)
+            reset_at = _reset_at(response.headers, now, quota_limit(_error_text(response, 2000)))
             self.quota.mark_exhausted(model, reset_at, now)
             raise QuotaExceeded(
                 f"rate limited: {_error_text(response)}",
@@ -175,8 +175,12 @@ def _usage(raw: Any) -> Usage:
     )
 
 
-def _reset_at(headers: Mapping[str, str], now: datetime) -> datetime | None:
+def _reset_at(headers: Mapping[str, str], now: datetime, limit: str | None = None) -> datetime | None:
     delta = parse_reset_duration(headers.get("retry-after"))
+    if delta is None and limit in {"TPM", "ITPM", "RPD"}:
+        # A nonempty daily request bucket must not keep a token-minute error blocked for hours.
+        bucket = "tokens" if limit in {"TPM", "ITPM"} else "requests"
+        delta = parse_reset_duration(headers.get(f"x-ratelimit-reset-{bucket}"))
     if delta is None:
         deltas = [
             d

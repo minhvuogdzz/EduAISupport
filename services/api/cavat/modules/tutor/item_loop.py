@@ -395,9 +395,17 @@ class ItemTutor:
 
     def _conversation(self, text: str, seconds: float) -> TutorTurn | None:
         """Hear raw conversational language before it is collapsed into a wrong/help answer."""
+        from cavat.core.vi_text import fold, normalize
         from cavat.modules.tutor.reader import Reading, rule_unclear_reading
 
-        if rule_unclear_reading(text) is not None:
+        acknowledgment = fold(normalize(text)).strip(" .!?") in {
+            "ok",
+            "okay",
+            "uh",
+            "u",
+            "vang",
+        }
+        if not acknowledgment and rule_unclear_reading(text) is not None:
             return self._on_unclear(text, "EXPLANATION" if self.phase in _WORDS_PHASES else "ANSWER")
         if not text.strip() or text == HINT_REQUEST_TEXT:
             return None
@@ -427,6 +435,10 @@ class ItemTutor:
             if read
             else None
         )
+        if acknowledgment and (reading is None or reading.label == "PASS"):
+            reading = Reading(
+                "REPAIR", focus="con tiếp nhận lời hướng dẫn; nối tiếp bước đang chờ, chưa chấm hiểu"
+            )
         if (reading is None or reading.label == "PASS") and (
             is_bare_negation(text) or is_gibberish_or_ambiguous_short(text)
         ):
@@ -1050,6 +1062,11 @@ class ItemTutor:
             if (explaining or reteaching) and self.explainer
             else ()
         )
+        if self._dialogue_version >= 3 and "REPAIR" in d.reason_codes and not self.item.is_assessment:
+            from cavat.modules.tutor.dialogue import conversion_ground
+
+            if scaffold := conversion_ground(self.item):
+                evidence = (scaffold, *evidence)
         graded = self._last_graded
         asking = d.move == Move.ASK_CONFIRM
         ctx = RenderContext(

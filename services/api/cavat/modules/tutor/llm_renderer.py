@@ -62,7 +62,7 @@ from cavat.modules.tutor.validator import singles_out_choice
 # v8: REFORM-1b (DI-81), OFFER_CHOICE, CONFIRM_ADVANCE and a lead before the approved explanation
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v11"
+LLM_RENDERER_VERSION = "llm-renderer.v12"
 # PRESENT is the stem as it is; CLOSE_ITEM is the model's only when it teaches (``teaches``)
 TEMPLATE_ONLY_MOVES = frozenset({Move.PRESENT, Move.CLOSE_ITEM})
 LLM_MOVES = frozenset(Move) - TEMPLATE_ONLY_MOVES
@@ -273,6 +273,7 @@ class LLMRenderer:
 
     def _pack(self, ctx: RenderContext, fallback: RenderedMessage) -> BrainPack:
         d, item = ctx.decision, ctx.item
+        resuming = (ctx.focus or "").startswith("con tiếp nhận lời hướng dẫn")
         reveal = ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION or teaches(ctx)
         task = brain.task_for(
             Move.CLOSE_ITEM if teaches(ctx) else d.move,
@@ -299,6 +300,11 @@ class LLMRenderer:
             not isinstance(item.answer, NumericAnswer) or "phân số thập phân" not in item.stem.lower()
         ):
             task += " Lượt giải thích lý thuyết này trả lời trọn ý, không hỏi bài mới hay đòi con nhắc lại."
+        if resuming:
+            task = (
+                "Con chỉ đồng ý làm tiếp, chưa có bằng chứng hiểu hay làm đúng. "
+                "Đáp ngắn tự nhiên, mời con tiếp tục bài đang chờ. Không giảng lại, không nói con đã hiểu."
+            )
         if ctx.follow_up:
             task = (
                 "Con đã làm ĐÚNG một phần. Công nhận ngắn phần con vừa trả lời, không chấm nó sai. "
@@ -336,7 +342,7 @@ class LLMRenderer:
         if self.allow_knowledge:
             from cavat.modules.tutor.dialogue import conversion_ground
 
-            if scaffold := conversion_ground(item):
+            if not resuming and (scaffold := conversion_ground(item)):
                 grounds = (scaffold, *grounds)
         if ALTITUDE_RULE in grounds:
             grounds = (ALTITUDE_RULE, *(g for g in grounds if g != ALTITUDE_RULE))
@@ -346,14 +352,18 @@ class LLMRenderer:
         if (
             self.allow_knowledge
             and "REPAIR" in d.reason_codes
+            and not resuming
             and not ctx.answer_revealed
             and isinstance(item.answer, NumericAnswer)
         ):
-            if item.answer.form == "fraction" or "phân số thập phân" in item.stem.lower():
+            if scaffold := conversion_ground(item):
                 from cavat.modules.assessment.vi_numbers import extract_numbers
 
-                question = "Giảng cách đổi số thập phân thành phân số thập phân, dùng ví dụ khác với bài con."
-                task += " Dạy bằng ví dụ khác đã cho trong căn cứ, rồi để con áp dụng vào bài trên thẻ."
+                question = "Giảng phương pháp chuyển đổi theo ví dụ KHÁC đã cho, không giải bài trên thẻ."
+                task += (
+                    " Chỉ giảng một ví dụ khác đã cho trong căn cứ, đúng mẫu/hàng của bài, "
+                    "không liệt kê nhiều mẫu."
+                )
 
                 def abstract(text):
                     for n in reversed(extract_numbers(item.stem)):
@@ -366,8 +376,12 @@ class LLMRenderer:
                 student_text = abstract(student_text)
                 task = abstract(task)
                 task += (
-                    " Không giao một phép đổi số mới cho con làm; câu con trả lời vẫn là bài "
-                    "trên thẻ. Nếu hỏi, chỉ hỏi bước nhỏ hoặc kết quả của bài trên thẻ."
+                    " Không giao một phép đổi số mới cho con làm; câu con trả lời vẫn là bài trên thẻ. "
+                    + (
+                        "Giảng trọn ý, không thêm câu hỏi."
+                        if "thành số thập phân" in item.stem.lower()
+                        else "Nếu hỏi, chỉ hỏi bước nhỏ hoặc kết quả của bài trên thẻ."
+                    )
                 )
         return BrainPack(
             task=task,
@@ -383,7 +397,7 @@ class LLMRenderer:
             lesson=f"{ctx.package.title} (lớp {ctx.package.grade})",
             question_kind="TRUE_FALSE" if isinstance(item.answer, BooleanAnswer) else "TASK",
             max_words=25
-            if self.allow_knowledge and d.move == Move.CONFIRM_ADVANCE and not teaches(ctx)
+            if resuming or (self.allow_knowledge and d.move == Move.CONFIRM_ADVANCE and not teaches(ctx))
             else 60
             if d.move
             in (Move.EXPLAIN, Move.HINT, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION, Move.CLOSE_ITEM)
@@ -401,6 +415,7 @@ class LLMRenderer:
                 text,
                 pack,
                 ask_target=asks,
+                flexible=self.allow_knowledge,
                 rephrase=(
                     not self.allow_knowledge
                     and (
@@ -499,9 +514,9 @@ class LLMRenderer:
 
                     request = verification(
                         text,
-                        question=ctx.item.stem,
+                        question=pack.question,
                         scope=ctx.package.title,
-                        references=premises,
+                        references=(*pack.grounds, *premises) if "REPAIR" in d.reason_codes else premises,
                         student=ctx.student_text or "",
                         may_reveal=ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION,
                     )
