@@ -85,7 +85,7 @@ def test_listener_sees_raw_words_and_real_context_not_a_fabricated_dont_know():
     t.last_tutor = "Con muốn tự thử hay muốn cô giảng trước?"
     turn = t.on_student("không", dialogue_version=3)
     request = provider.calls[0][1]
-    assert request.schema_name == "dialogue_listen_v2"
+    assert request.schema_name == "dialogue_listen_v3"
     assert json.loads(request.messages[1].content)["con_vua_noi"] == "không"
     assert "Con muốn tự thử" in request.messages[1].content
     assert "con không biết" not in request.messages[1].content
@@ -160,7 +160,7 @@ def test_theory_missing_in_retrieval_can_use_verified_standard_knowledge_without
     turn = speaker._background("mẫu số là gì", found, "mẫu số")
     assert turn.kind == "ANSWERED" and turn.spoken.text == answer
     assert turn.spoken.source == "LLM" and not turn.spoken.sources and turn.web is None
-    assert [r.schema_name for _, r in p.calls] == ["tutor_turn", "curriculum_check_v1"]
+    assert [r.schema_name for _, r in p.calls] == ["tutor_turn", "curriculum_check_v2"]
 
 
 def test_invalid_theory_is_never_spoken_even_when_a_draft_sounds_fluent():

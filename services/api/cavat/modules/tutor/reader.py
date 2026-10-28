@@ -57,7 +57,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.3.0: REFORM-5, AMBIGUOUS_TYPO and GIBBERISH, the intent agent (DI-77, DI-78); 0.2.0: REFORM-2, STEP_ANSWER
-READER_VERSION = "context-reader/0.5.0"
+READER_VERSION = "context-reader/0.6.0"
 UNCLEAR_LABELS = ("AMBIGUOUS_TYPO", "GIBBERISH")
 LABELS = (
     "ANSWER",

@@ -27,7 +27,7 @@ def listen(model, *, stem: str, last_tutor: str, said: str, recent: Sequence[Tur
 
     request = ChatRequest(
         messages=(
-            ChatMessage("system", _prompt_file("listener.v2.md")),
+            ChatMessage("system", _prompt_file("listener.v3.md")),
             ChatMessage(
                 "user",
                 json.dumps(
@@ -43,7 +43,7 @@ def listen(model, *, stem: str, last_tutor: str, said: str, recent: Sequence[Tur
             ),
         ),
         json_schema=SCHEMA,
-        schema_name="dialogue_listen_v2",
+        schema_name="dialogue_listen_v3",
         max_output_tokens=400,
         temperature=0,
     )

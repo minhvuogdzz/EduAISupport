@@ -11,7 +11,8 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-from cavat.core.pedagogy import HintLevel, HintTarget, ItemResolution, Move
+from cavat.core.pedagogy import HintLevel, HintTarget, ItemResolution, Move, Outcome
+from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.student_intent import without_subject
 from cavat.modules.assessment.vi_numbers import fold
 from cavat.modules.content.lesson_package import (
@@ -27,7 +28,7 @@ from cavat.modules.tutor.contracts import MessageSource, RenderContext, Rendered
 #     question the intent agent proposed (checked by the validator)
 # v8: REFORM-2, EXPLAIN_AND_ADVANCE says the approved explanation, the rule answers "lý thuyết là gì",
 #     punctuation no longer hides a word; v7: FIX-6, the counterexample is tied to the item and varies
-TEMPLATE_VERSION = "template-renderer.v12"
+TEMPLATE_VERSION = "template-renderer.v13"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -545,7 +546,15 @@ class TemplateRenderer:
             rule = conversion_ground(ctx.item) or (
                 ctx.evidence[0] if ctx.evidence else "Mình cùng xem lại từng bước của bài nhé."
             )
-            return _msg(f"Cô nói lại cho rõ nhé: {rule}", "TEMPLATE")
+            said = fold((ctx.student_text or "").lower())
+            lead = (
+                "Ừ, cô nói gọn nhé."
+                if any(cue in said for cue in ("noi ngan", "noi nhieu", "dai dong"))
+                else "Không sao, mình đi từng chút nhé."
+                if classify_intent(ctx.student_text or "") == Outcome.NEGATIVE_AFFECT
+                else "Mình xem một ví dụ nhé:"
+            )
+            return _msg(f"{lead} {rule}", "TEMPLATE")
         if ctx.follow_up:
             return _msg(f"Phần này con trả lời đúng rồi. {ctx.follow_up}", "TEMPLATE")
         return _with_lead(ctx, _RENDERERS[ctx.decision.move](ctx))

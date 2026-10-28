@@ -306,7 +306,7 @@ def conversion_ground(item: Item) -> str | None:
     denominator = 10**places
     numerator = int(parse_literal(example).value * denominator)
     return (
-        f"Bài trên thẻ có {places} chữ số sau dấu phẩy. Đổi số thập phân thành phân số thập phân: "
-        "số chữ số 0 ở mẫu bằng số chữ số sau dấu phẩy; tử là số viết khi bỏ dấu phẩy. "
-        f"Ví dụ KHÁC: {example} = {numerator}/{denominator}. Không yêu cầu rút gọn."
+        f"Ví dụ {example} có {places} chữ số sau dấu phẩy nên mẫu là {denominator}. "
+        f"Bỏ dấu phẩy được tử {numerator}, viết {numerator}/{denominator}. "
+        "Phân số thập phân không cần rút gọn."
     )

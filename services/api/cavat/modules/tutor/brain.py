@@ -48,8 +48,8 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.4.0"
-CONSTITUTION = "constitution.v10.md"
+BRAIN_VERSION = "brain/1.5.0"
+CONSTITUTION = "constitution.v11.md"
 SUBJECT_MODULE = "math_g5.v2.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)
@@ -520,7 +520,9 @@ def _with_retry(pack: BrainPack, codes: Sequence[str]) -> BrainPack:
 # ---------------------------------------------------------------------------------------------- the task
 
 TASKS: dict[Move, str] = {
-    Move.PROBE: "Hỏi con đã làm thế nào để ra kết quả đó, nhắc đúng điều con viết. Một câu hỏi, ở cuối.",
+    Move.PROBE: "Hỏi nhẹ một bước con đã nghĩ, nhắc đúng điều con viết; đừng tra hỏi cả quy trình. "
+    "Chỉ có đáp số thì hỏi con đã làm bước nào, không hỏi xác nhận lại đáp số sai. "
+    "Không tự đoán hay khen cách làm con chưa nói. Một câu hỏi, ở cuối.",
     Move.HINT: "Gợi ý ở mức {level} để con tự tìm bước tiếp theo; không làm thay, không nêu đáp án. "
     "Kết thúc bằng một câu hỏi.",
     Move.COGNITIVE_CONFLICT: "Đưa ví dụ ngược để con tự thấy mâu thuẫn, không nói thẳng là sai. "
@@ -557,8 +559,8 @@ def task_for(
     )
     if move == Move.VERIFY and "VERIFY_BEFORE_HINT" in reasons:
         return (
-            "Con vừa trả lời chưa đúng. Hỏi con đã nghĩ thế nào, nhắc đúng điều con viết; không khen, "
-            "không nói đúng sai. Một câu hỏi."
+            "Con vừa trả lời chưa đúng. Hỏi nhẹ một bước con đã nghĩ, nhắc đúng điều con viết. "
+            "Được động viên cách thử có thật, không khẳng định đáp án đúng hay nói thẳng sai. Một câu hỏi."
         )
     if move == Move.VERIFY and "ASK_AGAIN" in reasons:
         task += " Cô đã hỏi một lần mà con chưa trả lời được: hỏi lại bằng cách khác, dễ hơn, không khen lại."
