@@ -74,7 +74,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.4.0: REFORM-6 (DI-82, DI-83), teaching again and the meaning check; 0.3.0: REFORM-1b, DI-81
-GROUNDED_VERSION = "grounded-speech/0.7.0"
+GROUNDED_VERSION = "grounded-speech/0.8.0"
 PROMPT_FILE = "grounded.v2.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -125,8 +125,8 @@ TEACH_TASKS: dict[str, str] = {
         "(cô sẽ hỏi lại sau), không đọc lại nguyên văn căn cứ."
     ),
     "chưa đúng": (
-        "Con trả lời chưa đúng. Nhắc lại ý con vừa nói, không khen, không nói thẳng là sai; rồi giải "
-        "thích đúng "
+        "Con trả lời chưa đúng. Động viên nhẹ, được khen cách thử có thật nhưng không bảo đáp án này đúng; "
+        "giải thích đúng "
         "ý của căn cứ bằng lời đơn giản hơn và MỘT ví dụ khác với bài. Không đặt câu hỏi, không đọc lại "
         "nguyên văn căn cứ."
     ),
@@ -917,6 +917,20 @@ class GroundedSpeaker:
         example, resting on ``explanation`` (``teach``). Only a right answer keeps the sentence and the
         approved reply, and ``teaching=False`` (the same question asked again after talk outside the
         lesson) keeps them too."""
+        if self.allow_knowledge and judged == "đúng" and teaching:
+            # A correct theory reply needs acknowledgement, not the entire approved explanation again.
+            pack = loop_pack(
+                "Con vừa trả lời đúng ý. Công nhận ngắn, vui và cụ thể điều con nói được, "
+                "không giảng lại, không nhắc lại cả đề hay hỏi tiếp; hệ thống chuyển bước sau lời này.",
+                asked,
+                student_text=student_text,
+                grounds=(explanation,),
+                recent=recent,
+                max_words=25,
+                **self._who(),
+            )
+            spoken = self._teacher_say(pack)
+            return spoken if spoken.text else Spoken(lead, "TEMPLATE", rejected=spoken.rejected)
         if judged != "đúng" and teaching:
             return self.teach(
                 student_text, asked=asked, ground=explanation, judged=judged, lead=lead, recent=recent

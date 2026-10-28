@@ -62,7 +62,7 @@ from cavat.modules.tutor.validator import singles_out_choice
 # v8: REFORM-1b (DI-81), OFFER_CHOICE, CONFIRM_ADVANCE and a lead before the approved explanation
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v12"
+LLM_RENDERER_VERSION = "llm-renderer.v13"
 # PRESENT is the stem as it is; CLOSE_ITEM is the model's only when it teaches (``teaches``)
 TEMPLATE_ONLY_MOVES = frozenset({Move.PRESENT, Move.CLOSE_ITEM})
 LLM_MOVES = frozenset(Move) - TEMPLATE_ONLY_MOVES
@@ -294,6 +294,8 @@ class LLMRenderer:
                     "Lắng nghe điều con vừa trao đổi; giải thích hoặc kiểm tra lại đúng chỗ con vướng: "
                     f"{ctx.focus or ctx.student_text}. Giảng bằng lời khác hoặc ví dụ nhỏ theo bài này. "
                     "Nếu cô nói sai thì nhận và sửa ngắn. Không coi đây là sai bài hoặc ép chép đáp án. "
+                    "Chỉ giảng một ý/bước nhỏ bằng 2–3 câu ngắn, bỏ lời dẫn dài. "
+                    "Nếu con nản thì dỗ nhẹ một câu, rồi giúp ngay chỗ vướng. "
                     "Có thể kết thúc bằng một lời giải thích trọn ý, hoặc một câu hỏi nhỏ nếu cần con thử."
                 )
         if "REPAIR" in d.reason_codes and (

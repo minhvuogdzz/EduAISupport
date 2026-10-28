@@ -36,7 +36,7 @@ CHECK_SCHEMA = {
 def verification(message, *, question, scope, references=(), student="", may_reveal=False):
     return ChatRequest(
         messages=(
-            ChatMessage("system", _prompt_file("curriculum-check.v1.md")),
+            ChatMessage("system", _prompt_file("curriculum-check.v2.md")),
             ChatMessage(
                 "user",
                 json.dumps(
@@ -53,7 +53,7 @@ def verification(message, *, question, scope, references=(), student="", may_rev
             ),
         ),
         json_schema=CHECK_SCHEMA,
-        schema_name="curriculum_check_v1",
+        schema_name="curriculum_check_v2",
         max_output_tokens=500,
         temperature=0,
     )
