@@ -27,7 +27,7 @@ from cavat.modules.tutor.contracts import MessageSource, RenderContext, Rendered
 #     question the intent agent proposed (checked by the validator)
 # v8: REFORM-2, EXPLAIN_AND_ADVANCE says the approved explanation, the rule answers "lý thuyết là gì",
 #     punctuation no longer hides a word; v7: FIX-6, the counterexample is tied to the item and varies
-TEMPLATE_VERSION = "template-renderer.v11"
+TEMPLATE_VERSION = "template-renderer.v12"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -538,6 +538,8 @@ class TemplateRenderer:
                 return _msg("Cô chưa rõ ý con: con chưa hiểu cách làm hay chưa muốn làm tiếp?", "TEMPLATE")
             if "DECLINE" in ctx.decision.reason_codes:
                 return _msg("Mình nghỉ một chút nhé. Khi sẵn sàng, con nhắn cô để mình học tiếp.", "TEMPLATE")
+            if (ctx.focus or "").startswith("con tiếp nhận lời hướng dẫn"):
+                return _msg("Ừ, con thử làm tiếp câu trên thẻ nhé. Cô theo dõi cùng con.", "TEMPLATE")
             from cavat.modules.tutor.dialogue import conversion_ground
 
             rule = conversion_ground(ctx.item) or (

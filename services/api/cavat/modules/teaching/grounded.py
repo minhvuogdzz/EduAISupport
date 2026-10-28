@@ -74,7 +74,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.4.0: REFORM-6 (DI-82, DI-83), teaching again and the meaning check; 0.3.0: REFORM-1b, DI-81
-GROUNDED_VERSION = "grounded-speech/0.6.0"
+GROUNDED_VERSION = "grounded-speech/0.7.0"
 PROMPT_FILE = "grounded.v2.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -741,7 +741,10 @@ class GroundedSpeaker:
             f"Điều cần đáp: {focus}. "
         )
         if label == "AMBIGUOUS_REPLY":
-            task += "Hỏi nhẹ một lần con chưa hiểu hay chưa muốn làm tiếp, không gán thành không biết."
+            task += (
+                "Hỏi đúng một câu ngắn làm rõ điều còn thiếu trong focus, dựa vào lời cô vừa nói. "
+                "Không mặc định hỏi con muốn nghỉ. Chỉ dùng một dấu hỏi ở cuối."
+            )
         elif label == "DECLINE":
             task += "Tôn trọng việc con muốn nghỉ. Không hỏi ép hoặc đóng/chấm bài thay hệ thống."
         else:
@@ -849,11 +852,20 @@ class GroundedSpeaker:
             task=pack.task + " Được dùng kiến thức Toán chuẩn của chủ đề và nền trực tiếp để giải thích, "
             "đổi ví dụ; không buộc mọi ý phải có nguyên văn trong RAG. Không mở thêm chủ đề.",
         )
+        pack = replace(
+            pack,
+            task=pack.task
+            + (
+                " Chỉ một câu hỏi ngắn ở cuối, chỉ một dấu hỏi."
+                if questions
+                else " Lượt này giải thích trọn ý, không thêm câu hỏi; hệ thống giữ câu đang chờ."
+            ),
+        )
         checked_calls = 0
 
         def codes(text):
             nonlocal checked_calls
-            problems = list(brain.speech_codes(text, pack))
+            problems = list(brain.speech_codes(text, pack, flexible=True))
             if foreign_text(text) or wrong_address(text, self.s):
                 problems.append("WRONG_ADDRESS")
             if text.count("?") > (1 if questions else 0):

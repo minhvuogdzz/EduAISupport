@@ -27,7 +27,7 @@ def listen(model, *, stem: str, last_tutor: str, said: str, recent: Sequence[Tur
 
     request = ChatRequest(
         messages=(
-            ChatMessage("system", _prompt_file("listener.v1.md")),
+            ChatMessage("system", _prompt_file("listener.v2.md")),
             ChatMessage(
                 "user",
                 json.dumps(
@@ -43,7 +43,7 @@ def listen(model, *, stem: str, last_tutor: str, said: str, recent: Sequence[Tur
             ),
         ),
         json_schema=SCHEMA,
-        schema_name="dialogue_listen_v1",
+        schema_name="dialogue_listen_v2",
         max_output_tokens=400,
         temperature=0,
     )
@@ -60,3 +60,23 @@ def listen(model, *, stem: str, last_tutor: str, said: str, recent: Sequence[Tur
         answer=clean_text(str(data.get("answer", "")), 80),
         source="LLM",
     )
+
+
+def conversation_signal(said: str, last_tutor: str):
+    """Unambiguous discourse acts, never mathematical evidence or a proposed answer."""
+    from cavat.core.vi_text import fold, normalize
+    from cavat.modules.tutor.reader import Reading
+
+    words = fold(normalize(said))
+    previous = fold(normalize(last_tutor))
+    if words in {"ha", "chua hieu", "con chua hieu"} or said.strip() == "?":
+        return Reading("REPAIR", focus="giải thích lại ý cô vừa nói bằng một bước đơn giản hơn")
+    if (
+        words in {"phai", "dung", "dung roi", "vang", "u"}
+        and any(phrase in previous for phrase in ("chua hieu", "chua ro"))
+        and "?" in last_tutor
+    ):
+        return Reading("REPAIR", focus="con xác nhận chưa hiểu; giảng ngay chỗ vừa hỏi, không hỏi lại")
+    if words in {"ok", "okay", "uh", "u", "vang", "lam tiep"}:
+        return Reading("REPAIR", focus="con tiếp nhận lời hướng dẫn; nối tiếp bước đang chờ, chưa chấm hiểu")
+    return None
