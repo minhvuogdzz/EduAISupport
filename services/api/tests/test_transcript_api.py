@@ -90,8 +90,8 @@ def test_a_hint_the_conductor_gave_is_in_the_transcript(client):
     unstuck = [t for t in turns if t["student"] and t["student"]["kind"] == "UNSTICK"]
     assert unstuck and unstuck[0]["actor"] == "student"
     assert unstuck[0]["text"].startswith("(Gia sư tự đưa gợi ý")
-    # the loop read the cleaned words; what the child typed is kept next to what the conductor found in it
-    emoji = next(t for t in turns if t["text"] == "ko bít lm j")
+    # Semantic listening preserves the actual words; normalization only supplies analysis signals.
+    emoji = next(t for t in turns if t["text"] == "😭😭 ko bít lm jjjj")
     assert emoji["student"]["conducted"] == {
         "raw": "😭😭 ko bít lm jjjj",
         "signals": ["EMOJI", "STRETCHED", "TEENCODE"],

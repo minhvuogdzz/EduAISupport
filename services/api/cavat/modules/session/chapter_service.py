@@ -326,7 +326,11 @@ def _conducted(
     cleaned = clean(text)
     route: Literal["PASS", "UNSTICK"] = "PASS"
     speaker = loop.speaker
-    if loop.awaiting in (Awaiting.THEORY_REPLY, Awaiting.RETELL) and _side_replies(loop) >= 2:
+    if (
+        loop.awaiting in (Awaiting.THEORY_REPLY, Awaiting.RETELL)
+        and _side_replies(loop) >= 2
+        and not (speaker and speaker.knowledge_active)
+    ):
         # Twice already the tutor answered or parked what it took for a question, and asked its own again:
         # this message is read as the reply (the loop does not ask the RAG about it).
         loop.speaker, route = None, "UNSTICK"
@@ -338,7 +342,8 @@ def _conducted(
         for e in loop.events[-6:]
         if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
     ]
-    turn = loop.on_student(cleaned.text, now, seconds, modality)
+    heard = text if getattr(loop.item_reader, "semantic", False) else cleaned.text
+    turn = loop.on_student(heard, now, seconds, modality)
     loop.speaker = speaker
     said = [m.text for m in turn.messages if m.kind == MessageKind.ITEM]
     if (
@@ -348,9 +353,13 @@ def _conducted(
         and turn.item_phase == Phase.AWAITING
         and not turn.choice_open
         and repeats(said, recent)
+        and not any(
+            e.event_type == EventType.POLICY_DECISION and "R-CONVERSATION" in e.payload.get("rule_ids", ())
+            for e in turn.events
+        )
     ):
         try:
-            hinted = loop.on_hint_request(now, 0.0)
+            hinted = loop.on_hint_request(now, 0.0, source="CONDUCTOR")
         except RuntimeError:
             hinted = None
         if hinted is not None:
@@ -361,7 +370,7 @@ def _conducted(
     if not cleaned.signals and route == "PASS":
         return turn, None
     return turn, ContextRouted(
-        raw=text, text=cleaned.text, signals=list(cleaned.signals), route=route, version=CONDUCTOR_VERSION
+        raw=text, text=heard, signals=list(cleaned.signals), route=route, version=CONDUCTOR_VERSION
     )
 
 

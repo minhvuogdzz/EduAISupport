@@ -11,6 +11,7 @@ The loop never calls a model and never writes mastery; it only produces events f
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
@@ -52,6 +53,7 @@ from cavat.modules.assessment.math_checker import (
 from cavat.modules.assessment.reason import judge_reason
 from cavat.modules.assessment.student_intent import (
     asks_for_hint,
+    asks_question,
     intent_of_guess,
     is_affirmation,
     is_bare_negation,
@@ -87,7 +89,14 @@ from cavat.modules.tutor.contracts import (
     ValidationIssue,
     ValidationResult,
 )
-from cavat.modules.tutor.dialogue import DIALOGUE_VERSION, boolean_read, parts_read, relation_step
+from cavat.modules.tutor.dialogue import (
+    CURRENT_DIALOGUE_VERSION,
+    DIALOGUE_VERSION,
+    boolean_read,
+    numeric_helper,
+    parts_read,
+    relation_step,
+)
 from cavat.modules.tutor.llm_renderer import teaches_again, word_cap
 from cavat.modules.tutor.policy import (
     DEFAULT_CONFIG,
@@ -232,6 +241,9 @@ class ItemTutor:
         self.explainer = explainer
         self.knowledge = tuple(knowledge)
         self._dialogue_version = DIALOGUE_VERSION
+        self._heard = []
+        self._dialogue_focus = ""
+        self._helper_context = False
         self._parts: dict[str, str] = {}
         self._follow_up = ""
         self.last_tutor = ""  # what the tutor said last on this item: what "mẫu như nào" asks about
@@ -303,7 +315,7 @@ class ItemTutor:
         seconds: float = 0.0,
         *,
         allow_social: bool = True,
-        dialogue_version: int = DIALOGUE_VERSION,
+        dialogue_version: int = CURRENT_DIALOGUE_VERSION,
     ) -> TutorTurn:
         """Handle one student message. ``seconds``: time since the previous tutor message."""
         if self.phase is None:
@@ -336,9 +348,18 @@ class ItemTutor:
         st = self.state
         st.dialogue_version = dialogue_version
         self._turns += 1
+        self._said = text
+        if dialogue_version >= 3 and getattr(self.reader, "semantic", False) and not self.item.is_assessment:
+            dialogue = self._conversation(text, seconds)
+            if dialogue is not None:
+                return dialogue
         if st.confirm_open and self._guess_intent is not None and is_affirmation(text):
             text = CONFIRMED_TEXT[self._guess_intent]  # the child confirmed what the tutor guessed
-        elif is_bare_negation(text) and not no_is_an_answer(self.item):
+        elif (
+            (dialogue_version < 3 or not getattr(self.reader, "semantic", False))
+            and is_bare_negation(text)
+            and not no_is_an_answer(self.item)
+        ):
             # "chưa", "ko", "k" are "con không biết" (student-intent/0.3.0), and the tutor answers that.
             # Given as typed, the model once greeted "chưa" with "Chưa sao" (live, 2026-10-26).
             text = CONFIRMED_TEXT[Outcome.HELP_REQUEST]
@@ -372,12 +393,132 @@ class ItemTutor:
         trigger: TurnTrigger = "HINT_REQUEST" if check.outcome in _HELP else "ANSWER"
         return self._act(self._decide(trigger, check), text)
 
+    def _conversation(self, text: str, seconds: float) -> TutorTurn | None:
+        """Hear raw conversational language before it is collapsed into a wrong/help answer."""
+        from cavat.modules.tutor.reader import Reading, rule_unclear_reading
+
+        if rule_unclear_reading(text) is not None:
+            return self._on_unclear(text, "EXPLANATION" if self.phase in _WORDS_PHASES else "ANSWER")
+        if not text.strip() or text == HINT_REQUEST_TEXT:
+            return None
+        if no_is_an_answer(self.item) and is_bare_negation(text):
+            return None
+        plain = check_answer(self.item, text, self.package)
+        natural_numeric = (
+            isinstance(self.item.answer, NumericAnswer)
+            and plain.outcome == Outcome.WRONG
+            and len(text.split()) >= 4
+        )
+        if plain.outcome in GRADED_OUTCOMES and not asks_question(text) and not natural_numeric:
+            return None
+        if classify_intent(text) == Outcome.ANSWER_DEMAND:
+            return None
+        read = getattr(self.reader, "read_dialogue", None)
+        recent = getattr(self.renderer, "recent", ()) or self._heard[-6:]
+        reading = (
+            read(
+                stem=self.item.stem,
+                last_tutor=self.last_tutor,
+                said=text,
+                turn=self._turns,
+                recent=recent,
+                phase=str(self.phase),
+            )
+            if read
+            else None
+        )
+        if (reading is None or reading.label == "PASS") and (
+            is_bare_negation(text) or is_gibberish_or_ambiguous_short(text)
+        ):
+            prior = next((e for e in reversed(self.events) if e.type == EventType.POLICY_DECISION), None)
+            repeated = prior is not None and "AMBIGUOUS_REPLY" in prior.payload.get("reason_codes", ())
+            reading = Reading(
+                "REPAIR" if repeated else "AMBIGUOUS_REPLY",
+                focus="giảng một bước dễ hơn" if repeated else "chưa hiểu hay chưa muốn làm tiếp",
+            )
+        if (
+            reading is not None
+            and reading.label == "PASS"
+            and reading.answer
+            and isinstance(self.item.answer, NumericAnswer)
+            and not asks_question(text)
+        ):
+            from cavat.modules.assessment.vi_numbers import extract_numbers
+
+            proposed = extract_numbers(reading.answer)
+            observed = {(n.value, n.form) for n in extract_numbers(text)}
+            if (
+                len(proposed) == 1
+                and (proposed[0].value, proposed[0].form) in observed
+                and not re.search(r"\b(?:hay|hoặc)\b", text.lower())
+            ):
+                checked = self._check(reading.answer)
+                if checked.outcome in GRADED_OUTCOMES:
+                    self._emit(
+                        EventType.MESSAGE_READ,
+                        MessageRead(
+                            item_id=self.item.id,
+                            turn=self._turns,
+                            label="PASS",
+                            answer=reading.answer,
+                            focus=reading.focus,
+                            source=reading.source,
+                        ),
+                    )
+                    judged = judge_reason(self.item, text, self.package)
+                    if (
+                        checked.outcome == Outcome.CORRECT
+                        and {"TERM", "SOLUTION"}.intersection(judged.cues)
+                        and re.search(r"\b(?:vì|nên|chữ số)\b", text.lower())
+                        and not math_errors(text)
+                    ):
+                        checked = replace(checked, detail={**checked.detail, "reason_supplied": True})
+                    self.state.seconds_since_shown += seconds
+                    self.state.seconds_since_last_message = seconds
+                    self._record_answer(checked, text, seconds)
+                    return self._act(self._decide("ANSWER", checked), text)
+        if reading is None or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE"):
+            return None
+        self._emit(
+            EventType.MESSAGE_READ,
+            MessageRead(
+                item_id=self.item.id,
+                turn=self._turns,
+                label=reading.label,
+                focus=reading.focus,
+                source=reading.source,
+            ),
+        )
+        self._dialogue_focus = reading.focus
+        self._focus = reading.focus
+        check = CheckResult(Outcome.ASKS_ABOUT, detail={"dialogue": reading.label})
+        return self._act(self._decide("ANSWER", check), text)
+
     # ------------------------------------------------------------------ student side
 
     def _check(self, text: str) -> CheckResult:
-        check = check_answer(self.item, text, self.package)
+        checked_item = self.item
+        if (
+            self._dialogue_version >= 3
+            and isinstance(self.item.answer, NumericAnswer)
+            and not self.item.answer.form
+        ):
+            form = (
+                "fraction"
+                if "phân số thập phân" in self.item.stem.lower()
+                else "decimal"
+                if "thành số thập phân" in self.item.stem.lower()
+                else None
+            )
+            if form:
+                checked_item = self.item.model_copy(
+                    update={"answer": self.item.answer.model_copy(update={"form": form})}
+                )
+        check = check_answer(checked_item, text, self.package)
         if self._dialogue_version >= DIALOGUE_VERSION and not self.item.is_assessment:
             contextual = boolean_read(self.item, text, self.package, self.last_tutor)
+            if contextual is None and self._helper_context:
+                contextual = numeric_helper(self.item, text, self.last_tutor, self.package)
             if contextual is None and check.outcome != Outcome.CORRECT:
                 contextual = parts_read(self.item, text, self.last_tutor, self._parts)
             if contextual is None and check.outcome not in (Outcome.CORRECT, Outcome.PARTIAL):
@@ -471,6 +612,14 @@ class ItemTutor:
         return CheckResult(outcome, normalized=text.strip(), detail={"read": reading.label})
 
     def _record_answer(self, check: CheckResult, text: str, seconds: float) -> None:
+        if self._dialogue_version >= 3 and check.outcome == Outcome.CORRECT and not self.item.is_assessment:
+            judged = judge_reason(self.item, text, self.package)
+            if (
+                {"TERM", "SOLUTION"}.intersection(judged.cues)
+                and re.search(r"\b(?:vì|nên)\b", text.lower())
+                and not math_errors(text)
+            ):
+                check = replace(check, detail={**check.detail, "reason_supplied": True})
         st = self.state
         self._last_check = check
         if check.outcome in _UNPRODUCTIVE:
@@ -794,7 +943,7 @@ class ItemTutor:
         st.confirm_open = d.move == Move.ASK_CONFIRM
         if d.move == Move.NUDGE:
             st.nudges_sent += 1
-        if d.move == Move.EXPLAIN and "ASK_REMAINING" not in d.reason_codes:
+        if d.move == Move.EXPLAIN and not {"ASK_REMAINING", "CONVERSATION"}.intersection(d.reason_codes):
             st.explanations += 1
         if d.move in HINT_MOVES and d.level is not None and d.target is not None:
             st.hint_levels.append(d.level)
@@ -815,6 +964,13 @@ class ItemTutor:
         if d.move != Move.ASK_CONFIRM:
             self._guess_intent = None
         self.last_tutor = msg.text
+        self._helper_context = "CONVERSATION" in d.reason_codes
+        from cavat.modules.tutor.prompt_builder import Turn
+
+        if self._said:
+            self._heard.append(Turn("student", self._said))
+        self._heard.append(Turn("tutor", msg.text))
+        self._heard = self._heard[-6:]
         if d.move == Move.COGNITIVE_CONFLICT:
             st.counter_examples_shown += 1
         if d.move in HINT_MOVES and d.level is not None and msg.source != "FALLBACK":
@@ -859,6 +1015,8 @@ class ItemTutor:
         return next((o for o in ans.options if o.id == chosen and o.probe is not None), None)
 
     def _next_phase(self, d: PolicyDecision) -> Phase:
+        if "CONVERSATION" in d.reason_codes:
+            return self.phase
         if d.move in (Move.CONFIRM_ADVANCE, Move.CLOSE_ITEM) or d.resolution is not None:
             return Phase.RESOLVED
         self._offer = d if d.move == Move.OFFER_CHOICE else None
@@ -908,6 +1066,7 @@ class ItemTutor:
             clarification=self._clarification if asking else None,
             check=graded,
             solved=graded is not None and graded.outcome == Outcome.CORRECT,
+            answer_revealed=self.state.max_hint_level >= 7 and not self.item.is_assessment,
             follow_up=self._follow_up if "ASK_REMAINING" in d.reason_codes else "",
         )
         if ctx.clarification and (codes := self._refused(ctx.clarification, ctx)):

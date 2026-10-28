@@ -313,6 +313,10 @@ class MessageRead(_Payload):
     label: Literal[
         "ANSWER",
         "STEP_ANSWER",
+        "AMBIGUOUS_REPLY",
+        "REPAIR",
+        "DECLINE",
+        "PASS",
         "ASKS_ABOUT",
         "ASK_TASK",
         "DONT_KNOW",
@@ -378,6 +382,8 @@ class StudentMessage(_Payload):
 class HintRequested(_Payload):
     item_id: str
     seconds: float = Field(default=0.0, ge=0)
+
+    source: Literal["BUTTON", "CONDUCTOR"] = "BUTTON"
 
 
 class ChoiceMade(_Payload):

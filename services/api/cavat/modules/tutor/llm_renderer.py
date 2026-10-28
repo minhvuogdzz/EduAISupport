@@ -41,7 +41,7 @@ from cavat.core.pedagogy import Move
 from cavat.modules.ai_gateway.base import ChatMessage, ModelClass
 from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.assessment.vi_numbers import normalize_text
-from cavat.modules.content.lesson_package import BooleanAnswer
+from cavat.modules.content.lesson_package import BooleanAnswer, NumericAnswer
 from cavat.modules.teaching.answer_support import support_request, supported
 from cavat.modules.tutor import brain
 from cavat.modules.tutor.brain import BRAIN_MAX_WORDS, BrainPack
@@ -62,7 +62,7 @@ from cavat.modules.tutor.validator import singles_out_choice
 # v8: REFORM-1b (DI-81), OFFER_CHOICE, CONFIRM_ADVANCE and a lead before the approved explanation
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v10"
+LLM_RENDERER_VERSION = "llm-renderer.v11"
 # PRESENT is the stem as it is; CLOSE_ITEM is the model's only when it teaches (``teaches``)
 TEMPLATE_ONLY_MOVES = frozenset({Move.PRESENT, Move.CLOSE_ITEM})
 LLM_MOVES = frozenset(Move) - TEMPLATE_ONLY_MOVES
@@ -134,6 +134,8 @@ def verdict_line(ctx: RenderContext) -> str:
     check = ctx.check
     if check is None:
         return ""
+    if "CONVERSATION" in ctx.decision.reason_codes:
+        return "Đây là trao đổi về bài hoặc ý con muốn nói, chưa chấm một đáp án mới."
     if set(ctx.decision.reason_codes) & {"OFF_TOPIC", "ASKS_ABOUT", "CLARIFY", "NEGATIVE_AFFECT"}:
         return "Lượt hiện tại chưa chấm đáp án; không dùng kết luận cũ để phủ nhận điều con vừa nói."
     normalized = {"true": "Đúng", "false": "Sai"}.get(check.normalized, check.normalized)
@@ -226,7 +228,9 @@ class LLMRenderer:
         calls_used: int = 0,
         history: Sequence[Turn] = (),
         history_item: str | None = None,
+        allow_knowledge: bool = False,
     ) -> None:
+        self.allow_knowledge = allow_knowledge
         self._router = router
         self._template = template
         self._validator = validator
@@ -237,6 +241,10 @@ class LLMRenderer:
         self._history_item: str | None = history_item
         self.last_trace: RenderTrace | None = None
         self._support_calls = 0
+
+    @property
+    def recent(self):
+        return tuple(self._history)
 
     def render(self, ctx: RenderContext) -> RenderedMessage:
         if ctx.item.id != self._history_item:
@@ -265,35 +273,118 @@ class LLMRenderer:
 
     def _pack(self, ctx: RenderContext, fallback: RenderedMessage) -> BrainPack:
         d, item = ctx.decision, ctx.item
-        reveal = ctx.solved or d.move == Move.FULL_EXPLANATION or teaches(ctx)
+        reveal = ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION or teaches(ctx)
         task = brain.task_for(
             Move.CLOSE_ITEM if teaches(ctx) else d.move,
             level=int(d.level) if d.level is not None else None,
             asks=ctx.focus,
             reasons=d.reason_codes,
         )
+        if "CONVERSATION" in d.reason_codes:
+            if "AMBIGUOUS_REPLY" in d.reason_codes:
+                task = (
+                    "Chưa rõ ý con: hỏi con chưa hiểu hay chưa muốn làm tiếp; "
+                    "đừng gán là không biết. Đặt câu hỏi ở cuối."
+                )
+            elif "DECLINE" in d.reason_codes:
+                task = "Tôn trọng lời con muốn nghỉ; cho con thời gian. Không ép hỏi lại."
+            else:
+                task = (
+                    "Lắng nghe điều con vừa trao đổi; giải thích hoặc kiểm tra lại đúng chỗ con vướng: "
+                    f"{ctx.focus or ctx.student_text}. Giảng bằng lời khác hoặc ví dụ nhỏ theo bài này. "
+                    "Nếu cô nói sai thì nhận và sửa ngắn. Không coi đây là sai bài hoặc ép chép đáp án. "
+                    "Có thể kết thúc bằng một lời giải thích trọn ý, hoặc một câu hỏi nhỏ nếu cần con thử."
+                )
+        if "REPAIR" in d.reason_codes and (
+            not isinstance(item.answer, NumericAnswer) or "phân số thập phân" not in item.stem.lower()
+        ):
+            task += " Lượt giải thích lý thuyết này trả lời trọn ý, không hỏi bài mới hay đòi con nhắc lại."
         if ctx.follow_up:
             task = (
                 "Con đã làm ĐÚNG một phần. Công nhận ngắn phần con vừa trả lời, không chấm nó sai. "
                 f"Chỉ hỏi phần còn thiếu: {ctx.follow_up} Không đổi sang câu hỏi lý thuyết khác."
             )
+        if self.allow_knowledge and d.move == Move.CONFIRM_ADVANCE and not teaches(ctx):
+            task = (
+                "Con đã làm đúng. Xác nhận ngắn điều con làm được rồi chuyển câu. "
+                "Không giảng thêm hay chép lại lời giải con vừa nói; không thêm quy tắc, không hỏi lại."
+            )
+        if self.allow_knowledge:
+            task += (
+                " Được vận dụng kiến thức Toán chuẩn của chủ đề này và nền trực tiếp để giảng, "
+                "đổi ví dụ, trả lời lý do; không phải đọc lại RAG. Không mở chủ đề khác hoặc đổi đề."
+            )
+        if (
+            "phân số thập phân" in item.stem.lower()
+            and "REPAIR" in d.reason_codes
+            and "rút gọn" in (ctx.student_text or "").lower()
+        ):
+            task += (
+                " Con hỏi lại yêu cầu rút gọn. Đề chỉ yêu cầu phân số thập phân, không phải tối giản: "
+                "nói rõ KHÔNG CẦN rút gọn, nếu trước đó cô yêu cầu thì nhận và sửa. "
+                "Không bảo vệ yêu cầu cũ, không chuyển sang bài luyện rút gọn."
+            )
+        if "phân số thập phân" in item.stem.lower():
+            task += (
+                " Đề yêu cầu phân số thập phân: giữ mẫu 10/100/1000..., không yêu cầu rút gọn. "
+                "Nếu con chưa hiểu, dùng ví dụ KHÁC số của đề, chưa tính hộ đáp số câu đang làm."
+            )
         answer = ""
         if reveal and ctx.check is not None and ctx.check.normalized:
             answer = {"true": "Đúng", "false": "Sai"}.get(ctx.check.normalized, ctx.check.normalized)
+        grounds = grounds_for(ctx, fallback.text, reveal)
+        if self.allow_knowledge:
+            from cavat.modules.tutor.dialogue import conversion_ground
+
+            if scaffold := conversion_ground(item):
+                grounds = (scaffold, *grounds)
+        if ALTITUDE_RULE in grounds:
+            grounds = (ALTITUDE_RULE, *(g for g in grounds if g != ALTITUDE_RULE))
+        question = item.stem
+        student_text = ctx.student_text or ""
+        recent = tuple(self._history)
+        if (
+            self.allow_knowledge
+            and "REPAIR" in d.reason_codes
+            and not ctx.answer_revealed
+            and isinstance(item.answer, NumericAnswer)
+        ):
+            if item.answer.form == "fraction" or "phân số thập phân" in item.stem.lower():
+                from cavat.modules.assessment.vi_numbers import extract_numbers
+
+                question = "Giảng cách đổi số thập phân thành phân số thập phân, dùng ví dụ khác với bài con."
+                task += " Dạy bằng ví dụ khác đã cho trong căn cứ, rồi để con áp dụng vào bài trên thẻ."
+
+                def abstract(text):
+                    for n in reversed(extract_numbers(item.stem)):
+                        text = text.replace(n.text, "số trong đề")
+                    return text
+
+                from cavat.modules.tutor.prompt_builder import Turn
+
+                recent = tuple(Turn(t.role, abstract(t.text)) for t in recent)
+                student_text = abstract(student_text)
+                task = abstract(task)
+                task += (
+                    " Không giao một phép đổi số mới cho con làm; câu con trả lời vẫn là bài "
+                    "trên thẻ. Nếu hỏi, chỉ hỏi bước nhỏ hoặc kết quả của bài trên thẻ."
+                )
         return BrainPack(
             task=task,
-            question=item.rephrase or item.stem,
-            student_text=ctx.student_text or "",
+            question=question,
+            student_text=student_text,
             verdict=verdict_line(ctx),
-            recent=tuple(self._history),
-            grounds=grounds_for(ctx, fallback.text, reveal),
+            recent=recent,
+            grounds=grounds[:3] if self.allow_knowledge else grounds,
             answer=answer,
             tutor_self=ctx.persona.tutor_self,
             student_address=ctx.persona.student_address,
             name=given_name(self._student_name),
             lesson=f"{ctx.package.title} (lớp {ctx.package.grade})",
             question_kind="TRUE_FALSE" if isinstance(item.answer, BooleanAnswer) else "TASK",
-            max_words=60
+            max_words=25
+            if self.allow_knowledge and d.move == Move.CONFIRM_ADVANCE and not teaches(ctx)
+            else 60
             if d.move
             in (Move.EXPLAIN, Move.HINT, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION, Move.CLOSE_ITEM)
             else 45,
@@ -311,12 +402,50 @@ class LLMRenderer:
                 pack,
                 ask_target=asks,
                 rephrase=(
-                    (d.move == Move.EXPLAIN and not ctx.follow_up)
-                    or teaches(ctx)
-                    or "CLARIFY" in d.reason_codes
+                    not self.allow_knowledge
+                    and (
+                        (d.move == Move.EXPLAIN and not ctx.follow_up)
+                        or teaches(ctx)
+                        or "CLARIFY" in d.reason_codes
+                    )
                 ),
             )
             codes += move_codes(text, ctx)
+            if "phân số thập phân" in ctx.item.stem.lower():
+                for clause in re.split(r"[.!?;]", text.lower()):
+                    if "rút gọn" not in clause or re.search(r"không(?:\s+\w+){0,3}\s+rút gọn", clause):
+                        continue
+                    if re.search(r"(?:con|hãy|thử|rồi|cần|phải|nên).{0,45}rút gọn|rút gọn nếu", clause):
+                        codes.append("CHANGES_TASK")
+
+            if (
+                self.allow_knowledge
+                and not (ctx.solved or ctx.answer_revealed)
+                and d.move != Move.FULL_EXPLANATION
+                and isinstance(ctx.item.answer, NumericAnswer)
+            ):
+                from cavat.modules.assessment.vi_numbers import extract_numbers, parse_literal
+
+                key = parse_literal(ctx.item.answer.value)
+                form = ctx.item.answer.form or key.form
+                given = {n.text for n in extract_numbers(ctx.item.stem)}
+                if any(
+                    n.value == key.value and n.form == form and n.text not in given
+                    for n in extract_numbers(text)
+                ):
+                    codes.append("ANSWER_LEAK")
+            if self.allow_knowledge and "REPAIR" in d.reason_codes and "?" in text:
+                if (
+                    not isinstance(ctx.item.answer, NumericAnswer)
+                    or "phân số thập phân" not in ctx.item.stem.lower()
+                ):
+                    codes.append("NEW_TASK_QUESTION")
+                from cavat.modules.assessment.vi_numbers import extract_numbers
+
+                question = text.rsplit("?", 2)[-2].rsplit(".", 1)[-1]
+                given = {n.value for n in extract_numbers(ctx.item.stem)} | {0, 1, 10, 100, 1000}
+                if any(n.value not in given for n in extract_numbers(question)):
+                    codes.append("NEW_TASK_QUESTION")
             if not pack.answer and singles_out_choice(text, ctx.item):
                 codes.append(ValidationCode.ANSWER_LEAK)
             teaching = ctx.decision.move in (
@@ -329,16 +458,21 @@ class LLMRenderer:
             if (
                 not codes
                 and not ctx.item.is_assessment
-                and (isinstance(ctx.item.answer, BooleanAnswer) or (ctx.evidence and teaching))
+                and not {"AMBIGUOUS_REPLY", "DECLINE"}.intersection(d.reason_codes)
+                and (
+                    isinstance(ctx.item.answer, BooleanAnswer)
+                    or (ctx.evidence and teaching)
+                    or (self.allow_knowledge and teaching)
+                )
             ):
                 # The statement is a test proposition, not a source of truth. Only the verifier sees
                 # the practice key; it cannot change the grade or write any student state.
                 premises = tuple(ctx.evidence)
                 if ALTITUDE_RULE in pack.grounds:
-                    premises += (ALTITUDE_RULE,)
+                    premises = (ALTITUDE_RULE, *premises)
                 if isinstance(ctx.item.answer, BooleanAnswer):
                     truth = "đúng" if ctx.item.answer.value else "sai"
-                    premises += (f"Giáo viên đã xác nhận nhận định “{ctx.item.stem}” là {truth}.",)
+                    premises = (f"Giáo viên đã xác nhận nhận định “{ctx.item.stem}” là {truth}.", *premises)
                 else:
                     premises += (f"Đề bài để tham chiếu: {ctx.item.stem}",)
                 if ctx.check is not None:
@@ -360,14 +494,40 @@ class LLMRenderer:
                     ),
                     schema_name="classroom_support_v1",
                 )
+                if self.allow_knowledge:
+                    from cavat.modules.teaching.curriculum import verification
+
+                    request = verification(
+                        text,
+                        question=ctx.item.stem,
+                        scope=ctx.package.title,
+                        references=premises,
+                        student=ctx.student_text or "",
+                        may_reveal=ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION,
+                    )
                 result = self._router.chat(
                     ModelClass.TUTOR_REASONING,
                     request,
                     calls_used=self.calls_used + self._support_calls + 1,
                 )
                 self._support_calls += result.calls_made
-                if result.result is None or not supported(result.result.data, premises):
+                from cavat.modules.teaching.curriculum import verified
+
+                accepted = (
+                    (
+                        verified(result.result.data)
+                        if self.allow_knowledge
+                        else supported(result.result.data, premises)
+                    )
+                    if result.result
+                    else False
+                )
+                if not accepted:
                     codes.append("UNSUPPORTED_MEANING")
+                    if self.allow_knowledge and result.result and result.result.data.get("reason"):
+                        from cavat.modules.tutor.prompt_builder import clean_text
+
+                        codes.append("CHECK: " + clean_text(result.result.data["reason"], 180))
         return tuple(dict.fromkeys(codes))
 
     def _render_with_brain(self, ctx: RenderContext, fallback: RenderedMessage) -> RenderedMessage:

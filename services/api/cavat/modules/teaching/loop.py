@@ -100,7 +100,7 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.10.0"  # DI-89: explain the rule, acknowledge a correct part
+TEMPLATES_VERSION = "teaching-templates/0.11.0"  # DI-89: explain the rule, acknowledge a correct part
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -382,6 +382,17 @@ class TeachingLoop:
             self.tutor.reader = reader
             self.tutor.chooser = chooser
             self.tutor.explainer = self._explainer(self._item_node(self.tutor.item.id))
+            actual = next(
+                (
+                    e.payload.get("text")
+                    for e in reversed(self.events)
+                    if e.event_type == EventType.TUTOR_MESSAGE_SENT
+                    and e.payload.get("item_id") == self.tutor.item.id
+                ),
+                None,
+            )
+            if actual:
+                self.tutor.last_tutor = actual  # replay templates are not the words the child heard
 
     def start(self, now: datetime) -> TeachTurn:
         if self.awaiting is not None:
@@ -408,6 +419,10 @@ class TeachingLoop:
             return TeachTurn(
                 tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
             )
+        if self.awaiting != Awaiting.ANSWER:
+            conversational = self._conversational_input(text, now, seconds, modality)
+            if conversational is not None:
+                return conversational
         if self.awaiting == Awaiting.ANSWER:
             assert self.tutor is not None
             item_id = self.tutor.item.id
@@ -450,7 +465,7 @@ class TeachingLoop:
                 text=text,
                 seconds=seconds,
                 modality=modality,
-                dialogue_version=2,
+                dialogue_version=3,
             )
             return self._item_input(now, self._record(now, EventType.STUDENT_MESSAGE, message), text, seconds)
         assert self._node is not None
@@ -911,6 +926,63 @@ class TeachingLoop:
             recent=self._recent(4),
         )
 
+    def _conversational_input(self, text, now, seconds, modality):
+        if (
+            not self.speaker
+            or not self.speaker.knowledge_active
+            or not getattr(self.item_reader, "semantic", False)
+            or not self._node
+            or signals_distress(text)
+            or not text.strip()
+        ):
+            return None
+        from cavat.modules.assessment.student_intent import is_bare_negation
+        from cavat.modules.tutor.prompt_builder import Turn
+        from cavat.modules.tutor.reader import Reading
+
+        # Named theory questions keep the RAG/internet path and its source log.
+        if self.speaker.is_question(text) and scoped_query(text, self.speaker.index, self._node):
+            return None
+        recent = self._recent(6)
+        reading = self.item_reader.read_dialogue(
+            stem=self._prompt or "",
+            last_tutor=self._prompt or "",
+            said=text,
+            turn=self._replies_since_decision() + 1,
+            recent=[Turn(role, said) for role, said in recent],
+            phase=str(self.awaiting),
+        )
+        if reading is None and is_bare_negation(text):
+            reading = Reading("AMBIGUOUS_REPLY")
+        if not reading or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE"):
+            return None
+        ref = f"{self._node}:DIALOGUE"
+        message = StudentMessage(
+            item_id=ref, kind="MESSAGE", text=text, seconds=seconds, modality=modality, dialogue_version=3
+        )
+        events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
+        spoken = self.speaker.conversation_reply(
+            text,
+            asked=self._prompt or "",
+            node=self.chapter.node(self._node),
+            focus=reading.focus,
+            label=reading.label,
+            recent=recent,
+        )
+        messages = []
+        self._flag(now, events, spoken, ref)
+        self._say(
+            now,
+            messages,
+            events,
+            TeachMessage(
+                MessageKind.FEEDBACK, spoken.text, self._node, ref, spoken.source, rejected=spoken.rejected
+            ),
+        )
+        return TeachTurn(
+            tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
+        )
+
     def _on_question(
         self, text: str, now: datetime, node_id: str, messages: list[TeachMessage], events: list[LoopEvent]
     ) -> TeachTurn:
@@ -923,7 +995,7 @@ class TeachingLoop:
         else:
             assert self._prompt is not None
             ask, ref = self._prompt, f"{node_id}:{self._ref or 'RETELL'}"
-        if self._answers_since_decision() >= MAX_QUESTIONS_PER_WAIT:
+        if not self.speaker.knowledge_active and self._answers_since_decision() >= MAX_QUESTIONS_PER_WAIT:
             parked = QuestionParked(node_id=node_id, text=text, reason="LIMIT")
             events.append(self._record(now, EventType.QUESTION_PARKED, parked))
             said = TeachMessage(MessageKind.ANSWER, self._phrase("question_limit", ask=ask), node_id)
@@ -980,7 +1052,11 @@ class TeachingLoop:
                 self._flag(now, events, turn.spoken, ref)
                 said = TeachMessage(
                     MessageKind.ANSWER,
-                    f"{turn.spoken.text} {self._phrase('question_back', ask=ask)}",
+                    (
+                        turn.spoken.text
+                        if self.speaker.knowledge_active
+                        else f"{turn.spoken.text} {self._phrase('question_back', ask=ask)}"
+                    ),
                     node_id,
                     source=turn.spoken.source,
                     sources=turn.spoken.sources,
@@ -1044,10 +1120,10 @@ class TeachingLoop:
             and not str(e.payload.get("item_id", "")).endswith(":SOCIAL")
         )
 
-    def on_hint_request(self, now: datetime, seconds: float = 0.0) -> TeachTurn:
+    def on_hint_request(self, now: datetime, seconds: float = 0.0, *, source="BUTTON") -> TeachTurn:
         if self.awaiting != Awaiting.ANSWER or self.tutor is None:
             raise RuntimeError("a hint needs an open item")
-        requested = HintRequested(item_id=self.tutor.item.id, seconds=seconds)
+        requested = HintRequested(item_id=self.tutor.item.id, seconds=seconds, source=source)
         return self._item_input(
             now, self._record(now, EventType.HINT_REQUESTED, requested), HINT_REQUEST_TEXT, seconds
         )
@@ -1428,11 +1504,13 @@ class TeachingLoop:
             picks = [e.payload for e in mine if e.event_type == EventType.MOVE_CHOSEN]
             self.tutor = self._new_tutor(d, reader=recorded(readings), chooser=recorded_choices(picks))
             self.tutor.start()
+            replay_dialogue_version = 1
             for e in mine:
                 if self.tutor.phase == Phase.RESOLVED:
                     break  # the replay closed the item before the child's words ran out (FIX-4)
                 seconds = e.payload.get("seconds", 0.0)
                 if e.event_type == EventType.STUDENT_MESSAGE:
+                    replay_dialogue_version = e.payload.get("dialogue_version", 1)
                     self._retry = False
                     # New social events have :SOCIAL and are outside `mine`. Old, already graded 'hi'
                     # messages must keep the old routing on replay rather than rewriting past attempts.
@@ -1442,6 +1520,8 @@ class TeachingLoop:
                         allow_social=False,
                         dialogue_version=e.payload.get("dialogue_version", 1),
                     )
+                elif e.event_type == EventType.TUTOR_MESSAGE_SENT and replay_dialogue_version >= 3:
+                    self.tutor.last_tutor = e.payload["text"]
                 elif e.event_type == EventType.HINT_REQUESTED or (
                     e.event_type == EventType.CHOICE_MADE and e.payload.get("choice_id") == CHOICE_HINT
                 ):

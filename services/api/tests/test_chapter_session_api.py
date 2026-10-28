@@ -144,7 +144,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.3.0",
         "policy": "node-policy/0.5.0",
-        "templates": "teaching-templates/0.10.0",
+        "templates": "teaching-templates/0.11.0",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None
@@ -240,7 +240,7 @@ def test_the_conductor_cleans_a_message_and_unsticks_a_tutor_saying_the_same_thi
     assert len(tutor) >= 3 and tutor[-1] != tutor[-2], tutor  # not the same redirect twice in a row
     session = asyncio.run(LearningSessionRepository(memory, service.DEMO_SCHOOL_ID).get(state["session_id"]))
     routed = [e.payload for e in session.events if e.event_type == "CONTEXT_ROUTED"]
-    assert routed[0]["raw"] == "😭😭 ko bít lm jjjj" and routed[0]["text"] == "ko bít lm j"
+    assert routed[0]["raw"] == "😭😭 ko bít lm jjjj" and routed[0]["text"] == "😭😭 ko bít lm jjjj"
     assert {"EMOJI", "STRETCHED", "TEENCODE"} <= set(routed[0]["signals"])
     assert routed[-1]["route"] == "UNSTICK"
     again = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()

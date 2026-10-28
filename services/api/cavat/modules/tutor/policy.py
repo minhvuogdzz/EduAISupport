@@ -39,7 +39,7 @@ from cavat.modules.tutor.contracts import ItemState, PolicyDecision, PolicyInput
 # 0.12.0: REFORM-5 (DI-77), a few letters nothing reads are asked about once, then the child is helped
 # 0.11.0: REFORM-2 (DI-67, DI-68), a right step advances, no praise without an explanation
 # 0.10.0: VERIFY-1 (DI-65), "vì sao" by how sure the child is of the KC
-POLICY_VERSION = "hint-policy/0.13.0"  # DI-88/89: contextual parts and avoiding repeated explanations
+POLICY_VERSION = "hint-policy/0.14.0"  # DI-88/89: contextual parts and avoiding repeated explanations
 
 # DI: the activities where R-FULL may give H7 ("chỉ ở activity practice").
 PRACTICE_ACTIVITIES = frozenset({ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE})
@@ -197,6 +197,7 @@ _FIXED_RULES = frozenset(
         "R-STRONG-PRIOR",
         "R-DEESCALATE",
         "R-TURN-LIMIT",
+        "R-CONVERSATION",
     }
 )
 CHOICE_RULE = "R-CHOICE"
@@ -306,6 +307,16 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
 
     if inp.trigger == "START":
         return PolicyDecision(move=Move.PRESENT, reason_codes=("ITEM_START",), rule_ids=("R-PRESENT",))
+    if chk is not None and chk.detail.get("dialogue"):
+        label = chk.detail["dialogue"]
+        teaching = label == "REPAIR" and st.max_hint_level < HintLevel.H2
+        return PolicyDecision(
+            move=Move.ASK_CONFIRM if label == "AMBIGUOUS_REPLY" else Move.EXPLAIN,
+            level=HintLevel.H2 if teaching else None,
+            target=HintTarget.CONCEPT if teaching else None,
+            reason_codes=("CONVERSATION", label, "NOT_COUNTED_AS_WRONG"),
+            rule_ids=("R-CONVERSATION",),
+        )
     if inp.trigger == "EXPLANATION":
         return _after_explanation(st, outcome, chk)
     if (
@@ -506,7 +517,11 @@ def _next_hint(
 def _correct(st: ItemState, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecision:
     """R-TEACH-BACK after worked guidance, else R-VERIFY ("vì sao") when required, on a new or weak KC
     (DI-65), or sampled."""
-    if st.dialogue_version >= 2 and facts.reason_seen and not facts.requires_explanation:
+    if (
+        st.dialogue_version >= 2
+        and facts.reason_seen
+        and (not facts.requires_explanation or (st.dialogue_version >= 3 and st.verified))
+    ):
         return PolicyDecision(
             move=Move.CONFIRM_ADVANCE,
             resolution=resolution_for(st.max_hint_level),
