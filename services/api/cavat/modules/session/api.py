@@ -948,6 +948,13 @@ def _web_source() -> Any:
     settings = get_settings()
     if settings.web_lookup == "off":
         return None
+    if settings.web_lookup == "search":
+        from cavat.modules.teaching.search_web import SearchEducation
+
+        return SearchEducation(
+            cache_dir=settings.storage_dir / "web",
+            api_key=settings.tavily_api_key.get_secret_value() if settings.tavily_api_key else None,
+        )
     if settings.web_lookup == "official":
         from cavat.modules.teaching.official_web import OfficialEducation
 

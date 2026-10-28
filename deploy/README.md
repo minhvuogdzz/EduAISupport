@@ -101,3 +101,9 @@ make storage-pack
 Nếu có nhiều lần xuất, chỉ giữ trong `SHA256SUMS` hai tên của lần bàn giao. Export chỉ đọc DB. Gói storage giữ documents, voice, rag, web, cache, figures; bỏ backup cũ, báo cáo thử nghiệm, model weights VieNeu ở `voice/hf` và hình preview chưa duyệt. Không có tài khoản API/`.env` trong image hay các archive này. Repo công khai nên dữ liệu được chuyển riêng tới DevOps, không commit, không đính vào PR/Release công khai.
 
 BRAIN-4 (ADR-040): `ALLOW_TUTOR_KNOWLEDGE=true` cho gia sư giảng kiến thức Toán chuẩn ngoài đoạn RAG với lượt kiểm riêng, trong bài hiện tại và nền cần thiết. `false` giữ kiểm nguồn cũ. `WEB_LOOKUP=official` vẫn chỉ tra các ấn phẩm đã xác minh, không web tự do; `off` tắt truy xuất internet, không tự tắt kiến thức nền của model.
+
+### Tìm lý thuyết trên web (BRAIN-7)
+
+`WEB_LOOKUP=search` tìm trang mới liên quan bài học, đọc trang gốc rồi kiểm nguồn/Toán. Nguồn ưu tiên là SGK, nhà xuất bản, cổng/trường giáo dục trong danh mục; nguồn tham khảo được ghi riêng. Không mặc định tin mọi trang `.edu.vn` và không dùng snippet làm lời giảng.
+
+Có thể đặt `TAVILY_API_KEY` trong `.env` server để dùng Search API; adapter dùng basic, không yêu cầu generated answer. Để trống thì thử công cụ tìm kiếm công khai, có thể bị chặn/trả sai chủ đề, rồi quay về các ấn phẩm cũ/tri thức nền có kiểm tra. Đây là fallback có giới hạn, không bảo đảm tương đương Search API. Không đưa key vào repo hoặc frontend. `WEB_LOOKUP=official` giữ đường hai ấn phẩm cũ; `off` tắt web. Trang lấy được không tự thêm vào RAG hoặc giáo án.

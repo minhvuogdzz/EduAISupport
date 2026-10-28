@@ -1,5 +1,8 @@
 """Looking up a trusted source on the web when the teacher's documents do not answer (WEB-1, DI-51).
 
+BRAIN-7 adds ``search_web.SearchEducation`` for discovery of new source pages with the same scope gate.
+The policy below describes the legacy Wikipedia adapter, still available as WEB_LOOKUP=wikipedia.
+
 The owner (2026-10-13): the tutor answers from the RAG first; when the child asks something the documents
 do not cover, it may look further, but under control and only on official, accurate sites. So:
 
@@ -29,7 +32,7 @@ from typing import Protocol
 
 from cavat.core.vi_text import fold, normalize
 
-WEB_VERSION = "web-lookup/0.2.0"
+WEB_VERSION = "web-lookup/0.3.0"
 ALLOWED_HOSTS = ("sachdientu.nxbgd.vn", "sj.ctu.edu.vn", "vi.wikipedia.org")  # ADR-038
 MAX_QUESTION_CHARS = 150
 EXCERPT_CHARS = 1200  # what the model reads: the article's lead, the prompt stays < 3 000 token
@@ -54,6 +57,8 @@ class WebPage:
     asked: str = ""  # the title asked for, when Wikipedia redirected it to this article
     excerpt_hash: str = ""
     publisher: str = ""
+    retrieval: str = "fixed"  # DI-97: fixed publication or newly discovered, validated source
+    search_engine: str = ""
 
 
 class WebSource(Protocol):

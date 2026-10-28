@@ -57,9 +57,9 @@ class Settings(BaseSettings):
     # AUTO-1 (ADR-031): with the LLM tutor, Qwen picks one of the moves the policy allows on a turn;
     # "policy" keeps the policy's own move (the ablation of AUTO-1).
     tutor_chooser: Literal["policy", "llm"] = "llm"
-    # BRAIN-2 (ADR-038): related theory missing in the RAG may use verified official publications.
-    # "wikipedia" keeps the legacy adapter with the same lesson scope gate; "off" disables web lookup.
-    web_lookup: Literal["off", "official", "wikipedia"] = "official"
+    # BRAIN-7 (DI-97): discover lesson references; official/wikipedia keep legacy adapters; off disables web.
+    web_lookup: Literal["off", "search", "official", "wikipedia"] = "search"
+    tavily_api_key: SecretStr | None = None  # optional search API; no key: public engines, then known sources
     storage_dir: Path = REPO_ROOT / "var" / "storage"
     # ACC-1: "accounts": one student, one parent, one teacher log in with a PIN (`make accounts`).
     # "demo": the old X-Demo-* headers, for the offline tests and the in-memory demo only.
