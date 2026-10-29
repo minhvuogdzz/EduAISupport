@@ -189,10 +189,37 @@ def test_known_wrong_teacher_claim_must_be_corrected_before_another_question():
     assert spoken.text == corrected
     assert "MISSING_CORRECTION" in spoken.rejected[0]
     assert "correction" in provider.calls[0][1].json_schema["required"]
+    prompt = provider.calls[0][1].messages[1].content
+    assert BAD_MATH not in prompt and ASKED in prompt
+    assert "chỉ lấy tử số chia cho mẫu số" in prompt
 
 
 def test_explicit_admission_of_an_arithmetic_mistake_is_a_correction_cue():
     assert acknowledges_correction("Cô xin lỗi, đã tính sai trước. Mình chỉ lấy tử số chia cho mẫu số.")
+
+
+def test_correction_has_a_small_extra_word_budget_without_removing_mathematical_checks():
+    correction = (
+        "Cô nói nhầm: không phải lấy tử số chia mẫu số rồi chia lại. "
+        "Chỉ chia tử số cho mẫu số một lần để được số thập phân."
+    )
+    message = (
+        "Con, để chuyển 5/10 thành số thập phân, hãy nhớ chia 5 cho 10 rồi viết kết quả. "
+        "Thử làm một lần và cho cô biết kết quả phần nguyên và phần thập phân nhé?"
+    )
+    provider = FakeChatModel([{**row(message), "correction": correction}, OK])
+    speaker = GroundedSpeaker(small_index(), AIRouter(chat_provider=provider), allow_knowledge=True)
+    spoken = speaker._teacher_say(
+        brain.BrainPack(
+            task="Giúp một bước rồi hỏi.",
+            question=ASKED,
+            max_words=40,
+            recent=(Turn("tutor", BAD_MATH), Turn("student", "??")),
+        ),
+        questions=True,
+    )
+    assert spoken.text == correction + " " + message
+    assert 40 < len(spoken.text.split()) <= 65
 
 
 @pytest.mark.parametrize(

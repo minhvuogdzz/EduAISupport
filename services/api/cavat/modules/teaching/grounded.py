@@ -971,7 +971,11 @@ class GroundedSpeaker:
         if self.router is None:
             return Spoken("", "TEMPLATE")
         from cavat.modules.teaching.curriculum import verification, verified
-        from cavat.modules.tutor.socratic import acknowledges_correction, is_decimal_conversion
+        from cavat.modules.tutor.socratic import (
+            acknowledges_correction,
+            conversion_answer_leaked,
+            is_decimal_conversion,
+        )
 
         correction_needed = False
         for turn in reversed(pack.recent):
@@ -982,6 +986,32 @@ class GroundedSpeaker:
                 break
             if acknowledges_correction(turn.text):
                 break
+        if correction_needed and not source_bound:
+            # Do not feed erroneous/answer-giving teacher speech back as ordinary teaching context.
+            # Keep learner words and the actual question; the original events remain untouched.
+            double_division = any(
+                t.role == "tutor"
+                and brain.math_errors(t.text)
+                and re.search(r"\d+\s*/\s*(\d+)\s+chia cho\s+\1\b", t.text.lower())
+                for t in pack.recent
+            )
+            facts = (
+                (
+                    "Sửa đúng lỗi cũ: chỉ lấy tử số chia cho mẫu số để chuyển phân số sang số thập phân. "
+                    "Không lấy cả phân số chia thêm cho mẫu số một lần nữa. "
+                    "Cách lấy tử số chia mẫu số là hợp lệ, không được nói cách đó sai.",
+                )
+                if double_division
+                else ()
+            )
+            recent = tuple(
+                replace(t, text="[Lời cô cũ không hợp lệ, cần sửa; không dùng làm căn cứ Toán.]")
+                if t.role == "tutor"
+                and (brain.math_errors(t.text) or conversion_answer_leaked(t.text, pack.question))
+                else t
+                for t in pack.recent
+            )
+            pack = replace(pack, recent=recent, grounds=(*facts, *pack.grounds))
 
         if "phản ứng/cảm xúc" not in pack.task:
             pack = replace(
@@ -1022,10 +1052,11 @@ class GroundedSpeaker:
             ),
         )
         checked_calls = 0
+        checked_pack = replace(pack, max_words=pack.max_words + (25 if correction_needed else 0))
 
         def codes(text):
             nonlocal checked_calls
-            problems = list(brain.speech_codes(text, pack, flexible=True, rephrase=True, copy_run=24))
+            problems = list(brain.speech_codes(text, checked_pack, flexible=True, rephrase=True, copy_run=24))
             from cavat.modules.tutor.dialogue import question_tail
             from cavat.modules.tutor.socratic import conversion_answer_leaked, readiness_only
 
