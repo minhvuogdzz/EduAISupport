@@ -40,7 +40,8 @@ def docx(*paragraphs: str, row: tuple[str, str] | None = None) -> bytes:
         body += f"<w:tbl><w:tr>{cells}</w:tr></w:tbl>"
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as archive:
-        archive.writestr("word/document.xml", f"<w:document {w}><w:body>{body}</w:body></w:document>")
+        info = zipfile.ZipInfo("word/document.xml", date_time=(2026, 1, 1, 0, 0, 0))
+        archive.writestr(info, f"<w:document {w}><w:body>{body}</w:body></w:document>")
     return out.getvalue()
 
 
@@ -92,10 +93,11 @@ def test_text_is_read_from_every_kind_of_file():
 
 
 def test_the_teacher_uploads_reads_downloads_and_deletes_a_document(client, tmp_path):
+    payload = docx("Câu 1. Viết 7/100 thành số thập phân.")
     made = upload(
         client,
         "Phiếu bài tập 1.docx",
-        docx("Câu 1. Viết 7/100 thành số thập phân."),
+        payload,
         title="Phiếu 1",
         kind="BAI_TAP",
         chapter="math-g5-decimals",
@@ -116,7 +118,7 @@ def test_the_teacher_uploads_reads_downloads_and_deletes_a_document(client, tmp_
     detail = client.get(f"/v1/teachers/documents/{doc['document_id']}", headers=TEACHER).json()
     assert detail["text"] == "Câu 1. Viết 7/100 thành số thập phân."
     original = client.get(f"/v1/teachers/documents/{doc['document_id']}/file", headers=TEACHER)
-    assert original.status_code == 200 and original.content == docx("Câu 1. Viết 7/100 thành số thập phân.")
+    assert original.status_code == 200 and original.content == payload
 
     assert client.delete(f"/v1/teachers/documents/{doc['document_id']}", headers=TEACHER).status_code == 204
     assert client.get("/v1/teachers/documents", headers=TEACHER).json() == []

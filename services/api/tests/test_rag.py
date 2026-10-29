@@ -400,7 +400,8 @@ def docx(*paragraphs: str) -> bytes:
     body = "".join(f"<w:p><w:r><w:t>{p}</w:t></w:r></w:p>" for p in paragraphs)
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as archive:
-        archive.writestr("word/document.xml", f"<w:document {w}><w:body>{body}</w:body></w:document>")
+        info = zipfile.ZipInfo("word/document.xml", date_time=(2026, 1, 1, 0, 0, 0))
+        archive.writestr(info, f"<w:document {w}><w:body>{body}</w:body></w:document>")
     return out.getvalue()
 
 
