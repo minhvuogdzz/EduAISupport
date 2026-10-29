@@ -316,6 +316,7 @@ class MessageRead(_Payload):
         "AMBIGUOUS_REPLY",
         "REPAIR",
         "CONTINUE",
+        "REACTION",
         "DECLINE",
         "PASS",
         "ASKS_ABOUT",

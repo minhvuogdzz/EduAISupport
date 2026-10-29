@@ -20,6 +20,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from cavat.core.vi_text import fold, normalize
+from cavat.modules.observability.trace import network_request, source_event, traced
 from cavat.modules.rag.retrieve import RagIndex
 from cavat.modules.teaching.web import EXCERPT_CHARS, WebPage, eligible
 
@@ -216,31 +217,34 @@ class OfficialEducation:
                 saved = json.loads(cache.read_text())
                 age = time.time() - saved["time"]
                 if 0 <= age < CACHE_SECONDS and saved["url"] == url:
+                    source_event("official_page_cache_hit", kind="cache", url=url)
                     return str(saved["text"])
             except (ValueError, KeyError, OSError, TypeError):
                 pass
         client = self.client or httpx.Client(timeout=TIMEOUT, follow_redirects=False)
         try:
-            with client.stream("GET", url, follow_redirects=False) as response:
-                if response.status_code != 200 or str(response.url) != url:
-                    return ""  # no redirect, even to a different official host
-                media = response.headers.get("content-type", "")
-                if not pdf and "text/html" not in media:
-                    return ""
-                body = bytearray()
-                for part in response.iter_bytes():
-                    body.extend(part)
-                    if len(body) > MAX_BYTES:
+            with network_request(url) as network:
+                with client.stream("GET", url, follow_redirects=False) as response:
+                    network["http_status"] = response.status_code
+                    if response.status_code != 200 or str(response.url) != url:
+                        return ""  # no redirect, even to a different official host
+                    media = response.headers.get("content-type", "")
+                    if not pdf and "text/html" not in media:
                         return ""
-                if pdf:
-                    if not body.startswith(b"%PDF"):
-                        return ""
-                    reader = PdfReader(io.BytesIO(body))
-                    if len(reader.pages) > 20:
-                        return ""
-                    text = "\n".join(page.extract_text() or "" for page in reader.pages)
-                else:
-                    text = body.decode("utf-8", errors="replace")
+                    body = bytearray()
+                    for part in response.iter_bytes():
+                        body.extend(part)
+                        if len(body) > MAX_BYTES:
+                            return ""
+                    if pdf:
+                        if not body.startswith(b"%PDF"):
+                            return ""
+                        reader = PdfReader(io.BytesIO(body))
+                        if len(reader.pages) > 20:
+                            return ""
+                        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+                    else:
+                        text = body.decode("utf-8", errors="replace")
         finally:
             if self.client is None:
                 client.close()
@@ -255,6 +259,7 @@ class OfficialEducation:
                 temporary.unlink(missing_ok=True)
         return text
 
+    @traced("web")
     def lookup(self, query: str) -> WebPage | None:
         if query not in CONCEPTS:
             return None

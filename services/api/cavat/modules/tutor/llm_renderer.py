@@ -37,7 +37,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from cavat.core.pedagogy import Move
+from cavat.core.pedagogy import Move, Outcome
 from cavat.modules.ai_gateway.base import ChatMessage, ModelClass
 from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.assessment.vi_numbers import normalize_text
@@ -62,7 +62,7 @@ from cavat.modules.tutor.validator import singles_out_choice
 # v8: REFORM-1b (DI-81), OFFER_CHOICE, CONFIRM_ADVANCE and a lead before the approved explanation
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v14"
+LLM_RENDERER_VERSION = "llm-renderer.v15"
 # PRESENT is the stem as it is; CLOSE_ITEM is the model's only when it teaches (``teaches``)
 TEMPLATE_ONLY_MOVES = frozenset({Move.PRESENT, Move.CLOSE_ITEM})
 LLM_MOVES = frozenset(Move) - TEMPLATE_ONLY_MOVES
@@ -250,16 +250,17 @@ class LLMRenderer:
         if ctx.item.id != self._history_item:
             self._history, self._history_item = [], ctx.item.id
         fallback = self._template.render(ctx)
-        if _template_only(ctx) or "CONTINUE" in ctx.decision.reason_codes:
+        strict = getattr(self._router, "model_only_speech", False)
+        if (not strict or ctx.item.is_assessment or ctx.decision.move == Move.PRESENT) and (
+            _template_only(ctx) or "CONTINUE" in ctx.decision.reason_codes
+        ):
             message = fallback
             self.last_trace = RenderTrace(ctx.decision.move, fallback.source)
-        elif not self._may_call(ctx.decision.move):
+        elif not strict and not self._may_call(ctx.decision.move):
             message = fallback  # DI-61: this move leaves the remaining calls to the moves that need them
             self.last_trace = RenderTrace(ctx.decision.move, fallback.source, 0, "call_budget")
         else:
             message = self._render_with_brain(ctx, fallback)
-        if ctx.resume_prompt and "REPAIR" in ctx.decision.reason_codes and "?" not in message.text:
-            message = replace(message, text=f"{message.text} {ctx.resume_prompt}")
         if ctx.student_text:
             self._history.append(Turn("student", ctx.student_text))
         self._history.append(Turn("tutor", message.text))
@@ -283,11 +284,27 @@ class LLMRenderer:
             asks=ctx.focus,
             reasons=d.reason_codes,
         )
+        if d.move == Move.EXPLAIN and ctx.state.dialogue_version >= 3 and not ctx.follow_up:
+            task = (
+                "Trả lời trực tiếp điều con hỏi"
+                + (f" ({ctx.focus})" if ctx.focus else "")
+                + ". Giải thích đúng chỗ vướng bằng một bước hoặc ví dụ khác với bài. "
+                "Không nêu đáp số bài con đang tự làm. Nếu cách trước chưa hiệu quả, đổi cách giảng. "
+                "Sau khi giảng, hỏi một bước nhỏ thuộc câu đang chờ để con vận dụng."
+            )
         if "CONVERSATION" in d.reason_codes:
             if "AMBIGUOUS_REPLY" in d.reason_codes:
                 task = (
-                    "Chưa rõ ý con: hỏi con chưa hiểu hay chưa muốn làm tiếp; "
-                    "đừng gán là không biết. Đặt câu hỏi ở cuối."
+                    "Chưa rõ ý con: hỏi làm rõ ngắn theo đúng điều còn thiếu trong ngữ cảnh, "
+                    f"không tự gán là không biết hoặc muốn nghỉ. Điều cần rõ: {ctx.focus}. "
+                    "Đặt một câu hỏi ở cuối."
+                )
+            elif "REACTION" in d.reason_codes:
+                task = (
+                    "Đáp vui tối đa một ý ngắn rồi đưa NGAY về việc học: hỏi một bước của câu thực tế "
+                    f"đang chờ ({ctx.resume_prompt or item.stem}). Không mở chuyện riêng, hỏi chuyện vui hay "
+                    "đoán con đang vui/đã hiểu. Con nhắc cô lạc đề thì nhận lỗi ngắn rồi trở lại bài. "
+                    "Giữ đúng số liệu, yêu cầu, bước đang chờ; không chấm phản ứng thành đáp án."
                 )
             elif "DECLINE" in d.reason_codes:
                 task = "Tôn trọng lời con muốn nghỉ; cho con thời gian. Không ép hỏi lại."
@@ -298,16 +315,18 @@ class LLMRenderer:
                     "Nếu cô nói sai thì nhận và sửa ngắn. Không coi đây là sai bài hoặc ép chép đáp án. "
                     "Chỉ giảng một ý/bước nhỏ bằng 2–3 câu ngắn, bỏ lời dẫn dài. "
                     "Nếu con nản thì dỗ nhẹ một câu, rồi giúp ngay chỗ vướng. "
-                    "Có thể kết thúc bằng một lời giải thích trọn ý, hoặc một câu hỏi nhỏ nếu cần con thử."
+                    "Giảng xong phải hỏi một bước nhỏ của câu đang chờ để kiểm tra điều vừa làm rõ."
                 )
         if "REPAIR" in d.reason_codes and (
             not isinstance(item.answer, NumericAnswer) or "phân số thập phân" not in item.stem.lower()
         ):
-            task += " Lượt giải thích lý thuyết này trả lời trọn ý, không hỏi bài mới hay đòi con nhắc lại."
+            task += " Giảng trọn ý rồi hỏi một bước của câu đang chờ, không mở bài khác."
+        if d.move == Move.EXPLAIN and brain.explanation_only(ctx.student_text or ""):
+            task += " Con cần hiểu: làm mẫu trước rồi hỏi một bước nhỏ, không hỏi vặn."
         if resuming:
             task = (
                 "Con chỉ đồng ý làm tiếp, chưa có bằng chứng hiểu hay làm đúng. "
-                "Đáp ngắn tự nhiên, mời con tiếp tục bài đang chờ. Không giảng lại, không nói con đã hiểu."
+                "Đáp ngắn rồi hỏi đúng việc đang chờ, không giảng lại, không nói con đã hiểu."
             )
         if ctx.follow_up:
             task = (
@@ -339,6 +358,17 @@ class LLMRenderer:
                 " Đề yêu cầu phân số thập phân: giữ mẫu 10/100/1000..., không yêu cầu rút gọn. "
                 "Nếu con chưa hiểu, dùng ví dụ KHÁC số của đề, chưa tính hộ đáp số câu đang làm."
             )
+        if (
+            ctx.check
+            and ctx.check.outcome == Outcome.WRONG
+            and not item.is_assessment
+            and "CONVERSATION" not in d.reason_codes
+        ):
+            task = (
+                " Con vừa trả lời sai: trước hết nhắc MỘT ý lý thuyết liên quan đúng lỗi, "
+                "sau đó mới chỉ bước cần xem lại theo mức hỗ trợ đã chọn. Không giảng cả bài. "
+                "Nếu đang hỏi cách con nghĩ (PROBE), chỉ nhắc ý khái niệm, không nêu quy trình/đáp số."
+            ) + task
         answer = ""
         if reveal and ctx.check is not None and ctx.check.normalized:
             answer = {"true": "Đúng", "false": "Sai"}.get(ctx.check.normalized, ctx.check.normalized)
@@ -350,7 +380,9 @@ class LLMRenderer:
                 grounds = (scaffold, *grounds)
         if ALTITUDE_RULE in grounds:
             grounds = (ALTITUDE_RULE, *(g for g in grounds if g != ALTITUDE_RULE))
-        question = item.stem
+        if "REACTION" in d.reason_codes:
+            grounds, answer = (), ""  # social intent needs dialogue, not a lecture or a solution
+        question = ctx.resume_prompt if "REACTION" in d.reason_codes and ctx.resume_prompt else item.stem
         student_text = ctx.student_text or ""
         recent = tuple(self._history)
         if (
@@ -381,16 +413,14 @@ class LLMRenderer:
                 task = abstract(task)
                 task += (
                     " Không giao một phép đổi số mới cho con làm; câu con trả lời vẫn là bài trên thẻ. "
-                    + (
-                        "Giảng trọn ý, không thêm câu hỏi."
-                        if "thành số thập phân" in item.stem.lower()
-                        else "Nếu hỏi, chỉ hỏi bước nhỏ hoặc kết quả của bài trên thẻ."
-                    )
+                    + ("Giảng trọn ý rồi hỏi một bước của bài trên thẻ, không hỏi kết quả ví dụ mẫu.")
                 )
         return BrainPack(
             task=task,
             question=question,
             student_text=student_text,
+            return_to_lesson=bool({"REACTION", "CONTINUE"}.intersection(d.reason_codes)),
+            prefer_mentor=bool({"REPAIR", "REACTION"}.intersection(d.reason_codes)),
             verdict=verdict_line(ctx),
             recent=recent,
             grounds=grounds[:3] if self.allow_knowledge else grounds,
@@ -413,6 +443,13 @@ class LLMRenderer:
         d = ctx.decision
         vctx = replace(ctx, max_words=BRAIN_MAX_WORDS, free_numbers=True)
         codes = list(self._validator(text, vctx).codes)
+        if (
+            getattr(self._router, "model_only_speech", False)
+            and d.move == Move.EXPLAIN
+            and "DECLINE" not in d.reason_codes
+            and (text.count("?") != 1 or not text.rstrip().endswith("?"))
+        ):
+            codes.append("MISSING_QUESTION")
         if text:  # an empty message is already rejected; the other checks need words to look at
             asks = d.move == Move.VERIFY and "VERIFY_BEFORE_HINT" not in d.reason_codes
             codes += brain.speech_codes(
@@ -454,11 +491,6 @@ class LLMRenderer:
                 ):
                     codes.append("ANSWER_LEAK")
             if self.allow_knowledge and "REPAIR" in d.reason_codes and "?" in text:
-                if (
-                    not isinstance(ctx.item.answer, NumericAnswer)
-                    or "phân số thập phân" not in ctx.item.stem.lower()
-                ):
-                    codes.append("NEW_TASK_QUESTION")
                 from cavat.modules.assessment.vi_numbers import extract_numbers
 
                 question = text.rsplit("?", 2)[-2].rsplit(".", 1)[-1]
@@ -523,6 +555,7 @@ class LLMRenderer:
                         references=(*pack.grounds, *premises) if "REPAIR" in d.reason_codes else premises,
                         student=ctx.student_text or "",
                         may_reveal=ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION,
+                        task=pack.task,
                     )
                 result = self._router.chat(
                     ModelClass.TUTOR_REASONING,

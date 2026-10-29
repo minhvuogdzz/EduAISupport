@@ -17,6 +17,7 @@ from typing import Any, Protocol
 
 # Groq free tier allows 8.000 token/minute; each call must stay <= 3.000 token (ADR-017).
 MAX_PROMPT_TOKENS = 3000
+MODEL_WAIT_MESSAGE = "Con chờ cô một chút nhé."
 # Estimate without a tokenizer. CFG-2 measured it on 35 real tutor calls (docs/poc/free-tier-quota.md):
 # Qwen 3,15 characters per token, so 3 over-counts it by 14%; gpt-oss-120b 2,76 (about right) and
 # gpt-oss-20b 2,07 (under by 13%). Two simulated sessions only [ASSUME].
@@ -26,6 +27,7 @@ MESSAGE_OVERHEAD_TOKENS = 4
 
 class ModelClass(StrEnum):
     TUTOR_REASONING = "tutor_reasoning"
+    TUTOR_MENTOR = "tutor_mentor"
     LIGHTWEIGHT = "lightweight"
     # REFORM-5 (3.1): reads the few letters a child types when nothing else reads them ("ki", "kt", "ể"). Its
     # own chain, on gpt-oss-120b first: every Groq model has its own per-minute and per-day quota, so these
@@ -39,7 +41,13 @@ class ModelClass(StrEnum):
 
 
 CHAT_MODEL_CLASSES = frozenset(
-    {ModelClass.TUTOR_REASONING, ModelClass.LIGHTWEIGHT, ModelClass.INTENT_AGENT, ModelClass.EVAL_JUDGE}
+    {
+        ModelClass.TUTOR_REASONING,
+        ModelClass.TUTOR_MENTOR,
+        ModelClass.LIGHTWEIGHT,
+        ModelClass.INTENT_AGENT,
+        ModelClass.EVAL_JUDGE,
+    }
 )
 
 

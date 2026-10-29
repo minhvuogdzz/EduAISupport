@@ -39,7 +39,7 @@ const COLUMN_LABEL: Record<NodeLayer, string> = { BASIC: "Khái niệm", IMPLEME
 /** Fill, border and text of a node box per status. Status is never shown by color alone. */
 const STYLE: Record<NodeStatus, { box: string; text: string; sub: string; glyph: string }> = {
   PASSED: {
-    box: "fill-emerald-50 stroke-emerald-600",
+    box: "fill-brand-50 stroke-brand-400",
     text: "fill-emerald-950",
     sub: "fill-emerald-800",
     glyph: "text-emerald-700",
@@ -69,7 +69,7 @@ const STYLE: Record<NodeStatus, { box: string; text: string; sub: string; glyph:
     glyph: "text-slate-500",
   },
   LOCKED: {
-    box: "fill-slate-100 stroke-slate-300",
+    box: "fill-paper stroke-slate-300",
     text: "fill-slate-500",
     sub: "fill-slate-500",
     glyph: "text-slate-400",

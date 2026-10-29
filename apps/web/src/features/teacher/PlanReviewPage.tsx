@@ -182,7 +182,7 @@ export function PlanReviewPage() {
   return (
     <FiguresProvider chapterId={chapterId} who="teacher">
       <AppShell>
-        <title>Duyệt phương án · Giáo viên · CAVAT</title>
+        <title>Duyệt phương án · Giáo viên · Monkey Edu</title>
         <TeacherHeader
           title={plan.data ? `Duyệt phương án: ${plan.data.content.title}` : "Duyệt phương án"}
         />
@@ -232,8 +232,8 @@ function Review({
             {plan.review.approved_nodes.length}/{nodes.length} bài đã duyệt
           </p>
           <p className="text-slate-600">
-            AI soạn {plan.drafted.hints} gợi ý và {plan.drafted.parts} phần khác: cô duyệt hoặc sửa trước khi
-            dạy.
+            Gia sư Buddy soạn {plan.drafted.hints} gợi ý và {plan.drafted.parts} phần khác: cô duyệt hoặc sửa
+            trước khi dạy.
           </p>
           {blockers.length > 0 && (
             <details className="mt-1">
@@ -338,29 +338,38 @@ function NodeReview({
         </button>
       </section>
       <section className="card flex flex-col gap-3 p-4">
-        <h3 className="font-bold">Cách giảng</h3>
+        <h3 className="font-bold">Kiến thức và gợi ý dạy học</h3>
+        <p className="text-sm text-slate-600">
+          Duyệt kiến thức và ý cần kiểm tra, không duyệt một kịch bản hội thoại cố định. Gia sư có thể đổi
+          cách giảng, ví dụ và diễn đạt câu hỏi cùng ý theo điều học sinh đang vướng. Đáp án và tiêu chí chấm
+          bài tập được quản lý riêng ở phần bài tập.
+        </p>
         {node.theory.map((t) => (
           <div key={t.id} className="rounded-xl bg-slate-50 p-3">
             <p className="text-xs text-slate-500">
               {t.id} · {t.representation}
             </p>
             <Editable
-              label="Lời giảng"
+              label="Nội dung kiến thức / gợi ý tổ chức dạy"
               value={t.text}
               multiline
               onSave={(v) => edit(`theory/${t.id}/text`, v)}
             />
-            <Editable label="Câu hỏi gợi mở" value={t.ask} onSave={(v) => edit(`theory/${t.id}/ask`, v)} />
             <Editable
-              label="Câu trả lời mẫu"
+              label="Câu hỏi tham khảo (ý cần kiểm tra)"
+              value={t.ask}
+              onSave={(v) => edit(`theory/${t.id}/ask`, v)}
+            />
+            <Editable
+              label="Ý giải thích tham khảo"
               value={t.reply ?? ""}
               onSave={(v) => edit(`theory/${t.id}/reply`, v)}
             />
             <Editable
-              label="Cách nói được chấp nhận"
+              label="Ví dụ cách học sinh diễn đạt đúng ý"
               value={(t.accept ?? []).join(" · ")}
               multiline
-              hint="Mỗi cách nói một dòng."
+              hint="Mỗi ví dụ một dòng. Không giới hạn câu trả lời; khi Gia sư Buddy khả dụng, gia sư đối chiếu ý nghĩa với kiến thức đã duyệt."
               onSave={(v) => edit(`theory/${t.id}/accept`, v)}
             />
           </div>
@@ -433,7 +442,7 @@ function VerifyReview({
     <div className="flex flex-col gap-1 rounded-xl bg-slate-50 p-2">
       <div className="flex items-center gap-2 text-xs text-slate-500">
         <span className="font-semibold">Hỏi sau câu đúng</span>
-        {ai && <span className="rounded bg-violet-100 px-1 text-violet-900">AI soạn</span>}
+        {ai && <span className="rounded bg-violet-100 px-1 text-violet-900">Gia sư Buddy soạn</span>}
         {node.verify_prompt && (
           <button
             type="button"
@@ -565,7 +574,7 @@ function ItemReview({
             <li key={level} className="rounded-lg bg-slate-50 p-2">
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <span className="font-semibold">H{level}</span>
-                {ai && <span className="rounded bg-violet-100 px-1 text-violet-900">AI soạn</span>}
+                {ai && <span className="rounded bg-violet-100 px-1 text-violet-900">Gia sư Buddy soạn</span>}
                 {decision?.action === "approve" && <span className="text-emerald-800">đã duyệt</span>}
                 {hint && decision?.action !== "approve" && (
                   <button

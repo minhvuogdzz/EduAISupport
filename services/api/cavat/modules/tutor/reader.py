@@ -71,6 +71,7 @@ LABELS = (
     "AMBIGUOUS_REPLY",
     "REPAIR",
     "CONTINUE",
+    "REACTION",
     "DECLINE",
     "PASS",
     *UNCLEAR_LABELS,
@@ -324,7 +325,8 @@ class RecordedReader:
     def __init__(self, readings: Mapping[int, Reading]) -> None:
         self.readings = dict(readings)
         self.semantic = any(
-            r.label in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE", "PASS") for r in readings.values()
+            r.label in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE", "REACTION", "PASS")
+            for r in readings.values()
         )
 
     def read_dialogue(self, *, stem, last_tutor, said, turn, recent=(), phase=""):

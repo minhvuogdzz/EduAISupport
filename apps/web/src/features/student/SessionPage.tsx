@@ -66,8 +66,8 @@ export function SessionPage() {
   return (
     // App-shell layout: only the middle scrolls, so the newest message is never hidden behind the
     // answer panel, and the question stays in view on tablets.
-    <div className="flex h-dvh flex-col bg-amber-50">
-      <title>{`${state.lesson.title} · CAVAT`}</title>
+    <div className="lesson-room flex h-dvh flex-col bg-paper">
+      <title>{`${state.lesson.title} · Monkey Edu`}</title>
       <MockBanner />
       <SessionHeader state={state} />
       <div
@@ -76,11 +76,12 @@ export function SessionPage() {
       >
         <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-4">
           {state.item && (
-            <div className="md:sticky md:top-0 md:z-10 md:-mt-4 md:bg-amber-50 md:pt-4 md:pb-1">
+            <div className="md:sticky md:top-0 md:z-10 md:-mt-4 md:bg-paper md:pt-4 md:pb-1">
               <QuestionCard item={state.item} total={state.progress.items_total} />
             </div>
           )}
           <Conversation
+            waiting={busy}
             turns={turns}
             typing={view.typing}
             tutorName={tutorName}
@@ -116,9 +117,13 @@ function SessionHeader({ state }: { state: SessionState }) {
   return (
     <header className="border-b border-gold/25 bg-white">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-        <Link to="/" aria-label="CAVAT, trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-2xl">
+        <Link
+          to="/"
+          aria-label="Monkey Edu, trang chủ"
+          className="flex shrink-0 items-center gap-1.5 rounded-2xl"
+        >
           <Mascot size={40} />
-          <span className="hidden font-extrabold text-brand-900 sm:inline">CAVAT</span>
+          <span className="hidden font-extrabold text-brand-900 sm:inline">Monkey Edu</span>
         </Link>
         <div className="min-w-0 flex-1">
           {state.activity && (

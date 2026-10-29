@@ -144,7 +144,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.3.0",
         "policy": "node-policy/0.5.0",
-        "templates": "teaching-templates/0.12.0",
+        "templates": "teaching-templates/0.17.0",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None
@@ -293,3 +293,61 @@ def test_the_teacher_sees_the_learning_journey_and_the_conversation(client):
 def test_the_teacher_lists_the_chapters_the_tutor_teaches(client):
     chapters = client.get("/v1/teachers/taught-chapters", headers=TEACHER).json()
     assert {"chapter_id": chapter_service.DEFAULT_CHAPTER_ID, "title": CHAPTER.package.title} in chapters
+
+
+def test_all_models_unavailable_show_only_wait_and_preserve_opening(client, monkeypatch):
+    from cavat.modules.ai_gateway.router import AIRouter
+
+    monkeypatch.setattr(session_api, "tutor_router", lambda: AIRouter(chat_provider=None))
+    state = start(client)
+    assert [t["text"] for t in state["transcript"]] == ["Con chờ cô một chút nhé."]
+    assert not state["teaching"]["prompt"]
+    sent = send(client, state, "cô ơi", "offline-retry")
+    assert sent.status_code == 200, sent.text
+    after = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
+    assert after["transcript"][-1]["text"] == "Con chờ cô một chút nhé."
+    for key in ("prompt", "step", "current_node_id", "awaiting", "nodes", "input_id"):
+        assert after["teaching"][key] == state["teaching"][key]
+
+
+@pytest.mark.parametrize("student_text", ["con chưa hiểu", "ok"])
+def test_outage_during_learning_does_not_deliver_sample_or_advance(client, monkeypatch, student_text):
+    from cavat.modules.ai_gateway.router import AIRouter
+
+    state = start(client)
+    monkeypatch.setattr(session_api, "tutor_router", lambda: AIRouter(chat_provider=None))
+    sent = send(client, state, student_text, "offline-mid-lesson")
+    assert sent.status_code == 200, sent.text
+    after = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
+    new = after["transcript"][len(state["transcript"]) :]
+    assert [t["text"] for t in new if t["actor"] != "student"] == ["Con chờ cô một chút nhé."]
+    for key in ("prompt", "step", "current_node_id", "awaiting", "nodes", "input_id"):
+        assert after["teaching"][key] == state["teaching"][key]
+    assert after["progress"] == state["progress"]
+
+
+def test_model_outage_does_not_deliver_template_hint_or_increase_hint_level(client, monkeypatch):
+    from cavat.modules.ai_gateway.router import AIRouter
+
+    state = start(client)
+    for i in range(8):
+        if state["teaching"]["awaiting"] == "ANSWER":
+            break
+        state = advance(client, state, f"before-outage-{i}")
+    assert state["teaching"]["awaiting"] == "ANSWER"
+    monkeypatch.setattr(session_api, "tutor_router", lambda: AIRouter(chat_provider=None))
+    before = state
+    response = client.post(
+        f"/v1/sessions/{state['session_id']}/hint-requests",
+        json={
+            "item_attempt_id": state["teaching"]["input_id"],
+            "expected_state_version": state["state_version"],
+        },
+        headers={**MINH, "Idempotency-Key": "outage-hint"},
+    )
+    assert response.status_code == 200, response.text
+    after = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
+    new = after["transcript"][len(before["transcript"]) :]
+    assert [t["text"] for t in new if t["actor"] != "student"] == ["Con chờ cô một chút nhé."]
+    assert after["item"] == before["item"]
+    assert after["teaching"] == before["teaching"]

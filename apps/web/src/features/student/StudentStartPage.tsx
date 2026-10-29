@@ -71,12 +71,15 @@ export function StudentStartPage() {
 
   return (
     <AppShell>
-      <title>Học sinh · CAVAT</title>
+      <title>Học sinh · Monkey Edu</title>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8">
-        <section className="card brand-gradient overflow-hidden">
-          <div className="grid items-center gap-4 p-6 md:grid-cols-[1fr_auto] md:p-8">
+        <section className="student-welcome">
+          <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
             <div>
-              <h1 className="text-2xl font-extrabold md:text-3xl">
+              <div className="eyebrow">
+                <span>GÓC HỌC CỦA CON · MONKEY EDU</span>
+              </div>
+              <h1 className="text-2xl font-black md:text-4xl text-slate-900">
                 {`Chào ${name}, hôm nay mình học gì nhé?`}
               </h1>
               <p className="mt-2 text-base text-slate-700">
@@ -96,8 +99,8 @@ export function StudentStartPage() {
                 </p>
               )}
               {resumable && (
-                <div className="mt-4 rounded-2xl bg-white/80 p-4 ring-1 ring-gold/40">
-                  <p className="text-lg">
+                <div className="student-resume">
+                  <p className="text-lg text-slate-800">
                     Buổi học của <strong>{resumable.student_display_name}</strong> còn dang dở (đã xong{" "}
                     {resumable.progress.items_done}/{resumable.progress.items_total}{" "}
                     {resumable.teaching ? "bài" : "câu"}).
@@ -107,9 +110,10 @@ export function StudentStartPage() {
                   )}
                   <Link
                     to={`/student/sessions/${resumable.session_id}`}
-                    className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-lg font-semibold text-white hover:bg-brand-800"
+                    className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-6 py-3 text-base font-black text-white hover:bg-teal-800 shadow-md"
                   >
-                    Học tiếp
+                    <span>Học tiếp</span>
+                    <ArrowRightIcon className="size-4" />
                   </Link>
                 </div>
               )}
@@ -120,11 +124,9 @@ export function StudentStartPage() {
                 onStart={(studentName) => start.mutate(studentName)}
               />
             </div>
-            <Mascot
-              mood={overview.data?.passed ? "celebrating" : "happy"}
-              size={150}
-              className="justify-self-center"
-            />
+            <div className="welcome-buddy flex flex-col items-center justify-self-center">
+              <Mascot mood={overview.data?.passed ? "celebrating" : "happy"} size={170} animated />
+            </div>
           </div>
         </section>
 
@@ -152,9 +154,10 @@ function StartForm({
         type="button"
         disabled={pending}
         onClick={() => onStart(knownName)}
-        className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-lg font-semibold text-brand-900 ring-1 ring-brand-200 hover:bg-brand-50 disabled:opacity-50"
+        className="btn-playful-primary inline-flex items-center gap-2 rounded-2xl px-6 py-3.5 text-base font-black shadow-lg disabled:opacity-50"
       >
-        Bắt đầu buổi mới <ArrowRightIcon className="size-5" />
+        <span>Bắt đầu buổi mới</span>
+        <ArrowRightIcon className="size-5" />
       </button>
       {failed && (
         <p role="alert" className="text-lg text-red-700">
@@ -169,7 +172,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
   const nodes = overview.nodes.map((n) => ({ ...n }));
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stat-strip grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           icon={<FlameIcon className="size-5 text-orange-500" />}
           label="Chuỗi ngày học"
@@ -206,10 +209,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
             />
             <ul className="flex flex-col gap-2">
               {overview.nodes.map((node) => (
-                <li
-                  key={node.node_id}
-                  className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-2"
-                >
+                <li key={node.node_id} className="progress-row flex items-center justify-between gap-3 py-3">
                   <span className="font-medium">{node.name}</span>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-0.5 text-sm font-semibold ring-1 ${
@@ -227,10 +227,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
         </section>
 
         <div className="flex flex-col gap-6">
-          <section
-            aria-labelledby="practise-title"
-            className="rounded-3xl border border-amber-200 bg-amber-50 p-6"
-          >
+          <section aria-labelledby="practise-title" className="student-notes">
             <h2 id="practise-title" className="text-lg font-bold text-amber-900">
               Cần luyện thêm
             </h2>
@@ -247,10 +244,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
               </ul>
             )}
           </section>
-          <section
-            aria-labelledby="well-title"
-            className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6"
-          >
+          <section aria-labelledby="well-title" className="student-good">
             <h2 id="well-title" className="text-lg font-bold text-emerald-900">
               Con đã làm tốt
             </h2>
@@ -280,8 +274,10 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
 
 function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="card flex items-center gap-4 p-5">
-      <span className="flex size-11 items-center justify-center rounded-2xl bg-slate-50">{icon}</span>
+    <div className="stat-item card flex items-center gap-4 p-5">
+      <span className="stat-icon flex size-11 items-center justify-center rounded-2xl bg-slate-50">
+        {icon}
+      </span>
       <span>
         <span className="block text-sm text-slate-600">{label}</span>
         <span className="block text-2xl font-bold">{value}</span>

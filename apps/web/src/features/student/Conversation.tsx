@@ -1,8 +1,8 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 
 import { BookIcon, LightbulbIcon, PencilIcon, StarIcon } from "../../components/icons";
 import { TEACH_KIND_LABEL } from "../../components/labels";
-import { Mascot } from "../../components/Mascot";
+import { Mascot, type Mood } from "../../components/Mascot";
 import { MathText } from "../../components/MathText";
 import type { DisplayTurn, TutorView } from "./tutorSession";
 
@@ -11,13 +11,14 @@ interface ConversationProps {
   typing: TutorView["typing"];
   tutorName: string;
   studentName: string;
+  waiting?: boolean;
 }
 
-export function Conversation({ turns, typing, tutorName, studentName }: ConversationProps) {
+export function Conversation({ turns, typing, tutorName, studentName, waiting = false }: ConversationProps) {
   const firstQuestion = turns.findIndex((turn) => turn.move === "PRESENT");
   // The child's message shows at once, as sent; while the tutor prepares the answer, three dots (the owner,
   // 2026-10-12: "Đang gửi…" under the child's message read as the tutor thinking).
-  const thinking = typing ?? (turns.some((turn) => turn.pending) ? { text: "" } : null);
+  const thinking = typing ?? (waiting || turns.some((turn) => turn.pending) ? { text: "" } : null);
 
   return (
     <section aria-label={`Trò chuyện với ${tutorName}`} className="flex flex-col gap-2.5">
@@ -44,14 +45,14 @@ export function Conversation({ turns, typing, tutorName, studentName }: Conversa
   );
 }
 
-function Avatar({ label, tutor }: { label: string; tutor: boolean }) {
+function Avatar({ label, tutor, mood = "happy" }: { label: string; tutor: boolean; mood?: Mood }) {
   if (tutor) {
     return (
       <span
         aria-hidden="true"
-        className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-slate-200"
+        className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 ring-brand-200 transition-transform duration-200"
       >
-        <Mascot size={32} />
+        <Mascot size={34} mood={mood} animated />
       </span>
     );
   }
@@ -99,26 +100,43 @@ const Bubble = memo(function Bubble({ turn, speaker }: { turn: DisplayTurn; spea
 /** The tutor turn being streamed. Kept out of the live region: the final turn is announced once. */
 function TypingBubble({ text, tutorName }: { text: string; tutorName: string }) {
   return (
-    <div className="flex items-end gap-2" aria-hidden="true" data-testid="typing">
-      <Avatar label={tutorName} tutor />
-      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3.5 py-2 text-base leading-relaxed ring-1 ring-slate-200 md:text-[17px]">
+    <div className="flex items-end gap-2" data-testid="typing">
+      <Avatar label={tutorName} tutor mood="thinking" />
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-base leading-relaxed shadow-sm ring-1 ring-amber-200 md:text-[17px]">
         {text ? (
-          <p className="whitespace-pre-wrap">
+          <p className="whitespace-pre-wrap" aria-hidden="true">
             <MathText text={text} />
-            <span className="ml-0.5 inline-block h-5 w-0.5 bg-slate-400 align-middle motion-safe:animate-pulse" />
+            <span className="ml-0.5 inline-block h-5 w-0.5 bg-brand-500 align-middle motion-safe:animate-pulse" />
           </p>
         ) : (
-          <p className="flex gap-1.5 py-2">
-            {[0, 1, 2].map((dot) => (
-              <span
-                key={dot}
-                style={{ animationDelay: `${dot * 150}ms` }}
-                className="size-2.5 rounded-full bg-brand-400 motion-safe:animate-bounce"
-              />
-            ))}
-          </p>
+          <ThinkingStatus tutorName={tutorName} />
         )}
       </div>
+    </div>
+  );
+}
+
+/** A long provider fallback remains one pending turn, without exposing infrastructure details. */
+function ThinkingStatus({ tutorName }: { tutorName: string }) {
+  const [longWait, setLongWait] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLongWait(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return (
+    <div role="status" aria-live="polite" className="flex flex-col gap-2 py-1">
+      <span className={longWait ? "text-sm text-brand-800" : "sr-only"}>
+        {longWait ? `${tutorName} đang suy nghĩ, con chờ một chút nhé.` : `${tutorName} đang suy nghĩ…`}
+      </span>
+      <span className="flex items-center gap-1.5" aria-hidden="true">
+        {[0, 1, 2].map((dot) => (
+          <span
+            key={dot}
+            style={{ animationDelay: `${dot * 150}ms` }}
+            className="size-2.5 rounded-full bg-brand-400 motion-safe:animate-bounce"
+          />
+        ))}
+      </span>
     </div>
   );
 }

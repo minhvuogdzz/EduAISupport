@@ -33,6 +33,7 @@ fill() {
 
 fill MONGO_PASSWORD
 fill AUTH_SECRET
+fill ADMIN_PASSWORD
 chmod 600 .env
 
 if is_set GROQ_API_KEY; then

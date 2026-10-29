@@ -137,8 +137,8 @@ describe("teacher library and lesson content (DOC-1)", () => {
     renderApp("/teacher/lessons/math-g5-decimals", libraryApi().api);
     expect(await screen.findByRole("heading", { level: 2, name: "Phân số thập phân" })).toBeInTheDocument();
     const theory = screen.getByRole("region", { name: "Lý thuyết (các cách giảng)" });
-    expect(theory).toHaveTextContent("Đáp án chấp nhận: 4/100 · 0,04");
-    expect(theory).toHaveTextContent("Lời cô đáp: Tô 4 ô trong 100 ô");
+    expect(theory).toHaveTextContent("Ví dụ trả lời đúng ý: 4/100 · 0,04");
+    expect(theory).toHaveTextContent("Ý giải thích tham khảo: Tô 4 ô trong 100 ô");
     const items = screen.getByRole("region", { name: "Câu hỏi · Luyện tập" });
     expect(items).toHaveTextContent("Đáp án: 0,9");
     expect(items).toHaveTextContent("Lỗi sai dự đoán: 0,09 → Quên chữ số 0 giữ chỗ");

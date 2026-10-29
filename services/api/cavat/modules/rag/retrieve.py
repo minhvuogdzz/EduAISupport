@@ -31,6 +31,7 @@ import numpy as np
 
 from cavat.core.vi_text import fold, normalize
 from cavat.modules.assessment.math_terms import MATH_TERMS
+from cavat.modules.observability.trace import traced
 from cavat.modules.rag.bm25 import TwoFormBM25
 from cavat.modules.rag.chunks import Chunk
 from cavat.modules.rag.embed import Embedder, cosine
@@ -307,6 +308,7 @@ class RagIndex:
                     queue.append(nxt)
         return seen
 
+    @traced("rag")
     def retrieve(
         self,
         query: str,

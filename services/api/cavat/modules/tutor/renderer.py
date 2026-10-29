@@ -358,6 +358,21 @@ def _explain(ctx: RenderContext) -> RenderedMessage:
     approved passages that does, with the item asked again; else that hint anyway.
     """
     hint = _hint(ctx)
+    from cavat.modules.tutor.brain import explanation_only
+
+    if ctx.state.dialogue_version >= 3 and explanation_only(ctx.student_text or ""):
+        sentence = covering_sentence(ctx.focus, ctx.evidence)
+        if sentence is None:
+            sentence = next(
+                (
+                    part.strip()
+                    for part in re.split(r"(?<=[.!?])\s+", hint.text)
+                    if part.strip() and "?" not in part
+                ),
+                None,
+            )
+        if sentence:
+            return _msg(sentence, "TEMPLATE")
     wanted = _words_of(ctx.focus or "")
     if wanted & _words_of(hint.text) or not ctx.evidence:
         return _msg(f"{_say(ctx, 'explain_lead')} {hint.text}", hint.source, hint.hint_ref)
@@ -538,7 +553,9 @@ class TemplateRenderer:
             if "CONTINUE" in ctx.decision.reason_codes:
                 return _msg(f"Ừ, mình thử nhé. {ctx.resume_prompt}", "TEMPLATE")
             if "AMBIGUOUS_REPLY" in ctx.decision.reason_codes:
-                return _msg("Cô chưa rõ ý con: con chưa hiểu cách làm hay chưa muốn làm tiếp?", "TEMPLATE")
+                return _msg("Cô chưa rõ điều con muốn nói. Con nói thêm cho cô một chút nhé?", "TEMPLATE")
+            if "REACTION" in ctx.decision.reason_codes:
+                return _msg(f"Mình quay lại bài nhé. {ctx.resume_prompt}".strip(), "TEMPLATE")
             if "DECLINE" in ctx.decision.reason_codes:
                 return _msg("Mình nghỉ một chút nhé. Khi sẵn sàng, con nhắn cô để mình học tiếp.", "TEMPLATE")
             if (ctx.focus or "").startswith("con tiếp nhận lời hướng dẫn"):

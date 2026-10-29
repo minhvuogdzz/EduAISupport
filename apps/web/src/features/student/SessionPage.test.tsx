@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { SessionApi } from "../../api/client";
 import { memoryStorage } from "../../test/memoryStorage";
@@ -46,6 +46,32 @@ describe("student session screen", () => {
     );
     // CC-01 is a choice item: its options are offered as quick answers.
     expect(screen.getByRole("button", { name: "hàng phần mười" })).toBeInTheDocument();
+  });
+
+  it("holds one pending answer through a provider delay and advances exactly once", async () => {
+    const base = testApi();
+    let release!: () => void;
+    const delayed = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const submitResponse = vi.fn<SessionApi["submitResponse"]>(async (...args) => {
+      await delayed;
+      return base.submitResponse(...args);
+    });
+    const { user } = await openSession({ ...base, submitResponse });
+    await answer(user, "hàng phần mười");
+    expect(await screen.findByTestId("typing")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gửi" })).toBeDisabled();
+    expect(submitResponse).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Chưa gửi được. Con thử lại nhé.")).not.toBeInTheDocument();
+    release();
+    await screen.findByRole("heading", { name: "Câu 2/8" });
+    await waitForTurn();
+    expect(submitResponse).toHaveBeenCalledOnce();
+    expect(screen.getByRole("progressbar", { name: "Tiến độ buổi học" })).toHaveAttribute(
+      "aria-valuenow",
+      "1",
+    );
   });
 
   it("shows decimals the vi-VN way and marks the blank of a fill-in stem", async () => {

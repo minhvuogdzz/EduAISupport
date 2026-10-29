@@ -53,7 +53,7 @@ export function ClassPage() {
   }
   return (
     <AppShell>
-      <title>Lớp học · CAVAT</title>
+      <title>Lớp học · Monkey Edu</title>
       <TeacherHeader title={overview.data ? `Lớp học · ${overview.data.chapter.title}` : "Lớp học"} />
       <div className="mx-auto max-w-7xl px-4 pb-10">
         <ChapterTabs current={chapter ?? overview.data?.chapter.chapter_id} />
@@ -104,7 +104,7 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
   const recurring = [...overview.misconceptions].sort((a, b) => b.recent - a.recent || b.count - a.count)[0];
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="stat-strip teacher-stats grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi icon={<UsersIcon className="size-5 text-sky-700" />} label="Học sinh" value={`${k.students}`}>
           {k.active_this_week} em học trong tuần này
         </Kpi>
@@ -276,15 +276,17 @@ function Kpi({
   children: ReactNode;
 }) {
   return (
-    <div className="card p-5">
+    <div className="stat-item card p-5">
       <div className="flex items-center justify-between text-sm text-slate-600">
         {label}
-        {icon}
+        <span className="stat-icon" aria-hidden="true">
+          {icon}
+        </span>
       </div>
-      <div className="mt-2 text-2xl font-bold tabular-nums">
+      <div className="teacher-stat-value tabular-nums">
         {tone ? <span className={`rounded-xl px-2 ${tone}`}>{value}</span> : value}
       </div>
-      <div className="mt-1 text-sm text-slate-600">{children}</div>
+      <div className="teacher-stat-note">{children}</div>
     </div>
   );
 }

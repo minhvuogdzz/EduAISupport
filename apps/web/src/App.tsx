@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { useEffect, type ReactNode } from "react";
+import { Route, Routes, useLocation } from "react-router";
 
 import type { AccountKind } from "./api/contract";
+import { AdminPage } from "./features/admin/AdminPage";
 import { AuthGate, RequireKind } from "./features/auth/AuthGate";
-import { homeOf, useAuth } from "./features/auth/authContext";
 import { ParentChildPage, ParentPage } from "./features/parent/ParentPages";
 import { SessionPage } from "./features/student/SessionPage";
 import { StudentStartPage } from "./features/student/StudentStartPage";
@@ -21,17 +21,23 @@ function only(kind: AccountKind, page: ReactNode) {
   return <RequireKind kind={kind}>{page}</RequireKind>;
 }
 
-/** With an account the home is that role's own area; without one, the page that presents the three roles. */
+/** The introduction stays public; each account area keeps its protected route. */
 function Home() {
-  const { user } = useAuth();
-  return user ? <Navigate to={homeOf(user.kind)} replace /> : <HomePage />;
+  return <HomePage />;
 }
 
 export function App() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    // Each area opens at its heading; in-page anchors keep the browser's smooth scroll.
+    if (!hash && window.scrollY > 0) window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname, hash]);
   return (
     <AuthGate>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Home />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/student" element={only("STUDENT", <StudentStartPage />)} />
         <Route path="/student/sessions/:sessionId" element={only("STUDENT", <SessionPage />)} />
         <Route path="/parent" element={only("PARENT", <ParentPage />)} />

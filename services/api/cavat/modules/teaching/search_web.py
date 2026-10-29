@@ -17,6 +17,7 @@ import httpx
 from pypdf import PdfReader
 
 from cavat.core.vi_text import contains_phrase, fold, normalize
+from cavat.modules.observability.trace import network_request, source_event, traced
 from cavat.modules.teaching.official_web import CONCEPTS, OfficialEducation
 from cavat.modules.teaching.web import EXCERPT_CHARS, WebPage
 
@@ -171,15 +172,17 @@ class SearchEducation:
         self.cache_dir, self.client, self.api_key = cache_dir, client, api_key
 
     def _read(self, client, url, limit=MAX_BYTES, *, method="GET", **kwargs):
-        with client.stream(method, url, follow_redirects=False, **kwargs) as response:
-            if response.status_code != 200 or str(response.url) != url:
-                return None
-            body = bytearray()
-            for part in response.iter_bytes():
-                body.extend(part)
-                if len(body) > limit:
+        with network_request(url, method) as network:
+            with client.stream(method, url, follow_redirects=False, **kwargs) as response:
+                network["http_status"] = response.status_code
+                if response.status_code != 200 or str(response.url) != url:
                     return None
-            return bytes(body), response.headers.get("content-type", "")
+                body = bytearray()
+                for part in response.iter_bytes():
+                    body.extend(part)
+                    if len(body) > limit:
+                        return None
+                return bytes(body), response.headers.get("content-type", "")
 
     def _search(self, client, concept):
         # Never include the student's words, name, numbers, item, history or a model-authored URL.
@@ -221,6 +224,8 @@ class SearchEducation:
                 body, media = got
                 if endpoint.startswith("https://api.tavily.com"):
                     data = json.loads(body)
+                    if not isinstance(data, dict) or not isinstance(data.get("results"), list):
+                        continue
                     hits = [
                         (row.get("title", ""), row.get("url", ""))
                         for row in data.get("results", [])
@@ -260,6 +265,7 @@ class SearchEducation:
             except (httpx.HTTPError, ValueError, TypeError, AttributeError, ET.ParseError):
                 continue
 
+    @traced("web")
     def lookup(self, query: str) -> WebPage | None:
         if query not in CONCEPTS:
             return None
@@ -270,6 +276,7 @@ class SearchEducation:
                 data = json.loads(cache.read_text())
                 page = WebPage(**data["page"])
                 if 0 <= time.time() - data["time"] < CACHE_SECONDS and accepts(page, query):
+                    source_event("web_page_cache_hit", kind="cache", url=page.url)
                     return page
             except (OSError, ValueError, TypeError, KeyError):
                 pass

@@ -66,7 +66,7 @@ class SlowStarter(Learner):
         self.visits += sum(
             m.kind == MessageKind.NODE
             and m.node_id == FIRST
-            and ("cùng học" in m.text or "một lần nữa" in m.text)
+            and ("cùng học" in m.text or "cùng ôn tập" in m.text or "một lần nữa" in m.text)
             for m in turn.messages
         )
         if (
@@ -108,7 +108,8 @@ def test_a_period_stopped_twice_stays_to_revise_and_is_not_taught_a_third_time()
     kinds = [(m.kind, m.node_id) for m in messages]
     assert kinds.count((MessageKind.STOP, FIRST)) == 2
     assert (
-        sum(m.kind == MessageKind.NODE and m.node_id == FIRST and "cùng học" in m.text for m in messages) == 1
+        sum(m.kind == MessageKind.NODE and m.node_id == FIRST and "cùng ôn tập" in m.text for m in messages)
+        == 1
     )
     assert sum("một lần nữa" in m.text for m in messages if m.node_id == FIRST) == 1
     assert (MessageKind.PASS, FIRST) not in kinds

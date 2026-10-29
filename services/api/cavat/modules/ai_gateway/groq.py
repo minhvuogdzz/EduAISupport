@@ -6,6 +6,7 @@ Chat: Qwen (tutor brain) and gpt-oss fallbacks. Speech-to-text: Whisper.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -77,7 +78,11 @@ class GroqClient:
             "model": model,
             "messages": [{"role": m.role, "content": m.content} for m in request.messages],
             "temperature": request.temperature,
-            "max_completion_tokens": request.max_output_tokens,
+            "max_completion_tokens": (
+                max(request.max_output_tokens, 1024)
+                if model.startswith("openai/gpt-oss")
+                else request.max_output_tokens
+            ),
         }
         if (effort := reasoning_effort_for(model)) is not None:
             body["reasoning_effort"] = effort
@@ -92,9 +97,16 @@ class GroqClient:
             }
         payload = self._send(model, "/chat/completions", json=body)
         try:
-            text = payload["choices"][0]["message"]["content"] or ""
+            choice = payload["choices"][0]
+            text = choice["message"]["content"] or ""
         except (KeyError, IndexError, TypeError) as exc:
             raise InvalidModelOutput("response has no choices[0].message.content", model=model) from exc
+        if choice.get("finish_reason") not in (None, "stop"):
+            raise InvalidModelOutput("completion did not finish normally", model=model)
+        if not isinstance(text, str) or re.search(
+            r"</?think(?:ing)?>|<\|(?:analysis|channel|im_start)\|>", text, re.I
+        ):
+            raise InvalidModelOutput("invalid content or exposed reasoning", model=model)
         data = _parse_json_object(text, model) if request.json_schema is not None else None
         if data is None and not text.strip():
             raise InvalidModelOutput("empty completion", model=model)
@@ -111,12 +123,39 @@ class GroqClient:
         payload = self._send(
             model,
             "/audio/transcriptions",
-            data={"model": model, "language": language, "response_format": "json", "temperature": "0"},
+            data={
+                "model": model,
+                "language": language,
+                "response_format": "verbose_json",
+                "temperature": "0",
+            },
             files={"file": (filename, audio)},
         )
         text = payload.get("text")
         if not isinstance(text, str):
             raise InvalidModelOutput("transcription has no text", model=model)
+        # Whisper can produce words for quiet/noise. Use acoustic confidence, never a blacklist of
+        # phrases: a child really saying "cảm ơn" must still be heard. DI (VOICE-3): require both
+        # no_speech_prob > 0.6 and avg_logprob < -0.5. Missing metadata remains
+        # compatible with STT providers returning text only.
+        segments = payload.get("segments")
+        if isinstance(segments, list):
+            kept = []
+            for segment in segments:
+                if not isinstance(segment, dict) or not isinstance(segment.get("text"), str):
+                    raise InvalidModelOutput("transcription has an invalid segment", model=model)
+                no_speech = segment.get("no_speech_prob")
+                confidence = segment.get("avg_logprob")
+                if (
+                    isinstance(no_speech, (int, float))
+                    and isinstance(confidence, (int, float))
+                    and no_speech > 0.6
+                    and confidence < -0.5
+                ):
+                    continue
+                kept.append(segment["text"].strip())
+            if len(kept) != len(segments) or not segments:
+                text = " ".join(kept)
         return Transcription(model=model, text=text.strip(), language=language)
 
     def _send(self, model: str, path: str, **kwargs: Any) -> dict[str, Any]:

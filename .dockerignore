@@ -20,8 +20,8 @@ evals
 **/.pytest_cache
 **/.ruff_cache
 
-# the image needs only the lessons of docs/, the voice server is not part of it, tests are not run in it
+# the images need only the lessons of docs/; tests are not run in them
 docs/*
 !docs/pedagogy
-services/voice
 services/api/tests
+.pnpm-store

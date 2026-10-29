@@ -8,6 +8,7 @@ imported only inside this module.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from pydantic import SecretStr
@@ -20,6 +21,7 @@ from .base import (
     QuotaExceeded,
     Usage,
     VisionResult,
+    parse_reset_duration,
 )
 
 DEFAULT_VISION_MODEL = "gemini-3.8-flash"
@@ -78,7 +80,7 @@ class GeminiVision:
         # Gemini 3 takes a thinking level; 2.5 a thinking budget (0: no thinking, enough to copy a page).
         thinking = (
             types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
-            if model.startswith("gemini-3")
+            if model.startswith(("gemini-3", "gemini-4"))
             else types.ThinkingConfig(thinking_budget=0)
         )
         config = types.GenerateContentConfig(thinking_config=thinking)
@@ -88,7 +90,7 @@ class GeminiVision:
         except errors.APIError as exc:
             if exc.code == 429:
                 raise QuotaExceeded("Gemini rate limited", model=model, reset_at=None) from exc
-            raise ModelUnavailable(f"Gemini HTTP {exc.code}", model=model) from exc
+            raise ModelUnavailable(f"Gemini HTTP {exc.code}: {_api_message(exc)}", model=model) from exc
         except Exception as exc:  # network errors from the SDK transport
             raise ModelUnavailable(f"Gemini call failed: {type(exc).__name__}", model=model) from exc
         text = (getattr(response, "text", None) or "").strip()
@@ -118,7 +120,9 @@ class GeminiChat:
 
             key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
             # a tutor turn waits for this call: a Gemini that hangs must fail, and the chain goes on
-            client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=int(timeout_s * 1000)))
+            client = genai.Client(
+                api_key=key, http_options=types.HttpOptions(timeout=max(10_000, int(timeout_s * 1000)))
+            )
         self._client = client
 
     def chat(self, request: ChatRequest) -> ChatResult:
@@ -144,13 +148,17 @@ class GeminiChat:
         ]
         thinking = (
             types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
-            if model.startswith("gemini-3")
+            if model.startswith(("gemini-3", "gemini-4"))
             else types.ThinkingConfig(thinking_budget=0)
         )
         settings: dict[str, Any] = {
             "system_instruction": system,
             "temperature": request.temperature,
-            "max_output_tokens": request.max_output_tokens,
+            "max_output_tokens": max(request.max_output_tokens, 2048)
+            if model.startswith("gemini-4")
+            else max(request.max_output_tokens, 1024)
+            if model.startswith("gemini-3")
+            else request.max_output_tokens,
             "thinking_config": thinking,
         }
         if request.json_schema is not None:
@@ -162,10 +170,16 @@ class GeminiChat:
             )
         except errors.APIError as exc:
             if exc.code == 429:
-                raise QuotaExceeded(f"Gemini HTTP 429: {_api_message(exc)}", model=model) from exc
-            raise ModelUnavailable(f"Gemini HTTP {exc.code}", model=model) from exc
+                raise _chat_quota_error(exc, model) from exc
+            raise ModelUnavailable(f"Gemini HTTP {exc.code}: {_api_message(exc)}", model=model) from exc
         except Exception as exc:  # network errors from the SDK transport
             raise ModelUnavailable(f"Gemini call failed: {type(exc).__name__}", model=model) from exc
+        candidates = getattr(response, "candidates", None)
+        if candidates:
+            reason = getattr(candidates[0], "finish_reason", None)
+            name = getattr(reason, "name", str(reason)) if reason else "STOP"
+            if name != "STOP":
+                raise InvalidModelOutput("Gemini completion did not finish normally", model=model)
         text = (getattr(response, "text", None) or "").strip()
         if not text:
             raise InvalidModelOutput("empty chat response", model=model)
@@ -182,9 +196,64 @@ class GeminiChat:
         )
 
 
-def _plain_schema(schema: Any) -> dict[str, Any]:
-    """The schema as Gemini reads it: no ``additionalProperties`` (Groq's strict mode wants it)."""
-    return {k: v for k, v in dict(schema).items() if k != "additionalProperties"}
+def _chat_quota_error(exc: Any, model: str, *, now: datetime | None = None) -> QuotaExceeded:
+    """Honor Gemini's structured RetryInfo and distinguish daily from minute limits.
+
+    Never infer that all 429s recover after the dispatcher's generic ten-minute pause.
+    """
+    now = now or datetime.now(UTC)
+    raw = getattr(exc, "details", {})
+    error = raw.get("error", raw) if isinstance(raw, dict) else {}
+    details = error.get("details", []) if isinstance(error, dict) else []
+    kinds: set[str] = set()
+    delays = []
+    for detail in details if isinstance(details, list) else []:
+        if not isinstance(detail, dict):
+            continue
+        if isinstance(detail.get("retryDelay"), str):
+            try:
+                delay = parse_reset_duration(detail["retryDelay"])
+            except (ValueError, OverflowError):
+                delay = None
+            if delay is not None:
+                delays.append(delay)
+        violations = detail.get("violations", [])
+        for violation in violations if isinstance(violations, list) else []:
+            if not isinstance(violation, dict):
+                continue
+            identity = (
+                (str(violation.get("quotaId", "")) + str(violation.get("quotaMetric", "")))
+                .lower()
+                .replace("_", "")
+            )
+            if "perday" in identity:
+                kinds.add("TPD" if "token" in identity else "RPD")
+            elif "perminute" in identity:
+                kinds.add("TPM" if "token" in identity else "RPM")
+    limit = next((kind for kind in ("RPD", "TPD", "RPM", "TPM") if kind in kinds), None)
+    reset_at = now + max(max(delays), timedelta(seconds=1)) if delays else None
+    if reset_at is None and limit == "RPD":
+        # Google documents daily request resets at midnight Pacific; account for DST.
+        from zoneinfo import ZoneInfo
+
+        pacific = ZoneInfo("America/Los_Angeles")
+        tomorrow = now.astimezone(pacific).date() + timedelta(days=1)
+        reset_at = datetime.combine(tomorrow, datetime.min.time(), tzinfo=pacific).astimezone(UTC)
+    return QuotaExceeded(
+        f"Gemini HTTP 429{f' ({limit})' if limit else ''}: {_api_message(exc)}",
+        model=model,
+        reset_at=reset_at,
+        limit=limit,
+    )
+
+
+def _plain_schema(schema: Any) -> Any:
+    """Strip Groq's strict-object keyword at every level, including meaning-check array items."""
+    if isinstance(schema, dict):
+        return {k: _plain_schema(v) for k, v in schema.items() if k != "additionalProperties"}
+    if isinstance(schema, list):
+        return [_plain_schema(value) for value in schema]
+    return schema
 
 
 def _api_message(exc: Any) -> str:

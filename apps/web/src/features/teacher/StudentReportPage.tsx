@@ -79,7 +79,9 @@ export function StudentReportPage() {
   }
   return (
     <AppShell>
-      <title>{report.data ? `${report.data.display_name} · Giáo viên · CAVAT` : "Học sinh · CAVAT"}</title>
+      <title>
+        {report.data ? `${report.data.display_name} · Giáo viên · Monkey Edu` : "Học sinh · Monkey Edu"}
+      </title>
       <TeacherHeader title={report.data ? `Học sinh ${report.data.display_name}` : "Học sinh"} />
       <div className="mx-auto max-w-7xl px-4 pb-10">
         <ChapterTabs current={chapter ?? report.data?.chapter.chapter_id} />

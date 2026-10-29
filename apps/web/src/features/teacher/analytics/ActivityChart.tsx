@@ -49,6 +49,7 @@ export function ActivityChart({ days }: { days: Day[] }) {
   return (
     <figure ref={frame} className="flex flex-col gap-2">
       <svg
+        data-chart
         viewBox={`0 0 ${W} ${H}`}
         width={W}
         height={H}
@@ -74,7 +75,15 @@ export function ActivityChart({ days }: { days: Day[] }) {
                 const h = d[p.key] * unit;
                 base -= h;
                 return h > 0 ? (
-                  <rect key={p.key} x={cx - barW / 2} y={base} width={barW} height={h} className={p.fill} />
+                  <rect
+                    key={p.key}
+                    x={cx - barW / 2}
+                    y={base}
+                    width={barW}
+                    height={h}
+                    className={`chart-bar ${p.fill}`}
+                    style={{ transformOrigin: `${cx}px ${H - bottom}px`, animationDelay: `${i * 55}ms` }}
+                  />
                 ) : null;
               })}
               <text

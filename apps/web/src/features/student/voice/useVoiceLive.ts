@@ -137,7 +137,7 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
     async (signal: AbortSignal, stream?: MediaStream): Promise<string> => {
       if (serverEar && api.voice) {
         setPhase("listening");
-        const blob = await recordTurn(signal, setLevel, { stream, speaking: Boolean(stream) });
+        const blob = await recordTurn(signal, setLevel, { stream });
         micAllowed.current = true;
         setBargeIn(true);
         setLevel(0);

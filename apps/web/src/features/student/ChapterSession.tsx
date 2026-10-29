@@ -112,8 +112,8 @@ function ChapterSessionContent({
   const itemShown = Boolean(state.item) && (!lastTutor.includes(state.item?.stem ?? "") || hasImage);
 
   return (
-    <div className="flex h-dvh flex-col bg-paper">
-      <title>{`${teaching.chapter.title} · CAVAT`}</title>
+    <div className="lesson-room flex h-dvh flex-col bg-paper">
+      <title>{`${teaching.chapter.title} · Monkey Edu`}</title>
       <MockBanner />
       <ChapterHeader state={state} teaching={teaching} nodeName={current?.name ?? null} />
       <div className="flex min-h-0 flex-1">
@@ -149,6 +149,7 @@ function ChapterSessionContent({
                   </div>
                 )}
             <Conversation
+              waiting={busy}
               turns={turns}
               typing={typing}
               tutorName={tutorName}
@@ -221,9 +222,13 @@ function ChapterHeader({
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex items-center gap-3 px-4 py-2 lg:max-w-none">
-        <Link to="/" aria-label="CAVAT, trang chủ" className="flex shrink-0 items-center gap-1.5 rounded-2xl">
+        <Link
+          to="/"
+          aria-label="Monkey Edu, trang chủ"
+          className="flex shrink-0 items-center gap-1.5 rounded-2xl"
+        >
           <Mascot size={32} />
-          <span className="hidden font-extrabold text-brand-900 sm:inline">CAVAT</span>
+          <span className="hidden font-extrabold text-brand-900 sm:inline">Monkey Edu</span>
         </Link>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium text-brand-700">

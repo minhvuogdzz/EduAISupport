@@ -194,6 +194,7 @@ function MasteryChart({
         <p className="text-sm text-slate-600">Chưa có bằng chứng nào cho bài này.</p>
       ) : (
         <svg
+          data-chart
           viewBox={`0 0 ${W} ${H}`}
           width={W}
           height={H}
@@ -234,9 +235,11 @@ function MasteryChart({
             ngưỡng qua bài {formatViDecimal(threshold)}
           </text>
           <polyline
+            pathLength={1}
+            key={points.map((p) => `${p.sequence_no}:${p.mastery}`).join("|")}
             points={points.map((p, i) => `${x(i)},${y(p.mastery ?? 0)}`).join(" ")}
             fill="none"
-            className="stroke-brand-700"
+            className="chart-line stroke-brand-700"
             strokeWidth={2}
             strokeLinejoin="round"
           />
@@ -246,7 +249,8 @@ function MasteryChart({
               cx={x(i)}
               cy={y(p.mastery ?? 0)}
               r={4}
-              className="fill-brand-700 stroke-white"
+              className="chart-point fill-brand-700 stroke-white"
+              style={{ animationDelay: `${(i / Math.max(1, points.length - 1)) * 1600}ms` }}
               strokeWidth={2}
             >
               <title>{`Lượt #${p.sequence_no} lúc ${formatViTime(p.occurred_at)}: M ${formatViDecimal(p.mastery ?? 0)}`}</title>
@@ -443,7 +447,7 @@ function DecisionTimeline({ decisions, names }: { decisions: DecisionEntry[]; na
         Quyết định của cô ({decisions.length})
       </h3>
       <p className="mb-3 text-sm text-slate-600">
-        Mỗi bước do một luật tất định chọn; AI chỉ diễn đạt lời nói. Mới nhất ở trên.
+        Mỗi bước do một luật tất định chọn; Gia sư Buddy chỉ diễn đạt lời nói. Mới nhất ở trên.
       </p>
       <ol className="flex flex-col divide-y divide-slate-100">
         {shown.map((d) => (

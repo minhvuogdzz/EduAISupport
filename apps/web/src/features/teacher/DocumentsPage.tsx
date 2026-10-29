@@ -137,7 +137,7 @@ export function DocumentsPage() {
   }
   return (
     <AppShell>
-      <title>Tài liệu · Giáo viên · CAVAT</title>
+      <title>Tài liệu · Giáo viên · Monkey Edu</title>
       <TeacherHeader title="Tài liệu của giáo viên" />
       <div className="mx-auto max-w-7xl px-4 pb-10">{body}</div>
     </AppShell>
@@ -333,7 +333,7 @@ export function DocumentPage() {
   }
   return (
     <AppShell>
-      <title>Tài liệu · Giáo viên · CAVAT</title>
+      <title>Tài liệu · Giáo viên · Monkey Edu</title>
       <TeacherHeader title={document.data?.title ?? "Tài liệu"} />
       <div className="mx-auto max-w-7xl px-4 pb-10">
         <Link to="/teacher/documents" className="mb-3 inline-block text-sm text-brand-800 hover:underline">

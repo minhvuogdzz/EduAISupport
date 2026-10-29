@@ -18,8 +18,8 @@ class Settings(BaseSettings):
 
     mongodb_uri: SecretStr | None = None
     mongodb_db: str = "cavat_dev"
-    # Tutor brain (ADR-017): Qwen on Groq; the router's default chain reads its name from here.
-    # Gemini only for vision/OCR and the RAG vectors.
+    # Owner-ranked live chat: Gemini → GPT-OSS 120B → configured Qwen → GPT-OSS 20B.
+    # Qwen is named once here; available providers are wired by build_router.
     groq_api_key: SecretStr | None = None
     groq_model: str = "qwen/qwen3.8-27b"
     # CFG-3: a key of another Groq project for the evaluations, the simulated child and the batch drafts
@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     gemini_embedding_model: str = "gemini-embedding-001"  # Hybrid RAG vectors (plan v1 5.5.2)
     # BRAIN-1 (ADR-034): the models that write the tutor's words, first to last, comma separated
     # ("openai/gpt-oss-120b,qwen/qwen3.8-27b"). A name that starts with "gemini" is answered by the Gemini
-    # key. Empty: the router's default chain (see ``default_chat_chains``). One line changes the voice.
+    # key. Empty: owner-ranked Gemini candidates then 120B, Qwen, 20B. An explicit list
+    # is the full ordered chain shared by all live chat roles.
     tutor_models: str = ""
     # Hard cap on LLM calls per session; above it the tutor runs on approved templates only. DI-71 (REFORM-1):
     # 40, from 15. A Qwen call spends 1.126 token on average (prompt and output, measured 2026-10-25; the
@@ -51,6 +52,9 @@ class Settings(BaseSettings):
     max_llm_calls_per_chapter: int = 160
     # DI-92: teacher knowledge, verified independently, current topic/prerequisites only.
     allow_tutor_knowledge: bool = True
+    # Gemini head of the live chat priority; empty disables Gemini mentor support.
+    tutor_mentor_model: str = "gemini-4-argon"
+    gemini_tutor_fallbacks: tuple[str, ...] = ("gemini-2.5-flash", "gemini-3.8-flash")
     # "template": approved sentences only. "llm": Qwen phrases the moves, templates as fallback. REFORM-1:
     # unset, it is "llm" when a Groq key is set and "template" without one (the tests blank the key).
     tutor_renderer: Literal["template", "llm"] = "template"
@@ -66,6 +70,9 @@ class Settings(BaseSettings):
     auth_mode: Literal["accounts", "demo"] = "accounts"
     # Key that signs login tokens. Unset: a random key per process (every restart logs everyone out).
     auth_secret: SecretStr | None = None
+    # Owner-requested administration password; verified only on the server.
+    admin_password: SecretStr = SecretStr("1234")
+    observability_enabled: bool = True
     # REL-1 (ADR-035): one port. The API serves the web app that `make run` built in this folder, with
     # index.html for the app's own paths; no build there, it is the API alone (the dev server on 5173).
     web_dist: Path = REPO_ROOT / "apps" / "web" / "dist"

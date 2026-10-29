@@ -37,7 +37,7 @@ export function TeacherPage() {
 
   return (
     <AppShell>
-      <title>Giáo viên · CAVAT</title>
+      <title>Giáo viên · Monkey Edu</title>
       <TeacherHeader title="Buổi học">
         {api.resetDemoData && (
           <button

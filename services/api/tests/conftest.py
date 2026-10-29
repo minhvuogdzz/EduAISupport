@@ -13,6 +13,9 @@ import os
 # The tests that came before the accounts (ACC-1) identify callers with the X-Demo-* headers; the account
 # tests switch to AUTH_MODE=accounts with the `accounts_mode` fixture. Set before the settings are read.
 os.environ["AUTH_MODE"] = "demo"
+# Tests never append diagnostic events to the owner's operational journal.
+# Observability tests explicitly enable tracing with an isolated temporary journal.
+os.environ["OBSERVABILITY_ENABLED"] = "0"
 # No test reaches a model, even on the owner's machine where services/api/.env holds real keys (a cloud
 # session has none): blank keys win over the .env file, so the gateway stays in template-only mode and the
 # Hybrid RAG uses its offline embedder. Tests that need a provider pass a fake one.

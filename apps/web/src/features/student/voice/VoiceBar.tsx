@@ -1,3 +1,4 @@
+import { MicrophoneIcon, XIcon } from "../../../components/icons";
 import type { VoiceLive } from "./useVoiceLive";
 
 const PHASE_TEXT: Record<VoiceLive["phase"], string> = {
@@ -30,7 +31,7 @@ export function VoiceToggle({ voice }: { voice: VoiceLive }) {
           voice.on ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-brand-800 ring-slate-200"
         }`}
       >
-        {voice.on ? "✕" : "🎤"}
+        {voice.on ? <XIcon className="size-5" /> : <MicrophoneIcon className="size-5" />}
       </button>
       {voice.on && (
         <button
@@ -48,7 +49,7 @@ export function VoiceToggle({ voice }: { voice: VoiceLive }) {
               : undefined
           }
         >
-          {listening ? "■" : "🎤"}
+          {listening ? <span aria-hidden="true">■</span> : <MicrophoneIcon className="size-5" />}
         </button>
       )}
     </>
