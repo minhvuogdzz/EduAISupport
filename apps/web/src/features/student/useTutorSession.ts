@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 
 import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
@@ -14,6 +14,7 @@ const NOTICE_FAILED = "Chưa gửi được. Con thử lại nhé.";
 export function useTutorSession(sessionId: string) {
   const api = useApi();
   const [view, dispatch] = useReducer(tutorReducer, initialTutorView);
+  const [recoveryFailures, setRecoveryFailures] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -22,7 +23,7 @@ export function useTutorSession(sessionId: string) {
       try {
         let state = await api.getState(sessionId);
         // Joining starts a READY session and resumes one the student left (PART 24.4).
-        if (["READY", "EXITED", "INTERRUPTED"].includes(state.lifecycle_state))
+        if (["READY", "ACTIVE", "EXITED", "INTERRUPTED"].includes(state.lifecycle_state))
           state = await api.join(sessionId);
         if (active) dispatch({ type: "loaded", state });
       } catch (error) {
@@ -40,12 +41,62 @@ export function useTutorSession(sessionId: string) {
     };
   }, [api, sessionId]);
 
-  const busy = isBusy(view);
+  const commandBusy = isBusy(view);
+  const state = view.state;
+  const pending = state?.tutor_recovery;
+  const retrying = pending?.status === "retrying" && recoveryFailures < 3 && Boolean(api.recover);
+  const busy = commandBusy || retrying;
+
+  useEffect(() => {
+    if (!state || !retrying || commandBusy || !api.recover) return;
+    let active = true;
+    const key = `recover-${sessionId}-${state.state_version}`;
+    const timer = setTimeout(
+      () => {
+        void (async () => {
+          try {
+            const ack = await api.recover!(sessionId, state.state_version, key);
+            if (!active) return;
+            dispatch({ type: "acked", version: ack.state_version });
+            // Also reload when a second tab already recovered the command or the stream was missed.
+            const fresh = await api.getState(sessionId);
+            if (active) {
+              setRecoveryFailures(0);
+              dispatch({ type: "loaded", state: fresh });
+            }
+          } catch {
+            if (!active) return;
+            setRecoveryFailures((n) => n + 1);
+            try {
+              const fresh = await api.getState(sessionId);
+              if (active) dispatch({ type: "loaded", state: fresh });
+            } catch {
+              // Bounded retries also apply to a disconnected browser.
+            }
+          }
+        })();
+      },
+      Math.max(pending?.retry_after_ms ?? 2000, recoveryFailures ? 5000 : 0),
+    );
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [api, sessionId, state, pending, retrying, commandBusy, recoveryFailures]);
+
+  useEffect(() => {
+    if (recoveryFailures >= 3)
+      dispatch({
+        type: "rejected",
+        notice: "Chưa kết nối lại được. Bài vẫn được giữ, con quay lại buổi học sau nhé.",
+      });
+  }, [recoveryFailures]);
 
   /** Sends one command with a fresh Idempotency-Key; on 409 re-reads the state (PART 24.2). */
   async function send(line: string, command: (state: SessionState, key: string) => Promise<CommandAck>) {
     const state = view.state;
     if (!state || busy) return false;
+    setRecoveryFailures(0);
     dispatch({ type: "sending", line });
     try {
       const ack = await command(state, newId());

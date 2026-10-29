@@ -17,6 +17,7 @@ command gets its first answer back instead of a 409.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime
 from functools import lru_cache, partial
 from typing import Annotated, Any, Literal
@@ -61,6 +62,11 @@ from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.voice import api as voice_api
 
 MAX_TEXT_CHARS = 500
+MAX_TUTOR_RECOVERIES = 3
+RECOVERY_STOP_MESSAGE = (
+    "Cô chưa thể tiếp tục lượt này sau khi thử lại. Bài và lời con vừa nói vẫn được giữ. "
+    "Con có thể quay lại buổi học sau để thử tiếp nhé."
+)
 
 
 class ApiError(Exception):
@@ -105,6 +111,10 @@ class ChoiceCommand(_In):
     expected_state_version: int = Field(ge=0)
 
 
+class RecoverCommand(_In):
+    expected_state_version: int = Field(ge=0)
+
+
 class ChatTurn(BaseModel):
     turn_id: str
     sequence_no: int
@@ -116,6 +126,7 @@ class ChatTurn(BaseModel):
     hint_level: int | None
     kind: str | None = None  # chapter sessions: THEORY, EXAMPLE, RETELL_PROMPT, FEEDBACK, NODE, PASS...
     node_id: str | None = None
+    entry_greeting: bool = False
 
 
 class ItemOption(BaseModel):
@@ -205,6 +216,7 @@ class SessionStateView(BaseModel):
     progress: Progress
     transcript: list[ChatTurn]
     teaching: TeachingView | None = None
+    tutor_recovery: dict[str, Any] | None = None
 
 
 class SessionSummaryView(BaseModel):
@@ -903,10 +915,16 @@ async def _history(database: Any, session: LearningSession) -> list[Any]:
 async def _view(database: Any, session: LearningSession) -> dict[str, Any]:
     if chapter_service.is_chapter(session):
         history = await _history(database, session)
-        return chapter_service.student_view(
+        view = chapter_service.student_view(
             _chapter(session.lesson_id, session.lesson_version), session, history
         )
-    return service.student_view(_package(session.lesson_id), session)
+    else:
+        view = service.student_view(_package(session.lesson_id), session)
+    pending = (session.state.activity or {}).get("tutor_recovery")
+    view["tutor_recovery"] = (
+        {k: pending[k] for k in ("status", "attempts", "retry_after_ms", "reason")} if pending else None
+    )
+    return view
 
 
 def _summaries(sessions: list[LearningSession]) -> list[dict[str, Any]]:
@@ -1002,6 +1020,8 @@ def _hold_for_unavailable_models(session, step, recording, text="", modality="TE
     spoken_events = [
         e for e in step.events if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
     ]
+    if spoken_events and all(e.payload.get("ref") == "GREETING_ONLY" for e in spoken_events):
+        return step
     # The live factory enforces model-only speech. Offline policy/replay engines may use templates
     # internally, but no rejected/static mathematical utterance may be committed to a live session.
     forbidden = (
@@ -1033,6 +1053,7 @@ def _hold_for_unavailable_models(session, step, recording, text="", modality="TE
         "text": MODEL_WAIT_MESSAGE,
         "node_id": (session.state.activity or {}).get("node_id"),
         "ref": "MODEL_WAIT",
+        "operational": True,
         "templates_version": TEMPLATES_VERSION,
         "source": "TEMPLATE",
         "sources": [],
@@ -1069,6 +1090,7 @@ def _hold_for_unavailable_models(session, step, recording, text="", modality="TE
             for e in step.events
             if e.event_type
             not in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT, EventType.HINT_DELIVERED)
+            or e.payload.get("ref") == "GREETING_ONLY"
         ]
         state = step.state.model_copy(deep=True)
         if state.activity:
@@ -1132,6 +1154,7 @@ async def _command(
     expected_version: int,
     command: service.CommandType,
     item_attempt_id: str | None = None,
+    recovery: bool = False,
     **kwargs: Any,
 ) -> CommandAck:
     if not key:
@@ -1185,6 +1208,7 @@ async def _command(
         step = _hold_for_unavailable_models(
             session, step, router, kwargs.get("text", ""), kwargs.get("modality", "TEXT")
         )
+        step = _track_recovery(session, step, command, kwargs, recovery=recovery)
         step.events.extend(model_call_events(router.calls, current))
     repo = _repo(database)
     try:
@@ -1204,6 +1228,106 @@ async def _command(
         # Copy for cross-session queries; idempotent, and the session document stays the source of truth.
         await repo.copy_events_to_ledger(saved.id, EventRepository(database, service.DEMO_SCHOOL_ID))
     return _ack_for_key(saved, key) or CommandAck(state_version=saved.state_version, tutor_turn_id=None)
+
+
+def _track_recovery(session, step, command, kwargs, *, recovery=False):
+    """Keep the exact command server-side; retries never invent a student utterance."""
+    held = any(
+        e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("text") == MODEL_WAIT_MESSAGE
+        for e in step.events
+    )
+    if recovery:
+        # The failed input is already visible. Keep the new input event for deterministic replay,
+        # but don't display it as if the child said it a second time.
+        for event in step.events:
+            if event.event_type in (
+                EventType.STUDENT_MESSAGE,
+                EventType.HINT_REQUESTED,
+                EventType.CHOICE_MADE,
+            ):
+                event.payload["recovery_replay"] = True
+    elif held and command in ("HINT_REQUEST", "CHOICE"):
+        line = (
+            "Con xin gợi ý."
+            if command == "HINT_REQUEST"
+            else service.CHOICES.get(kwargs.get("choice_id"), "")
+        )
+        step.events.insert(
+            0,
+            NewEvent(
+                event_type=EventType.STUDENT_MESSAGE,
+                payload={
+                    "item_id": f"{(session.state.activity or {}).get('node_id')}:MODEL_WAIT",
+                    "kind": "MESSAGE",
+                    "text": line,
+                    "modality": "TEXT",
+                    "seconds": 0,
+                },
+                actor=chapter_service.actor_for(EventType.STUDENT_MESSAGE, session.student_id),
+            ),
+        )
+    if not held:
+        state = step.state.model_copy(deep=True)
+        if state.activity:
+            state.activity.pop("tutor_recovery", None)
+        return replace(step, state=state)
+    previous = (session.state.activity or {}).get("tutor_recovery", {})
+    attempts = previous.get("attempts", 0) + 1 if recovery else 0
+    stopped = attempts >= MAX_TUTOR_RECOVERIES
+    state = step.state.model_copy(deep=True)
+    if state.activity is None:
+        state.activity = {}
+    rejected = [code for e in step.events for group in e.payload.get("rejected", []) for code in group]
+    reason = (
+        "validation"
+        if any(
+            code not in {"MODEL_ONLY_SPEECH", "SERVICE_UNAVAILABLE"}
+            and not code.startswith("SERVICE_UNAVAILABLE:")
+            for code in rejected
+        )
+        else "service"
+    )
+    state.activity["tutor_recovery"] = {
+        "command": command,
+        "kwargs": dict(kwargs),
+        "attempts": attempts,
+        "status": "stopped" if stopped else "retrying",
+        "retry_after_ms": min(2000 * 2**attempts, 8000),
+        "reason": reason,
+    }
+    for event in step.events:
+        if (
+            event.event_type == EventType.TEACH_MESSAGE_SENT
+            and event.payload.get("text") == MODEL_WAIT_MESSAGE
+        ):
+            event.payload["text"] = RECOVERY_STOP_MESSAGE if stopped else MODEL_WAIT_MESSAGE
+    return replace(step, state=state)
+
+
+@router.post("/{session_id}/recover", response_model=CommandAck)
+async def recover_session(
+    session_id: str,
+    body: RecoverCommand,
+    database: Database,
+    student: Student,
+    idempotency_key: IdempotencyKey = None,
+):
+    session = await _load(database, session_id, student)
+    if idempotency_key and (ack := _ack_for_key(session, idempotency_key)):
+        return ack
+    pending = (session.state.activity or {}).get("tutor_recovery")
+    if not pending or pending["status"] != "retrying":
+        return CommandAck(state_version=session.state_version, tutor_turn_id=None)
+    return await _command(
+        database,
+        session_id,
+        student,
+        idempotency_key,
+        body.expected_state_version,
+        pending["command"],
+        recovery=True,
+        **pending["kwargs"],
+    )
 
 
 @router.post("", status_code=201, response_model=SessionStateView)
@@ -1281,6 +1405,7 @@ async def join_session(session_id: str, database: Database, student: Student):
             )
             if recording is not None:
                 step = _hold_for_unavailable_models(session, step, recording)
+                step = _track_recovery(session, step, "ANSWER", {"text": "", "kind": "MESSAGE"})
                 step.events.extend(model_call_events(recording.calls))
         else:
             step = service.join(_package(session.lesson_id), session, utc_now())
@@ -1289,6 +1414,65 @@ async def join_session(session_id: str, database: Database, student: Student):
                 session, state=step.state, events=step.events, **step.fields
             )
         except StateVersionConflict:  # joined from another tab at the same moment
+            session = await _load(database, session_id, student)
+    elif session.state.lifecycle == LifecycleState.ACTIVE and chapter_service.is_chapter(session):
+        chapter = _chapter(session.lesson_id, session.lesson_version)
+        node_id = (session.state.activity or {}).get("node_id")
+        name = chapter.node(node_id).name if node_id else chapter.package.title
+        address = session.student_display_name or chapter.package.persona.student_address
+        state = session.state.model_copy(deep=True)
+        pending = (state.activity or {}).get("tutor_recovery")
+        if pending is None:
+            # Older saved sessions only logged a wait message; recover the saved utterance on entry.
+            last = next(
+                (
+                    e
+                    for e in reversed(session.events)
+                    if e.event_type
+                    in (
+                        EventType.TEACH_MESSAGE_SENT,
+                        EventType.TUTOR_MESSAGE_SENT,
+                    )
+                ),
+                None,
+            )
+            if last and last.payload.get("text") in {"Con chờ cô một chút nhé.", MODEL_WAIT_MESSAGE}:
+                student_input = next(
+                    (e for e in reversed(session.events) if e.event_type == EventType.STUDENT_MESSAGE), None
+                )
+                opening = last.payload.get("kind") == "THEORY" and str(last.payload.get("ref", "")).endswith(
+                    ":GENERATED"
+                )
+                if opening or (
+                    student_input and str(student_input.payload.get("item_id", "")).endswith(":MODEL_WAIT")
+                ):
+                    state.activity["tutor_recovery"] = pending = {
+                        "command": "ANSWER",
+                        "kwargs": {
+                            "text": "" if opening else student_input.payload["text"],
+                            "modality": "TEXT" if opening else student_input.payload.get("modality", "TEXT"),
+                        },
+                        "attempts": 0,
+                        "status": "retrying",
+                        "retry_after_ms": 2000,
+                        "reason": "service",
+                    }
+        if pending and pending["status"] == "stopped":
+            pending.update(status="retrying", attempts=0, retry_after_ms=2000)
+        welcome = NewEvent(
+            event_type=EventType.TEACH_MESSAGE_SENT,
+            payload={
+                "kind": "FEEDBACK",
+                "source": "TEMPLATE",
+                "ref": "GREETING_ONLY",
+                "node_id": node_id,
+                "text": f"Cô mừng {address} quay trở lại! Mình học tiếp bài {name} từ chỗ đang dở nhé.",
+            },
+            actor=chapter_service.actor_for(EventType.TEACH_MESSAGE_SENT, session.student_id),
+        )
+        try:
+            session = await _repo(database).commit(session, state=state, events=[welcome])
+        except StateVersionConflict:
             session = await _load(database, session_id, student)
     return await _view(database, session)
 

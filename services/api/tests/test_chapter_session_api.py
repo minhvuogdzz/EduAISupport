@@ -5,6 +5,7 @@ import pytest
 from cavat.core.memory_db import InMemoryDatabase
 from cavat.db import ensure_indexes
 from cavat.main import app
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
 from cavat.modules.session import api as session_api
 from cavat.modules.session import chapter_service, service
 from cavat.modules.session.api import get_database
@@ -144,7 +145,7 @@ def test_the_teacher_report_explains_scores_and_decisions(client):
     assert report["versions"] == {
         "mastery": "node-mastery/0.3.0",
         "policy": "node-policy/0.5.0",
-        "templates": "teaching-templates/0.17.0",
+        "templates": "teaching-templates/0.18.0",
     }
     frac = next(n for n in report["nodes"] if n["node_id"] == FRAC)
     assert frac["status"] == "CURRENT" and frac["mastery"] is not None
@@ -300,12 +301,13 @@ def test_all_models_unavailable_show_only_wait_and_preserve_opening(client, monk
 
     monkeypatch.setattr(session_api, "tutor_router", lambda: AIRouter(chat_provider=None))
     state = start(client)
-    assert [t["text"] for t in state["transcript"]] == ["Con chờ cô một chút nhé."]
+    assert state["transcript"][0]["text"].startswith("Cô chào Minh!")
+    assert state["transcript"][-1]["text"] == MODEL_WAIT_MESSAGE
     assert not state["teaching"]["prompt"]
     sent = send(client, state, "cô ơi", "offline-retry")
     assert sent.status_code == 200, sent.text
     after = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
-    assert after["transcript"][-1]["text"] == "Con chờ cô một chút nhé."
+    assert after["transcript"][-1]["text"] == MODEL_WAIT_MESSAGE
     for key in ("prompt", "step", "current_node_id", "awaiting", "nodes", "input_id"):
         assert after["teaching"][key] == state["teaching"][key]
 
@@ -320,7 +322,7 @@ def test_outage_during_learning_does_not_deliver_sample_or_advance(client, monke
     assert sent.status_code == 200, sent.text
     after = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
     new = after["transcript"][len(state["transcript"]) :]
-    assert [t["text"] for t in new if t["actor"] != "student"] == ["Con chờ cô một chút nhé."]
+    assert [t["text"] for t in new if t["actor"] != "student"] == [MODEL_WAIT_MESSAGE]
     for key in ("prompt", "step", "current_node_id", "awaiting", "nodes", "input_id"):
         assert after["teaching"][key] == state["teaching"][key]
     assert after["progress"] == state["progress"]
@@ -348,6 +350,6 @@ def test_model_outage_does_not_deliver_template_hint_or_increase_hint_level(clie
     assert response.status_code == 200, response.text
     after = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
     new = after["transcript"][len(before["transcript"]) :]
-    assert [t["text"] for t in new if t["actor"] != "student"] == ["Con chờ cô một chút nhé."]
+    assert [t["text"] for t in new if t["actor"] != "student"] == [MODEL_WAIT_MESSAGE]
     assert after["item"] == before["item"]
     assert after["teaching"] == before["teaching"]

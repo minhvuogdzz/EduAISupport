@@ -37,7 +37,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from cavat.core.pedagogy import Move, Outcome
+from cavat.core.pedagogy import MOVES_REQUIRING_QUESTION, Move, Outcome
 from cavat.modules.ai_gateway.base import ChatMessage, ModelClass
 from cavat.modules.ai_gateway.router import DEFAULT_MAX_LLM_CALLS_PER_SESSION, AIRouter
 from cavat.modules.assessment.vi_numbers import normalize_text
@@ -56,13 +56,14 @@ from cavat.modules.tutor.contracts import (
 from cavat.modules.tutor.policy import UNCLEAR_REASONS
 from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, given_name
 from cavat.modules.tutor.renderer import TemplateRenderer, fitting_generic_hints
+from cavat.modules.tutor.socratic import readiness_only
 from cavat.modules.tutor.validator import singles_out_choice
 
 # v9: BRAIN-1 (DI-84), see the module docstring
 # v8: REFORM-1b (DI-81), OFFER_CHOICE, CONFIRM_ADVANCE and a lead before the approved explanation
 # v7: REFORM-5, ASK_CONFIRM about a key slip or a typo is said by the intent agent's question or the
 # template: no second call for the same message
-LLM_RENDERER_VERSION = "llm-renderer.v15"
+LLM_RENDERER_VERSION = "llm-renderer.v16"
 # PRESENT is the stem as it is; CLOSE_ITEM is the model's only when it teaches (``teaches``)
 TEMPLATE_ONLY_MOVES = frozenset({Move.PRESENT, Move.CLOSE_ITEM})
 LLM_MOVES = frozenset(Move) - TEMPLATE_ONLY_MOVES
@@ -445,11 +446,18 @@ class LLMRenderer:
         codes = list(self._validator(text, vctx).codes)
         if (
             getattr(self._router, "model_only_speech", False)
-            and d.move == Move.EXPLAIN
+            and d.move in MOVES_REQUIRING_QUESTION
             and "DECLINE" not in d.reason_codes
             and (text.count("?") != 1 or not text.rstrip().endswith("?"))
         ):
             codes.append("MISSING_QUESTION")
+        if (
+            getattr(self._router, "model_only_speech", False)
+            and d.move in (Move.EXPLAIN, Move.HINT, Move.WORKED_GUIDANCE)
+            and "DECLINE" not in d.reason_codes
+            and readiness_only(text)
+        ):
+            codes.append("MISSING_LEARNING_STEP")
         if text:  # an empty message is already rejected; the other checks need words to look at
             asks = d.move == Move.VERIFY and "VERIFY_BEFORE_HINT" not in d.reason_codes
             codes += brain.speech_codes(
@@ -550,15 +558,22 @@ class LLMRenderer:
 
                     request = verification(
                         text,
-                        question=pack.question,
+                        question=ctx.item.stem,
                         scope=ctx.package.title,
                         references=(*pack.grounds, *premises) if "REPAIR" in d.reason_codes else premises,
                         student=ctx.student_text or "",
                         may_reveal=ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION,
                         task=pack.task,
+                        support_contract={
+                            "move": d.move.value,
+                            "hint_level": int(d.level) if d.level is not None else None,
+                            "may_reveal": ctx.solved
+                            or ctx.answer_revealed
+                            or d.move == Move.FULL_EXPLANATION,
+                        },
                     )
                 result = self._router.chat(
-                    ModelClass.TUTOR_REASONING,
+                    ModelClass.EVAL_JUDGE,
                     request,
                     calls_used=self.calls_used + self._support_calls + 1,
                 )

@@ -14,7 +14,9 @@ from cavat.modules.ai_gateway.base import (
 from cavat.modules.teaching.curriculum import CHECK_SCHEMA, verified
 from cavat.modules.teaching.decimal_facts import fraction_facts, notation_facts
 from cavat.modules.tutor import brain
+from cavat.modules.tutor.dialogue import question_tail
 from cavat.modules.tutor.prompt_builder import TUTOR_OUTPUT_SCHEMA, _prompt_file, clean_text
+from cavat.modules.tutor.socratic import conversion_answer_leaked, readiness_only
 from cavat.modules.tutor.validator import (
     INTELLIGENCE_PRAISE_PATTERNS,
     PII_PATTERNS,
@@ -100,7 +102,7 @@ def write_lesson(router, pack, *, calls_used, questions, session_entry=False):
     drafts = 0
     while drafts < 2:
         request = _bounded_request(
-            "lesson-teacher.v3.md",
+            "lesson-teacher.v4.md",
             {**case, "can_sua": rejected[-1] if rejected else []},
             schema,
             "lesson_teacher_v1",
@@ -128,13 +130,19 @@ def write_lesson(router, pack, *, calls_used, questions, session_entry=False):
         # The conversational word target is stylistic, not an answer/intent gate.
         # Keep a hard ceiling, let the reviewer judge age-appropriate clarity and concision.
         checked_pack = replace(pack, max_words=max(120, pack.max_words * 2))
-        codes = list(brain.speech_codes(text, checked_pack, flexible=True, rephrase=True, copy_run=14))
+        # Short standard definitions often have the same wording as the reference. The semantic
+        # reviewer still rejects reading scripts; a long copied passage remains deterministically barred.
+        codes = list(brain.speech_codes(text, checked_pack, flexible=True, rephrase=True, copy_run=24))
         if not text:
             codes.append("EMPTY")
         if session_entry and (not recall or not plan):
             codes.append(
                 "MISSING_ORIENTATION: cần knowledge_recall là ý lý thuyết, practice_plan là nội dung ôn"
             )
+        if session_entry and re.search(
+            r"(?:hôm (?:qua|trước)|buổi trước|lần trước).{0,60}(?:đã|học|bắt đầu)", text.lower()
+        ):
+            codes.append("UNSUPPORTED_HISTORY")
         if safety:
             codes.append("SAFETY")
         if foreign_text(text) or wrong_address(text, pack.student_address):
@@ -142,6 +150,13 @@ def write_lesson(router, pack, *, calls_used, questions, session_entry=False):
         if any(re.search(p, text, re.I) for p in PII_PATTERNS + INTELLIGENCE_PRAISE_PATTERNS):
             codes.append("UNSAFE_LANGUAGE")
         count = text.count("?")
+        if questions == "required" and readiness_only(text):
+            codes.append("MISSING_LEARNING_STEP")
+        if questions == "required" and (
+            conversion_answer_leaked(text, pack.question)
+            or conversion_answer_leaked(text, question_tail(text) or "")
+        ):
+            codes.append("ANSWER_LEAK")
         if (
             count > 1
             or (questions == "required" and (count != 1 or not text.endswith("?")))
@@ -152,7 +167,7 @@ def write_lesson(router, pack, *, calls_used, questions, session_entry=False):
             codes.append("HAS_QUESTION")
         if not codes:
             review = _bounded_request(
-                "lesson-review.v3.md",
+                "lesson-review.v4.md",
                 {
                     **case,
                     "loi_de_xuat": text,

@@ -4,6 +4,7 @@ import json
 
 from cavat.core.events import EventType
 from cavat.core.pedagogy import HintLevel, HintTarget, Move, Outcome
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
 from cavat.modules.ai_gateway.fake import FakeChatModel
 from cavat.modules.ai_gateway.router import AIRouter
 from cavat.modules.assessment.math_checker import CheckResult
@@ -155,7 +156,7 @@ def test_failed_opening_retries_after_restore_without_grading_or_sample_question
     loop = TeachingLoop(CHAPTER, "synthetic", speaker=speaker)
     first = loop.start(NOW)
     assert not first.prompt
-    assert first.messages[-1].text == "Con chờ cô một chút nhé."
+    assert first.messages[-1].text == MODEL_WAIT_MESSAGE
     assert first.messages[-1].rejected
     restored = TeachingLoop.resume(CHAPTER, "synthetic", [], loop.events)
     assert not restored.current_turn().prompt
@@ -204,5 +205,5 @@ def test_unavailable_dialogue_does_not_blame_student_for_unclear_words():
         focus="gọi cô",
         objective_driven=True,
     )
-    assert spoken.text == "Con chờ cô một chút nhé."
+    assert spoken.text == MODEL_WAIT_MESSAGE
     assert "chưa rõ" not in spoken.text

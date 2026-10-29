@@ -101,7 +101,7 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.17.0"  # ADR-047: orient, recall, keep the lesson focused
+TEMPLATES_VERSION = "teaching-templates/0.18.0"  # ADR-054: entry and bounded recovery
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -416,7 +416,24 @@ class TeachingLoop:
             )
             events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
             messages: list[TeachMessage] = []
-            self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, reply, self._node))
+            courtesy_only = self.speaker is not None and getattr(
+                self.speaker.router, "model_only_speech", False
+            )
+            if courtesy_only:
+                # Courtesy and navigation contain no mathematical teaching. They must not be
+                # mistaken for a rejected model explanation or leave the lesson without a next step.
+                reply += " Mình tiếp tục câu cô đang hỏi nhé?"
+            self._say(
+                now,
+                messages,
+                events,
+                TeachMessage(
+                    MessageKind.FEEDBACK,
+                    reply,
+                    self._node,
+                    ref="GREETING_ONLY" if courtesy_only else None,
+                ),
+            )
             if self.awaiting == Awaiting.ANSWER:
                 return self._waiting_for_item(messages, events)
             return TeachTurn(
@@ -1308,6 +1325,12 @@ class TeachingLoop:
         """The last ``n`` turns before the message being answered: (role, text), oldest first."""
         said = []
         for e in self.events if include_last else self.events[:-1]:
+            if (
+                e.payload.get("operational")
+                or e.payload.get("ref") == "MODEL_WAIT"
+                or str(e.payload.get("item_id", "")).endswith((":MODEL_WAIT", ":OPENING_RETRY"))
+            ):
+                continue
             if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT):
                 said.append(("tutor", e.payload.get("text", "")))
             elif e.event_type == EventType.STUDENT_MESSAGE:
@@ -1886,7 +1909,10 @@ class TeachingLoop:
 
             address = self.speaker.name or self._persona["s"]
             message = replace(
-                message, text=f"{self._persona['T']} chào {address}! Mình cùng học nhé.", ref="GREETING_ONLY"
+                message,
+                text=f"{self._persona['T']} chào {address}! Hôm nay mình cùng học "
+                f"{self.chapter.node(message.node_id).name} nhé.",
+                ref="GREETING_ONLY",
             )
         elif (
             strict
@@ -1927,7 +1953,11 @@ class TeachingLoop:
                 from dataclasses import replace
 
                 address = self.speaker.name if self.speaker and self.speaker.name else self._persona["s"]
-                message = replace(message, text=f"{self._persona['T']} chào {address}! {message.text}")
+                message = replace(
+                    message,
+                    text=f"{self._persona['T']} chào {address}! {message.text}",
+                    ref="GREETING_ONLY" if message.kind == MessageKind.NODE else message.ref,
+                )
         messages.append(message)
         sent = TeachMessageSent(
             kind=message.kind.value,

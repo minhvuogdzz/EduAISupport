@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 from cavat.config import Settings
 from cavat.core.events import EventType
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
 from cavat.modules.ai_gateway.fake import FakeChatModel
 from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, build_router
 from cavat.modules.session.api import _hold_for_unavailable_models
@@ -53,7 +54,7 @@ def test_mixed_turn_cannot_hide_a_static_explanation_behind_a_successful_llm(sou
     assert held.state == before and held.fields == {}
     assert [e.event_type for e in held.events] == [EventType.STUDENT_MESSAGE, EventType.TEACH_MESSAGE_SENT]
     assert held.events[0].payload["modality"] == "VOICE"
-    assert held.events[-1].payload["text"] == "Con chờ cô một chút nhé."
+    assert held.events[-1].payload["text"] == MODEL_WAIT_MESSAGE
     assert ["QUESTION_COUNT"] in held.events[-1].payload["rejected"]
 
 
@@ -94,7 +95,7 @@ def test_rejected_live_dialogue_never_repeats_the_old_math_question(client, monk
     assert result.status_code == 200, result.text
     after = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
     new = after["transcript"][len(state["transcript"]) :]
-    assert [t["text"] for t in new if t["actor"] == "tutor"] == ["Con chờ cô một chút nhé."]
+    assert [t["text"] for t in new if t["actor"] == "tutor"] == [MODEL_WAIT_MESSAGE]
     assert after["progress"] == state["progress"]
     for field in ("prompt", "step", "current_node_id", "awaiting", "input_id", "nodes"):
         assert after["teaching"][field] == state["teaching"][field]
@@ -153,4 +154,4 @@ def test_wait_keeps_model_cost_without_applying_the_failed_math_step():
     held = _hold_for_unavailable_models(session, step, recorder, "ok")
     assert held.state.activity["llm_calls"] == 4
     assert state.activity["llm_calls"] == 3
-    assert held.events[-1].payload["text"] == "Con chờ cô một chút nhé."
+    assert held.events[-1].payload["text"] == MODEL_WAIT_MESSAGE

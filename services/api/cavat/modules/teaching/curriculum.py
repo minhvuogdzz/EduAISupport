@@ -37,11 +37,20 @@ CHECK_SCHEMA = {
 
 
 def verification(
-    message, *, question, scope, references=(), student="", may_reveal=False, recent=(), task=""
+    message,
+    *,
+    question,
+    scope,
+    references=(),
+    student="",
+    may_reveal=False,
+    recent=(),
+    task="",
+    support_contract=None,
 ):
     return ChatRequest(
         messages=(
-            ChatMessage("system", _prompt_file("curriculum-check.v10.md")),
+            ChatMessage("system", _prompt_file("curriculum-check.v11.md")),
             ChatMessage(
                 "user",
                 json.dumps(
@@ -55,6 +64,7 @@ def verification(
                         "loi_co": clean_text(message, 900),
                         "kiem_chung_cach_viet_so": notation_facts(message),
                         "duoc_giai_cau_dang_lam": may_reveal,
+                        "gioi_han_goi_y": support_contract,
                     },
                     ensure_ascii=False,
                 ),
