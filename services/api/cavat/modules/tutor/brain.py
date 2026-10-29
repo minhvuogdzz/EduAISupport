@@ -48,8 +48,8 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.10.0"
-CONSTITUTION = "constitution.v17.md"
+BRAIN_VERSION = "brain/1.11.0"
+CONSTITUTION = "constitution.v18.md"
 SUBJECT_MODULE = "math_g5.v2.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)
@@ -78,7 +78,13 @@ CODE_NOTES: dict[str, str] = {
     WRONG_MATH: "có phép tính hoặc so sánh sai",
     COPIES_GROUND: "đang đọc lại nguyên văn căn cứ: nói lại bằng lời khác, đổi ví dụ",
     REPEATS_PREVIOUS: "lặp lại lời cô đã nói: đổi cách nói",
-    "ANSWER_LEAK": "đã nêu đáp án",
+    "ANSWER_LEAK": (
+        "đã nêu đáp án câu đang chờ: bỏ kết quả ấy; giảng bằng ví dụ KHÁC số, chỉ gợi một bước để con tự điền"
+    ),
+    "QUESTION_COUNT": "kết thúc bằng đúng một câu hỏi cụ thể, chỉ một dấu hỏi",
+    "MISSING_CORRECTION": (
+        "lời cô trước có phép tính sai; nhận và sửa cách nói cũ ngắn trước khi hỏi bước tiếp"
+    ),
     "MULTIPLE_QUESTIONS": "có nhiều hơn một câu hỏi",
     "MISSING_QUESTION": "phải kết thúc bằng một câu hỏi",
     "MISSING_LEARNING_STEP": "hỏi một bước Toán cụ thể, không chỉ hỏi con hiểu chưa hoặc thử được không",
@@ -130,6 +136,7 @@ class BrainPack:
     lesson: str = ""
     retry_codes: tuple[str, ...] = ()
     question_kind: str = "TASK"
+    correction_required: bool = False
 
 
 def system_prompt() -> str:
@@ -171,19 +178,38 @@ def _lines(pack: BrainPack, grounds: Sequence[str], turns: Sequence[Turn]) -> st
     if pack.retry_codes:
         notes = "; ".join(f"{c} ({CODE_NOTES.get(c, 'không đạt')})" for c in pack.retry_codes)
         lines.append(f"[LẦN TRƯỚC BỊ TỪ CHỐI] {notes}. Viết lại, tránh đúng các lỗi này.")
+    if pack.correction_required:
+        lines.append(
+            "[SỬA LỜI CÔ SAI] Trả correction là một câu cô nhận và sửa lỗi Toán trước đó, "
+            "như bắt đầu 'Cô nói nhầm...' rồi nói cách hiểu đúng, không nhắc đáp số câu con tự làm. "
+            "message chỉ hướng dẫn một bước nhỏ và hỏi tiếp. Không lặp correction trong message."
+        )
     lines.append(f"[VIỆC LƯỢT NÀY] {pack.task} Tối đa {pack.max_words} từ.")
     return "\n".join(lines)
 
 
-def build_request(pack: BrainPack, *, max_tokens: int = MAX_PROMPT_TOKENS_BRAIN) -> ChatRequest:
+def build_request(
+    pack: BrainPack,
+    *,
+    max_tokens: int = MAX_PROMPT_TOKENS_BRAIN,
+    system_suffix: str = "",
+    schema_name: str = "tutor_turn",
+) -> ChatRequest:
     """One TUTOR_REASONING request. Over the budget, the oldest turn goes first, then the last ground."""
-    system = ChatMessage("system", system_prompt())
+    system = ChatMessage("system", system_prompt() + ("\n\n" + system_suffix if system_suffix else ""))
+    schema = TUTOR_OUTPUT_SCHEMA
+    if pack.correction_required:
+        schema = {
+            **schema,
+            "properties": {**schema["properties"], "correction": {"type": "string"}},
+            "required": [*schema["required"], "correction"],
+        }
     turns, grounds = list(pack.recent)[-RECENT_TURNS:], list(pack.grounds)
     while True:
         request = ChatRequest(
             messages=(system, ChatMessage("user", _lines(pack, grounds, turns))),
-            json_schema=TUTOR_OUTPUT_SCHEMA,
-            schema_name="tutor_turn",
+            json_schema=schema,
+            schema_name=schema_name,
             max_output_tokens=MAX_OUTPUT_TOKENS,
             temperature=BRAIN_TEMPERATURE,
         )
@@ -289,8 +315,16 @@ def math_errors(text: str) -> list[str]:
     A chain ("0,9 = 9/10 = 90/100") is checked pair by pair. A claim that is not plain arithmetic, or that
     runs into a word of quantity ("= 9 phần 10"), is left alone: the net rejects what is false, not what it
     cannot read."""
-    spans = [(m.start(1), m.end(1), m.group(1)) for m in _EXPR.finditer(normalize_text(text))]
     plain = normalize_text(text)
+    for words, symbol in (
+        (r"\bchia cho\b", "÷"),
+        (r"\bnhân với\b", "×"),
+        (r"\bcộng với\b", "+"),
+        (r"\btrừ đi\b", "-"),
+        (r"\b(?:cho|được|ra) kết quả\b", "="),
+    ):
+        plain = re.sub(words, symbol, plain)
+    spans = [(m.start(1), m.end(1), m.group(1)) for m in _EXPR.finditer(plain)]
     from cavat.modules.teaching.decimal_facts import claim_errors, quantity_errors
 
     errors: list[str] = (
@@ -532,6 +566,9 @@ def fields_of(data: dict[str, Any] | None) -> tuple[str, bool, str]:
     data = data or {}
     message, feedback = data.get("message"), data.get("policy_feedback")
     text = " ".join(message.split()) if isinstance(message, str) else ""
+    correction = data.get("correction")
+    if isinstance(correction, str) and correction.strip():
+        text = " ".join((correction.strip() + " " + text).split())
     return text, data.get("safety_flag") is True, feedback if isinstance(feedback, str) else ""
 
 
@@ -568,24 +605,19 @@ def speak(
         supported = _mentor_support(router, pack, check, BrainOutcome(None, 0), calls_used=calls_used)
         if supported.text is not None:
             return supported
+        if supported.fallback_reason == "review_unavailable":
+            return supported
         calls += supported.calls
         flagged = flagged or supported.flagged
         rejected.extend(supported.rejected)
     for _ in range(max_attempts):
         retry = tuple(rejected[-1]) if rejected else ()
-        mentor_note = "\n\n" + _prompt_file("mentor.v3.md") if model_class == ModelClass.TUTOR_MENTOR else ""
+        mentor_note = _prompt_file("mentor.v4.md") if model_class == ModelClass.TUTOR_MENTOR else ""
         request = build_request(
             _with_retry(pack, retry),
-            max_tokens=MAX_PROMPT_TOKENS_BRAIN
-            - estimate_prompt_tokens(ChatRequest(messages=(ChatMessage("system", mentor_note),)))
-            if mentor_note
-            else MAX_PROMPT_TOKENS_BRAIN,
+            system_suffix=mentor_note,
+            schema_name="tutor_mentor_turn" if mentor_note else "tutor_turn",
         )
-        if model_class == ModelClass.TUTOR_MENTOR:
-            system = ChatMessage("system", request.messages[0].content + mentor_note)
-            request = replace(
-                request, messages=(system, *request.messages[1:]), schema_name="tutor_mentor_turn"
-            )
         outcome = router.chat(model_class, request, calls_used=calls_used + calls)
         calls += outcome.calls_made
         if outcome.result is None:
@@ -597,6 +629,8 @@ def speak(
         if not codes:
             return BrainOutcome(text, calls, tuple(rejected), flagged, None, outcome.result.model, feedback)
         rejected.append(codes)
+        if any(code.startswith("SERVICE_UNAVAILABLE:") for code in codes):
+            return BrainOutcome(None, calls, tuple(rejected), flagged, "review_unavailable")
     return support(BrainOutcome(None, calls, tuple(rejected), flagged, "validation"))
 
 
@@ -617,7 +651,7 @@ def _mentor_support(router, pack, check, previous, *, calls_used):
     coached_pack = replace(
         pack,
         task=pack.task + " Hỗ trợ sư phạm: viết lời giảng tốt hơn và một góp ý ngắn cho model chính.",
-        retry_codes=previous.rejected[-1] if previous.rejected else (),
+        retry_codes=previous.rejected[-1] if previous.rejected else pack.retry_codes,
     )
     taught = speak(
         router,

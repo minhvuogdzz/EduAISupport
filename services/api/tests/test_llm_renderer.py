@@ -130,7 +130,8 @@ def test_retry_carries_the_codes_and_a_valid_second_answer_is_used():
     msg = renderer.render(ctx_for("GP-01", Move.HINT, "con không biết", **HINT_H3))
     assert (msg.text, msg.source) == (GOOD_HINT, "LLM")
     assert "[LẦN TRƯỚC BỊ TỪ CHỐI]" not in user_prompt(fake, 0)
-    assert "[LẦN TRƯỚC BỊ TỪ CHỐI] ANSWER_LEAK (đã nêu đáp án)" in user_prompt(fake, 1)
+    assert "[LẦN TRƯỚC BỊ TỪ CHỐI] ANSWER_LEAK (" in user_prompt(fake, 1)
+    assert "bỏ kết quả ấy" in user_prompt(fake, 1)
     assert [codes[0] for codes in renderer.last_trace.rejected] == ["ANSWER_LEAK"]
 
 

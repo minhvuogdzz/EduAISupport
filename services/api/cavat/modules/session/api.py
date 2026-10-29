@@ -998,6 +998,7 @@ async def _chapter_speaker(database, content, session, router):
         order=content.topological_order(),
         web=_web_source(),
         allow_knowledge=get_settings().allow_tutor_knowledge,
+        recovery_codes=((session.state.activity or {}).get("tutor_recovery") or {}).get("retry_codes", ()),
     )
 
 
@@ -1208,7 +1209,7 @@ async def _command(
         step = _hold_for_unavailable_models(
             session, step, router, kwargs.get("text", ""), kwargs.get("modality", "TEXT")
         )
-        step = _track_recovery(session, step, command, kwargs, recovery=recovery)
+        step = _track_recovery(session, step, command, kwargs, recovery=recovery, recording=router)
         step.events.extend(model_call_events(router.calls, current))
     repo = _repo(database)
     try:
@@ -1230,7 +1231,7 @@ async def _command(
     return _ack_for_key(saved, key) or CommandAck(state_version=saved.state_version, tutor_turn_id=None)
 
 
-def _track_recovery(session, step, command, kwargs, *, recovery=False):
+def _track_recovery(session, step, command, kwargs, *, recovery=False, recording=None):
     """Keep the exact command server-side; retries never invent a student utterance."""
     held = any(
         e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("text") == MODEL_WAIT_MESSAGE
@@ -1274,6 +1275,21 @@ def _track_recovery(session, step, command, kwargs, *, recovery=False):
     previous = (session.state.activity or {}).get("tutor_recovery", {})
     attempts = previous.get("attempts", 0) + 1 if recovery else 0
     stopped = attempts >= MAX_TUTOR_RECOVERIES
+    retry_after_ms = min(2000 * 2**attempts, 8000)
+    available = getattr(recording, "has_available_chat", None)
+    calls = getattr(recording, "calls", ())
+    if callable(available) and not available() and calls:
+        waits = [
+            a.retry_after_s
+            for a in calls[-1].outcome.attempts
+            if a.retry_after_s is not None and a.retry_after_s > 0
+        ]
+        if waits:
+            soonest_ms = int(min(waits) * 1000) + 1000
+            if soonest_ms > 60_000:
+                stopped = True  # A known long outage cannot be recovered by three rapid retries.
+            else:
+                retry_after_ms = max(retry_after_ms, soonest_ms)
     state = step.state.model_copy(deep=True)
     if state.activity is None:
         state.activity = {}
@@ -1287,13 +1303,19 @@ def _track_recovery(session, step, command, kwargs, *, recovery=False):
         )
         else "service"
     )
+    from cavat.modules.tutor.brain import CODE_NOTES
+
+    retry_codes = list(dict.fromkeys(code for code in rejected if code in CODE_NOTES))
+    if recovery and not retry_codes:
+        retry_codes = previous.get("retry_codes", [])
     state.activity["tutor_recovery"] = {
         "command": command,
         "kwargs": dict(kwargs),
         "attempts": attempts,
         "status": "stopped" if stopped else "retrying",
-        "retry_after_ms": min(2000 * 2**attempts, 8000),
+        "retry_after_ms": retry_after_ms,
         "reason": reason,
+        "retry_codes": retry_codes,
     }
     for event in step.events:
         if (
@@ -1301,6 +1323,8 @@ def _track_recovery(session, step, command, kwargs, *, recovery=False):
             and event.payload.get("text") == MODEL_WAIT_MESSAGE
         ):
             event.payload["text"] = RECOVERY_STOP_MESSAGE if stopped else MODEL_WAIT_MESSAGE
+            if recovery and not stopped:
+                event.payload["hidden_from_student"] = True
     return replace(step, state=state)
 
 
@@ -1405,7 +1429,9 @@ async def join_session(session_id: str, database: Database, student: Student):
             )
             if recording is not None:
                 step = _hold_for_unavailable_models(session, step, recording)
-                step = _track_recovery(session, step, "ANSWER", {"text": "", "kind": "MESSAGE"})
+                step = _track_recovery(
+                    session, step, "ANSWER", {"text": "", "kind": "MESSAGE"}, recording=recording
+                )
                 step.events.extend(model_call_events(recording.calls))
         else:
             step = service.join(_package(session.lesson_id), session, utc_now())

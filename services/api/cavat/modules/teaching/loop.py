@@ -101,7 +101,7 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.18.0"  # ADR-054: entry and bounded recovery
+TEMPLATES_VERSION = "teaching-templates/0.19.0"  # ADR-055: one wait notice per recovery
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -896,7 +896,7 @@ class TeachingLoop:
         if self._model_teaching():
             spoken = self.speaker.conversation_reply(
                 text,
-                asked=self._prompt or node.explain.prompt,
+                asked=self._pending_question(self._prompt or node.explain.prompt),
                 node=node,
                 label="REPAIR",
                 focus="Giúp con hiểu ý còn thiếu rồi mời con giải thích lại ý đó; chưa đủ bằng chứng KC",
@@ -1185,7 +1185,9 @@ class TeachingLoop:
             ground = next((t.reply for t in node.theory if t.id == self._ref), "") or node.method.rule
             spoken = self.speaker.conversation_reply(
                 text,
-                asked=self._prompt or "",
+                asked=self._pending_question(self._prompt or "")
+                if self.awaiting == Awaiting.RETELL
+                else self._prompt or "",
                 node=node,
                 focus=reading.focus,
                 label=reading.label,
@@ -1320,6 +1322,25 @@ class TeachingLoop:
         if self.awaiting == Awaiting.ANSWER:
             return self._waiting_for_item(messages, events)
         return TeachTurn(tuple(messages), tuple(events), self.awaiting, node_id=node_id, prompt=ask)
+
+    def _pending_question(self, fallback: str) -> str:
+        """Protect the question the child actually heard, including an ungraded retell scaffold."""
+        from cavat.modules.tutor.dialogue import question_tail
+        from cavat.modules.tutor.socratic import readiness_only
+
+        for event in reversed(self.events):
+            p = event.payload
+            if event.event_type not in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT):
+                continue
+            if p.get("operational") or p.get("ref") in ("MODEL_WAIT", "GREETING_ONLY"):
+                continue
+            if p.get("node_id") not in (None, self._node):
+                continue
+            if question := question_tail(p.get("text", "")):
+                if readiness_only(question):
+                    continue
+                return question
+        return fallback
 
     def _recent(self, n: int, *, include_last: bool = False) -> list[tuple[str, str]]:
         """The last ``n`` turns before the message being answered: (role, text), oldest first."""

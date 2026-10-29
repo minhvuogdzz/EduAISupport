@@ -60,6 +60,7 @@ def test_failed_student_turn_reuses_exact_words_and_does_not_display_a_duplicate
         assert not any(MODEL_WAIT_MESSAGE in said for _, said in kwargs.get("recent", []))
         if len(heard) == 1:
             return Spoken("", "TEMPLATE", rejected=(("QUESTION_COUNT",),))
+        assert "QUESTION_COUNT" in self.recovery_codes
         return Spoken("Mình xem một phần mười trước nhé. Con viết 2/10 thành số thập phân nào?", "LLM")
 
     monkeypatch.setattr(GroundedSpeaker, "conversation_reply", reply)
@@ -87,6 +88,7 @@ def test_retries_stop_with_a_clear_message_and_rejoining_can_restart_them(client
         assert held["tutor_recovery"]["attempts"] == attempt
         assert held["teaching"] == original
     assert held["tutor_recovery"]["status"] == "stopped"
+    assert sum(t["text"] == MODEL_WAIT_MESSAGE for t in held["transcript"]) == 1
     assert held["transcript"][-1]["text"] == api.RECOVERY_STOP_MESSAGE
     assert recover(client, held, "after-stop").json()["state_version"] == held["state_version"]
     joined = client.post(f"/v1/sessions/{held['session_id']}/join", headers=MINH).json()

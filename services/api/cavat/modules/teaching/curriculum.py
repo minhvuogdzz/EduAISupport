@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest
+from cavat.modules.ai_gateway.base import MAX_PROMPT_TOKENS, ChatMessage, ChatRequest, estimate_prompt_tokens
 from cavat.modules.teaching.decimal_facts import notation_facts
 from cavat.modules.tutor.prompt_builder import _prompt_file, clean_text
 
@@ -48,33 +48,38 @@ def verification(
     task="",
     support_contract=None,
 ):
-    return ChatRequest(
-        messages=(
-            ChatMessage("system", _prompt_file("curriculum-check.v11.md")),
-            ChatMessage(
-                "user",
-                json.dumps(
-                    {
-                        "bai_hoc_hien_tai": clean_text(scope, 500),
-                        "cau_dang_lam": clean_text(question, 600),
-                        "can_cu": [clean_text(s, 350) for s in references[:3]],
-                        "loi_con": clean_text(student, 400),
-                        "viec_luot_nay": clean_text(task, 600),
-                        "loi_co_truoc": [clean_text(text, 400) for text in recent[-2:]],
-                        "loi_co": clean_text(message, 900),
-                        "kiem_chung_cach_viet_so": notation_facts(message),
-                        "duoc_giai_cau_dang_lam": may_reveal,
-                        "gioi_han_goi_y": support_contract,
-                    },
-                    ensure_ascii=False,
-                ),
+    case = {
+        "bai_hoc_hien_tai": clean_text(scope, 500),
+        "cau_dang_lam": clean_text(question, 600),
+        "can_cu": [clean_text(s, 350) for s in references[:3]],
+        "loi_con": clean_text(student, 400),
+        "viec_luot_nay": clean_text(task, 600),
+        "loi_co_truoc": [clean_text(text, 400) for text in recent[-2:]],
+        "loi_co": message,
+        "kiem_chung_cach_viet_so": notation_facts(message),
+        "duoc_giai_cau_dang_lam": may_reveal,
+        "gioi_han_goi_y": support_contract,
+    }
+    while True:
+        request = ChatRequest(
+            messages=(
+                ChatMessage("system", _prompt_file("curriculum-check.v12.md")),
+                ChatMessage("user", json.dumps(case, ensure_ascii=False)),
             ),
-        ),
-        json_schema=CHECK_SCHEMA,
-        schema_name="curriculum_check_v2",
-        max_output_tokens=500,
-        temperature=0,
-    )
+            json_schema=CHECK_SCHEMA,
+            schema_name="curriculum_check_v2",
+            max_output_tokens=500,
+            temperature=0,
+        )
+        if estimate_prompt_tokens(request) <= MAX_PROMPT_TOKENS:
+            return request
+        if case["loi_co_truoc"]:
+            case["loi_co_truoc"].pop(0)
+        elif case["can_cu"]:
+            case["can_cu"].pop()
+        else:
+            # Never hide an unchecked suffix by truncating the proposed mathematical speech.
+            return request
 
 
 def verified(data):
