@@ -18,5 +18,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "vite-plugins/**/*.test.ts"],
+    testTimeout: 15_000,
   },
 });

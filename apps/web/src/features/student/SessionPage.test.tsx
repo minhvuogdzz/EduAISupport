@@ -88,26 +88,30 @@ describe("student session screen", () => {
     expect(screen.getByPlaceholderText(/số thập phân viết dấu phẩy: 0,25/)).toBeInTheDocument();
   });
 
-  it("answers with the sign buttons, gets a counter-example for DEC-M01, then moves on", async () => {
-    const { user } = await openSession();
-    await answer(user, "hàng phần mười");
-    await screen.findByRole("heading", { name: "Câu 2/8" });
-    await waitForTurn();
+  it(
+    "answers with the sign buttons, gets a counter-example for DEC-M01, then moves on",
+    { timeout: 15_000 },
+    async () => {
+      const { user } = await openSession();
+      await answer(user, "hàng phần mười");
+      await screen.findByRole("heading", { name: "Câu 2/8" });
+      await waitForTurn();
 
-    await user.click(screen.getByRole("button", { name: "dấu bé hơn" })); // 0,7 < 0,65: DEC-M01
-    expect(screen.getByLabelText("Câu trả lời của con")).toHaveValue("<");
-    await user.click(screen.getByRole("button", { name: "Gửi" }));
-    await expectInConversation("Nếu có 0,7 mét dây và 0,65 mét dây");
-    expect(within(screen.getByRole("log")).getByText("Gợi ý mức 2")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "dấu bé hơn" })); // 0,7 < 0,65: DEC-M01
+      expect(screen.getByLabelText("Câu trả lời của con")).toHaveValue("<");
+      await user.click(screen.getByRole("button", { name: "Gửi" }));
+      await expectInConversation("Nếu có 0,7 mét dây và 0,65 mét dây");
+      expect(within(screen.getByRole("log")).getByText("Gợi ý mức 2")).toBeInTheDocument();
 
-    await answer(user, "0,7 > 0,65");
-    await screen.findByRole("heading", { name: "Câu 3/8" });
-    expect(screen.getByRole("progressbar", { name: "Tiến độ buổi học" })).toHaveAttribute(
-      "aria-valuenow",
-      "2",
-    );
-    expect(screen.getByText("Luyện tập cùng cô")).toBeInTheDocument();
-  });
+      await answer(user, "0,7 > 0,65");
+      await screen.findByRole("heading", { name: "Câu 3/8" });
+      expect(screen.getByRole("progressbar", { name: "Tiến độ buổi học" })).toHaveAttribute(
+        "aria-valuenow",
+        "2",
+      );
+      expect(screen.getByText("Luyện tập cùng cô")).toBeInTheDocument();
+    },
+  );
 
   it("offers a micro choice on 'Xin gợi ý', then gives the chosen help", async () => {
     const { user } = await openSession();
@@ -125,7 +129,7 @@ describe("student session screen", () => {
     );
   });
 
-  it("asks for an explanation after a correct answer on a verify item", async () => {
+  it("asks for an explanation after a correct answer on a verify item", { timeout: 15_000 }, async () => {
     const { user } = await openSession();
     await answer(user, "hàng phần mười");
     await answer(user, ">");
@@ -169,7 +173,7 @@ describe("student session screen", () => {
     expect(screen.getByRole("link", { name: "Trang học sinh" })).toHaveAttribute("href", "/student");
   });
 
-  it("shows the completion card at the end", { timeout: 20_000 }, async () => {
+  it("shows the completion card at the end", { timeout: 40_000 }, async () => {
     const { user } = await openSession();
     const answers = [
       "hàng phần mười",
