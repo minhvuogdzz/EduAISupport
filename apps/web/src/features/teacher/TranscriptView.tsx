@@ -183,8 +183,8 @@ function TutorChips({ annotation }: { annotation: TutorAnnotation }) {
         </Chip>
       )}
       {source === "LLM" && (
-        <Chip tone="sky" title="AI chỉ diễn đạt nước đi do policy chọn; câu đã qua bộ kiểm tra">
-          AI diễn đạt
+        <Chip tone="sky" title="Gia sư Buddy chỉ diễn đạt nước đi do policy chọn; câu đã qua bộ kiểm tra">
+          Gia sư Buddy diễn đạt
         </Chip>
       )}
       {source === "FALLBACK" && (

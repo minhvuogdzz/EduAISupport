@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -45,6 +45,7 @@ from cavat.core.events import (
 )
 from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, ItemResolution, Move, Outcome, TeachAction
 from cavat.core.vi_text import contains_phrase
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
 from cavat.modules.assessment.retell import judge_retell, with_meaning
@@ -100,7 +101,7 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 # 0.7.0: REFORM-1b (DI-81), the leads before approved text are bridges when a speaker is live
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
-TEMPLATES_VERSION = "teaching-templates/0.12.0"  # DI-89: explain the rule, acknowledge a correct part
+TEMPLATES_VERSION = "teaching-templates/0.17.0"  # ADR-047: orient, recall, keep the lesson focused
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -139,7 +140,9 @@ ACTIVITY_FOR: dict[TeachAction, ActivityType] = {
 
 # Teaching templates (versioned with TEMPLATES_VERSION). {T}/{t}: the tutor ("Cô"/"cô"), {S}/{s}: the student.
 PHRASES: dict[str, str] = {
-    "enter": "Bây giờ {t} và {s} cùng học: {name}.",
+    "enter": (
+        "Hôm nay {t} và {s} cùng ôn tập: {name}. Trước khi làm bài, mình nhắc lại kiến thức cần dùng nhé."
+    ),
     "resume": "Mình quay lại bài {name} nhé.",
     # FLOW-2 (DI-80, drafted for the owner's review): the second pass of a period stopped earlier today.
     "second_pass": "Mình quay lại bài {name} một lần nữa nhé, {t} giảng lại bằng ví dụ khác.",
@@ -420,6 +423,40 @@ class TeachingLoop:
                 tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
             )
         if self.awaiting != Awaiting.ANSWER:
+            # An undelivered opening is not a question the child can answer. Retry teaching first,
+            # including after restoring an existing session whose opening failed.
+            if self.speaker and self.awaiting == Awaiting.THEORY_REPLY and not signals_distress(text):
+                latest = next(
+                    (
+                        e
+                        for e in reversed(self.events)
+                        if e.event_type == EventType.TEACH_MESSAGE_SENT
+                        and e.payload.get("kind") == MessageKind.THEORY
+                        and e.payload.get("node_id") == self._node
+                    ),
+                    None,
+                )
+                if (
+                    latest
+                    and latest.payload.get("ref") == f"{self._ref}:GENERATED"
+                    and latest.payload.get("source") != "LLM"
+                ):
+                    decision = next(
+                        e
+                        for e in reversed(self.events)
+                        if e.event_type == EventType.NODE_DECISION
+                        and e.payload.get("action") == TeachAction.TEACH_THEORY
+                        and e.payload.get("node_id") == self._node
+                    )
+                    message = StudentMessage(
+                        item_id=f"{self._node}:OPENING_RETRY",
+                        kind="MESSAGE",
+                        text=text,
+                        seconds=seconds,
+                        modality=modality,
+                    )
+                    events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
+                    return self._carry_out(NodeDecisionMade.model_validate(decision.payload), now, [], events)
             conversational = self._conversational_input(text, now, seconds, modality)
             if conversational is not None:
                 return conversational
@@ -514,12 +551,23 @@ class TeachingLoop:
         if self.awaiting == Awaiting.THEORY_REPLY:
             assert self._ref is not None
             variant = next(t for t in self.chapter.node(node_id).theory if t.id == self._ref)
-            by_meaning = False
-            if not self._held() and (intent is None or intent in _NOT_UNDERSTOOD):
-                by_meaning = self._theory_by_meaning(variant, text, intent)
-                if not by_meaning and not self._theory_understood(variant, text, intent):
-                    return self._hold_theory(variant, text, now, messages, events)
-            spoken = self._theory_feedback(variant, text, intent, by_meaning)
+            meaning = self._theory_by_meaning(variant, text, intent)
+            by_meaning = meaning is True
+            if (self._dynamic_theory() or not self._held()) and (intent is None or intent in _NOT_UNDERSTOOD):
+                understood = (
+                    by_meaning
+                    if meaning is not None
+                    else False
+                    if self._dynamic_theory()
+                    else self._theory_understood(variant, text, intent)
+                )
+                if not understood:
+                    return self._hold_theory(
+                        variant, text, now, messages, events, wrong_answer=meaning is False
+                    )
+            spoken = self._theory_feedback(
+                variant, text, intent, by_meaning, meaning_checked=meaning is not None
+            )
             self._flag(now, events, spoken, f"{node_id}:{self._ref}")
             feedback = TeachMessage(
                 MessageKind.FEEDBACK, spoken.text, node_id, source=spoken.source, rejected=spoken.rejected
@@ -533,7 +581,7 @@ class TeachingLoop:
             )
         words = self._retell_words(node_id)  # REFORM-6: what the child said in this wait, read together
         judged = self._judge_meaning(judge_retell(node_id, words, node.explain), node, intent)
-        closing = self._held()
+        closing = self._held() and not self._model_teaching()
         if (
             not closing
             and judged.score < self.config.retell_pass
@@ -541,6 +589,17 @@ class TeachingLoop:
         ):
             return self._hold_retell(judged, node, text, now, messages, events)
         events.append(self._record(now, EventType.RETELL_JUDGED, judged))
+        if self._model_teaching() and judged.score >= self.config.retell_pass:
+            spoken = self.speaker.bridge(
+                text,
+                asked=self._prompt or node.explain.prompt,
+                explanation=self._idea(node),
+                judged="đúng",
+                lead="",
+                recent=self._recent(4),
+            )
+            self._say(now, messages, events, self._feedback(spoken, node_id))
+            return self._advance(now, messages, events)
         if intent is not None and not judged.ideas_found:
             # "Con không biết", "là sao ạ?", "chán quá": remind the main idea instead of only saying that
             # it was not heard; the node policy then asks again or moves on, as for any retell.
@@ -561,6 +620,9 @@ class TeachingLoop:
         return self._advance(now, messages, events)
 
     # ------------------------------------------------------------------ REFORM-6: taught again, meaning
+
+    def _model_teaching(self) -> bool:
+        return bool(self.speaker and self.speaker.allow_knowledge and self.speaker.router is not None)
 
     def _held(self) -> bool:
         """The child was already taught again in this wait (read from the events: a resumed session knows)."""
@@ -593,23 +655,50 @@ class TeachingLoop:
             return self._accepts(variant, text)
         return not asks_question(text)  # ADR-019: no list of right answers, so a reply is not judged
 
-    def _theory_by_meaning(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> bool:
+    def _dynamic_theory(self):
+        return any(
+            e.event_type == EventType.TEACH_MESSAGE_SENT
+            and e.payload.get("node_id") == self._node
+            and (
+                e.payload.get("ref") == f"{self._ref}:GENERATED"
+                or e.payload.get("ref") == f"{self._node}:GUIDED_THEORY"
+            )
+            for e in self.events
+        )
+
+    def _theory_by_meaning(self, variant: TheoryVariant, text: str, intent: Outcome | None) -> bool | None:
         """4.1: an answer in other words than the teacher's phrasings, shown right by a quote of the child."""
-        if self.speaker is None or intent is not None or not variant.accept or not variant.reply:
-            return False
-        if self._accepts(variant, text) or not self._has_content(text):
-            return False
+        if self.speaker is None or intent is not None:
+            return None
+        if not self.speaker.allow_knowledge:
+            # Legacy strict-source sessions keep their original fallback and call ordering.
+            if (
+                not variant.accept
+                or not variant.reply
+                or self._accepts(variant, text)
+                or not self._has_content(text)
+            ):
+                return None
+        elif self._dynamic_theory():
+            if asks_question(text):
+                return None
+            node = self.chapter.node(self._node)
+            return self.speaker.theory_understanding(
+                text, asked=self._prompt or "", node=node, recent=self._recent(6, include_last=True)
+            )
+        elif len(text.split()) < 2 or asks_question(text):
+            return None
         assert self._node is not None
         node = self.chapter.node(self._node)
         ideas, _ = self.speaker.judge_meaning(
             text,
-            asked=variant.ask,
+            asked=self._prompt or variant.ask,
             rule=node.method.rule,
-            reference=[variant.reply],
-            ideas=[[variant.reply]],
+            reference=[variant.reply or node.method.rule],
+            ideas=[[variant.reply or node.method.rule]],
             found=[],
         )
-        return bool(ideas)
+        return bool(ideas) if getattr(self.speaker, "meaning_available", False) else None
 
     def _retell_words(self, node_id: str) -> str:
         """Everything the child said to the retell in this wait: the second try completes the first."""
@@ -665,12 +754,50 @@ class TeachingLoop:
         now: datetime,
         messages: list[TeachMessage],
         events: list[LoopEvent],
+        *,
+        wrong_answer: bool = False,
     ) -> TeachTurn:
         """3.3: the question stays; the idea is said again another way (the model's words, else another
         approved variant or the rule, one that does not give the answer), then asked again. Nothing is
         judged."""
         assert self._node is not None
         node = self.chapter.node(self._node)
+        if self._dynamic_theory() and self.speaker and self.speaker.allow_knowledge:
+            spoken = self.speaker.conversation_reply(
+                text,
+                asked=self._prompt or "",
+                node=node,
+                label="REPAIR",
+                focus=(
+                    "Con vừa trả lời sai: nhắc MỘT ý lý thuyết liên quan trước rồi giúp sửa một bước"
+                    if wrong_answer
+                    else "đáp vào điều con vừa nói, giúp một bước rõ hơn"
+                ),
+                recent=self._recent(6, include_last=True),
+                ground=node.method.rule,
+                objective_driven=True,
+            )
+            from cavat.modules.tutor.dialogue import question_tail
+
+            if spoken.source == "LLM" and (actual := question_tail(spoken.text)):
+                self._prompt = actual
+            self._flag(now, events, spoken, HOLD_REF)
+            self._say(
+                now,
+                messages,
+                events,
+                TeachMessage(
+                    MessageKind.FEEDBACK,
+                    spoken.text,
+                    self._node,
+                    HOLD_REF,
+                    spoken.source,
+                    rejected=spoken.rejected,
+                ),
+            )
+            return TeachTurn(
+                tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
+            )
         accept = phrase_regex(variant.accept) if variant.accept else None
 
         def reveals(t: str) -> bool:
@@ -681,9 +808,11 @@ class TeachingLoop:
         others = [t.text.strip() for t in node.theory if t.id != variant.id]
         pieces = [p for p in (*others, node.method.rule.strip()) if p and not reveals(p)]
         material = pieces[0] if pieces else variant.text.strip()
-        spoken = self._reteach_words(text, variant.ask, node, material, accept, (variant.reply,))
+        spoken = self._reteach_words(
+            text, self._prompt or variant.ask, node, material, accept, (variant.reply,)
+        )
         lead = spoken.text if spoken else f"{self._phrase('hold_lead')} {material}"
-        asked = self._phrase("hold_theory_ask", ask=variant.ask)
+        asked = self._phrase("hold_theory_ask", ask=self._prompt or variant.ask)
         source = spoken.source if spoken else "TEMPLATE"
         if spoken is not None:
             self._flag(now, events, spoken, f"{self._node}:{self._ref}")
@@ -747,6 +876,18 @@ class TeachingLoop:
         """3.3: the retell stays; the part of the rule the child has not said is given and asked back in the
         child's own words (a small question instead of the sample said twice)."""
         part = self._rule_part(node, judged.ideas_found)
+        if self._model_teaching():
+            spoken = self.speaker.conversation_reply(
+                text,
+                asked=self._prompt or node.explain.prompt,
+                node=node,
+                label="REPAIR",
+                focus="Giúp con hiểu ý còn thiếu rồi mời con giải thích lại ý đó; chưa đủ bằng chứng KC",
+                ground=part,
+                recent=self._recent(6, include_last=True),
+                objective_driven=False,
+            )
+            return self._hold(now, spoken.text, spoken.source, spoken, messages, events)
         spoken = self._reteach_words(text, node.explain.prompt, node, part, None, ())
         lead = spoken.text if spoken else self._phrase("hold_retell", part=part)
         if judged.ideas_found and spoken is None:
@@ -871,9 +1012,22 @@ class TeachingLoop:
     ) -> TeachTurn:
         """DI-52: the recall of an earlier node is judged like a retell (evidence on that node), then bridged
         to the node being learnt; a recall not good enough gets the earlier node's main idea first."""
+        prior = self.chapter.node(judged.node_id)
+        if self._model_teaching() and judged.score < self.config.retell_pass:
+            return self._hold_retell(judged, prior, text, now, messages, events)
         judged = judged.model_copy(update={"purpose": RECALL})
         events.append(self._record(now, EventType.RETELL_JUDGED, judged))
-        prior = self.chapter.node(judged.node_id)
+        if self._model_teaching():
+            spoken = self.speaker.bridge(
+                text,
+                asked=self._prompt or self._recall_ask(prior.id),
+                explanation=self._idea(prior),
+                judged="đúng",
+                lead="",
+                recent=self._recent(4),
+            )
+            self._say(now, messages, events, self._feedback(spoken, prior.id, RECALL))
+            return self._advance(now, messages, events)
         name = self.chapter.node(self._for).name if self._for else prior.name
         if judged.score >= self.config.retell_pass:
             said = self._phrase("recall_good", name=name)
@@ -895,31 +1049,51 @@ class TeachingLoop:
         return recall_question(prior) or self._phrase("recall_ask", prior=prior.name)
 
     def _theory_feedback(
-        self, variant: TheoryVariant, text: str, intent: Outcome | None, by_meaning: bool = False
+        self,
+        variant: TheoryVariant,
+        text: str,
+        intent: Outcome | None,
+        by_meaning: bool = False,
+        *,
+        meaning_checked: bool = False,
     ) -> Spoken:
         """Right, not quite, or no attempt: the reason (`reply`) in each case. Never graded (ADR-019).
 
         An attempt that is not right gets, with a speaker, one sentence on what the child said before the
         approved reply (RAG-2): the reply itself stays word for word.
         """
+        if self._dynamic_theory() and self.speaker and self.speaker.allow_knowledge:
+            return self.speaker.theory_feedback(
+                text,
+                asked=self._prompt or "",
+                node=self.chapter.node(self._node),
+                correct=by_meaning,
+                recent=self._recent(6, include_last=True),
+            )
         if not variant.reply:
             return Spoken(self._phrase("theory_ack"), "TEMPLATE")
         reply = variant.reply
         if intent == Outcome.NEGATIVE_AFFECT:
-            return self._bridged("theory_affect", "reply", reply, text, asked=variant.ask, judged="chưa rõ")
+            return self._bridged(
+                "theory_affect", "reply", reply, text, asked=self._prompt or variant.ask, judged="chưa rõ"
+            )
         if intent is not None or (_bare_no(text) and not _yes_no(variant.ask)):
             # "ko" to "phân số nào?" is "con không biết" (seen live), not a wrong answer; to "có dài hơn
             # không?" it is an answer and goes on to the check below.
-            return self._bridged("theory_explain", "reply", reply, text, asked=variant.ask, judged="chưa rõ")
+            return self._bridged(
+                "theory_explain", "reply", reply, text, asked=self._prompt or variant.ask, judged="chưa rõ"
+            )
         # REFORM-6 (4.1): right by the keywords, or by words a quote of the child shows carry the idea
-        if by_meaning or self._accepts(variant, text):
-            return self._bridged("theory_right", "reply", reply, text, asked=variant.ask, judged="đúng")
+        if by_meaning or (not meaning_checked and self._accepts(variant, text)):
+            return self._bridged(
+                "theory_right", "reply", reply, text, asked=self._prompt or variant.ask, judged="đúng"
+            )
         judged, lead = ("chưa đúng", "theory_check_lead") if variant.accept else ("chưa rõ", "theory_ack")
         if self.speaker is None:
             return Spoken(f"{self._phrase(lead)} {variant.reply}", "TEMPLATE")
         return self.speaker.bridge(
             text,
-            asked=variant.ask,
+            asked=self._prompt or variant.ask,
             explanation=variant.reply,
             judged=judged,
             lead=self._phrase(lead),
@@ -969,7 +1143,13 @@ class TeachingLoop:
             )
         if reading is None and is_bare_negation(text):
             reading = Reading("AMBIGUOUS_REPLY")
-        if not reading or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE"):
+        if not reading or reading.label not in (
+            "AMBIGUOUS_REPLY",
+            "REPAIR",
+            "DECLINE",
+            "CONTINUE",
+            "REACTION",
+        ):
             return None
         ref = f"{self._node}:DIALOGUE"
         message = StudentMessage(
@@ -977,8 +1157,13 @@ class TeachingLoop:
         )
         events = [self._record(now, EventType.STUDENT_MESSAGE, message)]
         node = self.chapter.node(self._node)
-        if reading.label == "CONTINUE":
-            spoken = Spoken(f"Ừ, mình thử nhé. {self._prompt}", "TEMPLATE")
+        if reading.label == "CONTINUE" and not self.speaker.knowledge_active:
+            spoken = Spoken(
+                "Cô xin lỗi vì đã lạc đề. Mình quay lại bài nhé. Con làm tiếp câu đang chờ trên màn hình."
+                if "nhận lỗi lạc đề" in reading.focus
+                else f"Ừ, mình thử nhé. {self._prompt}",
+                "TEMPLATE",
+            )
         else:
             ground = next((t.reply for t in node.theory if t.id == self._ref), "") or node.method.rule
             spoken = self.speaker.conversation_reply(
@@ -989,9 +1174,18 @@ class TeachingLoop:
                 label=reading.label,
                 recent=recent,
                 ground=ground,
+                objective_driven=self.awaiting == Awaiting.THEORY_REPLY,
             )
-            if reading.label == "REPAIR" and self._prompt and "?" not in spoken.text:
-                spoken = replace(spoken, text=f"{spoken.text} {self._prompt}")
+        if (
+            self.awaiting == Awaiting.THEORY_REPLY
+            and reading.label in ("CONTINUE", "REPAIR", "REACTION")
+            and spoken.source == "LLM"
+        ):
+            from cavat.modules.tutor.dialogue import question_tail
+
+            if actual := question_tail(spoken.text):
+                self._prompt = actual
+                ref = f"{self._node}:GUIDED_THEORY"
         messages = []
         self._flag(now, events, spoken, ref)
         self._say(
@@ -1145,7 +1339,7 @@ class TeachingLoop:
             1
             for e in self.events[last + 1 :]
             if e.event_type == EventType.STUDENT_MESSAGE
-            and not str(e.payload.get("item_id", "")).endswith(":SOCIAL")
+            and not str(e.payload.get("item_id", "")).endswith((":SOCIAL", ":MODEL_WAIT", ":OPENING_RETRY"))
         )
 
     def on_hint_request(self, now: datetime, seconds: float = 0.0, *, source="BUTTON") -> TeachTurn:
@@ -1198,7 +1392,7 @@ class TeachingLoop:
         messages = [TeachMessage(MessageKind.ITEM, turn.text, node_id, item_id)]
         if not turn.resolved:
             prior = self._hint_from_earlier(item_id, node_id, turn.events)
-            if prior is not None:
+            if prior is not None and not self._model_teaching():
                 idea = self._idea(self.chapter.node(prior))
                 text = self._phrase("recall_hint", prior=self.chapter.node(prior).name, idea=idea)
                 self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, text, prior, RECALL_HINT))
@@ -1241,32 +1435,65 @@ class TeachingLoop:
         elif a == TeachAction.TEACH_THEORY:
             node = self.chapter.node(node_id)
             variant = next(t for t in node.theory if t.id == d.ref)
-            # BRAIN-1: the theory in the tutor's own words (the approved text is its ground); the approved
-            # question follows word for word, so what the child answers is judged against it
+            # Live teaching is authored from the node objective; legacy offline sessions retain their scripts.
             lecture = (
-                self.speaker.lecture(
+                self.speaker.lesson_opening(
+                    node,
+                    variant.text,
+                    recent=self._recent(4),
+                    session_entry=not any(
+                        e.event_type == EventType.TEACH_MESSAGE_SENT
+                        and e.payload.get("kind") == MessageKind.THEORY
+                        and e.payload.get("source") == "LLM"
+                        for e in self.events
+                    ),
+                )
+                if self.speaker is not None
+                and self.speaker.allow_knowledge
+                and self.speaker.router is not None
+                else self.speaker.lecture(
                     variant.text,
                     ask=variant.ask,
                     node_name=node.name,
                     rule=node.method.rule,
                     recent=self._recent(4),
+                    include_question=self.speaker.allow_knowledge,
                 )
                 if self.speaker is not None
                 else Spoken("", "TEMPLATE")
             )
             self._flag(now, events, lecture, f"{node_id}:{d.ref}")
-            body = lecture.text or variant.text
+            # Never expose a teacher's activity script when generation is unavailable.
+            from cavat.modules.tutor import brain
+
+            generated = (
+                self.speaker is not None and self.speaker.allow_knowledge and self.speaker.router is not None
+            )
+            body = lecture.text or (MODEL_WAIT_MESSAGE if generated else variant.text)
+            if brain.teacher_voice(body):
+                body = brain.child_voice(node.method.rule or variant.reply)
+            if not body or brain.teacher_voice(body):
+                body = f"Mình bắt đầu từng chút với bài {node.name} nhé."
+            from cavat.modules.tutor.dialogue import question_tail
+
+            actual_ask = question_tail(lecture.text) if lecture.text else ""
+            actual_ask = actual_ask or ("" if generated else variant.ask)
+            full_text = (
+                body
+                if generated or (lecture.text and question_tail(lecture.text))
+                else f"{body} {actual_ask}"
+            )
             say(
                 TeachMessage(
                     MessageKind.THEORY,
-                    f"{body} {variant.ask}",
+                    full_text,
                     node_id,
-                    d.ref,
+                    f"{d.ref}:GENERATED" if generated else d.ref,
                     source="LLM" if lecture.text else "TEMPLATE",
                     rejected=lecture.rejected,
                 )
             )
-            return self._wait(Awaiting.THEORY_REPLY, node_id, d.ref, variant.ask, messages, events)
+            return self._wait(Awaiting.THEORY_REPLY, node_id, d.ref, actual_ask, messages, events)
         elif a == TeachAction.ASK_RETELL:
             node = self.chapter.node(node_id)
             prompt = node.explain.prompt
@@ -1295,7 +1522,29 @@ class TeachingLoop:
             ask = self._recall_ask(d.ref)
             key = "recall_check" if "CHECK_FAILED" in d.reason_codes else "recall"
             text = self._phrase(key, name=name, prior=self.chapter.node(d.ref).name, ask=ask)
-            say(TeachMessage(MessageKind.RETELL_PROMPT, text, d.ref, RECALL))
+            if self._model_teaching():
+                spoken = self.speaker.conversation_reply(
+                    "",
+                    asked=ask,
+                    node=self.chapter.node(d.ref),
+                    label="CONTINUE",
+                    focus="Nhắc con vận dụng kiến thức nền này trước khi học phần đang chọn",
+                    recent=self._recent(4),
+                    objective_driven=False,
+                )
+                text = spoken.text
+                say(
+                    TeachMessage(
+                        MessageKind.RETELL_PROMPT,
+                        text,
+                        d.ref,
+                        RECALL,
+                        spoken.source,
+                        rejected=spoken.rejected,
+                    )
+                )
+            else:
+                say(TeachMessage(MessageKind.RETELL_PROMPT, text, d.ref, RECALL))
             self._for = node_id
             return self._wait(Awaiting.RETELL, d.ref, RECALL, ask, messages, events)
         elif a == TeachAction.SHOW_WORKED_EXAMPLE:
@@ -1576,8 +1825,36 @@ class TeachingLoop:
         elif d.action in (TeachAction.TEACH_THEORY, TeachAction.ASK_RETELL):
             asked = next((e.payload for e in after if e.event_type == EventType.TEACH_MESSAGE_SENT), None)
             if d.action == TeachAction.TEACH_THEORY:
+                asked = next(
+                    (
+                        e.payload
+                        for e in reversed(after)
+                        if e.event_type == EventType.TEACH_MESSAGE_SENT
+                        and e.payload.get("kind") == MessageKind.THEORY
+                    ),
+                    asked,
+                )
                 variant = next(t for t in self.chapter.node(d.node_id).theory if t.id == d.ref)
-                self.awaiting, self._ref, self._prompt = Awaiting.THEORY_REPLY, d.ref, variant.ask
+                from cavat.modules.tutor.dialogue import question_tail
+
+                actual_ask = question_tail(asked["text"]) if asked else ""
+                self.awaiting, self._ref, self._prompt = (
+                    Awaiting.THEORY_REPLY,
+                    d.ref,
+                    actual_ask or ("" if asked and asked.get("ref") == f"{d.ref}:GENERATED" else variant.ask),
+                )
+                continued = next(
+                    (
+                        e.payload
+                        for e in reversed(after)
+                        if e.event_type == EventType.TEACH_MESSAGE_SENT
+                        and e.payload.get("ref") in (f"{d.node_id}:GUIDED_THEORY", HOLD_REF)
+                        and question_tail(e.payload.get("text", ""))
+                    ),
+                    None,
+                )
+                if continued and (actual := question_tail(continued["text"])):
+                    self._prompt = actual
             else:
                 prompt = asked["text"] if asked else self.chapter.node(d.node_id).explain.prompt
                 self.awaiting, self._ref, self._prompt = Awaiting.RETELL, None, prompt
@@ -1596,6 +1873,61 @@ class TeachingLoop:
         self, now: datetime, messages: list[TeachMessage], events: list[LoopEvent], message: TeachMessage
     ) -> None:
         """Show a teaching message and record it, so the conversation can be rebuilt from the events."""
+        strict = self.speaker is not None and getattr(self.speaker.router, "model_only_speech", False)
+        first = not any(
+            e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT) for e in self.events
+        )
+        if strict and not first and message.kind in (MessageKind.NODE, MessageKind.PASS, MessageKind.STOP):
+            # The next teaching/item turn already communicates the new goal; a separate transition
+            # costs two more model calls and can prevent a valid lesson from reaching the student.
+            return
+        if strict and first and message.kind == MessageKind.NODE:
+            from dataclasses import replace
+
+            address = self.speaker.name or self._persona["s"]
+            message = replace(
+                message, text=f"{self._persona['T']} chào {address}! Mình cùng học nhé.", ref="GREETING_ONLY"
+            )
+        elif (
+            strict
+            and message.source != "LLM"
+            and not message.rejected
+            and message.kind
+            in (
+                MessageKind.NODE,
+                MessageKind.PASS,
+                MessageKind.STOP,
+                MessageKind.SUMMARY,
+                MessageKind.EXAMPLE,
+            )
+        ):
+            from dataclasses import replace
+
+            node = self.chapter.node(message.node_id) if message.node_id else None
+            example = (
+                next((ex for ex in node.worked_examples if ex.id == message.ref), None)
+                if node and message.kind == MessageKind.EXAMPLE
+                else None
+            )
+            said = self.speaker.learning_transition(
+                message.kind.value,
+                node,
+                example=example,
+                recent=self._recent(4),
+                status=message.text if message.kind == MessageKind.SUMMARY else "",
+            )
+            message = replace(
+                message, text=said.text or MODEL_WAIT_MESSAGE, source=said.source, rejected=said.rejected
+            )
+        elif not strict:
+            if not any(
+                e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
+                for e in self.events
+            ):
+                from dataclasses import replace
+
+                address = self.speaker.name if self.speaker and self.speaker.name else self._persona["s"]
+                message = replace(message, text=f"{self._persona['T']} chào {address}! {message.text}")
         messages.append(message)
         sent = TeachMessageSent(
             kind=message.kind.value,

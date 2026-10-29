@@ -1,5 +1,8 @@
 """REFORM-6 (plan 4.1, DI-83): what a child said, read for its meaning against the teacher's rule.
 
+The retell keeps its original keyword-first scoring. The ungraded theory conversation can use this
+check before its example phrases, including short paraphrases, without changing retell/mastery formulas.
+
 The keywords of the rubric (``assessment/retell.py``, ``accept`` of a theory variant) are the first tier and
 cost nothing. When a child answers with content that they do not match, a light model is asked which ideas the
 words carry, from the rule and the reply the teacher approved. The model only proposes: every idea it names

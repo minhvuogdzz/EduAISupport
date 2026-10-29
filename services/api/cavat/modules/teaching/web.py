@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Protocol
 
 from cavat.core.vi_text import fold, normalize
+from cavat.modules.observability.trace import network_request, source_event, traced
 
 WEB_VERSION = "web-lookup/0.3.0"
 ALLOWED_HOSTS = ("sachdientu.nxbgd.vn", "sj.ctu.edu.vn", "vi.wikipedia.org")  # ADR-038
@@ -127,15 +128,19 @@ class WikipediaVi:
                     "User-Agent": "CAVAT-AI-Tutor/0.1 (https://github.com/minhvuogdzz/EduAISupport; thesis)"
                 },
             )
-        response = self._client.get(self.api, params={**params, "format": "json", "formatversion": "2"})
-        response.raise_for_status()
-        return response.json()
+        with network_request(self.api) as network:
+            response = self._client.get(self.api, params={**params, "format": "json", "formatversion": "2"})
+            network["http_status"] = getattr(response, "status_code", 200)
+            response.raise_for_status()
+            return response.json()
 
+    @traced("web")
     def lookup(self, query: str) -> WebPage | None:
         key = hashlib.sha256(query.encode()).hexdigest()[:24]
         cached = self.cache_dir / f"{key}.json" if self.cache_dir else None
         if cached is not None and cached.exists():
             data = json.loads(cached.read_text(encoding="utf-8"))
+            source_event("wikipedia_cache_hit", kind="cache", url=self.api)
             return WebPage(**data) if data else None
         page = self._fetch(query)
         if cached is not None:

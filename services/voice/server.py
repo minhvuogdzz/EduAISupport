@@ -26,7 +26,7 @@ os.environ.setdefault("HF_HUB_CACHE", str(Path(__file__).resolve().parents[2] / 
 import soundfile as sf  # noqa: E402
 from vieneu import Vieneu  # noqa: E402
 
-HOST, PORT = "127.0.0.1", int(os.environ.get("VOICE_PORT", "8010"))
+HOST, PORT = os.environ.get("VOICE_HOST", "127.0.0.1"), int(os.environ.get("VOICE_PORT", "8010"))
 MAX_CHARS = 1200
 # The tutor is "cô": a woman's voice among VieNeu's recommended ones, Northern first.
 PREFERRED = ("Ngọc Huyền", "Trúc Ly", "Đoan Trang", "Mai Anh", "Ngọc Linh")

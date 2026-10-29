@@ -93,7 +93,7 @@ const rolesNav = () => screen.findByRole("navigation", { name: "Vai trò" });
 describe("accounts: children make their own, the parent shares it, the teacher is fixed", () => {
   it("makes a child's account with a username and a passcode written twice", async () => {
     const { user } = renderApp("/student", accountsApi());
-    expect(await screen.findByRole("heading", { name: "CAVAT · Gia sư Toán lớp 5" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Mình vào học nhé." })).toBeInTheDocument();
     for (const role of ["Học sinh", "Phụ huynh", "Giáo viên"])
       expect(screen.getByText(role)).toBeInTheDocument();
 

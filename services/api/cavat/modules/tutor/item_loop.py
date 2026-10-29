@@ -399,27 +399,24 @@ class ItemTutor:
         from cavat.modules.tutor.reader import Reading, rule_unclear_reading
 
         signal = conversation_signal(text, self.last_tutor)
-        acknowledgment = signal is not None and signal.label == "CONTINUE"
-        if not acknowledgment and rule_unclear_reading(text) is not None:
-            return self._on_unclear(text, "EXPLANATION" if self.phase in _WORDS_PHASES else "ANSWER")
-        if not text.strip() or text == HINT_REQUEST_TEXT:
-            return None
-        if no_is_an_answer(self.item) and is_bare_negation(text):
-            return None
         plain = check_answer(self.item, text, self.package)
-        natural_numeric = (
-            isinstance(self.item.answer, NumericAnswer)
-            and plain.outcome == Outcome.WRONG
-            and len(text.split()) >= 4
-        )
-        if plain.outcome in GRADED_OUTCOMES and not asks_question(text) and not natural_numeric:
-            return None
-        if classify_intent(text) == Outcome.ANSWER_DEMAND:
-            return None
         read = getattr(self.reader, "read_dialogue", None)
         recent = getattr(self.renderer, "recent", ()) or self._heard[-6:]
-        reading = (
-            read(
+        reading, listened = None, False
+        from cavat.modules.assessment.vi_numbers import extract_numbers
+
+        # Live non-numeric language is read before legacy short-word/gibberish heuristics.
+        # Numeric submissions and recorded replays keep their deterministic path.
+        if (
+            signal is None
+            and getattr(self.reader, "model", None) is not None
+            and read
+            and len(text.strip()) >= 3
+            and text != HINT_REQUEST_TEXT
+            and not extract_numbers(text)
+            and plain.normalized is None
+        ):
+            reading = read(
                 stem=self.item.stem,
                 last_tutor=self.last_tutor,
                 said=text,
@@ -427,10 +424,53 @@ class ItemTutor:
                 recent=recent,
                 phase=str(self.phase),
             )
-            if read
-            else None
+            listened = True
+        conversational = reading is not None and reading.label in (
+            "AMBIGUOUS_REPLY",
+            "REPAIR",
+            "DECLINE",
+            "CONTINUE",
+            "REACTION",
         )
-        if acknowledgment and (reading is None or reading.label == "PASS"):
+        acknowledgment = signal is not None and signal.label in ("CONTINUE", "REACTION")
+        if not acknowledgment and not conversational and rule_unclear_reading(text) is not None:
+            return self._on_unclear(text, "EXPLANATION" if self.phase in _WORDS_PHASES else "ANSWER")
+        if not text.strip() or text == HINT_REQUEST_TEXT:
+            return None
+        if no_is_an_answer(self.item) and is_bare_negation(text):
+            return None
+        natural_numeric = (
+            isinstance(self.item.answer, NumericAnswer)
+            and plain.outcome == Outcome.WRONG
+            and len(text.split()) >= 4
+        )
+        if (
+            plain.outcome in GRADED_OUTCOMES
+            and not asks_question(text)
+            and not natural_numeric
+            and not (signal and signal.label == "REACTION")
+            and not conversational
+        ):
+            return None
+        if classify_intent(text) == Outcome.ANSWER_DEMAND:
+            return None
+        reading = (
+            reading
+            if listened
+            else (
+                read(
+                    stem=self.item.stem,
+                    last_tutor=self.last_tutor,
+                    said=text,
+                    turn=self._turns,
+                    recent=recent,
+                    phase=str(self.phase),
+                )
+                if read
+                else None
+            )
+        )
+        if acknowledgment and signal.label == "CONTINUE" and (reading is None or reading.label == "PASS"):
             reading = Reading(
                 "CONTINUE", focus="tiếp nhận lời cô; trở lại câu đang chờ, chưa là bằng chứng hiểu"
             )
@@ -484,7 +524,13 @@ class ItemTutor:
                     self.state.seconds_since_last_message = seconds
                     self._record_answer(checked, text, seconds)
                     return self._act(self._decide("ANSWER", checked), text)
-        if reading is None or reading.label not in ("AMBIGUOUS_REPLY", "REPAIR", "DECLINE", "CONTINUE"):
+        if reading is None or reading.label not in (
+            "AMBIGUOUS_REPLY",
+            "REPAIR",
+            "DECLINE",
+            "CONTINUE",
+            "REACTION",
+        ):
             return None
         self._emit(
             EventType.MESSAGE_READ,
@@ -967,6 +1013,21 @@ class ItemTutor:
             st.probes_sent += 1  # R-FIRST-WRONG asks "con làm thế nào?" once per item
 
         msg, attempts = self._render(d, student_text)
+        trace = getattr(self.renderer, "last_trace", None)
+        if msg.source != "LLM" and trace is not None:
+            codes = [code for group in trace.rejected for code in group]
+            if trace.fallback_reason:
+                codes.append("MODEL_FALLBACK:" + trace.fallback_reason)
+            if codes:
+                self._emit(
+                    EventType.OUTPUT_REJECTED,
+                    OutputRejected(
+                        item_id=self.item.id,
+                        move=d.move,
+                        issue_codes=list(dict.fromkeys(codes)),
+                        source="LLM",
+                    ),
+                )
         self._clarification = self._guess = None
         if d.move != Move.ASK_CONFIRM:
             self._guess_intent = None

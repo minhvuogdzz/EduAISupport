@@ -48,6 +48,7 @@ export function RadarChart({ values }: { values: Record<Dimension, number | null
   return (
     <figure className="flex flex-col items-center">
       <svg
+        data-chart
         viewBox={`0 0 ${S} ${S}`}
         width={S}
         height={S}
@@ -78,7 +79,11 @@ export function RadarChart({ values }: { values: Record<Dimension, number | null
           );
         })}
         {known.length >= 3 ? (
-          <polygon points={polygon} className="fill-brand-500/25 stroke-brand-700" strokeWidth={2} />
+          <polygon
+            points={polygon}
+            className="chart-radar fill-brand-500/25 stroke-brand-700"
+            strokeWidth={2}
+          />
         ) : (
           known.map(({ i, v }) => {
             const [x, y] = at(i, v);

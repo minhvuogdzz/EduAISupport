@@ -382,6 +382,7 @@ def validate_message(text: str, ctx: RenderContext) -> ValidationResult:
         issues.append(ValidationIssue(ValidationCode.MULTIPLE_QUESTIONS, f"{questions} questions"))
     if (
         move in MOVES_REQUIRING_QUESTION
+        and not (move == Move.EXPLAIN and ctx.state.dialogue_version >= 3 and not ctx.follow_up)
         and not {"REPAIR", "DECLINE"}.intersection(ctx.decision.reason_codes)
         and (questions == 0 or not _is_question(text.strip()))
     ):

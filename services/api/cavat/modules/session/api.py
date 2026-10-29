@@ -31,6 +31,7 @@ from cavat import db
 from cavat.config import get_settings
 from cavat.core.events import EventType
 from cavat.core.repository import utc_now
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
 from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
@@ -39,6 +40,7 @@ from cavat.modules.identity.api import AuthError, demo_mode, identity_from, regi
 from cavat.modules.identity.repository import UserRepository
 from cavat.modules.ingest import api as ingest_api
 from cavat.modules.library import api as library_api
+from cavat.modules.observability import api as admin_api
 from cavat.modules.rag import api as rag_api
 from cavat.modules.rag.service import RagService
 from cavat.modules.session import chapter_service, progress, service, teacher_view
@@ -49,6 +51,7 @@ from cavat.modules.session.repository import (
     LearningSession,
     LearningSessionRepository,
     LifecycleState,
+    NewEvent,
     SafetyReviewRepository,
     StateVersionConflict,
 )
@@ -737,8 +740,9 @@ def _shared_router() -> AIRouter:
 
 
 def tutor_router() -> AIRouter | None:
-    """None keeps sessions on approved templates (default). ``TUTOR_RENDERER=llm`` lets Qwen phrase hints."""
-    return _shared_router() if get_settings().tutor_renderer == "llm" else None
+    """Account sessions always enforce model-only speech; template engines are offline/demo scaffolds."""
+    settings = get_settings()
+    return _shared_router() if settings.tutor_renderer == "llm" or settings.auth_mode == "accounts" else None
 
 
 def demo_student(x_demo_student: Annotated[str | None, Header()] = None) -> str:
@@ -964,6 +968,162 @@ def _web_source() -> Any:
     return WikipediaVi(cache_dir=settings.storage_dir / "web")
 
 
+async def _chapter_speaker(database, content, session, router):
+    persona = content.package.persona
+    return GroundedSpeaker(
+        await _rag_service.current(database),
+        router,
+        tutor_self=persona.tutor_self,
+        student_address=persona.student_address,
+        student_name=session.student_display_name,
+        calls_used=(session.state.activity or {}).get("llm_calls", 0),
+        order=content.topological_order(),
+        web=_web_source(),
+        allow_knowledge=get_settings().allow_tutor_knowledge,
+    )
+
+
+def _hold_for_unavailable_models(session, step, recording, text="", modality="TEXT"):
+    """An outage may log input and model attempts, but cannot teach or advance the learner."""
+    calls = recording.calls
+    assessment = (session.state.item or {}).get("activity") == "EXIT_ASSESSMENT"
+    if getattr(recording, "model_only_speech", False):
+        # Approved exercise stems remain immutable structured item data, rendered by QuestionCard.
+        # Do not also emit the bank's question as a template utterance in the tutor conversation.
+        step.events[:] = [
+            e
+            for e in step.events
+            if not (
+                e.event_type == EventType.TUTOR_MESSAGE_SENT
+                and e.payload.get("source") != "LLM"
+                and (e.payload.get("move") == "PRESENT" or assessment)
+            )
+        ]
+    spoken_events = [
+        e for e in step.events if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
+    ]
+    # The live factory enforces model-only speech. Offline policy/replay engines may use templates
+    # internally, but no rejected/static mathematical utterance may be committed to a live session.
+    forbidden = (
+        [
+            e
+            for e in spoken_events
+            if e.payload.get("source") != "LLM" and e.payload.get("ref") != "GREETING_ONLY"
+        ]
+        if getattr(recording, "model_only_speech", False)
+        else []
+    )
+    unavailable = {"no_provider", "quota_exceeded", "model_unavailable", "session_cap"}
+    available = getattr(recording, "has_available_chat", None)
+    known_down = callable(available) and not available()
+    if (
+        not forbidden
+        and not known_down
+        and (not calls or calls[-1].outcome.fallback_reason not in unavailable)
+    ):
+        return step
+    if any(e.event_type == EventType.SAFETY_FLAGGED for e in step.events):
+        return step  # The established safety response takes priority over service status.
+    if not forbidden and any(e.payload.get("source") == "LLM" for e in spoken_events):
+        return step
+    from cavat.modules.teaching.loop import TEMPLATES_VERSION
+
+    payload = {
+        "kind": "FEEDBACK",
+        "text": MODEL_WAIT_MESSAGE,
+        "node_id": (session.state.activity or {}).get("node_id"),
+        "ref": "MODEL_WAIT",
+        "templates_version": TEMPLATES_VERSION,
+        "source": "TEMPLATE",
+        "sources": [],
+        "rejected": (
+            [
+                ["MODEL_ONLY_SPEECH"],
+                *[group for e in forbidden for group in e.payload.get("rejected", [])],
+                *[
+                    e.payload["issue_codes"]
+                    for e in step.events
+                    if e.event_type == EventType.OUTPUT_REJECTED and e.payload.get("issue_codes")
+                ],
+            ]
+            if forbidden
+            else [["SERVICE_UNAVAILABLE"]]
+        ),
+    }
+    if session.state.lifecycle == LifecycleState.READY:
+        # Keep the initial teaching decision so recovery retries the opening, without a sample question.
+        theory = next(
+            (
+                e
+                for e in reversed(step.events)
+                if e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("kind") == "THEORY"
+            ),
+            None,
+        )
+        if theory:
+            payload.update(
+                kind="THEORY", node_id=theory.payload.get("node_id"), ref=theory.payload.get("ref")
+            )
+        events = [
+            e
+            for e in step.events
+            if e.event_type
+            not in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT, EventType.HINT_DELIVERED)
+        ]
+        state = step.state.model_copy(deep=True)
+        if state.activity:
+            state.activity["prompt"] = ""
+        fields = step.fields
+    else:
+        state = session.state.model_copy(deep=True)
+        if state.activity:
+            previous_theory = next(
+                (
+                    e
+                    for e in reversed(session.events)
+                    if e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("kind") == "THEORY"
+                ),
+                None,
+            )
+            if (
+                previous_theory
+                and previous_theory.payload.get("source") != "LLM"
+                and str(previous_theory.payload.get("ref", "")).endswith(":GENERATED")
+            ):
+                state.activity["prompt"] = ""  # Older failed openings could still pin the sample question.
+            state.activity["llm_calls"] = state.activity.get("llm_calls", 0) + sum(
+                call.outcome.calls_made for call in calls
+            )
+        events = (
+            [
+                NewEvent(
+                    event_type=EventType.STUDENT_MESSAGE.value,
+                    payload={
+                        "item_id": f"{payload['node_id']}:MODEL_WAIT",
+                        "kind": "MESSAGE",
+                        "text": text,
+                        "modality": modality,
+                        "seconds": 0,
+                    },
+                    actor=chapter_service.actor_for(EventType.STUDENT_MESSAGE, session.student_id),
+                )
+            ]
+            if text
+            else []
+        )
+        fields = {}
+    events.append(
+        NewEvent(
+            event_type=EventType.TEACH_MESSAGE_SENT.value,
+            payload=payload,
+            actor=chapter_service.actor_for(EventType.TEACH_MESSAGE_SENT, session.student_id),
+        )
+    )
+    if events:
+        events[0].correlation["state_version"] = str(session.state_version + 1)
+    return service.Step(state, events, fields)
+
+
 async def _command(
     database: Any,
     session_id: str,
@@ -996,20 +1156,9 @@ async def _command(
     router = RecordingRouter(shared) if shared is not None else None
     if chapter_service.is_chapter(session):
         content: Any = _chapter(session.lesson_id, session.lesson_version)
-        persona = content.package.persona
         # RAG-2: the child's questions are answered from the index of this moment (rebuilt when the
         # teacher's documents changed); without TUTOR_RENDERER=llm the answers are passages word for word.
-        speaker = GroundedSpeaker(
-            await _rag_service.current(database),
-            router,
-            tutor_self=persona.tutor_self,
-            student_address=persona.student_address,
-            student_name=session.student_display_name,
-            calls_used=(session.state.activity or {}).get("llm_calls", 0),
-            order=content.topological_order(),
-            web=_web_source(),
-            allow_knowledge=get_settings().allow_tutor_knowledge,
-        )
+        speaker = await _chapter_speaker(database, content, session, router)
         # CTX-1: an unclear item message is read in context: by Qwen when it may be called, else by rule.
         calls = (session.state.activity or {}).get("llm_calls", 0)
         reader = LiveReader(
@@ -1033,6 +1182,9 @@ async def _command(
     except service.CommandNotAllowed as exc:
         raise ApiError(409, "COMMAND_NOT_ALLOWED_IN_ACTIVITY", f"{exc} is not allowed now") from exc
     if router is not None:
+        step = _hold_for_unavailable_models(
+            session, step, router, kwargs.get("text", ""), kwargs.get("modality", "TEXT")
+        )
         step.events.extend(model_call_events(router.calls, current))
     repo = _repo(database)
     try:
@@ -1118,9 +1270,18 @@ async def join_session(session_id: str, database: Database, student: Student):
     if session.state.lifecycle == LifecycleState.READY:
         if chapter_service.is_chapter(session):
             history = await _history(database, session)
-            step = chapter_service.join(
-                _chapter(session.lesson_id, session.lesson_version), session, utc_now(), history
+            chapter = _chapter(session.lesson_id, session.lesson_version)
+            shared = tutor_router()
+            if isinstance(shared, AIRouter):
+                shared = shared.with_session_cap(get_settings().max_llm_calls_per_chapter)
+            recording = RecordingRouter(shared) if shared is not None else None
+            speaker = await _chapter_speaker(database, chapter, session, recording)
+            step = await run_in_threadpool(
+                chapter_service.join, chapter, session, utc_now(), history, speaker=speaker
             )
+            if recording is not None:
+                step = _hold_for_unavailable_models(session, step, recording)
+                step.events.extend(model_call_events(recording.calls))
         else:
             step = service.join(_package(session.lesson_id), session, utc_now())
         try:
@@ -1380,6 +1541,7 @@ def register(app: FastAPI) -> None:
     async def _no_database(_: Request, exc: db.DatabaseNotConfiguredError) -> JSONResponse:
         return _error(503, "INVALID_STATE", "database is not configured")
 
+    admin_api.register(app, get_database, _shared_router, service.DEMO_SCHOOL_ID)
     app.include_router(register_auth(get_database, service.DEMO_SCHOOL_ID))
     app.include_router(
         library_api.build_router(

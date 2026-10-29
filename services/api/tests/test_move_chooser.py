@@ -295,7 +295,12 @@ async def client(monkeypatch):
     from cavat.modules.session.api import get_database
     from fastapi.testclient import TestClient
 
+    # This test isolates the item move chooser; keep its offline teaching scaffold in legacy mode.
+    monkeypatch.setattr(session_api.get_settings(), "allow_tutor_knowledge", False)
     monkeypatch.setattr(session_api, "tutor_router", lambda: QuotaRouter())
+    # Isolate chooser reporting with a legacy scaffold. Outage holding is covered end to end in
+    # test_chapter_session_api; the real service no longer teaches from templates during an outage.
+    monkeypatch.setattr(session_api, "_hold_for_unavailable_models", lambda session, step, *args: step)
     monkeypatch.setattr(session_api, "ModelChooser", lambda router, calls_used: Picks("B"))
     database = InMemoryDatabase()
     await ensure_indexes(database)

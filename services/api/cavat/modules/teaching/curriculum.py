@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 
 from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest
+from cavat.modules.teaching.decimal_facts import notation_facts
 from cavat.modules.tutor.prompt_builder import _prompt_file, clean_text
 
 CHECK_SCHEMA = {
@@ -20,6 +21,7 @@ CHECK_SCHEMA = {
         "addresses_student": {"type": "boolean"},
         "solution_leaked": {"type": "boolean"},
         "reason": {"type": "string"},
+        "needs_pedagogy_support": {"type": "boolean"},
     },
     "required": [
         "mathematically_correct",
@@ -28,15 +30,18 @@ CHECK_SCHEMA = {
         "addresses_student",
         "solution_leaked",
         "reason",
+        "needs_pedagogy_support",
     ],
     "additionalProperties": False,
 }
 
 
-def verification(message, *, question, scope, references=(), student="", may_reveal=False):
+def verification(
+    message, *, question, scope, references=(), student="", may_reveal=False, recent=(), task=""
+):
     return ChatRequest(
         messages=(
-            ChatMessage("system", _prompt_file("curriculum-check.v2.md")),
+            ChatMessage("system", _prompt_file("curriculum-check.v10.md")),
             ChatMessage(
                 "user",
                 json.dumps(
@@ -45,7 +50,10 @@ def verification(message, *, question, scope, references=(), student="", may_rev
                         "cau_dang_lam": clean_text(question, 600),
                         "can_cu": [clean_text(s, 350) for s in references[:3]],
                         "loi_con": clean_text(student, 400),
+                        "viec_luot_nay": clean_text(task, 600),
+                        "loi_co_truoc": [clean_text(text, 400) for text in recent[-2:]],
                         "loi_co": clean_text(message, 900),
+                        "kiem_chung_cach_viet_so": notation_facts(message),
                         "duoc_giai_cau_dang_lam": may_reveal,
                     },
                     ensure_ascii=False,

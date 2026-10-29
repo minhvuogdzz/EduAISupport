@@ -33,9 +33,9 @@ const TABS = [
 export function TeacherHeader({ title, children }: { title: string; children?: ReactNode }) {
   const { pathname } = useLocation();
   return (
-    <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-3 px-4 pt-6 pb-4">
+    <div className="teacher-heading">
       <div className="max-w-full min-w-0">
-        <nav aria-label="Giáo viên" className="mb-3 flex gap-2 overflow-x-auto pb-1">
+        <nav aria-label="Giáo viên" className="teacher-tabs">
           {TABS.map((tab) => {
             const active = tab.match(pathname);
             return (
@@ -43,17 +43,14 @@ export function TeacherHeader({ title, children }: { title: string; children?: R
                 key={tab.to}
                 to={tab.to}
                 aria-current={active ? "page" : undefined}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold whitespace-nowrap ${
-                  active
-                    ? "bg-indigo-700 text-white"
-                    : "bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50"
-                }`}
+                className="teacher-tab"
               >
                 {tab.label}
               </Link>
             );
           })}
         </nav>
+        <p className="eyebrow mb-3 text-slate-500">GÓC GIÁO VIÊN</p>
         <h1 className="text-2xl font-extrabold">{title}</h1>
       </div>
       {children}

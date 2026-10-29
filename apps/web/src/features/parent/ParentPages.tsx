@@ -74,7 +74,7 @@ function MyChildPage() {
   }
   return (
     <AppShell>
-      <title>Tình hình học của con · CAVAT</title>
+      <title>Tình hình học của con · Monkey Edu</title>
       <div className="mx-auto max-w-7xl px-4 py-8">{body}</div>
     </AppShell>
   );
@@ -86,7 +86,7 @@ function CodePage() {
   const [code, setCode] = useState("");
   return (
     <AppShell>
-      <title>Phụ huynh · CAVAT</title>
+      <title>Phụ huynh · Monkey Edu</title>
       <div className="mx-auto max-w-4xl px-4 py-10">
         <section className="card brand-gradient grid items-center gap-6 p-6 md:grid-cols-[1fr_auto] md:p-8">
           <div>
@@ -165,7 +165,7 @@ export function ParentChildPage() {
   }
   return (
     <AppShell>
-      <title>Tình hình học của con · CAVAT</title>
+      <title>Tình hình học của con · Monkey Edu</title>
       <div className="mx-auto max-w-7xl px-4 py-8">{body}</div>
     </AppShell>
   );
@@ -183,7 +183,7 @@ function ChildView({ view }: { view: ParentChildView }) {
   const name = view.student_display_name || "con";
   return (
     <div className="flex flex-col gap-6">
-      <header className="card brand-gradient flex flex-wrap items-center justify-between gap-4 p-6">
+      <header className="parent-welcome flex flex-wrap items-center justify-between gap-4 py-7">
         <div>
           <h1 className="text-2xl font-extrabold">Tình hình học của {name}</h1>
           <p className="mt-1 text-base text-slate-700">
@@ -195,7 +195,7 @@ function ChildView({ view }: { view: ParentChildView }) {
         <Mascot mood={view.passed > 0 ? "celebrating" : "happy"} size={96} />
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stat-strip grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
           icon={<BookIcon className="size-5 text-sky-700" />}
           label="Số buổi học"
@@ -240,7 +240,7 @@ function ChildView({ view }: { view: ParentChildView }) {
               return (
                 <li
                   key={node.node_id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-50 px-4 py-3"
+                  className="progress-row flex flex-wrap items-center justify-between gap-2 py-4"
                 >
                   <span>
                     <span className="block font-semibold">{node.name}</span>
@@ -273,10 +273,7 @@ function ChildView({ view }: { view: ParentChildView }) {
         </section>
 
         <div className="flex flex-col gap-6">
-          <section
-            aria-labelledby="good-title"
-            className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6"
-          >
+          <section aria-labelledby="good-title" className="student-good">
             <h2 id="good-title" className="text-lg font-bold text-emerald-900">
               Con đang làm tốt
             </h2>
@@ -295,10 +292,7 @@ function ChildView({ view }: { view: ParentChildView }) {
               </ul>
             )}
           </section>
-          <section
-            aria-labelledby="practise-title"
-            className="rounded-3xl border border-amber-200 bg-amber-50 p-6"
-          >
+          <section aria-labelledby="practise-title" className="student-notes">
             <h2 id="practise-title" className="text-lg font-bold text-amber-900">
               Con cần luyện thêm
             </h2>
@@ -384,13 +378,15 @@ function Kpi({
   children: ReactNode;
 }) {
   return (
-    <div className="card p-5">
+    <div className="stat-item card p-5">
       <div className="flex items-center justify-between text-sm text-slate-600">
         {label}
-        {icon}
+        <span className="stat-icon" aria-hidden="true">
+          {icon}
+        </span>
       </div>
       <div className="mt-2 text-2xl font-bold">{value}</div>
-      <div className="mt-1 text-sm text-slate-600">{children}</div>
+      <div className="teacher-stat-note">{children}</div>
     </div>
   );
 }

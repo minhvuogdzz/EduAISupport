@@ -9,7 +9,9 @@ describe("App", () => {
   it("goes from the home page to a new session through the student start page", async () => {
     const { user } = renderApp("/");
     expect(
-      screen.getByText("Chế độ giả lập (mock): chưa nối máy chủ. Lời của cô là câu mẫu, chưa phải AI tutor."),
+      screen.getByText(
+        "Chế độ giả lập (mock): chưa nối máy chủ. Lời của cô là câu mẫu, chưa phải lời của Gia sư Buddy.",
+      ),
     ).toBeVisible();
     const roles = screen.getByRole("navigation", { name: "Vai trò" });
     await user.click(within(roles).getByRole("button", { name: "Học sinh" }));

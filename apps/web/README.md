@@ -58,8 +58,8 @@ Quy ước hiển thị:
 - Số thập phân viết kiểu Việt Nam (`0,25`). Mỗi số là một khối không ngắt dòng; "0,25 … 0,3" luôn nằm trên một dòng và chỗ trống "…" hiện thành ô gạch đứt.
 - Không bao giờ sửa chữ học sinh gõ: transcript phải đúng nguyên văn. Chỉ định dạng những số do app tự in ra (`formatViDecimal`), và giờ theo `Asia/Ho_Chi_Minh`.
 - Chữ vừa phải, dễ đọc trên máy tính bảng (chủ dự án góp ý 2026-10-06: chữ cũ quá to): câu hỏi 18–20 px, hội thoại 16–18 px, nút cao ≥ 44 px (cỡ chạm tối thiểu). Font Be Vietnam Pro (vẽ riêng cho dấu tiếng Việt, giấy phép OFL, tự host qua `@fontsource` nên không cần CDN).
-- Giao diện (UI-1): màu thương hiệu xanh ngọc (`brand-*`) và vàng ấm (`gold`, `gold-soft`) khai báo trong `@theme` của `src/index.css`; thẻ `.card` bo tròn, viền vàng nhạt; nền `.brand-gradient` cho phần đầu trang. Linh vật là con cò quàng khăn xanh tự vẽ (`components/Mascot.tsx`), có 5 tâm trạng. Mọi trang trừ màn học dùng chung `components/AppShell.tsx` (thanh vai trò, chân trang).
-- Biểu đồ tự vẽ bằng SVG, không dùng thư viện: chiều rộng đo bằng `lib/useElementWidth.ts` nên chữ không bị kéo giãn; mỗi biểu đồ có tên cho trình đọc màn hình và một danh sách ẩn nói cùng nội dung.
+- Giao diện (UI-1): màu thương hiệu xanh ngọc (`brand-*`) và vàng ấm (`gold`, `gold-soft`) khai báo trong `@theme` của `src/index.css`; thẻ `.card` bo tròn, viền vàng nhạt; nền `.brand-gradient` cho phần đầu trang. Linh vật **Monkey Buddy** là chú khỉ mặc áo xanh, quàng khăn vàng tự vẽ bằng SVG (`components/Mascot.tsx`), có 5 biểu cảm và chuyển động riêng: chào đón, lắng nghe, suy nghĩ, động viên, ăn mừng. Trang chủ có bộ chọn biểu cảm, nút tạm dừng, phần lợi ích cho ba vai trò và bảng so sánh cách học. Mọi trang trừ màn học dùng chung `components/AppShell.tsx` (thanh vai trò, chân trang).
+- Biểu đồ tự vẽ bằng SVG, không dùng thư viện: chiều rộng đo bằng `lib/useElementWidth.ts` nên chữ không bị kéo giãn; mỗi biểu đồ có tên cho trình đọc màn hình và một danh sách ẩn nói cùng nội dung. Các đường tiến bộ vẽ dần trong 1,8 giây khi biểu đồ xuất hiện trong màn hình; cột và radar xuất hiện theo nhịp. `PageMotion` theo dõi cả biểu đồ đến sau dữ liệu truy vấn. Khi bật `prefers-reduced-motion` hoặc trình duyệt không hỗ trợ observer, biểu đồ hiện đầy đủ.
 - Trên tablet: bấm nút dấu không làm bật bàn phím ảo; Enter để gửi, Shift+Enter xuống dòng, không gửi khi bộ gõ (Telex, VNI) đang ghép chữ.
 - Ẩn hoặc khóa nút chỉ là UX. Backend (và mock) vẫn từ chối lệnh không hợp lệ bằng 409 (CLAUDE.md, quy tắc 4).
 
@@ -214,3 +214,34 @@ Các giả định trước đây của web app, nay backend đã làm theo:
 Màn học hiển thị ảnh đã trích từ tài liệu, gồm cả hình chung cho các câu nhỏ. Ảnh dùng API cùng cổng, có đăng nhập. Chưa có ảnh hoặc tải ảnh lỗi thì giữ mô tả để học sinh không mất dữ kiện; có thể thử tải lại. Trang nội dung bài và trang duyệt phương án có mục Hình minh họa để giáo viên duyệt/bỏ/thay, độc lập với duyệt chữ.
 
 Công cụ nội dung: `make figures DRY=1` tạo gallery chỉ đọc; `make figures` nhập các hình đã kiểm. Không chạy tự động khi ứng dụng khởi động. Gói chuyển DB/storage của ADR-036 mang theo cả hình; không cần xuất bản lại kế hoạch.
+
+## Admin quan sát AI (ADR-051)
+
+Mục **Admin** ở thanh vai trò mở `/admin`, đăng nhập riêng với `ADMIN_PASSWORD` ở API (mặc định `1234` theo yêu cầu chủ dự án). Không cần đăng nhập vai trò học sinh hoặc giáo viên trước. Đây là trang chỉ đọc.
+
+- **Nhật ký vận hành:** từng lượt xử lý, model, truy xuất RAG, lookup web; request/buổi học, liên kết tác vụ cha, thời gian chạy, lỗi, chuỗi model và token provider trả về. Giữ tối đa 3.000 tác vụ, lưu JSONL có xoay tệp ở `var/storage/observability/`.
+- **Lịch sử buổi học:** đọc sự kiện model/RAG/web đã lưu, tối đa 50 buổi cập nhật gần nhất. Loại tác vụ và tìm kiếm được lọc trước giới hạn 500 dòng của bảng.
+- **Model & hạn mức:** chuỗi ưu tiên hiện hành, trạng thái quota gateway đã quan sát, thời điểm thử lại và usage theo model trong nhật ký vận hành.
+- Tự cập nhật mỗi 5 giây; có dừng/làm mới, bộ lọc, xem dấu vết và đăng xuất. Không cộng tổng hai nguồn nhật ký. Thiếu token hoặc thời gian thì hiện `—`.
+- Đặt `OBSERVABILITY_ENABLED=false` nếu cần tắt ghi mới. Các kiểm thử mặc định không ghi nhật ký vận hành; test chức năng này dùng tệp tạm và database trong bộ nhớ.
+
+Trang chủ đưa giá trị cốt lõi và cách học lên trước phần khám phá. Buddy cầm bút viết công thức bằng nét SVG, có nút xem lại. Bộ cảm xúc tự chuyển mỗi 2 giây, có thể bấm chọn, trước/sau và tạm dừng; dừng khi ngoài màn hình, trang bị ẩn, người dùng yêu cầu giảm chuyển động. Rê chuột hoặc giữ focus vẫn tiếp tục tự đổi cảm xúc. Thêm minh họa kéo thanh số thập phân, vòng học 7 bước tương tác và sơ đồ đồng hành của ba vai trò.
+
+### Cập nhật giao diện và quan sát nguồn (29/10/2026)
+
+Giao diện dùng nền trắng, xanh dương pha cyan giảm bão hòa, tiêu đề Georgia và nét nghiêng như bản gốc; chữ nhấn/chi tiết dùng đỏ đô; áo Buddy, favicon, bảng viết và các không gian học dùng cùng hệ màu. Giữ giá trị cốt lõi ở đầu trang.
+
+Admin có ba góc nhìn: nhật ký hoạt động, RAG & Internet, model & usage. Bảng giới hạn 12 dòng/trang, cuộn trong vùng riêng, chi tiết ở cột bên cạnh; model được gộp theo tên kèm vai trò/ưu tiên. Lọc trước phân trang tại máy chủ. Hai phạm vi lịch sử buổi học và vận hành luôn hiển thị rõ, không cộng chồng.
+
+- RAG: lượt truy xuất và số có căn cứ.
+- Web vận hành: lượt gọi adapter tra cứu, gồm cả không tìm được nguồn. Adapter dự phòng có thể tạo thêm lượt.
+- Web lịch sử: **nguồn web đã lưu**, không đủ để suy ra mọi lần thử.
+- HTTP nguồn web: từng yêu cầu thực gửi ra mạng, kể cả HTTP lỗi/timeout; tách khỏi số lượt gọi model.
+- Cache: đọc bộ nhớ đệm, không tính thành kết nối HTTP.
+- Định tuyến nguồn: lý do chưa bật web, câu hỏi ngoài phạm vi, chưa xác định chủ đề hoặc không có nguồn qua kiểm tra.
+
+HTTP/cache/định tuyến chỉ có từ bản cập nhật này; lịch sử cũ hiển thị chưa theo dõi HTTP thay vì 0. Không tạo truy cập giả hoặc đổi chính sách dạy để tăng số đếm. HTTP log chỉ giữ host/path, method, status, thời gian; bỏ query string, headers và body.
+
+Banner đầu trang có lớp nền `.hero-banner` phủ toàn chiều ngang, phần `.home-hero` bên trong giữ giới hạn 1320 px cho nội dung. Footer: `© 2026 Monkey Edu · Devhouse Software`.
+
+Điều chỉnh theo góp ý tiếp: xanh chính thiên blue rõ hơn (`#3f76a3`); nền banner đầu trang trắng tinh `#ffffff`, vẫn phủ hết chiều ngang. Giữ font serif và chi tiết đỏ đô.

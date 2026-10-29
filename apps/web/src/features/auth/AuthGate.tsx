@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ChangeEvent, type ReactNode } from "react";
-import { Navigate, useNavigate } from "react-router";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
 
 import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
@@ -13,6 +13,7 @@ import { AuthContext, homeOf, ROLE_LABEL, useAuth } from "./authContext";
  * until one of them logs in with a PIN; the mock API and the demo mode keep the app open as before.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
+  const location = useLocation();
   const api = useApi();
   const queryClient = useQueryClient();
   const config = useQuery({
@@ -29,6 +30,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     retry: false,
   });
 
+  // Admin has its own server-verified login and must not require a learner account.
+  if (location.pathname === "/admin") {
+    return <AuthContext.Provider value={NO_ACCOUNTS}>{children}</AuthContext.Provider>;
+  }
   if (!api.auth || config.data?.mode === "demo") {
     return <AuthContext.Provider value={NO_ACCOUNTS}>{children}</AuthContext.Provider>;
   }
@@ -38,16 +43,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (config.isError) {
     return <Centered>Chưa kết nối được máy chủ. Hãy chạy bản demo bằng lệnh make demo.</Centered>;
   }
-  if (me.isError || !me.data) {
-    return <LoginPage config={config.data} />;
-  }
+
   // Another role's data must never show under this one: every query starts again for the new account.
   const restart = () => void queryClient.resetQueries();
   const state = {
-    user: me.data,
-    accounts: config.data.accounts,
-    studentSignup: config.data.student_signup === true,
+    user: me.data ?? null,
+    accounts: config.data?.accounts ?? [],
+    studentSignup: config.data?.student_signup === true,
     switchTo: (kind: AccountKind) => {
+      if (!me.data) return false;
       if (kind === me.data.kind) return true;
       if (!api.auth!.switchTo(kind)) return false;
       restart();
@@ -60,6 +64,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
       restart();
     },
   };
+
+  // The landing page (/) is public: visitors explore Monkey Edu, capabilities, emotions and curriculum.
+  // Protected areas (/student, /parent, /teacher, /login) require authentication.
+  const isPublic = location.pathname === "/" || location.pathname === "/admin";
+  if (!isPublic && (me.isError || !me.data || location.pathname === "/login")) {
+    return <LoginPage config={config.data} />;
+  }
+
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
 }
 
@@ -81,8 +93,8 @@ export function RequireKind({ kind, children }: { kind: AccountKind; children: R
 
 function Centered({ children }: { children: ReactNode }) {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-paper p-6">
-      <p role="status" className="card max-w-md p-6 text-center">
+    <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-6">
+      <p role="status" className="clay-card max-w-md p-6 text-center font-bold text-slate-700 shadow-md">
         {children}
       </p>
     </main>
@@ -92,67 +104,94 @@ function Centered({ children }: { children: ReactNode }) {
 function LoginPage({ config }: { config: AuthConfig }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const signup = config.student_signup === true;
   // A child's account serves the student and the parent; the teacher is the fixed account with its PIN.
   const hasTeacher = config.accounts.some((a) => a.kind === "TEACHER");
   const roles: AccountKind[] = signup
     ? ["STUDENT", "PARENT", ...(hasTeacher ? (["TEACHER"] as const) : [])]
     : config.accounts.map((a) => a.kind);
-  const [role, setRole] = useState<AccountKind | null>(signup ? "STUDENT" : null);
+
+  const searchParams = new URLSearchParams(location.search);
+  const paramRole = searchParams.get("role") as AccountKind | null;
+  const pathRole: AccountKind | null = location.pathname.startsWith("/teacher")
+    ? "TEACHER"
+    : location.pathname.startsWith("/parent")
+      ? "PARENT"
+      : location.pathname.startsWith("/student")
+        ? "STUDENT"
+        : null;
+
+  const targetRole =
+    paramRole && roles.includes(paramRole)
+      ? paramRole
+      : pathRole && roles.includes(pathRole)
+        ? pathRole
+        : signup
+          ? "STUDENT"
+          : (roles[0] ?? null);
+
+  const [role, setRole] = useState<AccountKind | null>(targetRole);
   const account = config.accounts.find((a) => a.kind === role);
   const onLoggedIn = (user: AuthUser) => {
     queryClient.setQueryData(["auth-me"], user);
     void navigate(homeOf(user.kind));
   };
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-paper p-4">
-      <title>Đăng nhập · CAVAT</title>
-      <section className="card brand-gradient w-full max-w-lg p-6" aria-labelledby="login-title">
-        <div className="flex items-center gap-3">
-          <Mascot size={56} />
-          <div>
-            <h1 id="login-title" className="text-xl font-extrabold">
-              CAVAT · Gia sư Toán lớp 5
-            </h1>
-            <p className="text-sm text-slate-700">Chọn vai trò của bạn.</p>
-          </div>
-        </div>
-        {roles.length === 0 ? (
-          <p role="status" className="mt-4 rounded-2xl bg-white/80 p-4 text-sm">
-            Chưa có tài khoản nào. Tạo phụ huynh và giáo viên bằng lệnh{" "}
-            <code className="font-mono">make accounts</code>.
-          </p>
-        ) : (
-          <>
-            <fieldset className="mt-4 grid gap-2 sm:grid-cols-3">
-              <legend className="sr-only">Vai trò</legend>
-              {roles.map((kind) => (
-                <label
-                  key={kind}
-                  className={`cursor-pointer rounded-2xl bg-white p-3 text-center ring-1 ${
-                    role === kind ? "ring-2 ring-brand-600" : "ring-slate-200 hover:ring-brand-300"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="role"
-                    className="sr-only"
-                    checked={role === kind}
-                    onChange={() => setRole(kind)}
-                  />
-                  <span className="block font-semibold">{ROLE_LABEL[kind]}</span>
-                </label>
-              ))}
-            </fieldset>
-            {signup && (role === "STUDENT" || role === "PARENT") && (
-              <ChildForm key={role} role={role} onLoggedIn={onLoggedIn} />
-            )}
-            {role && !(signup && (role === "STUDENT" || role === "PARENT")) && account && (
-              <PinForm key={role} accounts={[account]} onLoggedIn={onLoggedIn} />
-            )}
-          </>
-        )}
-      </section>
+    <main className="login-page">
+      <title>Đăng nhập · Monkey Edu · Gia sư Toán 5</title>
+      <aside className="login-aside" aria-label="Cùng Buddy học Toán">
+        <p className="eyebrow">MONKEY EDU · TOÁN LỚP 5</p>
+        <h2>
+          Một chút tò mò.
+          <br />
+          <em>Một điều mới hiểu.</em>
+        </h2>
+        <p>Góc học nhỏ đã sẵn sàng. Mình cùng tìm ra cách làm, từng bước một nhé.</p>
+        <Mascot size={210} mood="encouraging" animated />
+      </aside>
+      <div className="login-content">
+        <section className="login-panel" aria-labelledby="login-title">
+          <Link to="/" className="login-back">
+            ← Về trang chủ Monkey Edu
+          </Link>
+          <p className="eyebrow">CHÀO MỪNG BẠN TRỞ LẠI</p>
+          <h1 id="login-title" className="login-title">
+            Mình vào học nhé.
+          </h1>
+          <p className="login-subtitle">Chọn góc của bạn để tiếp tục cùng Monkey Edu.</p>
+          {roles.length === 0 ? (
+            <p role="status" className="mt-4 rounded-2xl bg-white/80 p-4 text-sm">
+              Chưa có tài khoản nào. Tạo phụ huynh và giáo viên bằng lệnh{" "}
+              <code className="font-mono">make accounts</code>.
+            </p>
+          ) : (
+            <>
+              <fieldset className="login-roles">
+                <legend className="sr-only">Vai trò</legend>
+                {roles.map((kind) => (
+                  <label key={kind} className={`login-role ${role === kind ? "is-selected" : ""}`}>
+                    <input
+                      type="radio"
+                      name="role"
+                      className="sr-only"
+                      checked={role === kind}
+                      onChange={() => setRole(kind)}
+                    />
+                    <span className="block">{ROLE_LABEL[kind]}</span>
+                  </label>
+                ))}
+              </fieldset>
+              {signup && (role === "STUDENT" || role === "PARENT") && (
+                <ChildForm key={role} role={role} onLoggedIn={onLoggedIn} />
+              )}
+              {role && !(signup && (role === "STUDENT" || role === "PARENT")) && account && (
+                <PinForm key={role} accounts={[account]} onLoggedIn={onLoggedIn} />
+              )}
+            </>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
@@ -261,7 +300,7 @@ export function ChildForm({
       <button
         type="submit"
         disabled={!ready}
-        className="rounded-xl bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+        className="btn-playful-primary rounded-2xl px-5 py-3 text-base font-black shadow-lg disabled:opacity-50"
       >
         {creating ? "Tạo tài khoản và vào học" : role === "PARENT" ? "Mở" : "Vào học"}
       </button>
@@ -272,7 +311,7 @@ export function ChildForm({
             setCreating(!creating);
             enter.reset();
           }}
-          className="min-h-11 rounded-xl text-sm font-semibold text-brand-800 hover:bg-white/60"
+          className="min-h-11 rounded-2xl text-sm font-bold text-teal-800 hover:bg-amber-50/80 transition"
         >
           {creating ? "Mình đã có tài khoản" : "Lần đầu học? Tạo tài khoản mới"}
         </button>
@@ -361,7 +400,7 @@ export function PinForm({
       <button
         type="submit"
         disabled={!chosen || pin.length < 4 || login.isPending}
-        className="rounded-xl bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
+        className="btn-playful-primary rounded-2xl px-5 py-3 text-base font-black shadow-lg disabled:opacity-50"
       >
         {accounts.length === 1 ? "Mở" : "Đăng nhập"}
       </button>

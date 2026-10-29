@@ -67,3 +67,12 @@ Chỉ còn thiếu giọng cô và vòng hội thoại bằng giọng nói.
   - Khoảng 300 ms đầu của câu bé nói chen bị mất, vì phải nghe đủ lâu mới biết là bé nói. Bé thường nói tiếp hoặc nói lại.
   - Trên loa ngoài to, tiếng cô vọng lại có thể vượt ngưỡng. Dùng tai nghe thì chắc chắn hơn.
   - Phần ước lượng im lặng chỉ dựa vào độ to. Ở chỗ ồn có thể phải bấm micro.
+
+## VOICE-3: tránh gửi lời nhận nhầm khi chưa nói (29/10/2026)
+
+- **[FACT] Vấn đề:** chủ dự án báo bật voice, chưa nói nhưng xuất hiện lời học sinh “Cảm ơn các bạn đã theo dõi và hẹn gặp lại.” Bộ ghi cũ nhận một mẫu âm lượng vượt ngưỡng là đã nói; đường Web Speech còn dùng cả kết quả tạm thời để gửi câu trả lời.
+- **Quyết định / DI (VOICE-3):** cần âm lượng RMS > 0,02 liên tục ít nhất 150 ms, lấy mẫu mỗi 50 ms, trước khi giữ bản ghi. Micro có sẵn từ barge-in cũng phải có tiếng trong chính bản ghi mới. Giữ thời gian chờ 8 giây, khoảng dừng 1,5 giây và giới hạn 20 giây.
+- Groq STT dùng `verbose_json`. Bỏ segment khi đồng thời `no_speech_prob > 0.6` và `avg_logprob < -0.5`; segment có độ tin cậy cao vẫn được giữ. Đây là ngưỡng kỹ thuật cần đo tiếp với giọng thật, không phải chuẩn đánh giá sư phạm. Nguồn mô tả metadata: [Groq Speech to Text](https://console.groq.com/docs/speech-to-text).
+- Không cấm các cụm từ như “cảm ơn” hay “hẹn gặp lại”: nếu là lời thật, chúng vẫn hợp lệ. Không có tiếng hoặc toàn segment bị loại → chuỗi rỗng; frontend không gọi lệnh trả lời và mời nói lại. Không chuyển kết quả rỗng sang bộ nghe dự phòng để đoán tiếp.
+- Web Speech chỉ gửi kết quả `isFinal`; chữ tạm vẫn có thể hiện khi đang nghe. Hủy trong lúc xin quyền micro hoặc đang nhận dạng phải bỏ kết quả và đóng tài nguyên.
+- Kiểm thử bằng micro, đồng hồ và provider giả: im lặng, tiếng click ngắn, câu ngắn, hủy, lỗi bộ ghi, segment im lặng và tiếng nói hợp lệ. Chưa đo độ chính xác với tập âm thanh thực tế; bộ lọc năng lượng vẫn có thể nhận nhầm tiếng nền kéo dài. Không sửa chấm Toán, mastery hay lịch sử hội thoại.

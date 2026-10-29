@@ -406,9 +406,11 @@ def test_a_question_through_the_session_api_is_answered_and_shown_to_the_teacher
     transcript = client.get(f"/v1/sessions/{sid}/transcript", headers=TEACHER).json()
     teach = [t["teach"] for s in transcript["segments"] for t in s["turns"] if t.get("teach")]
     answer = teach[-1]
-    assert answer["kind"] == "ANSWER" and answer["source"] == "EXTRACT"  # no model in tests: a passage
+    assert (
+        answer["kind"] == "ANSWER" and answer["source"] == "TEMPLATE"
+    )  # no model: do not impersonate synthesis by copying a passage
     assert answer["grounded"] is True and answer["grounding"].startswith("độ phủ từ khóa")
-    assert answer["sources"] and answer["parked"] is None
+    assert not answer["sources"] and answer["parked"] == "NOT_GROUNDED"  # no model could synthesize it
 
 
 @pytest.mark.parametrize(

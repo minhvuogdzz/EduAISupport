@@ -75,7 +75,7 @@ export function RagPage() {
     );
   return (
     <AppShell>
-      <title>RAG · Giáo viên · CAVAT</title>
+      <title>RAG · Giáo viên · Monkey Edu</title>
       <TeacherHeader title="Gia sư lấy nội dung ở đâu" />
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 pb-10">{body}</div>
     </AppShell>
@@ -124,8 +124,8 @@ function Sources({ status }: { status: RagStatus }) {
       </ul>
       {status.documents.length === 0 ? (
         <p className="mt-2 text-sm text-amber-900">
-          Chưa có tài liệu giáo viên: RAG đang dùng nội dung chương (bản nháp do AI soạn, chờ giáo viên
-          duyệt). Tải tài liệu ở tab Tài liệu để thêm nguồn.
+          Chưa có tài liệu giáo viên: RAG đang dùng nội dung chương (bản nháp do Gia sư Buddy soạn, chờ giáo
+          viên duyệt). Tải tài liệu ở tab Tài liệu để thêm nguồn.
         </p>
       ) : (
         <table className="mt-3 w-full text-left text-sm">

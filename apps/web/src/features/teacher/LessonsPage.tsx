@@ -77,7 +77,7 @@ export function LessonsPage() {
     );
   return (
     <AppShell>
-      <title>Bài học · Giáo viên · CAVAT</title>
+      <title>Bài học · Giáo viên · Monkey Edu</title>
       <TeacherHeader title="Nội dung bài học" />
       <div className="mx-auto max-w-7xl px-4 pb-10">{body}</div>
     </AppShell>
@@ -97,7 +97,7 @@ export function ChapterContentPage() {
   return (
     <FiguresProvider chapterId={chapterId} who="teacher">
       <AppShell>
-        <title>Bài học · Giáo viên · CAVAT</title>
+        <title>Bài học · Giáo viên · Monkey Edu</title>
         <TeacherHeader title={content.data?.title ?? "Bài học"} />
         <div className="mx-auto max-w-7xl px-4 pb-10">
           <Link to="/teacher/lessons" className="mb-3 inline-block text-sm text-brand-800 hover:underline">
@@ -179,6 +179,10 @@ function NodeContent({ node, misName }: { node: ContentNode; misName: Map<string
       </header>
 
       <Block title="Lý thuyết (các cách giảng)">
+        <p className="text-sm text-slate-600">
+          Đây là căn cứ kiến thức và ví dụ tham khảo. Gia sư diễn đạt linh hoạt trong bài đang học; học sinh
+          không phải nói giống câu mẫu. Tiêu chí chấm bài tập được giữ riêng.
+        </p>
         <ol className="flex flex-col gap-3">
           {node.theory.map((t) => (
             <li key={t.id} className="rounded-xl bg-slate-50 p-3 text-sm">
@@ -189,18 +193,18 @@ function NodeContent({ node, misName }: { node: ContentNode; misName: Map<string
                 <MathText text={t.text} />
               </p>
               <p className="mt-1">
-                <span className="font-semibold">Câu hỏi: </span>
+                <span className="font-semibold">Câu hỏi tham khảo: </span>
                 <MathText text={t.ask} />
               </p>
               {t.accept.length > 0 && (
                 <p className="mt-1">
-                  <span className="font-semibold">Đáp án chấp nhận: </span>
+                  <span className="font-semibold">Ví dụ trả lời đúng ý: </span>
                   {t.accept.join(" · ")}
                 </p>
               )}
               {t.reply && (
                 <p className="mt-1">
-                  <span className="font-semibold">Lời cô đáp: </span>
+                  <span className="font-semibold">Ý giải thích tham khảo: </span>
                   <MathText text={t.reply} />
                 </p>
               )}

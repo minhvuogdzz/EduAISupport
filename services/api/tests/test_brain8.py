@@ -54,11 +54,11 @@ def test_ack_sequence_asks_the_pending_question_without_model_calls_or_grades():
     assert (turn.awaiting, turn.prompt) != (first.awaiting, first.prompt)
 
 
-def test_repair_explains_the_current_theory_variant_then_asks_the_actual_pending_question_even_at_quota():
+def test_repair_preserves_pending_question_without_forcing_it_into_the_explanation_at_quota():
     loop, first, provider = at_theory()
     turn = loop.on_student("hả", NOW)
-    assert turn.messages[-1].text.endswith(first.prompt) and turn.messages[-1].text.count("?") == 1
-    assert turn.awaiting == first.awaiting and provider.calls == []
+    assert not turn.messages[-1].text.endswith(first.prompt) and "?" not in turn.messages[-1].text
+    assert turn.prompt == first.prompt and turn.awaiting == first.awaiting and provider.calls == []
 
 
 def test_retell_acknowledgement_does_not_repeat_the_lesson_or_award_comprehension():
@@ -164,18 +164,22 @@ def test_resuming_the_question_does_not_depend_on_permission_to_use_outside_know
     assert provider.calls == [] and turn.awaiting == first.awaiting
 
 
-def test_ready_ack_does_not_call_the_model_even_when_calls_are_available():
+def test_ready_theory_ack_is_generated_when_available_and_item_probe_contract_is_preserved():
     from cavat.modules.tutor.llm_renderer import LLMRenderer
     from cavat.modules.tutor.renderer import TemplateRenderer
     from cavat.modules.tutor.validator import validate_message
 
-    provider = FakeChatModel([])  # any provider call would exhaust the script and fail
+    actual = "Bốn phần trong một trăm phần bằng nhau viết thành phân số nào con?"
+    provider = FakeChatModel([{"message": actual, "safety_flag": False, "policy_feedback": ""}, OK])
     router = AIRouter(chat_provider=provider, max_calls_per_session=160)
     reader = LiveReader(ModelReader(router), semantic=True)
     speaker = GroundedSpeaker(small_index(), router, allow_knowledge=True)
     loop, first = loop_at_theory(speaker)
     loop.go_live(reader=reader, speaker=speaker)
-    assert loop.on_student("okok", NOW).messages[-1].text.endswith(first.prompt)
+    turn = loop.on_student("okok", NOW)
+    assert turn.messages[-1].source == "LLM" and turn.prompt == actual
+    assert len(provider.calls) == 2
+    provider.calls.clear()
     renderer = LLMRenderer(router, TemplateRenderer(), validate_message, allow_knowledge=True)
     item = tutor(reader, renderer=renderer)
     turn = item.on_student("ok", dialogue_version=3)

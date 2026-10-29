@@ -115,8 +115,22 @@ def test_a_prompt_refused_before_sending_is_called_but_not_a_fallback():
 
 @pytest.fixture
 async def memory(monkeypatch):
+    class TeachingProvider(QwenOutOfQuota):
+        def chat(self, request, model):
+            if model == GPT_OSS and request.schema_name in ("lesson_teacher_v1", "lesson_review_v1"):
+                from test_brain4 import OK
+                from test_goal_driven_teaching import ENTRY_OK, opening_output
+
+                data = dict(HINT) if request.schema_name == "lesson_teacher_v1" else dict(OK)
+                if "knowledge_recall" in request.json_schema["properties"]:
+                    data = opening_output(HINT["message"])
+                if "recall_explains_knowledge" in request.json_schema["properties"]:
+                    data = dict(ENTRY_OK)
+                return ChatResult(model, json.dumps(data, ensure_ascii=False), data, Usage(812, 31, 843))
+            return super().chat(request, model)
+
     monkeypatch.setattr(
-        session_api, "tutor_router", lambda: AIRouter(chat_provider=QwenOutOfQuota(), chains=TWO_MODELS)
+        session_api, "tutor_router", lambda: AIRouter(chat_provider=TeachingProvider(), chains=TWO_MODELS)
     )
     database = InMemoryDatabase()
     await ensure_indexes(database)
@@ -126,12 +140,12 @@ async def memory(monkeypatch):
 
 
 async def test_a_session_writes_down_its_model_calls(memory):
-    from test_chapter_session_api import MINH, reply_text, send, start
+    from test_chapter_session_api import MINH, send, start
 
     client = TestClient(app)
     state = start(client)
-    for key, text in (("k0", None), ("k1", "3/7")):
-        sent = send(client, state, text or reply_text(state), key)
+    for key, text in (("k0", "con chưa hiểu"), ("k1", "3/7")):
+        sent = send(client, state, text, key)
         assert sent.status_code == 200, sent.text
         state = client.get(f"/v1/sessions/{state['session_id']}/state", headers=MINH).json()
 
@@ -141,7 +155,11 @@ async def test_a_session_writes_down_its_model_calls(memory):
         PAYLOAD_MODELS[EventType(e["event_type"])].model_validate(e["payload"])
     written = [e["payload"] for e in stored if e["event_type"] == "MODEL_CALLED" and e["payload"]["model"]]
     assert written and {p["model"] for p in written} == {GPT_OSS}
-    assert all(p["purpose"] == "tutor_turn" and p["prompt_tokens"] == 812 for p in written)
+    assert all(
+        p["purpose"] in {"tutor_turn", "lesson_teacher_v1", "lesson_review_v1"} and p["prompt_tokens"] == 812
+        for p in written
+    )
+    assert {"lesson_teacher_v1", "lesson_review_v1"} <= {p["purpose"] for p in written}
     assert all(p["estimated_tokens"] > 0 and p["prompt_chars"] > 0 for p in written)
     moved = [e["payload"] for e in stored if e["event_type"] == "MODEL_FALLBACK"]
     assert (QWEN, GPT_OSS, "QUOTA") in {(p["from_model"], p["to_model"], p["reason"]) for p in moved}

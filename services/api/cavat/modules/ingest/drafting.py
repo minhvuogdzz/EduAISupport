@@ -51,7 +51,7 @@ from cavat.modules.tutor.validator import foreign_text, grounded_values, validat
 
 DRAFTER_VERSION = "drafting/0.1.0"
 PROMPTS = Path(__file__).parent / "prompts"
-HINT_PROMPT, NODE_PROMPT = "draft-hints.v2.md", "draft-node.v1.md"  # REFORM-3: v2 asks about the data
+HINT_PROMPT, NODE_PROMPT = "draft-hints.v2.md", "draft-node.v2.md"  # REFORM-3: v2 asks about the data
 VERIFY_PROMPT = "draft-verify.v1.md"  # FIX-3
 MAX_VERIFY_WORDS = 25
 VERIFY_LEAD = "Đúng rồi!"  # the tutor's praise before the "vì sao", as in the hand-written lessons

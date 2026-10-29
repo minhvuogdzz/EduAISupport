@@ -113,11 +113,15 @@ def test_security_headers_on_the_page_the_api_and_the_404(client):
 
 
 def test_text_is_gzipped_when_the_browser_accepts_it(client):
-    zipped = client.get("/assets/index-Ab12Cd34.js", headers={"Accept-Encoding": "gzip"})
-    assert zipped.headers["content-encoding"] == "gzip"
-    assert "accept-encoding" in zipped.headers["vary"].lower()
-    assert int(zipped.headers["content-length"]) < len(BUNDLE)
-    assert zipped.text == BUNDLE  # the client unpacks it
+    import gzip
+
+    # Streaming compression need not send Content-Length. Verify the actual wire bytes.
+    with client.stream("GET", "/assets/index-Ab12Cd34.js", headers={"Accept-Encoding": "gzip"}) as zipped:
+        assert zipped.headers["content-encoding"] == "gzip"
+        assert "accept-encoding" in zipped.headers["vary"].lower()
+        compressed = b"".join(zipped.iter_raw())
+        assert len(compressed) < len(BUNDLE)
+        assert gzip.decompress(compressed).decode() == BUNDLE
     plain = client.get("/assets/index-Ab12Cd34.js", headers={"Accept-Encoding": "identity"})
     assert "content-encoding" not in plain.headers
     assert plain.text == BUNDLE

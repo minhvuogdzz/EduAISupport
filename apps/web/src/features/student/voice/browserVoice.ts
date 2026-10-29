@@ -38,6 +38,7 @@ export function canBrowserSpeak(): boolean {
 
 /** One utterance of the child, as words; "" when nothing was heard. ``onHeard`` shows the words so far. */
 export function browserListen(onHeard: (partial: string) => void, signal: AbortSignal): Promise<string> {
+  if (signal.aborted) return Promise.resolve("");
   const Ctor = recognitionCtor();
   if (!Ctor) return Promise.reject(new Error("no speech recognition in this browser"));
   return new Promise((resolve, reject) => {
@@ -45,18 +46,36 @@ export function browserListen(onHeard: (partial: string) => void, signal: AbortS
     rec.lang = "vi-VN";
     rec.interimResults = true;
     rec.continuous = false;
-    let text = "";
+    let finalText = "";
+    const done = (text: string, error?: Error) => {
+      rec.onresult = rec.onerror = rec.onend = null;
+      signal.removeEventListener("abort", cancel);
+      if (error) reject(error);
+      else resolve(text.trim());
+    };
+    const cancel = () => {
+      done("");
+      rec.abort();
+    };
     rec.onresult = (event) => {
-      text = Array.from(event.results, (r) => r[0].transcript).join(" ");
-      onHeard(text);
+      const results = Array.from(event.results);
+      finalText = results
+        .filter((r) => r.isFinal)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      onHeard(results.map((r) => r[0].transcript).join(" "));
     };
     rec.onerror = (event) => {
-      if (event.error === "no-speech" || event.error === "aborted") resolve("");
-      else reject(new Error(event.error));
+      if (event.error === "no-speech" || event.error === "aborted") done("");
+      else done("", new Error(event.error));
     };
-    rec.onend = () => resolve(text.trim());
-    signal.addEventListener("abort", () => rec.abort(), { once: true });
-    rec.start();
+    rec.onend = () => done(finalText);
+    signal.addEventListener("abort", cancel, { once: true });
+    try {
+      rec.start();
+    } catch (error) {
+      done("", error instanceof Error ? error : new Error("speech recognition failed"));
+    }
   });
 }
 

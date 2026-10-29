@@ -120,7 +120,7 @@ describe("PlanReviewPage (INGEST-4)", () => {
     renderApp("/teacher/plans/math-g5-decimals", api);
     expect(await screen.findByRole("heading", { name: "So sánh hai số thập phân" })).toBeInTheDocument();
     expect(screen.getByText("Giáo án, tiết 4, trang 3")).toBeInTheDocument();
-    expect(screen.getByText("AI soạn")).toBeInTheDocument();
+    expect(screen.getByText("Gia sư Buddy soạn")).toBeInTheDocument();
     expect(screen.getByText("đáp án đã kiểm")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Phát hành cho gia sư dạy" })).toBeDisabled();
     expect(screen.getByText("Còn 1 việc trước khi phát hành")).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe("PlanReviewPage (INGEST-4)", () => {
     expect(
       await screen.findByText("Vì sao con so sánh phần nguyên trước?", { exact: false }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("AI soạn")).toHaveLength(2); // the hint and the why question
+    expect(screen.getAllByText("Gia sư Buddy soạn")).toHaveLength(2); // the hint and the why question
     await user.click(screen.getByRole("button", { name: "Sửa câu hỏi vì sao" }));
     const input = screen.getByRole("textbox", { name: "Câu hỏi vì sao" });
     await user.clear(input);

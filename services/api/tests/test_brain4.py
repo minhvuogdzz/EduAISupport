@@ -85,7 +85,7 @@ def test_listener_sees_raw_words_and_real_context_not_a_fabricated_dont_know():
     t.last_tutor = "Con muốn tự thử hay muốn cô giảng trước?"
     turn = t.on_student("không", dialogue_version=3)
     request = provider.calls[0][1]
-    assert request.schema_name == "dialogue_listen_v4"
+    assert request.schema_name == "dialogue_listen_v6"
     assert json.loads(request.messages[1].content)["con_vua_noi"] == "không"
     assert "Con muốn tự thử" in request.messages[1].content
     assert "con không biết" not in request.messages[1].content
@@ -95,7 +95,7 @@ def test_listener_sees_raw_words_and_real_context_not_a_fabricated_dont_know():
 def test_no_provider_still_asks_what_no_means_without_charging_a_wrong_answer():
     t = tutor(LiveReader(None, semantic=True))
     turn = t.on_student("không", dialogue_version=3)
-    assert turn.move == Move.ASK_CONFIRM and "chưa muốn" in turn.text
+    assert turn.move == Move.ASK_CONFIRM and "nói thêm" in turn.text
     assert t.state.attempt_no == 0 and t.state.max_hint_level == 0
 
 

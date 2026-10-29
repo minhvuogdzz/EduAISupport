@@ -78,7 +78,7 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
   PARTIAL: "Đúng một phần",
   UNPARSEABLE: "Chưa đọc được",
   NEEDS_CONFIRMATION: "Cần xác nhận",
-  NEEDS_LLM: "Chờ AI phân tích",
+  NEEDS_LLM: "Chờ Gia sư Buddy phân tích",
   NO_RESPONSE: "Không trả lời",
   HELP_REQUEST: "Xin trợ giúp",
   ANSWER_DEMAND: "Đòi đáp án",

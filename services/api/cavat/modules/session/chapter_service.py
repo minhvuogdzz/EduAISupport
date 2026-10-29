@@ -221,9 +221,16 @@ def new_session(
     )
 
 
-def join(chapter: Chapter, session: LearningSession, now: datetime, history: Sequence[Any] = ()) -> Step:
+def join(
+    chapter: Chapter,
+    session: LearningSession,
+    now: datetime,
+    history: Sequence[Any] = (),
+    *,
+    speaker: GroundedSpeaker | None = None,
+) -> Step:
     """READY -> ACTIVE: the teaching loop starts on the first node the student has not passed yet."""
-    loop = TeachingLoop(chapter, session.id, history)
+    loop = TeachingLoop(chapter, session.id, history, speaker=speaker)
     turn = loop.start(now)
     started = NewEvent(
         event_type=EventType.SESSION_STARTED.value,
@@ -231,7 +238,9 @@ def join(chapter: Chapter, session: LearningSession, now: datetime, history: Seq
         actor=actor_for(EventType.SESSION_STARTED, session.student_id),
     )
     events, attempt, node_id = _convert(session, turn.events, None, None)
-    state = _state_after(chapter, loop, turn, attempt, node_id, llm_calls=0)
+    state = _state_after(
+        chapter, loop, turn, attempt, node_id, llm_calls=speaker.calls_made if speaker is not None else 0
+    )
     return Step(state, [started, *events], {"started_at": now})
 
 

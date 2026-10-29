@@ -43,6 +43,8 @@ services:
       MONGODB_URI: "mongodb://cavat:${MONGO_PASSWORD:?MONGO_PASSWORD chưa có trong .env, chạy sh deploy/setup.sh}@mongo:27017/?authSource=admin"
       MONGODB_DB: "${MONGODB_DB:-cavat_prod}"
       GROQ_API_KEY: "${GROQ_API_KEY:?GROQ_API_KEY chưa có trong .env}"
+      GROQ_MODEL: "${GROQ_MODEL:-qwen/qwen3.8-27b}"
+      GROQ_STT_MODEL: "${GROQ_STT_MODEL:-whisper-large-v3}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
       AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET chưa có trong .env, chạy sh deploy/setup.sh}"
       AUTH_MODE: accounts
@@ -53,14 +55,37 @@ services:
       ALLOW_TUTOR_KNOWLEDGE: "${ALLOW_TUTOR_KNOWLEDGE:-true}"
       WEB_LOOKUP: "${WEB_LOOKUP:-search}"
       TAVILY_API_KEY: "${TAVILY_API_KEY:-}"
-      # the tutor's voice server (VieNeu) is not part of this package: the browser reads with its own voice
-      TTS: "off"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?ADMIN_PASSWORD chưa có trong .env}"
+      TTS: "${TTS:-vieneu}"
+      VIENEU_URL: "http://voice:8010"
+      VIENEU_VOICE: "${VIENEU_VOICE:-}"
+      OBSERVABILITY_ENABLED: "${OBSERVABILITY_ENABLED:-true}"
     volumes:
       - app-data:/data/storage
       # where the database export is put to be loaded (deploy/README.md); read-only
       - ./db-dump:/dump:ro
     ports:
       - "${PORT:-8080}:8000"
+    logging: *logging
+
+  voice:
+    build:
+      context: .
+      dockerfile: services/voice/Dockerfile
+    image: cavat-voice:latest
+    restart: unless-stopped
+    init: true
+    environment:
+      VOICE_HOST: 0.0.0.0
+      HF_HUB_CACHE: /data/huggingface/hub
+    volumes:
+      - voice-models:/data/huggingface
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10m
     logging: *logging
 
   # Optional HTTPS in front of the app (the microphone only works on HTTPS): docker compose --profile https up -d
@@ -83,5 +108,6 @@ services:
 volumes:
   mongo-data:
   app-data:
+  voice-models:
   caddy-data:
   caddy-config:

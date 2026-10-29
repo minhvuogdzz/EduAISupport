@@ -1,109 +1,65 @@
-# Triển khai CAVAT — bản có bộ não BRAIN-1
+# Bàn giao triển khai CAVAT
 
-Web và API cùng một địa chỉ. Một image ứng dụng, MongoDB 7 trên mạng nội bộ Compose; tùy chọn Caddy cho HTTPS. `main` đã có REFORM-1…6, FLOW-1/2, BRAIN-1 và REL-1. FIG-1 (ADR-037) bổ sung ảnh câu hỏi từ PDF và nút duyệt/bỏ/thay hình. Gói dữ liệu sau FIG-1 phải có collection figures và thư mục storage/figures.
+CAVAT chạy bằng Docker Compose: `app` phục vụ web và API cùng cổng, `mongo` lưu database, `voice` chạy VieNeu-TTS trên CPU; Mongo và voice chỉ ở mạng nội bộ. Groq Whisper xử lý nhận dạng giọng nói. Các volume giữ dữ liệu qua các lần cập nhật.
 
-## Chạy lần đầu
+## Triển khai lần đầu
 
-Cần Docker Engine + Compose v2 trên Linux, Git, kết nối Internet tới Groq/Gemini. Máy này chưa có Docker; job `docker` trên GitHub CI thực hiện quy trình bên dưới trên Linux. Kết quả xác minh của bản bàn giao nằm ở `docs/releases/2026-10-27-deploy.md`.
+Cần Docker Engine và Compose v2, Internet để tải image/model và gọi các API đã cấu hình. Chủ dự án chuyển **riêng** gói bàn giao `cavat-handoff-latest.tar.gz` (hoặc `.env` và thư mục `db-dump/`) qua kênh an toàn; đặt vào thư mục gốc của checkout. `.env` chứa khóa API, mật khẩu Mongo, khóa ký token và mật khẩu quản trị; không đưa lên GitHub.
 
-```sh
-git clone https://github.com/minhvuogdzz/EduAISupport.git
-cd EduAISupport
-sh deploy/setup.sh
-nano .env
-```
-
-Điền `GROQ_API_KEY` và `GEMINI_API_KEY` do chủ dự án đưa. Setup đã sinh `MONGO_PASSWORD`, `AUTH_SECRET` và giữ chúng khi chạy lại. Gemini cần cho OCR/vector; bộ não trả lời dùng chuỗi Groq mặc định. Không gửi `.env` lên GitHub.
-
-Chủ dự án đưa riêng hai tệp `cavat-db-<mốc>.tar.gz`, `cavat-storage-<mốc>.tar.gz` và `SHA256SUMS`. Đặt tất cả vào `db-dump/`, kiểm tra hash:
+Tại thư mục gốc repo trên server, DevOps chỉ cần chạy:
 
 ```sh
-(cd db-dump && sha256sum -c SHA256SUMS)
-sh deploy/start.sh cavat-db-<mốc>.tar.gz cavat-storage-<mốc>.tar.gz
+# 1. Giải nén gói cấu hình và dữ liệu bàn giao (tạo sẵn .env và db-dump/)
+tar -xzf cavat-handoff-latest.tar.gz
+
+# 2. Dựng và khởi chạy các container (App, Mongo, Voice)
+docker compose up -d --build
+
+# 3. Nạp dữ liệu vào Database và Storage
+sh deploy/import.sh
 ```
 
-Đổi `<mốc>` thành tên tệp thực. Lệnh start dựng image của checkout hiện tại, chờ Mongo sẵn sàng, kiểm tra cả hai gói, nạp DB, nạp tệp, tạo chỉ mục rồi chạy app và kiểm tra DB. Tất cả lệnh chạy tại gốc repo. Sau đó mở `http://<server>:8080`. Tài khoản và lịch sử giữ từ bản xuất; mã đăng nhập do chủ dự án giữ.
+*(Hoặc nếu chưa giải nén, có thể chạy thẳng `sh deploy/import.sh cavat-handoff-latest.tar.gz`)*.
 
-`docker compose` chỉ mở cổng app; Mongo không có cổng công khai. Dữ liệu tồn tại trong volume `cavat_mongo-data` và `cavat_app-data` khi container được cập nhật hoặc dừng. Bản ghi chưa thể khôi phục chỉ từ source GitHub: cần giữ cả hai gói bàn giao.
+Lệnh thứ hai kiểm tra SHA-256, dừng app trong lúc nhập, kiểm tra hai archive, nạp database và storage vào đích trống, tạo chỉ mục, rồi khởi động lại app và chờ health check. Nó từ chối ghi đè dữ liệu. Nếu nhập thất bại, app có thể vẫn dừng và dữ liệu có thể đã nhập một phần: xem log và kiểm tra trạng thái trước khi quyết định phục hồi; không tự xóa volume. Không chạy lại import khi cập nhật.
 
-## Lệnh import riêng
+Mở `http://<server>:8080`. Lấy `ADMIN_PASSWORD` trong `.env` qua kênh riêng. `AUTH_SECRET` được giữ từ cấu hình nguồn nếu đã có; đổi nó sẽ khiến token hiện tại hết hiệu lực. Không thay `MONGO_PASSWORD` sau khi Mongo volume đã được khởi tạo nếu chưa đổi mật khẩu trong Mongo.
 
-Nếu DevOps đã dựng stack bằng `docker compose up -d --build`, có thể nhập thủ công:
+## Giọng nói và HTTPS
 
-```sh
-docker compose run --rm --no-deps app python -m cavat.restore /dump/cavat-db-<mốc>.tar.gz --dry-run
-docker compose run --rm --no-deps app python -m cavat.restore /dump/cavat-db-<mốc>.tar.gz
-docker compose run --rm --no-deps app python -m cavat.storage_transfer restore /dump/cavat-storage-<mốc>.tar.gz
-```
+Voice tải model từ Hugging Face lần đầu và lưu vào volume `voice-models`; việc tải có thể mất nhiều phút và cần thêm dung lượng đĩa. App không chờ voice, để giao diện có thể chạy trong lúc model khởi động. Kiểm tra `docker compose ps` và `docker compose logs voice`; nếu voice chưa sẵn sàng hoặc không hoạt động, trình duyệt dùng giọng dự phòng. Việc nhận dạng giọng nói cần `GROQ_API_KEY`. Cần kiểm thử chất lượng giọng và độ trễ trên phần cứng server thật.
 
-DB import đọc hết archive trước khi ghi: kiểm tên collection, JSON, `_id` không trùng, số bản ghi. Nó tạo chỉ mục của ứng dụng, đếm lại và trả mã 0 khi khớp. Mặc định từ chối DB đã có bản ghi (mã 2), không xóa dữ liệu. `--db tên` chọn DB khác. `--replace` là thao tác xóa/nạp lại các collection có trong archive, chỉ dùng khi người vận hành chủ động muốn phục hồi từ bản sao lưu đã kiểm tra.
-
-Storage import kiểm tra toàn bộ đường dẫn và payload trước khi ghi, từ chối liên kết/path traversal và thư mục đích không trống. Không tự ghi đè tài liệu hiện có. Dry-run DB chỉ kiểm archive; dry-run storage kiểm cả archive và việc đích trống. Nếu một lần nạp lỗi do hết đĩa/mất mạng, xem log và kiểm trạng thái trước khi nạp lại; không tự xóa volume để thử lại.
-
-Chưa có gói dữ liệu: `sh deploy/start.sh` dựng app với DB trống; chủ dự án phải tự tạo tài khoản/duyệt nội dung. Không seed tự động.
-
-## Kiểm tra bản đang chạy
-
-```sh
-curl -fsS http://localhost:8080/health
-curl -fsS http://localhost:8080/health/db
-docker compose ps
-docker compose logs --tail 100 app
-```
-
-`/health` có commit `revision` khi dựng bằng `deploy/start.sh`; `/health/db` phải trả `{"status":"ok"}`. Image chỉ được coi là healthy khi DB trả lời được. Web gọi `/v1/*` cùng origin, không phụ thuộc cổng Vite 5173 hay địa chỉ máy phát triển.
-
-Bộ não được bật rõ bằng `TUTOR_RENDERER=llm`. `TUTOR_MODELS` trống dùng gpt-oss-120b → gpt-oss-20b → Qwen (ADR-034); có thể cấu hình lại thứ tự. Đây vẫn là hệ thống có fallback: model hết quota, lời bị validator bác hoặc buổi học chạm `MAX_LLM_CALLS_PER_SESSION` (buổi một bài: 40, DI-71) / `MAX_LLM_CALLS_PER_CHAPTER` (cả chương: 160, DI-90) thì dùng nội dung đã duyệt/câu mẫu. Không có bảo đảm mọi lượt đều do model viết. Thay đổi ngưỡng dạy/học vẫn thuộc quyền chủ dự án.
-
-Giọng VieNeu nặng không nằm trong image này; phần nghe vẫn dùng Groq Whisper, phần đọc dự phòng dùng giọng trình duyệt khi máy có giọng tiếng Việt. Gói này không hứa giọng giống máy local. Hình học thật do FIG-1 cung cấp: nhập gói dữ liệu mới có ảnh; các hình REVIEW/REJECTED không hiện cho học sinh.
-
-## HTTPS
-
-Micro cần HTTPS (trừ localhost). Trỏ reverse proxy có sẵn vào app hoặc đặt `DOMAIN=ten-mien.vn` trong `.env`, trỏ DNS về máy chủ, mở 80/443 rồi chạy:
+Microphone trong trình duyệt cần HTTPS (hoặc localhost). Trỏ DNS về server, cấu hình `DOMAIN` trong `.env`, mở cổng 80 và 443, rồi bật Caddy:
 
 ```sh
 docker compose --profile https up -d
 ```
 
-Dùng `PORT=127.0.0.1:8080` nếu chỉ reverse proxy trên máy cần truy cập app. App tin `X-Forwarded-*`, vì vậy reverse proxy phải ghi đè các header này và cổng backend chỉ được truy cập qua đường tin cậy.
+Có thể dùng reverse proxy HTTPS sẵn có. Đặt `PORT=127.0.0.1:8080` để app chỉ nhận kết nối từ máy chủ; proxy phải ghi đè các header `X-Forwarded-*` và không cho truy cập trực tiếp từ mạng không tin cậy.
 
-## Cập nhật và vận hành
-
-```sh
-git pull --ff-only
-sh deploy/start.sh                 # không truyền archive khi cập nhật: không nạp lại dữ liệu
-docker compose logs -f app
-docker compose down              # dừng, giữ nguyên volume
-docker compose run --rm -it app python -m cavat.accounts
-docker compose run --rm app python scripts/model_usage.py --days 1
-```
-
-Backup trước khi cập nhật, giữ lại commit/image trước để quay về khi cần. Không đổi `MONGO_PASSWORD` trong `.env` của volume Mongo đã khởi tạo: biến đó chỉ dùng tạo user lần đầu.
-
-Sao lưu DB đang chạy (không đụng bản ghi):
+## Kiểm tra và vận hành
 
 ```sh
-docker compose exec -T mongo sh -c 'mongodump -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --db "$1" --archive --gzip' sh cavat_prod > cavat-mongo.archive.gz
+curl -fsS http://localhost:8080/health
+curl -fsS http://localhost:8080/health/db
+docker compose ps
+docker compose logs --tail 100 app voice
 ```
 
-Đổi tên DB cuối lệnh nếu đã đổi `MONGODB_DB`. Đây là archive của `mongodump`, phục hồi bằng `mongorestore`, không đưa cho `cavat.restore` (công cụ này chỉ nhận gói JSONL do `make db-pack` tạo). Sao lưu cả volume app-data; ngừng nhận lượt học mới trong lúc lấy cặp snapshot DB/tệp để tránh lệch thời điểm.
+`docker compose down` giữ volumes; không dùng `down -v` trên server có dữ liệu. Cập nhật bằng `git pull --ff-only` và `docker compose up -d --build`. Sao lưu cả Mongo và `app-data` trước cập nhật, và dừng ghi trong lúc lấy cặp backup. Các key Gemini và Tavily là tùy chọn; thiếu Gemini làm mất OCR/vector. `TTS=off` dùng giọng trình duyệt.
 
-## Tạo gói từ máy chủ dự án
+## Tạo gói bàn giao trên máy chủ dự án
 
-Tại checkout chính, với `services/api/.env` trỏ đúng DB nguồn và không có buổi học đang ghi:
+Với `services/api/.env` trỏ đúng database nguồn, không có buổi học đang ghi:
 
 ```sh
 make db-pack
 make storage-pack
-(cd db-dump && shasum -a 256 cavat-db-*.tar.gz cavat-storage-*.tar.gz > SHA256SUMS)
+services/api/.venv/bin/python deploy/prepare_handoff.py db-dump/cavat-db-<mốc>.tar.gz db-dump/cavat-storage-<mốc>.tar.gz
 ```
 
-Nếu có nhiều lần xuất, chỉ giữ trong `SHA256SUMS` hai tên của lần bàn giao. Export chỉ đọc DB. Gói storage giữ documents, voice, rag, web, cache, figures; bỏ backup cũ, báo cáo thử nghiệm, model weights VieNeu ở `voice/hf` và hình preview chưa duyệt. Không có tài khoản API/`.env` trong image hay các archive này. Repo công khai nên dữ liệu được chuyển riêng tới DevOps, không commit, không đính vào PR/Release công khai.
+Chọn đúng hai archive vừa tạo. Script tạo thư mục `db-dump/handoff-<mốc>/` và gói nén một tệp `db-dump/cavat-handoff-latest.tar.gz` chứa sẵn `.env`, hai archive và SHA-256. Chuyển tệp này qua kênh riêng tới DevOps. Archive database là JSONL được `cavat.restore` xử lý; nó không phải `mongodump`. Gói storage gồm tài liệu, âm thanh và hình; model weights được tải riêng vào volume. Tất cả dữ liệu, `.env` và gói bàn giao đều bị Git bỏ qua.
 
-BRAIN-4 (ADR-040): `ALLOW_TUTOR_KNOWLEDGE=true` cho gia sư giảng kiến thức Toán chuẩn ngoài đoạn RAG với lượt kiểm riêng, trong bài hiện tại và nền cần thiết. `false` giữ kiểm nguồn cũ. `WEB_LOOKUP=official` vẫn chỉ tra các ấn phẩm đã xác minh, không web tự do; `off` tắt truy xuất internet, không tự tắt kiến thức nền của model.
+CI kiểm tra API, web, build/import Compose và build/khởi động voice cùng một mẫu WAV. Thành công trên CI không thay thế việc kiểm tra HTTPS, DNS, keys, quota, model download và tải thực tế trên server.
 
-### Tìm lý thuyết trên web (BRAIN-7)
-
-`WEB_LOOKUP=search` tìm trang mới liên quan bài học, đọc trang gốc rồi kiểm nguồn/Toán. Nguồn ưu tiên là SGK, nhà xuất bản, cổng/trường giáo dục trong danh mục; nguồn tham khảo được ghi riêng. Không mặc định tin mọi trang `.edu.vn` và không dùng snippet làm lời giảng.
-
-Có thể đặt `TAVILY_API_KEY` trong `.env` server để dùng Search API; adapter dùng basic, không yêu cầu generated answer. Để trống thì thử công cụ tìm kiếm công khai, có thể bị chặn/trả sai chủ đề, rồi quay về các ấn phẩm cũ/tri thức nền có kiểm tra. Đây là fallback có giới hạn, không bảo đảm tương đương Search API. Không đưa key vào repo hoặc frontend. `WEB_LOOKUP=official` giữ đường hai ấn phẩm cũ; `off` tắt web. Trang lấy được không tự thêm vào RAG hoặc giáo án.
+Sau khi CI của commit trên `main` thành công, workflow Publish images dựng và đưa `cavat-app` và `cavat-voice` lên GitHub Container Registry với tag `latest` và SHA commit. Workflow này không tự triển khai lên server; server vẫn có thể build từ checkout bằng hai lệnh ở trên. Việc publish phụ thuộc quyền ghi Packages của GitHub Actions.

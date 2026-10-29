@@ -8,6 +8,7 @@ never pick a model name (rule 4).
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -17,6 +18,7 @@ from typing import Any
 from pydantic import SecretStr
 
 from cavat.config import Settings, get_settings
+from cavat.modules.observability.trace import traced
 
 from .base import (
     CHAT_MODEL_CLASSES,
@@ -37,7 +39,6 @@ from .base import (
     Transcription,
     VisionProvider,
     VisionResult,
-    check_prompt_size,
     error_detail,
     estimate_prompt_tokens,
 )
@@ -45,13 +46,9 @@ from .base import (
 DEFAULT_MAX_LLM_CALLS_PER_SESSION = 15
 # The model of the lightweight and judge chains is named in the settings (GROQ_MODEL, Qwen).
 DEFAULT_TUTOR_MODEL: str = Settings.model_fields["groq_model"].default
-# BRAIN-1 (ADR-034): the order that writes the tutor's words, measured on 26 real hard turns
-# (evals/reports/BRAIN-1-models.md, 2026-10-26): gpt-oss-120b 25 words of 26 and 17 passing the net,
-# gpt-oss-20b 26 and 18; Qwen could not be compared (its 200.000 token a day were spent: 1 of 26) and Gemini
-# answered 503/504 on 25 of 26, so Gemini is only in the chain when the owner names it in TUTOR_MODELS. Every
-# Groq model has a quota of its own, so the three together hold 600.000 token a day. One line of settings
-# changes it.
-DEFAULT_TUTOR_CHAIN: tuple[str, ...] = ("openai/gpt-oss-120b", "openai/gpt-oss-20b", DEFAULT_TUTOR_MODEL)
+# Owner priority (2026-10-29): Gemini, then GPT-OSS 120B, Qwen, GPT-OSS 20B.
+# Gemini candidates are wired from settings when credentials are available in build_router.
+DEFAULT_TUTOR_CHAIN: tuple[str, ...] = ("openai/gpt-oss-120b", DEFAULT_TUTOR_MODEL, "openai/gpt-oss-20b")
 
 
 def parse_models(value: str) -> tuple[str, ...]:
@@ -60,8 +57,8 @@ def parse_models(value: str) -> tuple[str, ...]:
 
 
 def _tutor_chain(primary: str) -> tuple[str, ...]:
-    """The default tutor chain, ``GROQ_MODEL`` last (a model the owner names there still speaks)."""
-    return (*DEFAULT_TUTOR_CHAIN[:-1], primary)
+    """The owner-ranked Groq candidates, with the configured Qwen model in the middle."""
+    return tuple(dict.fromkeys((DEFAULT_TUTOR_CHAIN[0], primary, DEFAULT_TUTOR_CHAIN[-1])))
 
 
 def default_chat_chains(
@@ -69,10 +66,11 @@ def default_chat_chains(
 ) -> dict[ModelClass, tuple[str, ...]]:
     return {
         ModelClass.TUTOR_REASONING: tutor_models or _tutor_chain(primary),
+        ModelClass.TUTOR_MENTOR: (),
         ModelClass.LIGHTWEIGHT: (primary, "openai/gpt-oss-20b"),
         # REFORM-5 (DI-78): gpt-oss-120b reads a typo best of the free models and has a quota of its own; the
-        # tutor's Qwen and the smaller gpt-oss follow. Gemini is not in the chain (ADR-017: images and vectors
-        # only; 20 requests a day; its free tier trains on what it is sent, and a child's words go there).
+        # tutor's Qwen and the smaller gpt-oss follow. build_router appends the owner-authorized Gemini
+        # support models (ADR-045).
         ModelClass.INTENT_AGENT: ("openai/gpt-oss-120b", primary, "openai/gpt-oss-20b"),
         ModelClass.EVAL_JUDGE: (primary, "openai/gpt-oss-120b"),
     }
@@ -136,8 +134,12 @@ class AIRouter:
         stt_model: str = "whisper-large-v3",
         max_calls_per_session: int = DEFAULT_MAX_LLM_CALLS_PER_SESSION,
         quota: QuotaTracker | None = None,
+        model_only_speech: bool = False,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        transient_retry_s: float = 0,
+        sleeper: Callable[[float], None] = time.sleep,
     ) -> None:
+        self.model_only_speech = model_only_speech
         self._chat = chat_provider
         self._stt = stt_provider
         self._tts = tts_provider
@@ -148,11 +150,22 @@ class AIRouter:
         self.max_calls_per_session = max_calls_per_session
         self.quota = quota or getattr(chat_provider, "quota", None) or QuotaTracker()
         self._clock = clock
+        self._unavailable_until: dict[str, datetime] = {}
+        self._transient_retry_s, self._sleep = transient_retry_s, sleeper
 
     def chain(self, model_class: ModelClass) -> tuple[str, ...]:
         if model_class not in CHAT_MODEL_CLASSES:
             raise ValueError(f"{model_class} is not a chat model class")
         return self._chains[model_class]
+
+    def has_available_chat(self) -> bool:
+        """Whether a chat candidate remains; this never probes or spends quota."""
+        now = self._clock()
+        return self._chat is not None and any(
+            not self.quota.is_exhausted(model, now) and self._unavailable_until.get(model, now) <= now
+            for chain in self._chains.values()
+            for model in chain
+        )
 
     def with_session_cap(self, limit: int) -> AIRouter:
         """Same providers and quota tracker, a separate finite limit for a full chapter (DI-90)."""
@@ -162,8 +175,38 @@ class AIRouter:
         scoped.max_calls_per_session = limit
         return scoped
 
+    @traced("model")
     def chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
         """Try the chain for ``model_class``. ``calls_used`` comes from the session state (SessionContext)."""
+        outcome = self._attempt_chat(model_class, request, calls_used=calls_used)
+        if (
+            outcome.result is not None
+            or self._transient_retry_s <= 0
+            or outcome.fallback_reason
+            not in (FallbackReason.QUOTA_EXCEEDED, FallbackReason.MODEL_UNAVAILABLE)
+            or calls_used + outcome.calls_made >= self.max_calls_per_session
+        ):
+            return outcome
+        now = self._clock()
+        resets = [
+            max(self.quota.reset_at(model) or now, self._unavailable_until.get(model, now))
+            for model in self.chain(model_class)
+        ]
+        # One short recovery attempt only after the entire chain failed. Daily exhaustion and long
+        # cooldowns still return immediately; never spin or re-send against a known quota limit.
+        delay = min(((reset - now).total_seconds() for reset in resets if reset > now), default=0)
+        if not 0 < delay <= self._transient_retry_s:
+            return outcome
+        self._sleep(delay + 0.05)
+        retried = self._attempt_chat(model_class, request, calls_used=calls_used + outcome.calls_made)
+        return ChatOutcome(
+            retried.result,
+            retried.fallback_reason,
+            outcome.calls_made + retried.calls_made,
+            outcome.attempts + retried.attempts,
+        )
+
+    def _attempt_chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
         chain = self.chain(model_class)
         if self._chat is None:
             return ChatOutcome(None, FallbackReason.NO_PROVIDER, 0)
@@ -178,6 +221,18 @@ class AIRouter:
                 attempts.append(Attempt(model, sent=False, error=QuotaExceeded.__name__, retry_after_s=wait))
                 reason = FallbackReason.QUOTA_EXCEEDED
                 continue
+            unavailable = self._unavailable_until.get(model)
+            if unavailable and unavailable > self._clock():
+                attempts.append(
+                    Attempt(
+                        model,
+                        sent=False,
+                        error="ModelUnavailable",
+                        retry_after_s=_seconds_until(unavailable, self._clock()),
+                    )
+                )
+                reason = FallbackReason.MODEL_UNAVAILABLE
+                continue
             try:
                 result = self._chat.chat(request, model)
             except PromptTooLong as exc:
@@ -190,6 +245,14 @@ class AIRouter:
                 calls_made += 1
                 limit = exc.limit if isinstance(exc, QuotaExceeded) else None
                 reset = exc.reset_at if isinstance(exc, QuotaExceeded) else None
+                if isinstance(exc, QuotaExceeded):
+                    existing = self.quota.reset_at(model)
+                    until = reset or self._clock() + timedelta(minutes=1)
+                    self.quota.mark_exhausted(
+                        model, max(existing, until) if existing else until, self._clock()
+                    )
+                elif isinstance(exc, ModelUnavailable):
+                    self._unavailable_until[model] = self._clock() + timedelta(seconds=30)
                 attempts.append(
                     Attempt(
                         model,
@@ -207,6 +270,7 @@ class AIRouter:
             return ChatOutcome(result, None, calls_made, tuple(attempts))
         return ChatOutcome(None, reason, calls_made, tuple(attempts))
 
+    @traced("model")
     def transcribe(
         self, audio: bytes, *, language: str = "vi", filename: str = "audio.webm"
     ) -> Transcription:
@@ -224,6 +288,7 @@ class AIRouter:
         """TTS_VI, or None: the browser's own voice reads the tutor (ADR-030)."""
         return self._tts.name if self._tts is not None else None
 
+    @traced("model")
     def speak(self, text: str) -> Speech:
         """TTS_VI (VieNeu-TTS, local). Not counted in the per-session LLM cap; the voice module caches."""
         if self._tts is None:
@@ -235,12 +300,14 @@ class AIRouter:
         """The EMBEDDING model, or None without a Gemini key (the RAG then uses keywords and structure)."""
         return _embedding_name(self._embedding)
 
+    @traced("model")
     def embed(self, texts: list[str], task: str) -> list[list[float]]:
         """EMBEDDING (Gemini). Not counted in the per-session LLM cap; the RAG caches every vector."""
         if self._embedding is None:
             raise ModelUnavailable("no embedding provider configured")
         return self._embedding.embed(texts, task=task)
 
+    @traced("model")
     def describe_image(
         self, image_bytes: bytes, prompt: str, *, mime_type: str = "image/png"
     ) -> VisionResult:
@@ -254,6 +321,7 @@ class AIRouter:
         """The vision chain, first model first (empty without a vision provider)."""
         return tuple(getattr(self._vision, "models", ())) if self._vision is not None else ()
 
+    @traced("model")
     def describe_image_with(
         self, model: str, image_bytes: bytes, prompt: str, *, mime_type: str = "image/png"
     ) -> VisionResult:
@@ -331,7 +399,7 @@ class ChatDispatcher:
             return self._groq.chat(request, model)
         if self._gemini is None:
             raise ModelUnavailable("no Gemini key", model=model)
-        check_prompt_size(request, model)  # the same budget as the other models: the prompt is the same
+        # Builders bound learning context; Gemini can also accept the static mentor instructions.
         try:
             return self._gemini.chat_with(request, model)
         except QuotaExceeded as exc:
@@ -374,7 +442,7 @@ def build_router(
     if settings.gemini_api_key is not None and settings.gemini_api_key.get_secret_value():
         from .gemini import GeminiChat, GeminiEmbeddings, GeminiVision
 
-        gemini_chat = GeminiChat(settings.gemini_api_key)
+        gemini_chat = GeminiChat(settings.gemini_api_key, timeout_s=10.0)
 
         vision = GeminiVision(
             settings.gemini_api_key,
@@ -388,15 +456,35 @@ def build_router(
 
         tts = VieneuSpeech(settings.vieneu_url, voice=settings.vieneu_voice)
     tutor_models = parse_models(settings.tutor_models)
-    needs_gemini = any(m.startswith("gemini") for m in tutor_models)
+    mentor = (
+        tuple(dict.fromkeys((settings.tutor_mentor_model, *settings.gemini_tutor_fallbacks)))
+        if (gemini_chat is not None and settings.tutor_mentor_model)
+        else ()
+    )
+    needs_gemini = bool(mentor) or any(m.startswith("gemini") for m in tutor_models)
     chat = ChatDispatcher(groq, gemini_chat if needs_gemini else None) if (groq or needs_gemini) else None
+    planned = default_chat_chains(settings.groq_model, tutor_models)
+    # Every live chat role follows the same owner-ranked chain. A successful stronger model
+    # returns immediately; AIRouter shares quota cooldowns and retries the head after reset.
+    # An explicit TUTOR_MODELS is a complete ordered override, also shared across roles.
+    live_models = tutor_models or tuple(dict.fromkeys((*mentor, *planned[ModelClass.TUTOR_REASONING])))
+    for role in (
+        ModelClass.TUTOR_REASONING,
+        ModelClass.LIGHTWEIGHT,
+        ModelClass.INTENT_AGENT,
+        ModelClass.EVAL_JUDGE,
+    ):
+        planned[role] = live_models
+    planned[ModelClass.TUTOR_MENTOR] = live_models if mentor else ()
     return AIRouter(
         chat_provider=chat,
         stt_provider=groq,
         tts_provider=tts,
         vision_provider=vision,
         embedding_provider=embeddings,
-        chains={**default_chat_chains(settings.groq_model, tutor_models), **(chains or {})},
+        chains={**planned, **(chains or {})},
         stt_model=settings.groq_stt_model,
         max_calls_per_session=settings.max_llm_calls_per_session,
+        model_only_speech=True,
+        transient_retry_s=6,
     )

@@ -235,7 +235,64 @@ def test_transcribe_uses_whisper_large_v3_in_vietnamese():
     form = seen[0].content.decode("utf-8", errors="replace")
     assert 'name="model"\r\n\r\nwhisper-large-v3' in form
     assert 'name="language"\r\n\r\nvi' in form
+    assert 'name="response_format"\r\n\r\nverbose_json' in form
     assert 'filename="answer.wav"' in form
+
+
+@pytest.mark.parametrize(
+    ("segments", "expected"),
+    [
+        ([], ""),
+        (
+            [
+                {
+                    "text": "Cảm ơn các bạn đã theo dõi và hẹn gặp lại.",
+                    "no_speech_prob": 0.98,
+                    "avg_logprob": -1.2,
+                }
+            ],
+            "",
+        ),
+        (
+            [
+                {
+                    "text": "Cảm ơn các bạn đã theo dõi và hẹn gặp lại.",
+                    "no_speech_prob": 0.01,
+                    "avg_logprob": -0.1,
+                }
+            ],
+            "Cảm ơn các bạn đã theo dõi và hẹn gặp lại.",
+        ),
+        (
+            [{"text": "không phẩy một", "no_speech_prob": 0.02, "avg_logprob": -0.2}],
+            "không phẩy một",
+        ),
+        (
+            [{"text": "không phẩy một", "no_speech_prob": 0.95, "avg_logprob": -0.1}],
+            "không phẩy một",
+        ),
+    ],
+)
+def test_transcription_filters_non_speech_without_blacklisting_real_words(segments, expected):
+    payload = {"text": " ".join(s["text"] for s in segments), "segments": segments}
+    result = _groq(lambda r: httpx.Response(200, json=payload)).transcribe(b"audio")
+    assert result.text == expected
+
+
+def test_transcription_keeps_the_answer_but_drops_a_noisy_tail():
+    payload = {
+        "text": "không phẩy một Cảm ơn các bạn đã theo dõi và hẹn gặp lại.",
+        "segments": [
+            {"text": " không phẩy một", "no_speech_prob": 0.01, "avg_logprob": -0.1},
+            {
+                "text": " Cảm ơn các bạn đã theo dõi và hẹn gặp lại.",
+                "no_speech_prob": 0.99,
+                "avg_logprob": -1.1,
+            },
+        ],
+    }
+    result = _groq(lambda r: httpx.Response(200, json=payload)).transcribe(b"audio")
+    assert result.text == "không phẩy một"
 
 
 def test_api_key_is_not_exposed_in_repr():
@@ -358,25 +415,27 @@ def test_no_api_key_means_template_only_mode():
 def test_build_router_reads_chain_and_cap_from_settings():
     settings = Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), max_llm_calls_per_session=7)
     router = build_router(settings)
-    assert router.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
-    assert router.chain(ModelClass.LIGHTWEIGHT) == (QWEN, "openai/gpt-oss-20b")
+    assert router.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, QWEN, "openai/gpt-oss-20b")
+    assert router.chain(ModelClass.LIGHTWEIGHT) == (GPT_OSS, QWEN, "openai/gpt-oss-20b")
     assert router.max_calls_per_session == 7
     with pytest.raises(ValueError):
         router.chain(ModelClass.VISION_OCR)
     # An eval judges on a model with its own quota; the other classes keep their chain (TQ-2).
     judge = build_router(settings, chains={ModelClass.EVAL_JUDGE: (GPT_OSS,)})
     assert judge.chain(ModelClass.EVAL_JUDGE) == (GPT_OSS,)
-    assert judge.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
+    assert judge.chain(ModelClass.TUTOR_REASONING) == (GPT_OSS, QWEN, "openai/gpt-oss-20b")
 
 
-def test_groq_model_setting_heads_the_fallback_chains_and_ends_the_tutors():
-    # CFG-1: the model is named once (GROQ_MODEL). BRAIN-1 (ADR-034): the tutor speaks with the gpt-oss models
-    # first and GROQ_MODEL (Qwen) is the last of its chain; the other chains still start with it.
-    assert AIRouter().chain(ModelClass.TUTOR_REASONING)[-1] == Settings.model_fields["groq_model"].default
+def test_configured_qwen_follows_120b_and_precedes_20b_for_live_roles():
+    assert AIRouter().chain(ModelClass.TUTOR_REASONING)[1] == Settings.model_fields["groq_model"].default
     router = build_router(Settings(_env_file=None, groq_api_key=SecretStr(FAKE_KEY), groq_model="qwen/next"))
-    assert router.chain(ModelClass.TUTOR_REASONING)[-1] == "qwen/next"
-    for model_class in (ModelClass.LIGHTWEIGHT, ModelClass.EVAL_JUDGE):
-        assert router.chain(model_class)[0] == "qwen/next"
+    for role in (
+        ModelClass.TUTOR_REASONING,
+        ModelClass.LIGHTWEIGHT,
+        ModelClass.EVAL_JUDGE,
+        ModelClass.INTENT_AGENT,
+    ):
+        assert router.chain(role) == (GPT_OSS, "qwen/next", "openai/gpt-oss-20b")
 
 
 def test_env_example_lists_only_settings_the_app_reads():
@@ -556,8 +615,8 @@ def test_tutor_models_is_one_line_that_sets_the_chain():
     )
     chains = default_chat_chains(QWEN, parse_models("gemini-3.5-flash,qwen/qwen3.8-27b"))
     assert chains[ModelClass.TUTOR_REASONING] == ("gemini-3.5-flash", QWEN)
-    # BRAIN-1: the measured default order; GROQ_MODEL (Qwen) is the last of the three Groq models
-    assert default_chat_chains(QWEN)[ModelClass.TUTOR_REASONING] == (GPT_OSS, "openai/gpt-oss-20b", QWEN)
+    # Owner order: Qwen is preferred over 20B.
+    assert default_chat_chains(QWEN)[ModelClass.TUTOR_REASONING] == (GPT_OSS, QWEN, "openai/gpt-oss-20b")
     assert chains[ModelClass.INTENT_AGENT] == default_chat_chains(QWEN)[ModelClass.INTENT_AGENT]
 
 
@@ -616,3 +675,191 @@ def test_the_dispatcher_without_a_key_for_a_vendor_falls_through():
     )
     outcome = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
     assert outcome.result is not None and outcome.attempts[0].error == "ModelUnavailable"
+
+
+def test_gemini_deadline_respects_api_minimum(monkeypatch):
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+    from google import genai
+
+    observed = {}
+
+    def create(**kwargs):
+        observed.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(genai, "Client", create)
+    GeminiChat("synthetic-key", timeout_s=2)
+    assert observed["http_options"].timeout == 10_000
+
+
+def test_gemini_schema_removes_strict_keyword_inside_array_objects():
+    from cavat.modules.ai_gateway.gemini import _plain_schema
+
+    nested = {"type": "object", "additionalProperties": False}
+    original = {"type": "array", "items": {"anyOf": [nested]}}
+    converted = _plain_schema(original)
+    assert "additionalProperties" not in converted["items"]["anyOf"][0]
+    assert original["items"]["anyOf"][0]["additionalProperties"] is False
+
+
+def gemini_limit_error(quota_id, retry=None):
+    details = [
+        {
+            "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+            "violations": [
+                {
+                    "quotaId": quota_id,
+                    "quotaMetric": "generate_content_free_tier_requests",
+                    "quotaValue": "20",
+                }
+            ],
+        }
+    ]
+    if retry:
+        details.append({"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": retry})
+    return genai_errors.APIError(429, {"error": {"code": 429, "message": "quota", "details": details}})
+
+
+def test_gemini_daily_limit_keeps_the_real_seventeen_hour_retry_hint():
+    from datetime import UTC, datetime, timedelta
+
+    from cavat.modules.ai_gateway.gemini import _chat_quota_error
+
+    now = datetime(2026, 10, 28, 20, tzinfo=UTC)
+    error = _chat_quota_error(
+        gemini_limit_error("GenerateRequestsPerDayPerProjectPerModel-FreeTier", "62425s"),
+        "gemini-2.5-flash",
+        now=now,
+    )
+    assert error.limit == "RPD" and error.reset_at == now + timedelta(seconds=62425)
+
+
+def test_gemini_minute_quota_does_not_wait_ten_minutes():
+    from datetime import UTC, datetime, timedelta
+
+    from cavat.modules.ai_gateway.gemini import _chat_quota_error
+
+    now = datetime(2026, 10, 28, 20, tzinfo=UTC)
+    error = _chat_quota_error(
+        gemini_limit_error("GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "32.5s"),
+        "gemini-2.5-flash",
+        now=now,
+    )
+    assert error.limit == "RPM" and error.reset_at == now + timedelta(seconds=32.5)
+
+
+@pytest.mark.parametrize("month,day,utc_hour", [(10, 28, 7), (12, 28, 8)])
+def test_gemini_daily_reset_without_hint_uses_pacific_midnight_and_dst(month, day, utc_hour):
+    from datetime import UTC, datetime
+
+    from cavat.modules.ai_gateway.gemini import _chat_quota_error
+
+    now = datetime(2026, month, day, 2, tzinfo=UTC)
+    error = _chat_quota_error(
+        gemini_limit_error("GenerateRequestsPerDayPerProjectPerModel-FreeTier"), "gemini-2.5-flash", now=now
+    )
+    assert error.reset_at == datetime(2026, month, day, utc_hour, tzinfo=UTC)
+
+
+def test_gemini_daily_limit_is_skipped_across_roles_past_the_old_ten_minute_pause():
+    from datetime import UTC, datetime, timedelta
+
+    from cavat.modules.ai_gateway.gemini import GeminiChat
+    from cavat.modules.ai_gateway.router import ChatDispatcher
+
+    now = datetime.now(UTC)
+    gemini = GeminiChat(
+        "key",
+        client=_FakeGenaiClient(
+            gemini_limit_error("GenerateRequestsPerDayPerProjectPerModel-FreeTier", "62425s")
+        ),
+    )
+    groq = FakeChatModel([{"utterance": "first"}, {"utterance": "next"}])
+    router = AIRouter(
+        chat_provider=ChatDispatcher(groq, gemini),
+        chains={
+            ModelClass.TUTOR_REASONING: ("gemini-2.5-flash", GPT_OSS),
+            ModelClass.EVAL_JUDGE: ("gemini-2.5-flash", GPT_OSS),
+        },
+        clock=lambda: now,
+    )
+    first = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    now += timedelta(minutes=11)
+    again = router.chat(ModelClass.EVAL_JUDGE, _request(), calls_used=first.calls_made)
+    assert again.result.model == GPT_OSS
+    assert again.attempts[0].sent is False and again.attempts[0].retry_after_s > 60 * 60
+
+
+def test_live_roles_share_owner_priority_and_return_to_head_after_quota_reset():
+    now = datetime(2026, 10, 29, tzinfo=UTC)
+    top = "gemini-4-argon"
+    settings = Settings(_env_file=None, groq_api_key=FAKE_KEY, gemini_api_key="test-key", tts="off")
+    router = build_router(settings)
+    expected = (top, "gemini-2.5-flash", "gemini-3.8-flash", GPT_OSS, QWEN, "openai/gpt-oss-20b")
+    for role in (
+        ModelClass.TUTOR_REASONING,
+        ModelClass.LIGHTWEIGHT,
+        ModelClass.INTENT_AGENT,
+        ModelClass.EVAL_JUDGE,
+        ModelClass.TUTOR_MENTOR,
+    ):
+        assert router.chain(role) == expected
+    fake = FakeChatModel(
+        {
+            top: [
+                QuotaExceeded("day limit", model=top, reset_at=now + timedelta(seconds=60)),
+                {"utterance": "back"},
+            ],
+            "gemini-2.5-flash": [{"utterance": "next"}, {"utterance": "still next"}],
+        }
+    )
+    router._chat = fake
+    router._clock = lambda: now
+    first = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert first.result.model == "gemini-2.5-flash"
+    second = router.chat(ModelClass.INTENT_AGENT, _request(), calls_used=0)
+    assert second.result.model == "gemini-2.5-flash" and not second.attempts[0].sent
+    now += timedelta(seconds=61)
+    third = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert third.result.model == top
+    assert [model for model, _ in fake.calls] == [top, "gemini-2.5-flash", "gemini-2.5-flash", top]
+
+
+def test_qwen_is_used_before_20b_when_stronger_candidates_are_limited():
+    now = datetime(2026, 10, 29, tzinfo=UTC)
+    router = build_router(
+        Settings(_env_file=None, groq_api_key=FAKE_KEY, gemini_api_key="test-key", tts="off")
+    )
+    chain = router.chain(ModelClass.TUTOR_REASONING)
+    fake = FakeChatModel(
+        {
+            model: [QuotaExceeded("limit", model=model, reset_at=now + timedelta(seconds=60))]
+            for model in chain[:4]
+        }
+        | {QWEN: [{"utterance": "qwen replies"}]}
+    )
+    router._chat = fake
+    router._clock = lambda: now
+    result = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert result.result.model == QWEN
+    assert [model for model, _ in fake.calls] == list(chain[:5])
+
+
+def test_quota_fallback_reuses_the_exact_question_context_and_only_returns_final_answer():
+    first, second = "gemini-4-argon", GPT_OSS
+    original = _request()
+    provider = FakeChatModel(
+        {
+            first: [QuotaExceeded("429 usage exhausted", model=first)],
+            second: [{"utterance": "Con thử nhìn hàng phần mười nhé."}],
+        }
+    )
+    router = AIRouter(chat_provider=provider, chains={ModelClass.TUTOR_REASONING: (first, second)})
+    out = router.chat(ModelClass.TUTOR_REASONING, original, calls_used=0)
+    assert out.result.model == second and out.fallback_reason is None
+    assert out.result.data == {"utterance": "Con thử nhìn hàng phần mười nhé."}
+    assert len(provider.calls) == 2
+    assert all(request is original for _, request in provider.calls)
+    # Usage details remain in the technical trace, never in the returned utterance.
+    assert out.attempts[0].error == "QuotaExceeded"
+    assert "429" not in out.result.data["utterance"]

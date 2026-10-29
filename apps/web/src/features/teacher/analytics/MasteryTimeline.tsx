@@ -40,6 +40,7 @@ export function MasteryTimeline({ points }: { points: Point[] }) {
   return (
     <figure ref={frame} className="flex flex-col gap-2">
       <svg
+        data-chart
         viewBox={`0 0 ${W} ${H}`}
         width={W}
         height={H}
@@ -72,15 +73,24 @@ export function MasteryTimeline({ points }: { points: Point[] }) {
           </text>
         ))}
         {points.length > 1 && (
-          <path d={line} fill="none" className="stroke-brand-700" strokeWidth={2.5} strokeLinejoin="round" />
+          <path
+            key={line}
+            d={line}
+            pathLength={1}
+            fill="none"
+            className="chart-line stroke-brand-700"
+            strokeWidth={2.5}
+            strokeLinejoin="round"
+          />
         )}
         {points.map((p, i) => (
           <g key={p.date}>
             <circle
+              className="chart-point fill-white stroke-brand-700"
+              style={{ animationDelay: `${(i / Math.max(1, points.length - 1)) * 1600}ms` }}
               cx={x(i)}
               cy={y(p.mastery)}
               r={5}
-              className="fill-white stroke-brand-700"
               strokeWidth={2.5}
             >
               <title>{`${dayMonth(p.date)}: M ${formatViDecimal(p.mastery)}`}</title>

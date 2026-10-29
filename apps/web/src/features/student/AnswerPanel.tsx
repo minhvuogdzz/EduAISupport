@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import type { AnswerFormat, CommandType, CurrentItem, MicroChoice } from "../../api/contract";
-import { LightbulbIcon, SendIcon } from "../../components/icons";
+import { LightbulbIcon } from "../../components/icons";
 
 interface AnswerPanelProps {
   item: CurrentItem;
@@ -199,8 +199,7 @@ export function AnswerPanel({
           aria-label="Gửi"
           className={`${bigButton} inline-flex shrink-0 items-center gap-1.5 bg-brand-700 text-white hover:bg-brand-800`}
         >
-          <span className="hidden sm:inline">Gửi</span>
-          <SendIcon className="size-5" />
+          <span>Gửi</span>
         </button>
       </form>
       {busy && (

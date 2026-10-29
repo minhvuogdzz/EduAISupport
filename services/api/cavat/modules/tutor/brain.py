@@ -24,7 +24,7 @@ from __future__ import annotations
 import operator
 import re
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from fractions import Fraction
 from typing import Any
 
@@ -48,15 +48,15 @@ from cavat.modules.tutor.prompt_builder import (
     given_name,
 )
 
-BRAIN_VERSION = "brain/1.6.0"
-CONSTITUTION = "constitution.v12.md"
+BRAIN_VERSION = "brain/1.9.0"
+CONSTITUTION = "constitution.v17.md"
 SUBJECT_MODULE = "math_g5.v2.md"
 BRAIN_MAX_WORDS = (
     80  # DI-84: a turn that explains may run longer than a hint (the constitution asks for 25-50)
 )
 BRAIN_TEMPERATURE = 0.6  # the owner's complaint is a tutor that sounds the same every turn
 RECENT_TURNS = 6
-MAX_TURN_CHARS = 260
+MAX_TURN_CHARS = 700
 MAX_STUDENT_CHARS = 400
 MAX_GROUND_CHARS = 700
 MAX_ATTEMPTS = 2  # the first call and one retry carrying the reasons
@@ -88,12 +88,18 @@ CODE_NOTES: dict[str, str] = {
     "UNSUPPORTED_MEANING": "nhận định thiếu căn cứ hoặc trái kiến thức đã duyệt; viết lại theo căn cứ",
     "PII_REQUEST": "hỏi thông tin cá nhân",
     "INTELLIGENCE_PRAISE": "khen trí thông minh",
+    "PEDAGOGY": "lời giảng chưa giúp hiểu: chọn đúng chỗ vướng và một ví dụ rõ thay vì đọc lại nguồn",
     "EMPTY": "message trống",
     "FOREIGN_TEXT": "có chữ hoặc từ không phải tiếng Việt",
     "WRONG_ADDRESS": "xưng hô sai: gia sư là cô, học sinh là con (không dùng tôi, tớ, bạn, em)",
     "WRONG_PRAISE": "khen đúng khi máy chấm chưa nói đúng",
     "ECHOES_CHILD": "nhại lại lời học sinh như lời cô",
-    "HAS_QUESTION": "lượt này không được hỏi",
+    "HAS_QUESTION": "lượt này chỉ giảng, không hỏi hay giao việc bằng 'hãy thử', 'con thử'",
+    "OFF_LESSON_CHAT": "đang trong giờ học: đáp ngắn rồi đưa về một việc Toán, không mời kể chuyện riêng",
+    "INVENTED_OBSERVATION": "không có hình ảnh học sinh để nhận xét nét mặt/cười tươi",
+    "UNSUPPORTED_UNDERSTANDING": "lời đồng ý/cảm xúc chưa chứng minh đã hiểu; mời con thử một bước cụ thể",
+    "REPEATS_PENDING": "không lặp nguyên câu hỏi cũ; diễn đạt tự nhiên cùng ý, giữ dữ kiện và yêu cầu",
+    "TOO_MANY_EXAMPLES": "chỉ một ví dụ đơn giản và giải thích từng phần, không liệt kê cả bảng",
 }
 
 
@@ -107,6 +113,8 @@ class BrainPack:
     task: str  # what the policy decided, in words ("[VIỆC LƯỢT NÀY]")
     question: str  # the item's question, or the node's question in the teaching loop
     student_text: str = ""
+    return_to_lesson: bool = False  # A brief aside must lead straight back to the learning task.
+    prefer_mentor: bool = False  # semantic help/reaction: route writing, never grading
     verdict: str = (
         ""  # the checker's conclusion on the child's answer ("[MÁY CHẤM]"); empty: no answer to judge
     )
@@ -184,6 +192,21 @@ def build_request(pack: BrainPack, *, max_tokens: int = MAX_PROMPT_TOKENS_BRAIN)
             turns.pop(0)
         else:
             grounds.pop()
+
+
+def explanation_only(text: str) -> bool:
+    """Explicit request for direct help; no grading or learning-state inference."""
+    word_question = re.fullmatch(
+        r"(may|mau|tu|phan|chu|so|muoi|tram|nghin) la \1[?!. ]*", fold(text.lower()).strip()
+    )
+    return bool(
+        word_question
+        or re.search(
+            r"\b(?:dung hoi|khong hoi nua|sao cu hoi|hoi hoai|hoi nhieu|"
+            r"giai thich truc tiep|giang truc tiep|lam mau|chua hieu|khong hieu)\b",
+            fold(text.lower()),
+        )
+    )
 
 
 def student_name(name: str | None) -> str | None:
@@ -267,7 +290,11 @@ def math_errors(text: str) -> list[str]:
     cannot read."""
     spans = [(m.start(1), m.end(1), m.group(1)) for m in _EXPR.finditer(normalize_text(text))]
     plain = normalize_text(text)
-    errors: list[str] = re.findall(r"(?<![\w/])\d+\s*/\s*0(?![\d/])", plain)
+    from cavat.modules.teaching.decimal_facts import claim_errors, quantity_errors
+
+    errors: list[str] = (
+        claim_errors(text) + quantity_errors(text) + re.findall(r"(?<![\w/])\d+\s*/\s*0(?![\d/])", plain)
+    )
     # DI-88: the altitude from the obtuse vertex lies inside; the other two lie outside.
     # Catch the false hint seen in live evaluation, including its anaphoric 'đỉnh đó'.
     for sentence in re.split(r"[.!?;]|,?\s+(?:còn|nhưng|trong khi|ngược lại|tuy nhiên)\s+", plain):
@@ -379,7 +406,15 @@ _SUBJECT = re.compile(r"(^|[.!?:;]\s+)(?:Bé|Học sinh|HS|Các em)\s+", re.UNIC
 def teacher_voice(text: str) -> str | None:
     """A sentence written for the teacher that the text would read out to the child, if any."""
     lowered = normalize_text(text)
-    found = _THIRD_PERSON.search(lowered) or _GOAL_WORDS.search(lowered)
+    found = (
+        _THIRD_PERSON.search(lowered)
+        or _GOAL_WORDS.search(lowered)
+        or re.search(
+            r"(?:^|[.!?…]\s+)(?:giới thiệu|gv\b|giáo viên\b|chuẩn bị|"
+            r"tô (?:tiếp )?\d+ ô|hướng dẫn (?:học sinh|hs))",
+            lowered,
+        )
+    )
     return found.group(0).strip(" .!?:;") if found else None
 
 
@@ -404,7 +439,9 @@ def _opening(text: str) -> tuple[str, ...]:
 
 # Ways of reading a fraction aloud that do not exist ("35 phần mười trăm" seen from gpt-oss-20b): the part
 # after "phần" is one of mười, trăm, nghìn, or a single number.
-_BAD_DENOMINATOR = re.compile(r"phần\s+(?:mười\s+(?:trăm|nghìn)|trăm\s+nghìn)")
+_BAD_DENOMINATOR = re.compile(
+    r"phần\s+(?:mười\s+(?:trăm|nghìn)|trăm\s+nghìn)|mẫu số\s+(?:là\s+)?\d+\s*/\s*\d+"
+)
 # The tutor is "cô" and the child "con". "Bạn An" (a name in a problem) is allowed, "bạn có thể…" is not.
 _WRONG_SELF = re.compile(r"(?<!\w)(?:tôi|tớ|tao)(?!\w)")
 _BAN_AS_YOU = re.compile(
@@ -443,6 +480,18 @@ def speech_codes(
     """The codes the net that does not depend on a RenderContext raises: wrong arithmetic, a copied ground, a
     repeated turn, and for ``ask_target`` a question that does not name what the child wrote."""
     codes: list[str] = []
+    if pack.return_to_lesson:
+        lowered = fold(text.lower())
+        if re.search(r"\bcon (?:da (?:hieu|nam|thanh thao)|hieu roi|lam dung roi)\b", lowered):
+            codes.append("UNSUPPORTED_UNDERSTANDING")
+        if re.search(
+            r"(?:co chuyen gi vui|con co gi vui|chia se chuyen|chia se.{0,25}chuyen vui|"
+            r"trao doi thoai mai|muon chia se.{0,25}khong)",
+            lowered,
+        ):
+            codes.append("OFF_LESSON_CHAT")
+        if "co thay con cuoi tuoi" in lowered:
+            codes.append("INVENTED_OBSERVATION")
     if re.search(r"\b(?:true|false|máy chấm|được chấm|hệ thống chấm)\b", text.lower()):
         codes.append("SYSTEM_VOICE")
     if len(text.split()) > pack.max_words:
@@ -492,25 +541,106 @@ def speak(
     *,
     calls_used: int,
     model_class: ModelClass = ModelClass.TUTOR_REASONING,
+    max_attempts: int = MAX_ATTEMPTS,
+    allow_mentor: bool = True,
 ) -> BrainOutcome:
     """Ask the router for the turn, check it, ask once more with the reasons. ``check`` returns the codes."""
     rejected: list[tuple[str, ...]] = []
     calls, flagged = 0, False
-    for _ in range(MAX_ATTEMPTS):
+
+    def support(previous):
+        return (
+            _mentor_support(router, pack, check, previous, calls_used=calls_used)
+            if allow_mentor
+            else previous
+        )
+
+    stalled = (
+        pack.prefer_mentor
+        or ("phản ứng/cảm xúc" in pack.task)
+        or (
+            explanation_only(pack.student_text)
+            and any(t.role == "student" and explanation_only(t.text) for t in pack.recent)
+        )
+    )
+    if stalled and allow_mentor:
+        supported = _mentor_support(router, pack, check, BrainOutcome(None, 0), calls_used=calls_used)
+        if supported.text is not None:
+            return supported
+        calls += supported.calls
+        flagged = flagged or supported.flagged
+        rejected.extend(supported.rejected)
+    for _ in range(max_attempts):
         retry = tuple(rejected[-1]) if rejected else ()
-        request = build_request(_with_retry(pack, retry))
+        mentor_note = "\n\n" + _prompt_file("mentor.v3.md") if model_class == ModelClass.TUTOR_MENTOR else ""
+        request = build_request(
+            _with_retry(pack, retry),
+            max_tokens=MAX_PROMPT_TOKENS_BRAIN
+            - estimate_prompt_tokens(ChatRequest(messages=(ChatMessage("system", mentor_note),)))
+            if mentor_note
+            else MAX_PROMPT_TOKENS_BRAIN,
+        )
+        if model_class == ModelClass.TUTOR_MENTOR:
+            system = ChatMessage("system", request.messages[0].content + mentor_note)
+            request = replace(
+                request, messages=(system, *request.messages[1:]), schema_name="tutor_mentor_turn"
+            )
         outcome = router.chat(model_class, request, calls_used=calls_used + calls)
         calls += outcome.calls_made
         if outcome.result is None:
             reason = outcome.fallback_reason.value if outcome.fallback_reason else None
-            return BrainOutcome(None, calls, tuple(rejected), flagged, reason)
+            return support(BrainOutcome(None, calls, tuple(rejected), flagged, reason))
         text, safety, feedback = fields_of(outcome.result.data)
         flagged = flagged or safety
         codes = tuple(check(text))
         if not codes:
             return BrainOutcome(text, calls, tuple(rejected), flagged, None, outcome.result.model, feedback)
         rejected.append(codes)
-    return BrainOutcome(None, calls, tuple(rejected), flagged, "validation")
+    return support(BrainOutcome(None, calls, tuple(rejected), flagged, "validation"))
+
+
+def _mentor_support(router, pack, check, previous, *, calls_used):
+    """One bounded support exchange, never training weights or changing assessment state."""
+    chain = getattr(router, "chain", None)
+    try:
+        enabled = bool(chain and chain(ModelClass.TUTOR_MENTOR))
+    except (KeyError, ValueError):
+        enabled = False
+    if (
+        not enabled
+        or getattr(router, "mentor_uses", 0) >= 1
+        or calls_used + previous.calls >= router.max_calls_per_session
+    ):
+        return previous
+    router.mentor_uses = getattr(router, "mentor_uses", 0) + 1
+    coached_pack = replace(
+        pack,
+        task=pack.task + " Hỗ trợ sư phạm: viết lời giảng tốt hơn và một góp ý ngắn cho model chính.",
+        retry_codes=previous.rejected[-1] if previous.rejected else (),
+    )
+    taught = speak(
+        router,
+        coached_pack,
+        check,
+        calls_used=calls_used + previous.calls,
+        model_class=ModelClass.TUTOR_MENTOR,
+        max_attempts=1,
+        allow_mentor=False,
+    )
+    total = previous.calls + taught.calls
+    if taught.text is None:
+        return replace(
+            previous,
+            calls=total,
+            rejected=previous.rejected + taught.rejected,
+            flagged=previous.flagged or taught.flagged,
+        )
+    return replace(
+        taught,
+        calls=total,
+        rejected=previous.rejected + taught.rejected,
+        flagged=previous.flagged or taught.flagged,
+    )
 
 
 def _with_retry(pack: BrainPack, codes: Sequence[str]) -> BrainPack:

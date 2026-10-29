@@ -269,11 +269,19 @@ def test_the_owner_chooses_the_voice_with_one_line(monkeypatch):
         tutor_models="openai/gpt-oss-120b, gemini-3.8-flash",
     )
     router = build_router(settings)
-    assert router.chain(ModelClass.TUTOR_REASONING) == ("openai/gpt-oss-120b", "gemini-3.8-flash")
+    assert router.chain(ModelClass.TUTOR_REASONING)[:2] == ("openai/gpt-oss-120b", "gemini-3.8-flash")
+    assert router.chain(ModelClass.EVAL_JUDGE) == router.chain(ModelClass.TUTOR_REASONING)
+    assert router.chain(ModelClass.INTENT_AGENT) == router.chain(ModelClass.TUTOR_REASONING)
     assert isinstance(router._chat, ChatDispatcher) and router._chat._gemini is not None
     # not asked for, Gemini is not given the children's words
     plain = build_router(
-        Settings(_env_file=None, groq_api_key="gsk_test", gemini_api_key="gm_test", tts="off")
+        Settings(
+            _env_file=None,
+            groq_api_key="gsk_test",
+            gemini_api_key="gm_test",
+            tts="off",
+            tutor_mentor_model="",
+        )
     )
     assert plain._chat._gemini is None
 
