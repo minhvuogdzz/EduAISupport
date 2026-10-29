@@ -1326,6 +1326,7 @@ class TeachingLoop:
     def _pending_question(self, fallback: str) -> str:
         """Protect the question the child actually heard, including an ungraded retell scaffold."""
         from cavat.modules.tutor.dialogue import question_tail
+        from cavat.modules.tutor.socratic import readiness_only
 
         for event in reversed(self.events):
             p = event.payload
@@ -1336,6 +1337,8 @@ class TeachingLoop:
             if p.get("node_id") not in (None, self._node):
                 continue
             if question := question_tail(p.get("text", "")):
+                if readiness_only(question):
+                    continue
                 return question
         return fallback
 

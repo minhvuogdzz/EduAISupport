@@ -75,6 +75,7 @@ def test_retell_uses_the_last_spoken_scaffold_without_awarding_retell_evidence()
     loop._ref = None
     loop._prompt = "Từ một phân số thập phân, con chuyển thành số thập phân bằng cách nào?"
     loop._say(NOW, [], [], TeachMessage(MessageKind.FEEDBACK, ASKED, first.node_id, source="LLM"))
+    loop._say(NOW, [], [], TeachMessage(MessageKind.FEEDBACK, LEAK, first.node_id, source="LLM"))
     loop._say(
         NOW,
         [],
@@ -82,6 +83,7 @@ def test_retell_uses_the_last_spoken_scaffold_without_awarding_retell_evidence()
         TeachMessage(MessageKind.FEEDBACK, "Cô mừng con quay trở lại!", first.node_id, ref="GREETING_ONLY"),
     )
     loop.go_live(reader=RecordedReader({1: Reading("REPAIR", focus="chưa hiểu")}), speaker=speaker)
+    assert loop._pending_question(loop._prompt) == ASKED
     turn = loop.on_student("88", NOW)
     assert turn.messages[-1].text == SAFE and turn.awaiting == Awaiting.RETELL
     assert "WRONG_MATH" in turn.messages[-1].rejected[0]
@@ -89,6 +91,7 @@ def test_retell_uses_the_last_spoken_scaffold_without_awarding_retell_evidence()
     assert ASKED in provider.calls[0][1].messages[1].content
     review = next(request for _, request in provider.calls if request.schema_name == "curriculum_check_v2")
     assert json.loads(review.messages[1].content)["duoc_giai_cau_dang_lam"] is False
+    assert json.loads(review.messages[1].content)["cau_dang_lam"] == ASKED
     assert all(estimate_prompt_tokens(request) <= MAX_PROMPT_TOKENS for _, request in provider.calls)
 
 
