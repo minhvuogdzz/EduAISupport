@@ -77,7 +77,7 @@ from cavat.modules.tutor.validator import (
 )
 
 # 0.4.0: REFORM-6 (DI-82, DI-83), teaching again and the meaning check; 0.3.0: REFORM-1b, DI-81
-GROUNDED_VERSION = "grounded-speech/0.11.0"
+GROUNDED_VERSION = "grounded-speech/0.12.0"
 PROMPT_FILE = "grounded.v2.md"
 
 MIN_QUESTION_WORDS = 2  # DI-39: content words a question needs to be about something ("là sao ạ" has none)
@@ -536,11 +536,13 @@ class GroundedSpeaker:
         order: Sequence[str] = (),
         web: WebSource | None = None,
         allow_knowledge: bool = False,
+        recovery_codes: Sequence[str] = (),
     ) -> None:
         """``order``: the chapter's nodes in teaching order, to tell a question on a later node. ``web``: the
         trusted source a question the documents do not answer may be looked up in (WEB-1, DI-51)."""
         self.index, self.router, self.web = index, router, web
         self.allow_knowledge = allow_knowledge
+        self.recovery_codes = tuple(recovery_codes)
         self.order = list(order)
         self.t, self.s = tutor_self, student_address
         self.name = given_name(student_name)
@@ -863,7 +865,7 @@ class GroundedSpeaker:
                 pack,
                 questions=label in ("AMBIGUOUS_REPLY", "CONTINUE", "REPAIR", "REACTION"),
                 output_guard=guard,
-                may_reveal=True,
+                may_reveal=False,
             )
         if spoken.text:
             return spoken
@@ -969,6 +971,17 @@ class GroundedSpeaker:
         if self.router is None:
             return Spoken("", "TEMPLATE")
         from cavat.modules.teaching.curriculum import verification, verified
+        from cavat.modules.tutor.socratic import acknowledges_correction, is_decimal_conversion
+
+        correction_needed = False
+        for turn in reversed(pack.recent):
+            if turn.role != "tutor":
+                continue
+            if brain.math_errors(turn.text):
+                correction_needed = True
+                break
+            if acknowledges_correction(turn.text):
+                break
 
         if "phản ứng/cảm xúc" not in pack.task:
             pack = replace(
@@ -978,7 +991,26 @@ class GroundedSpeaker:
             )
         pack = replace(
             pack,
-            task=pack.task
+            correction_required=correction_needed,
+            task=(
+                "CÂU ĐANG CHỜ CHƯA ĐƯỢC GIẢI HỘ, dù con trả lời sai hoặc xin giảng. "
+                "Không nêu đáp số của câu ấy. Giảng bằng ví dụ KHÁC rồi hỏi một bước nhỏ. "
+                if not may_reveal
+                else ""
+            )
+            + (
+                "Đây là lượt gợi mở chuyển phân số: CHỈ giúp con đọc mẫu số hoặc xác định hàng "
+                "cần viết; hỏi về mẫu số/hàng, chưa đặt tử số vào số thập phân và chưa viết kết quả. "
+                if not may_reveal and is_decimal_conversion(pack.question)
+                else ""
+            )
+            + (
+                "LỜI CÔ TRƯỚC CÓ PHÉP TÍNH SAI ĐÃ ĐƯỢC KIỂM TRA. Nhận lỗi ngắn và sửa "
+                "cách diễn đạt quy trình bằng lời, không lặp phép tính/đáp số sai đó. "
+                if correction_needed
+                else ""
+            )
+            + pack.task
             + (
                 " Chỉ một câu hỏi ngắn ở cuối, chỉ một dấu hỏi."
                 if questions
@@ -993,7 +1025,19 @@ class GroundedSpeaker:
 
         def codes(text):
             nonlocal checked_calls
-            problems = list(brain.speech_codes(text, pack, flexible=True, rephrase=True, copy_run=14))
+            problems = list(brain.speech_codes(text, pack, flexible=True, rephrase=True, copy_run=24))
+            from cavat.modules.tutor.dialogue import question_tail
+            from cavat.modules.tutor.socratic import conversion_answer_leaked, readiness_only
+
+            if not may_reveal and (
+                conversion_answer_leaked(text, pack.question)
+                or (questions and conversion_answer_leaked(text, question_tail(text)))
+            ):
+                problems.append("ANSWER_LEAK")
+            if questions and readiness_only(text):
+                problems.append("MISSING_LEARNING_STEP")
+            if correction_needed and not acknowledges_correction(text):
+                problems.append("MISSING_CORRECTION")
             if foreign_text(text) or wrong_address(text, self.s):
                 problems.append("WRONG_ADDRESS")
             if text.count("?") > (1 if questions or optional_question else 0):
@@ -1031,6 +1075,10 @@ class GroundedSpeaker:
                     calls_used=self.calls_used + self.calls_made + checked_calls + 1,
                 )
                 checked_calls += out.calls_made
+                if out.result is None:
+                    reason = out.fallback_reason.value if out.fallback_reason else "unknown"
+                    problems.append(f"SERVICE_UNAVAILABLE:{reason}")
+                    return tuple(dict.fromkeys(problems))
                 if out.result and out.result.data.get("needs_pedagogy_support") is True:
                     problems.append("PEDAGOGY")
                 accepted = (
@@ -1188,7 +1236,12 @@ class GroundedSpeaker:
         return Spoken(out.text, "LLM", (), out.rejected, out.flagged, ())
 
     def _who(self) -> dict[str, Any]:
-        return {"tutor_self": self.t, "student_address": self.s, "name": self.name}
+        return {
+            "tutor_self": self.t,
+            "student_address": self.s,
+            "name": self.name,
+            "retry_codes": getattr(self, "recovery_codes", ()),
+        }
 
     def _lesson_say(self, pack, *, questions, session_entry=False):
         from cavat.modules.teaching.author import write_lesson

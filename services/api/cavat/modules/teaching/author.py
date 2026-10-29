@@ -103,7 +103,7 @@ def write_lesson(router, pack, *, calls_used, questions, session_entry=False):
     while drafts < 2:
         request = _bounded_request(
             "lesson-teacher.v4.md",
-            {**case, "can_sua": rejected[-1] if rejected else []},
+            {**case, "can_sua": rejected[-1] if rejected else pack.retry_codes},
             schema,
             "lesson_teacher_v1",
             temperature=0.5,
