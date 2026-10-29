@@ -53,3 +53,5 @@ services/api/.venv/bin/python deploy/prepare_handoff.py db-dump/cavat-db-<mốc>
 Chọn đúng hai archive vừa tạo. Script tạo thư mục `db-dump/handoff-<mốc>/` có `.env`, hai archive và SHA-256. Chuyển nội dung thư mục này qua kênh riêng tới DevOps. Archive database là JSONL được `cavat.restore` xử lý; nó không phải `mongodump`. Gói storage gồm tài liệu, âm thanh và hình; model weights được tải riêng vào volume. Tất cả dữ liệu, `.env` và gói bàn giao đều bị Git bỏ qua.
 
 CI kiểm tra API, web, build/import Compose và build/khởi động voice cùng một mẫu WAV. Thành công trên CI không thay thế việc kiểm tra HTTPS, DNS, keys, quota, model download và tải thực tế trên server.
+
+Sau khi CI của commit trên `main` thành công, workflow Publish images dựng và đưa `cavat-app` và `cavat-voice` lên GitHub Container Registry với tag `latest` và SHA commit. Workflow này không tự triển khai lên server; server vẫn có thể build từ checkout bằng hai lệnh ở trên. Việc publish phụ thuộc quyền ghi Packages của GitHub Actions.
