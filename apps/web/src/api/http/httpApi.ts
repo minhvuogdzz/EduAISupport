@@ -256,6 +256,10 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       return remember(await request<SessionState>("POST", sessionPath(sessionId, "join"), studentHeaders()));
     },
 
+    recover(sessionId, version, idempotencyKey) {
+      return command(sessionId, "recover", { expected_state_version: version }, idempotencyKey);
+    },
+
     submitResponse(sessionId, cmd, idempotencyKey) {
       return command(sessionId, "responses", cmd, idempotencyKey);
     },

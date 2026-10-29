@@ -55,6 +55,8 @@ export interface SessionApi {
   getState(sessionId: string): Promise<SessionState>;
   /** POST /v1/sessions/{id}/join. Joining an ACTIVE session resumes it. */
   join(sessionId: string): Promise<SessionState>;
+  /** Retry the server's saved command, without another student message. */
+  recover?: (sessionId: string, version: number, idempotencyKey: string) => Promise<CommandAck>;
   /** POST /v1/sessions/{id}/responses */
   submitResponse(sessionId: string, command: ResponseCommand, idempotencyKey: string): Promise<CommandAck>;
   /** POST /v1/sessions/{id}/hint-requests */

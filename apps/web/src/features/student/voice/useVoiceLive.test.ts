@@ -3,6 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { useApi } from "../../../api/apiContext";
 import type { SessionApi } from "../../../api/client";
+import type { ChatTurn } from "../../../api/contract";
+import { browserSpeak } from "./browserVoice";
 import { recordTurn } from "./recorder";
 import { useVoiceLive } from "./useVoiceLive";
 
@@ -80,4 +82,56 @@ it("ignores a transcription arriving after voice was turned off", async () => {
   });
   expect(submit).not.toHaveBeenCalled();
   expect(hook.result.current.phase).toBe("off");
+});
+
+it("reads the greeting and lesson orientation when voice starts at entry", async () => {
+  const greeting: ChatTurn = {
+    turn_id: "greeting",
+    sequence_no: 1,
+    actor: "tutor",
+    text: "Cô chào An! Hôm nay mình học số thập phân.",
+    item_attempt_id: null,
+    occurred_at: "",
+    move: null,
+    hint_level: null,
+    kind: "NODE",
+    entry_greeting: true,
+  };
+  const opening: ChatTurn = {
+    ...greeting,
+    turn_id: "opening",
+    sequence_no: 2,
+    text: "Hai phần mười viết là 0,2. Con viết 7/10 thành số thập phân nào?",
+    kind: "THEORY",
+    entry_greeting: false,
+  };
+  const hook = renderHook(() => useVoiceLive({ turns: [greeting, opening], canSpeak: false, submit }));
+  await act(async () => {});
+  act(() => hook.result.current.toggle());
+  await act(async () => {});
+  expect(vi.mocked(browserSpeak).mock.calls.map((c) => c[0])).toEqual([greeting.text, opening.text]);
+});
+
+it("does not repeat an old entry greeting once the student has replied", async () => {
+  const base: ChatTurn = {
+    turn_id: "g",
+    sequence_no: 1,
+    actor: "tutor",
+    text: "Cô chào An!",
+    item_attempt_id: null,
+    occurred_at: "",
+    move: null,
+    hint_level: null,
+    entry_greeting: true,
+  };
+  const conversation: ChatTurn[] = [
+    base,
+    { ...base, turn_id: "s", sequence_no: 2, actor: "student", text: "con chưa hiểu", entry_greeting: false },
+    { ...base, turn_id: "r", sequence_no: 3, text: "Mình xem từng phần nhé?", entry_greeting: false },
+  ];
+  const hook = renderHook(() => useVoiceLive({ turns: conversation, canSpeak: false, submit }));
+  await act(async () => {});
+  act(() => hook.result.current.toggle());
+  await act(async () => {});
+  expect(vi.mocked(browserSpeak).mock.calls.map((c) => c[0])).toEqual([conversation[2].text]);
 });

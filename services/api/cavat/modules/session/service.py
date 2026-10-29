@@ -369,6 +369,8 @@ def transcript(session: LearningSession) -> list[dict[str, Any]]:
     hint_level: int | None = None
     for e in session.events:
         p = e.payload
+        if p.get("recovery_replay"):
+            continue
         text: str | None = None
         move: str | None = None
         level: int | None = None
@@ -390,7 +392,7 @@ def transcript(session: LearningSession) -> list[dict[str, Any]]:
             text = CHOICES[CHOICE_HINT]
         elif e.event_type == EventType.CHOICE_MADE:
             text = p["label"]
-        if text is None:
+        if not text:
             continue
         turns.append(
             {
@@ -404,6 +406,7 @@ def transcript(session: LearningSession) -> list[dict[str, Any]]:
                 "hint_level": level,
                 "kind": teach_kind,
                 "node_id": p.get("node_id") if teach_kind else None,
+                "entry_greeting": p.get("ref") == "GREETING_ONLY",
             }
         )
     return turns

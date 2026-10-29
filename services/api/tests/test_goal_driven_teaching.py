@@ -4,6 +4,7 @@ import json
 
 import pytest
 from cavat.core.events import EventType
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
 from cavat.modules.ai_gateway.fake import FakeChatModel
 from cavat.modules.ai_gateway.router import AIRouter
 from cavat.modules.teaching.decimal_facts import claim_errors, notation_facts
@@ -89,7 +90,7 @@ def test_unavailable_generation_does_not_present_raw_rag_as_a_teacher_response()
     turn = TeachingLoop(CHAPTER, "synthetic", speaker=speaker).start(NOW)
     assert CHAPTER.nodes[0].theory[0].ask not in turn.messages[-1].text
     assert CHAPTER.nodes[0].theory[0].text not in turn.messages[-1].text
-    assert turn.messages[-1].text == "Con chờ cô một chút nhé."
+    assert turn.messages[-1].text == MODEL_WAIT_MESSAGE
 
 
 @pytest.mark.parametrize(

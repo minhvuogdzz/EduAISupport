@@ -143,6 +143,8 @@ export type TeachMessageKind = (typeof TEACH_MESSAGE_KINDS)[number];
 
 /** One line of the conversation the student sees. */
 export interface ChatTurn {
+  /** Entry courtesy is read with the opening when voice is enabled before the first reply. */
+  entry_greeting?: boolean;
   turn_id: string;
   sequence_no: number;
   item_attempt_id: string | null;
@@ -199,6 +201,12 @@ export interface SessionState {
   progress: { items_done: number; items_total: number };
   /** Chapter sessions only (M1-7): the node map and the step of the teaching cycle. */
   teaching?: TeachingView | null;
+  tutor_recovery?: {
+    status: "retrying" | "stopped";
+    attempts: number;
+    retry_after_ms: number;
+    reason: "validation" | "service";
+  } | null;
   /**
    * Turns the student may see. PART 29 asks for at least the current item's turns; the mock sends the
    * whole session. The UI handles both.

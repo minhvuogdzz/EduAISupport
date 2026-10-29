@@ -261,9 +261,13 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
       setPhase("off");
       return;
     }
-    // Start with the tutor's last message, so the child hears where they are; older ones stay silent.
+    // Read the entry courtesy with the opening; enabling voice must not silently skip the greeting.
     const tutorTurns = turns.filter((t) => t.actor === "tutor");
-    tutorTurns.slice(0, -1).forEach((t) => spoken.current.add(t.turn_id));
+    const lastStudent = turns.filter((t) => t.actor === "student").at(-1)?.sequence_no ?? -1;
+    const greeting = tutorTurns.filter((t) => t.entry_greeting && t.sequence_no > lastStudent).at(-1);
+    tutorTurns.slice(0, -1).forEach((t) => {
+      if (t.turn_id !== greeting?.turn_id) spoken.current.add(t.turn_id);
+    });
     setProblem(null);
     setHeard("");
     setOn(true);
