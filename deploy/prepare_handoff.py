@@ -86,7 +86,7 @@ def main() -> None:
     print(f"Gói nén một tệp: {bundle}")
     print(f"Gói mới nhất: {latest_bundle}")
     print("DevOps chỉ cần giải nén gói này ở thư mục repo trên server:")
-    print("  tar -xzf cavat-handoff-latest.tar.gz")
+    print("  python3 deploy/unpack_handoff.py cavat-handoff-latest.tar.gz")
     print("  docker compose up -d --build")
     print("  sh deploy/import.sh")
 

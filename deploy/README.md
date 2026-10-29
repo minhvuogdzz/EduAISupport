@@ -4,13 +4,13 @@ CAVAT chạy bằng Docker Compose: `app` phục vụ web và API cùng cổng, 
 
 ## Triển khai lần đầu
 
-Cần Docker Engine và Compose v2, Internet để tải image/model và gọi các API đã cấu hình. Chủ dự án chuyển **riêng** gói bàn giao `cavat-handoff-latest.tar.gz` (hoặc `.env` và thư mục `db-dump/`) qua kênh an toàn; đặt vào thư mục gốc của checkout. `.env` chứa khóa API, mật khẩu Mongo, khóa ký token và mật khẩu quản trị; không đưa lên GitHub.
+Cần Docker Engine, Compose v2, Python 3 và Internet để tải image/model và gọi các API đã cấu hình. Chủ dự án chuyển **riêng** gói bàn giao `cavat-handoff-latest.tar.gz` (hoặc `.env` và thư mục `db-dump/`) qua kênh an toàn; đặt vào thư mục gốc của checkout. `.env` chứa khóa API, mật khẩu Mongo, khóa ký token và mật khẩu quản trị; không đưa lên GitHub.
 
 Tại thư mục gốc repo trên server, DevOps chỉ cần chạy:
 
 ```sh
 # 1. Giải nén gói cấu hình và dữ liệu bàn giao (tạo sẵn .env và db-dump/)
-tar -xzf cavat-handoff-latest.tar.gz
+python3 deploy/unpack_handoff.py cavat-handoff-latest.tar.gz
 
 # 2. Dựng và khởi chạy các container (App, Mongo, Voice)
 docker compose up -d --build
@@ -19,9 +19,9 @@ docker compose up -d --build
 sh deploy/import.sh
 ```
 
-*(Hoặc nếu chưa giải nén, có thể chạy thẳng `sh deploy/import.sh cavat-handoff-latest.tar.gz`)*.
+`sh deploy/import.sh cavat-handoff-latest.tar.gz` cũng chuẩn bị gói trước khi nhập, nếu image đã được dựng và Docker Compose đã có cấu hình cần thiết.
 
-Lệnh thứ hai kiểm tra SHA-256, dừng app trong lúc nhập, kiểm tra hai archive, nạp database và storage vào đích trống, tạo chỉ mục, rồi khởi động lại app và chờ health check. Nó từ chối ghi đè dữ liệu. Nếu nhập thất bại, app có thể vẫn dừng và dữ liệu có thể đã nhập một phần: xem log và kiểm tra trạng thái trước khi quyết định phục hồi; không tự xóa volume. Không chạy lại import khi cập nhật.
+Sau khi chuẩn bị gói, hai lệnh Compose và import là đủ. Lệnh import kiểm tra SHA-256, dừng app trong lúc nhập, kiểm tra hai archive, nạp database và storage vào đích trống, tạo chỉ mục, rồi khởi động lại app và chờ health check. Công cụ chuẩn bị từ chối ghi đè `.env` hoặc archive khác nội dung. Nếu nhập thất bại, app có thể vẫn dừng và dữ liệu có thể đã nhập một phần: xem log và kiểm tra trạng thái trước khi quyết định phục hồi; không tự xóa volume. Không chạy lại import khi cập nhật.
 
 Mở `http://<server>:8080`. Lấy `ADMIN_PASSWORD` trong `.env` qua kênh riêng. `AUTH_SECRET` được giữ từ cấu hình nguồn nếu đã có; đổi nó sẽ khiến token hiện tại hết hiệu lực. Không thay `MONGO_PASSWORD` sau khi Mongo volume đã được khởi tạo nếu chưa đổi mật khẩu trong Mongo.
 
@@ -50,7 +50,7 @@ docker compose logs --tail 100 app voice
 
 ## Tạo gói bàn giao trên máy chủ dự án
 
-Với `services/api/.env` trỏ đúng database nguồn, không có buổi học đang ghi:
+Với `services/api/.env` trỏ đúng database nguồn, dừng buổi học và các tiến trình ghi trong suốt quá trình xuất cả database và storage: hai bản này không phải snapshot nguyên tử.
 
 ```sh
 make db-pack
@@ -59,6 +59,8 @@ services/api/.venv/bin/python deploy/prepare_handoff.py db-dump/cavat-db-<mốc>
 ```
 
 Chọn đúng hai archive vừa tạo. Script tạo thư mục `db-dump/handoff-<mốc>/` và gói nén một tệp `db-dump/cavat-handoff-latest.tar.gz` chứa sẵn `.env`, hai archive và SHA-256. Chuyển tệp này qua kênh riêng tới DevOps. Archive database là JSONL được `cavat.restore` xử lý; nó không phải `mongodump`. Gói storage gồm tài liệu, âm thanh và hình; model weights được tải riêng vào volume. Tất cả dữ liệu, `.env` và gói bàn giao đều bị Git bỏ qua.
+
+Mỗi lần tạo gói sinh mật khẩu Mongo và admin mới; gói `.env` mới dành cho server khởi tạo lần đầu. Với server đã có volume, giữ nguyên `.env` và mật khẩu hiện hành. Các index do ứng dụng khai báo được tạo lại khi import; metadata và index tùy chỉnh ngoài ứng dụng không được bảo toàn.
 
 CI kiểm tra API, web, build/import Compose và build/khởi động voice cùng một mẫu WAV. Thành công trên CI không thay thế việc kiểm tra HTTPS, DNS, keys, quota, model download và tải thực tế trên server.
 
