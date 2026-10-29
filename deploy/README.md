@@ -4,14 +4,22 @@ CAVAT chạy bằng Docker Compose: `app` phục vụ web và API cùng cổng, 
 
 ## Triển khai lần đầu
 
-Cần Docker Engine và Compose v2, Internet để tải image/model và gọi các API đã cấu hình. Chủ dự án chuyển **riêng** `.env` và thư mục `db-dump/` từ gói bàn giao; đặt chúng vào thư mục gốc của checkout. `.env` chứa khóa API, mật khẩu Mongo, khóa ký token và mật khẩu quản trị; không đưa lên GitHub. Nếu có dữ liệu đang được ghi khi export, dừng buổi học và xuất lại cả database lẫn storage để có ảnh chụp nhất quán.
+Cần Docker Engine và Compose v2, Internet để tải image/model và gọi các API đã cấu hình. Chủ dự án chuyển **riêng** gói bàn giao `cavat-handoff-latest.tar.gz` (hoặc `.env` và thư mục `db-dump/`) qua kênh an toàn; đặt vào thư mục gốc của checkout. `.env` chứa khóa API, mật khẩu Mongo, khóa ký token và mật khẩu quản trị; không đưa lên GitHub.
 
-Tại thư mục gốc repo trên server, chạy hai lệnh:
+Tại thư mục gốc repo trên server, DevOps chỉ cần chạy:
 
 ```sh
+# 1. Giải nén gói cấu hình và dữ liệu bàn giao (tạo sẵn .env và db-dump/)
+tar -xzf cavat-handoff-latest.tar.gz
+
+# 2. Dựng và khởi chạy các container (App, Mongo, Voice)
 docker compose up -d --build
+
+# 3. Nạp dữ liệu vào Database và Storage
 sh deploy/import.sh
 ```
+
+*(Hoặc nếu chưa giải nén, có thể chạy thẳng `sh deploy/import.sh cavat-handoff-latest.tar.gz`)*.
 
 Lệnh thứ hai kiểm tra SHA-256, dừng app trong lúc nhập, kiểm tra hai archive, nạp database và storage vào đích trống, tạo chỉ mục, rồi khởi động lại app và chờ health check. Nó từ chối ghi đè dữ liệu. Nếu nhập thất bại, app có thể vẫn dừng và dữ liệu có thể đã nhập một phần: xem log và kiểm tra trạng thái trước khi quyết định phục hồi; không tự xóa volume. Không chạy lại import khi cập nhật.
 
@@ -50,7 +58,7 @@ make storage-pack
 services/api/.venv/bin/python deploy/prepare_handoff.py db-dump/cavat-db-<mốc>.tar.gz db-dump/cavat-storage-<mốc>.tar.gz
 ```
 
-Chọn đúng hai archive vừa tạo. Script tạo thư mục `db-dump/handoff-<mốc>/` có `.env`, hai archive và SHA-256. Chuyển nội dung thư mục này qua kênh riêng tới DevOps. Archive database là JSONL được `cavat.restore` xử lý; nó không phải `mongodump`. Gói storage gồm tài liệu, âm thanh và hình; model weights được tải riêng vào volume. Tất cả dữ liệu, `.env` và gói bàn giao đều bị Git bỏ qua.
+Chọn đúng hai archive vừa tạo. Script tạo thư mục `db-dump/handoff-<mốc>/` và gói nén một tệp `db-dump/cavat-handoff-latest.tar.gz` chứa sẵn `.env`, hai archive và SHA-256. Chuyển tệp này qua kênh riêng tới DevOps. Archive database là JSONL được `cavat.restore` xử lý; nó không phải `mongodump`. Gói storage gồm tài liệu, âm thanh và hình; model weights được tải riêng vào volume. Tất cả dữ liệu, `.env` và gói bàn giao đều bị Git bỏ qua.
 
 CI kiểm tra API, web, build/import Compose và build/khởi động voice cùng một mẫu WAV. Thành công trên CI không thay thế việc kiểm tra HTTPS, DNS, keys, quota, model download và tải thực tế trên server.
 

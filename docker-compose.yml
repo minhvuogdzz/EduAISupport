@@ -59,6 +59,7 @@ services:
       TTS: "${TTS:-vieneu}"
       VIENEU_URL: "http://voice:8010"
       VIENEU_VOICE: "${VIENEU_VOICE:-}"
+      OBSERVABILITY_ENABLED: "${OBSERVABILITY_ENABLED:-true}"
     volumes:
       - app-data:/data/storage
       # where the database export is put to be loaded (deploy/README.md); read-only

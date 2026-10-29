@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 
 from cavat.config import get_settings
 
-RUNTIME_DIRS = {"documents", "voice", "rag", "web", "cache", "figures"}
+RUNTIME_DIRS = {"documents", "voice", "rag", "web", "cache", "figures", "observability"}
 
 
 class StorageError(ValueError):

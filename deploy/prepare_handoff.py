@@ -8,6 +8,7 @@ import hashlib
 import secrets
 import shutil
 import sys
+import tarfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -50,6 +51,7 @@ def main() -> None:
         "ALLOW_TUTOR_KNOWLEDGE": str(settings.allow_tutor_knowledge).lower(),
         "MAX_LLM_CALLS_PER_SESSION": str(settings.max_llm_calls_per_session),
         "MAX_LLM_CALLS_PER_CHAPTER": str(settings.max_llm_calls_per_chapter),
+        "OBSERVABILITY_ENABLED": "true",
     }
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     handoff = ROOT / "db-dump" / f"handoff-{stamp}"
@@ -68,8 +70,25 @@ def main() -> None:
     checksum = handoff / "db-dump" / "SHA256SUMS"
     checksum.write_text("".join(hashes), encoding="ascii")
     checksum.chmod(0o600)
-    print(f"Bàn giao riêng: {handoff}")
-    print("Chuyển .env và db-dump/ đến thư mục repo trên server bằng kênh riêng.")
+
+    # Package as a single archive for the simplest DevOps handoff
+    bundle = ROOT / "db-dump" / f"cavat-handoff-{stamp}.tar.gz"
+    with tarfile.open(bundle, "w:gz") as tar:
+        tar.add(env, arcname=".env")
+        for member in sorted((handoff / "db-dump").iterdir()):
+            tar.add(member, arcname=f"db-dump/{member.name}")
+    bundle.chmod(0o600)
+    latest_bundle = ROOT / "db-dump" / "cavat-handoff-latest.tar.gz"
+    shutil.copyfile(bundle, latest_bundle)
+    latest_bundle.chmod(0o600)
+
+    print(f"Bàn giao riêng (thư mục): {handoff}")
+    print(f"Gói nén một tệp: {bundle}")
+    print(f"Gói mới nhất: {latest_bundle}")
+    print("DevOps chỉ cần giải nén gói này ở thư mục repo trên server:")
+    print("  tar -xzf cavat-handoff-latest.tar.gz")
+    print("  docker compose up -d --build")
+    print("  sh deploy/import.sh")
 
 
 if __name__ == "__main__":
