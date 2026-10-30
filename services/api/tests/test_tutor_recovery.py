@@ -30,6 +30,8 @@ def test_failed_opening_recovers_without_student_input_and_retains_orientation(c
     assert before["transcript"][0]["text"].startswith("Cô chào Minh!")
     assert CHAPTER.nodes[0].name in before["transcript"][0]["text"]
     assert before["tutor_recovery"]["status"] == "retrying"
+    assert before["transcript"][-1]["text"] == MODEL_WAIT_MESSAGE
+    assert "gửi lại" not in MODEL_WAIT_MESSAGE and "vừa học" not in MODEL_WAIT_MESSAGE
     assert not before["teaching"]["prompt"]
     question = "Con viết 7/10 thành số thập phân nào?"
     provider = FakeChatModel([opening_output("Ba phần mười viết là 0,3. " + question), ENTRY_OK])
@@ -39,6 +41,7 @@ def test_failed_opening_recovers_without_student_input_and_retains_orientation(c
     assert response.status_code == 200, response.text
     after = state(client, before["session_id"])
     assert after["tutor_recovery"] is None
+    assert MODEL_WAIT_MESSAGE not in [t["text"] for t in after["transcript"]]
     assert after["teaching"]["prompt"] == question
     assert after["progress"] == before["progress"]
     assert not any(t["actor"] == "student" for t in after["transcript"])
@@ -72,6 +75,7 @@ def test_failed_student_turn_reuses_exact_words_and_does_not_display_a_duplicate
     after = state(client, before["session_id"])
     assert heard == ["con chưa hiểu", "con chưa hiểu"]
     assert after["tutor_recovery"] is None
+    assert MODEL_WAIT_MESSAGE not in [t["text"] for t in after["transcript"]]
     assert [t["text"] for t in after["transcript"] if t["actor"] == "student"] == ["con chưa hiểu"]
     assert after["progress"] == before["progress"]
     assert after["teaching"]["prompt"].endswith("2/10 thành số thập phân nào?")
@@ -143,11 +147,24 @@ async def test_recovered_opening_survives_event_replay(client, memory, monkeypat
     assert loop._prompt == question
     assert saved.state.activity["llm_calls"] == 2
     assert "tutor_recovery" not in saved.state.activity
-    assert MODEL_WAIT_MESSAGE in [t["text"] for t in state(client, saved.id)["transcript"]]
+    assert MODEL_WAIT_MESSAGE not in [t["text"] for t in state(client, saved.id)["transcript"]]
+    assert any(e.payload.get("text") == MODEL_WAIT_MESSAGE for e in saved.events)
 
 
 @pytest.mark.asyncio
-async def test_old_waiting_session_recovers_the_stored_student_words_on_entry(client, memory, monkeypatch):  # noqa: F811
+@pytest.mark.parametrize(
+    "notice",
+    [
+        "Con chờ cô một chút nhé.",
+        "Cô đang thử lại để tiếp tục đúng chỗ mình vừa học. Con không cần gửi lại câu vừa rồi nhé.",
+    ],
+)
+async def test_old_waiting_session_recovers_the_stored_student_words_on_entry(
+    client,  # noqa: F811
+    memory,  # noqa: F811
+    monkeypatch,
+    notice,
+):
     from cavat.core.events import EventType
     from cavat.modules.session.repository import NewEvent
 
@@ -167,7 +184,7 @@ async def test_old_waiting_session_recovers_the_stored_student_words_on_entry(cl
                 payload={
                     "kind": "FEEDBACK",
                     "ref": "MODEL_WAIT",
-                    "text": "Con chờ cô một chút nhé.",
+                    "text": notice,
                     "source": "TEMPLATE",
                 },
                 actor=api.chapter_service.actor_for(EventType.TEACH_MESSAGE_SENT, saved.student_id),
@@ -176,6 +193,8 @@ async def test_old_waiting_session_recovers_the_stored_student_words_on_entry(cl
     )
     joined = client.post(f"/v1/sessions/{saved.id}/join", headers=MINH).json()
     assert joined["tutor_recovery"]["status"] == "retrying"
+    assert MODEL_WAIT_MESSAGE in [t["text"] for t in joined["transcript"]]
+    assert notice not in [t["text"] for t in joined["transcript"]]
     recovered = await repo.get(saved.id)
     assert recovered.state.activity["tutor_recovery"]["kwargs"]["text"] == "con chưa hiểu mẫu số"
     # The API exposes status only; replayable input and command details remain server-side.

@@ -51,7 +51,12 @@ function hasTurn(view: TutorView, turnId: string): boolean {
 
 function applySnapshot(view: TutorView, state: SessionState): TutorView {
   if (view.state && state.state_version < view.state.state_version) return view; // older than what we show
-  const byId = new Map(view.turns.map((t) => [t.turn_id, t]));
+  // A snapshot is authoritative within its sequence range: the server can retire a wait notice.
+  // Keep older turns outside that range when an API sends only the current item's transcript.
+  const first = state.transcript.at(0)?.sequence_no ?? Infinity;
+  const last = state.transcript.at(-1)?.sequence_no ?? -Infinity;
+  const outsideSnapshot = (turn: ChatTurn) => turn.sequence_no < first || turn.sequence_no > last;
+  const byId = new Map(view.turns.filter(outsideSnapshot).map((t) => [t.turn_id, t]));
   for (const turn of state.transcript) byId.set(turn.turn_id, turn);
   const turns = [...byId.values()].sort((a, b) => a.sequence_no - b.sequence_no);
   const confirmed = new Set(turns.map((t) => t.turn_id));
@@ -60,7 +65,7 @@ function applySnapshot(view: TutorView, state: SessionState): TutorView {
     ...view,
     state,
     turns,
-    live: view.live.filter((t) => !confirmed.has(t.turn_id)),
+    live: view.live.filter((t) => outsideSnapshot(t) && !confirmed.has(t.turn_id)),
     typing: view.typing && !confirmed.has(view.typing.turn_id) ? view.typing : null,
     awaitingVersion: caughtUp ? null : view.awaitingVersion,
     outgoing: caughtUp && !view.sending ? null : view.outgoing,

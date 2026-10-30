@@ -56,7 +56,7 @@ def _bounded_request(system, case, schema, name, *, temperature=0):
             return request
 
 
-def write_lesson(router, pack, *, calls_used, questions, session_entry=False):
+def write_lesson(router, pack, *, calls_used, questions, session_entry=False, protect_pending=True):
     """At most two drafts; a verified mentor draft is delivered without a weaker mandatory rewrite."""
     used, rejected, flagged = 0, [], False
     try:
@@ -153,7 +153,7 @@ def write_lesson(router, pack, *, calls_used, questions, session_entry=False):
         if questions == "required" and readiness_only(text):
             codes.append("MISSING_LEARNING_STEP")
         if questions == "required" and (
-            conversion_answer_leaked(text, pack.question)
+            (protect_pending and conversion_answer_leaked(text, pack.question))
             or conversion_answer_leaked(text, question_tail(text) or "")
         ):
             codes.append("ANSWER_LEAK")

@@ -15,6 +15,7 @@ export function useTutorSession(sessionId: string) {
   const api = useApi();
   const [view, dispatch] = useReducer(tutorReducer, initialTutorView);
   const [recoveryFailures, setRecoveryFailures] = useState(0);
+  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -45,7 +46,7 @@ export function useTutorSession(sessionId: string) {
   const state = view.state;
   const pending = state?.tutor_recovery;
   const retrying = pending?.status === "retrying" && recoveryFailures < 3 && Boolean(api.recover);
-  const busy = commandBusy || retrying;
+  const busy = commandBusy || retrying || restarting;
 
   useEffect(() => {
     if (!state || !retrying || commandBusy || !api.recover) return;
@@ -95,7 +96,7 @@ export function useTutorSession(sessionId: string) {
   /** Sends one command with a fresh Idempotency-Key; on 409 re-reads the state (PART 24.2). */
   async function send(line: string, command: (state: SessionState, key: string) => Promise<CommandAck>) {
     const state = view.state;
-    if (!state || busy) return false;
+    if (!state || busy || state.tutor_recovery) return false;
     setRecoveryFailures(0);
     dispatch({ type: "sending", line });
     try {
@@ -152,6 +153,20 @@ export function useTutorSession(sessionId: string) {
     );
   }
 
+  async function retryRecovery() {
+    if (busy) return;
+    setRestarting(true);
+    try {
+      const fresh = await api.join(sessionId);
+      setRecoveryFailures(0);
+      dispatch({ type: "loaded", state: fresh });
+    } catch {
+      dispatch({ type: "rejected", notice: "Chưa kết nối được. Con bấm Thử lại sau một chút nhé." });
+    } finally {
+      setRestarting(false);
+    }
+  }
+
   return {
     view,
     busy,
@@ -159,6 +174,7 @@ export function useTutorSession(sessionId: string) {
     submitAnswer,
     requestHint,
     choose,
+    retryRecovery,
     dismissNotice: () => dispatch({ type: "dismiss_notice" }),
   };
 }

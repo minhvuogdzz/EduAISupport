@@ -116,6 +116,24 @@ describe("tutorReducer", () => {
     expect(view.live).toEqual([]);
   });
 
+  it("retires a server-removed wait notice from snapshots and streamed turns", () => {
+    const wait = turn(2, "tutor", "Con chờ cô một chút nhé.");
+    const guidance = turn(4, "tutor", "Con viết 7/10 thành số thập phân nào?");
+    for (const initial of [
+      run({ type: "loaded", state: state(2, [question, wait]) }),
+      run(
+        { type: "loaded", state: state(1, [question]) },
+        { type: "stream", event: { event: "tutor.final", data: wait } },
+      ),
+    ]) {
+      const view = tutorReducer(initial, {
+        type: "stream",
+        event: { event: "state", data: state(3, [question, guidance]) },
+      });
+      expect(displayTurns(view)).toEqual([question, guidance]);
+    }
+  });
+
   it("clears the pending line and shows a notice when a command is rejected", () => {
     const view = run(
       { type: "loaded", state: state(2, [question]) },

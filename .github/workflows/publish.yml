@@ -10,6 +10,10 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: publish-main
+  cancel-in-progress: true
+
 jobs:
   publish:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
@@ -43,6 +47,8 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
           build-args: CAVAT_REVISION=${{ github.event.workflow_run.head_sha }}
           tags: |
             ${{ steps.image.outputs.name }}:latest

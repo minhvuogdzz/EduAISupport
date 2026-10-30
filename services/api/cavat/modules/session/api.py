@@ -32,7 +32,7 @@ from cavat import db
 from cavat.config import get_settings
 from cavat.core.events import EventType
 from cavat.core.repository import utc_now
-from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE, MODEL_WAIT_MESSAGES
 from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.content.lesson_package import LessonPackage
@@ -64,8 +64,8 @@ from cavat.modules.voice import api as voice_api
 MAX_TEXT_CHARS = 500
 MAX_TUTOR_RECOVERIES = 3
 RECOVERY_STOP_MESSAGE = (
-    "Cô chưa thể tiếp tục lượt này sau khi thử lại. Bài và lời con vừa nói vẫn được giữ. "
-    "Con có thể quay lại buổi học sau để thử tiếp nhé."
+    "Cô chưa chuẩn bị được phần hướng dẫn này. Tiến độ bài học vẫn được giữ. "
+    "Con bấm Thử lại để cô tiếp tục nhé."
 )
 
 
@@ -1007,30 +1007,33 @@ def _hold_for_unavailable_models(session, step, recording, text="", modality="TE
     calls = recording.calls
     assessment = (session.state.item or {}).get("activity") == "EXIT_ASSESSMENT"
     if getattr(recording, "model_only_speech", False):
-        # Approved exercise stems remain immutable structured item data, rendered by QuestionCard.
-        # Do not also emit the bank's question as a template utterance in the tutor conversation.
+        # Assessment feedback stays structured. The approved PRESENT question must also be said
+        # in the conversation so a change of item is announced at the student's reading position.
         step.events[:] = [
             e
             for e in step.events
             if not (
                 e.event_type == EventType.TUTOR_MESSAGE_SENT
                 and e.payload.get("source") != "LLM"
-                and (e.payload.get("move") == "PRESENT" or assessment)
+                and assessment
+                and e.payload.get("move") != "PRESENT"
             )
         ]
     spoken_events = [
         e for e in step.events if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
     ]
-    if spoken_events and all(e.payload.get("ref") == "GREETING_ONLY" for e in spoken_events):
+
+    def control_message(event):
+        return event.payload.get("ref") == "GREETING_ONLY" or (
+            event.event_type == EventType.TUTOR_MESSAGE_SENT and event.payload.get("move") == "PRESENT"
+        )
+
+    if spoken_events and all(control_message(e) for e in spoken_events):
         return step
     # The live factory enforces model-only speech. Offline policy/replay engines may use templates
     # internally, but no rejected/static mathematical utterance may be committed to a live session.
     forbidden = (
-        [
-            e
-            for e in spoken_events
-            if e.payload.get("source") != "LLM" and e.payload.get("ref") != "GREETING_ONLY"
-        ]
+        [e for e in spoken_events if e.payload.get("source") != "LLM" and not control_message(e)]
         if getattr(recording, "model_only_speech", False)
         else []
     )
@@ -1462,7 +1465,7 @@ async def join_session(session_id: str, database: Database, student: Student):
                 ),
                 None,
             )
-            if last and last.payload.get("text") in {"Con chờ cô một chút nhé.", MODEL_WAIT_MESSAGE}:
+            if last and last.payload.get("text") in MODEL_WAIT_MESSAGES:
                 student_input = next(
                     (e for e in reversed(session.events) if e.event_type == EventType.STUDENT_MESSAGE), None
                 )

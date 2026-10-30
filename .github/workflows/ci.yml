@@ -1,5 +1,12 @@
 name: CI
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -14,10 +21,13 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: services/api/pyproject.toml
-      - run: pip install -e "services/api[dev]"
-      - run: ruff check services/api evals
-      - run: ruff format --check services/api evals
+          cache-dependency-path: |
+            services/api/pyproject.toml
+            services/api/constraints.txt
+      - run: pip install -c services/api/constraints.txt -e "services/api[dev]"
+      - run: pip check
+      - run: ruff check services/api evals deploy
+      - run: ruff format --check services/api evals deploy
       - run: pytest -q
 
   web:
@@ -43,6 +53,7 @@ jobs:
   docker:
     # A clean deployment on Linux, without any real keys or production database.
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       MONGODB_DB: cavat_test
     steps:
@@ -73,7 +84,7 @@ jobs:
           (cd db-dump && sha256sum cavat-db.tar.gz cavat-storage.tar.gz > SHA256SUMS)
       - name: Build, import, and start like the operator
         run: |
-          docker compose up -d --build --wait app
+          docker compose build --pull
           sh deploy/import.sh
       - name: Verify the one-port app, database, storage and accounts
         run: |
@@ -93,6 +104,13 @@ jobs:
           PYTHON
           curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8080/v1/nope | grep -q 404
           docker compose exec -T app python -c 'from pathlib import Path; assert Path("/data/storage/documents/ci/original.txt").read_text() == "original teacher file"'
+          docker compose exec -T app python - <<'PYTHON'
+          import urllib.request
+          # The API container must reach real voice synthesis on the internal Compose network.
+          request = urllib.request.Request('http://voice:8010/speech', data=b'{"text":"Xin chao con"}', headers={'Content-Type': 'application/json'})
+          with urllib.request.urlopen(request, timeout=180) as response:
+              assert response.read(4) == b'RIFF'
+          PYTHON
       - name: Refuse a second database import with the documented exit code
         run: |
           set +e

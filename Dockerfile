@@ -26,7 +26,7 @@ WORKDIR /app
 # layout of the repository is kept: /app/services/api, /app/docs/pedagogy, /app/apps/web/dist. An editable
 # install keeps the package where it is.
 COPY services/api /app/services/api
-RUN pip install -e /app/services/api
+RUN pip install -c /app/services/api/constraints.txt -e /app/services/api && pip check
 COPY docs/pedagogy /app/docs/pedagogy
 COPY --from=web /build/dist /app/apps/web/dist
 COPY --chmod=0755 deploy/entrypoint.sh /usr/local/bin/cavat-entrypoint

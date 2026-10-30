@@ -56,7 +56,7 @@ from cavat.modules.tutor.contracts import (
 from cavat.modules.tutor.policy import UNCLEAR_REASONS
 from cavat.modules.tutor.prompt_builder import RECENT_TURNS, Turn, given_name
 from cavat.modules.tutor.renderer import TemplateRenderer, fitting_generic_hints
-from cavat.modules.tutor.socratic import readiness_only
+from cavat.modules.tutor.socratic import readiness_only, verification_reason_leaked
 from cavat.modules.tutor.validator import singles_out_choice
 
 # v9: BRAIN-1 (DI-84), see the module docstring
@@ -344,6 +344,11 @@ class LLMRenderer:
                 " Được vận dụng kiến thức Toán chuẩn của chủ đề này và nền trực tiếp để giảng, "
                 "đổi ví dụ, trả lời lý do; không phải đọc lại RAG. Không mở chủ đề khác hoặc đổi đề."
             )
+        if d.move == Move.VERIFY:
+            task += (
+                " Lượt này chỉ hỏi để nghe cách CON nghĩ: không giải thích hộ, không nói quy tắc, "
+                "không gợi sẵn lý do trong câu hỏi có/không. Đúng đáp số chưa chứng minh hiểu cách làm."
+            )
         if (
             "phân số thập phân" in item.stem.lower()
             and "REPAIR" in d.reason_codes
@@ -373,11 +378,11 @@ class LLMRenderer:
         answer = ""
         if reveal and ctx.check is not None and ctx.check.normalized:
             answer = {"true": "Đúng", "false": "Sai"}.get(ctx.check.normalized, ctx.check.normalized)
-        grounds = grounds_for(ctx, fallback.text, reveal)
+        grounds = grounds_for(ctx, fallback.text, reveal and d.move != Move.VERIFY)
         if self.allow_knowledge:
             from cavat.modules.tutor.dialogue import conversion_ground
 
-            if not resuming and (scaffold := conversion_ground(item)):
+            if d.move != Move.VERIFY and not resuming and (scaffold := conversion_ground(item)):
                 grounds = (scaffold, *grounds)
         if ALTITUDE_RULE in grounds:
             grounds = (ALTITUDE_RULE, *(g for g in grounds if g != ALTITUDE_RULE))
@@ -444,6 +449,8 @@ class LLMRenderer:
         d = ctx.decision
         vctx = replace(ctx, max_words=BRAIN_MAX_WORDS, free_numbers=True)
         codes = list(self._validator(text, vctx).codes)
+        if d.move == Move.VERIFY and verification_reason_leaked(text):
+            codes.append("REASONING_LEAK")
         if (
             getattr(self._router, "model_only_speech", False)
             and d.move in MOVES_REQUIRING_QUESTION
@@ -513,6 +520,7 @@ class LLMRenderer:
                 Move.WORKED_GUIDANCE,
                 Move.FULL_EXPLANATION,
                 Move.CLOSE_ITEM,
+                Move.VERIFY,
             )
             if (
                 not codes
@@ -562,14 +570,21 @@ class LLMRenderer:
                         scope=ctx.package.title,
                         references=(*pack.grounds, *premises) if "REPAIR" in d.reason_codes else premises,
                         student=ctx.student_text or "",
-                        may_reveal=ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION,
+                        may_reveal=(ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION)
+                        and d.move != Move.VERIFY,
                         task=pack.task,
                         support_contract={
                             "move": d.move.value,
                             "hint_level": int(d.level) if d.level is not None else None,
-                            "may_reveal": ctx.solved
-                            or ctx.answer_revealed
-                            or d.move == Move.FULL_EXPLANATION,
+                            "may_reveal": (
+                                ctx.solved or ctx.answer_revealed or d.move == Move.FULL_EXPLANATION
+                            )
+                            and d.move != Move.VERIFY,
+                            **(
+                                {"awaiting_student_reasoning": True, "reasoning_may_be_supplied": False}
+                                if d.move == Move.VERIFY
+                                else {}
+                            ),
                         },
                     )
                 result = self._router.chat(
