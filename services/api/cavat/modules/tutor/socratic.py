@@ -7,6 +7,22 @@ from cavat.modules.assessment.vi_numbers import extract_numbers
 from cavat.modules.tutor.dialogue import question_tail
 
 
+def verification_reason_leaked(message: str) -> bool:
+    """A why-question cannot first supply the causal explanation it is meant to elicit.
+
+    Open 'vì sao'/'do đâu' questions are allowed; giving a reason in a leading yes/no question
+    still supplies the reasoning. The semantic reviewer checks paraphrases without these markers.
+    """
+    text = message.lower()
+    return bool(
+        re.search(
+            r"\bvì\b(?!\s+sao\b)|\bbởi\b|\bnên\b|\bdo\b(?!\s+đâu\b)|"
+            r"\bcho biết\b|\btương ứng\b|\bcó phải\b",
+            text,
+        )
+    )
+
+
 def acknowledges_correction(text: str) -> bool:
     """Explicit repair language; truth and whether the correction helps are checked separately."""
     return bool(

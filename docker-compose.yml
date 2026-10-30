@@ -46,12 +46,18 @@ services:
       GROQ_MODEL: "${GROQ_MODEL:-qwen/qwen3.8-27b}"
       GROQ_STT_MODEL: "${GROQ_STT_MODEL:-whisper-large-v3}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_VISION_MODEL: "${GEMINI_VISION_MODEL:-gemini-3.8-flash}"
+      GEMINI_VISION_FALLBACKS: '${GEMINI_VISION_FALLBACKS:-["gemini-2.5-flash","gemini-3.5-flash-lite"]}'
+      GEMINI_EMBEDDING_MODEL: "${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}"
       AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET chưa có trong .env, chạy sh deploy/setup.sh}"
       AUTH_MODE: accounts
       TUTOR_RENDERER: llm
       MAX_LLM_CALLS_PER_SESSION: "${MAX_LLM_CALLS_PER_SESSION:-40}"
       MAX_LLM_CALLS_PER_CHAPTER: "${MAX_LLM_CALLS_PER_CHAPTER:-160}"
       TUTOR_MODELS: "${TUTOR_MODELS:-}"
+      TUTOR_CHOOSER: "${TUTOR_CHOOSER:-llm}"
+      TUTOR_MENTOR_MODEL: "${TUTOR_MENTOR_MODEL-gemini-4-argon}"
+      GEMINI_TUTOR_FALLBACKS: '${GEMINI_TUTOR_FALLBACKS:-["gemini-2.5-flash","gemini-3.8-flash"]}'
       ALLOW_TUTOR_KNOWLEDGE: "${ALLOW_TUTOR_KNOWLEDGE:-true}"
       WEB_LOOKUP: "${WEB_LOOKUP:-search}"
       TAVILY_API_KEY: "${TAVILY_API_KEY:-}"

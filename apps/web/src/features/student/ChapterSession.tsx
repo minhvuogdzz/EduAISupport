@@ -14,6 +14,7 @@ import { StepBar } from "../teaching/StepBar";
 import { AnswerPanel } from "./AnswerPanel";
 import { Conversation } from "./Conversation";
 import { QuestionCard } from "./QuestionCard";
+import { WaitingReminder } from "./WaitingReminder";
 import type { DisplayTurn, TutorView } from "./tutorSession";
 import { useVoiceLive } from "./voice/useVoiceLive";
 import { VoiceStatus, VoiceToggle } from "./voice/VoiceBar";
@@ -72,6 +73,7 @@ function ChapterSessionContent({
     canSpeak:
       state.lifecycle_state === "ACTIVE" &&
       !busy &&
+      !state.tutor_recovery &&
       !state.pending_choice &&
       (Boolean(state.item) || teaching.awaiting === "THEORY_REPLY" || teaching.awaiting === "RETELL"),
     submit: onSubmit,
@@ -156,6 +158,16 @@ function ChapterSessionContent({
               studentName={state.student_display_name}
             />
             {notice}
+            <WaitingReminder
+              enabled={
+                active &&
+                !busy &&
+                !state.tutor_recovery &&
+                Boolean(state.item || teaching.prompt) &&
+                (voice.phase === "off" || voice.phase === "waiting")
+              }
+              turnKey={`${state.session_id}:${state.state_version}`}
+            />
           </main>
         </div>
         <aside
@@ -174,6 +186,12 @@ function ChapterSessionContent({
         {state.lifecycle_state !== "COMPLETED" && <VoiceStatus voice={voice} />}
         {state.lifecycle_state === "COMPLETED" ? (
           <ChapterComplete teaching={teaching} />
+        ) : state.tutor_recovery ? (
+          <p role="status" className="px-4 py-4 text-center text-slate-700">
+            {state.tutor_recovery.status === "stopped"
+              ? "Cô chưa chuẩn bị xong lời hướng dẫn. Con bấm Thử lại để cô tiếp tục nhé."
+              : "Cô đang chuẩn bị lời hướng dẫn, con chờ một chút nhé."}
+          </p>
         ) : state.item ? (
           <AnswerPanel
             item={state.item}

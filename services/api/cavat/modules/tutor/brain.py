@@ -88,6 +88,7 @@ CODE_NOTES: dict[str, str] = {
     "MULTIPLE_QUESTIONS": "có nhiều hơn một câu hỏi",
     "MISSING_QUESTION": "phải kết thúc bằng một câu hỏi",
     "MISSING_LEARNING_STEP": "hỏi một bước Toán cụ thể, không chỉ hỏi con hiểu chưa hoặc thử được không",
+    "REASONING_LEAK": "đang nói hộ lý do: chỉ công nhận đáp số và hỏi mở cách con nghĩ, không giảng quy tắc",
     "TOO_LONG": "quá dài: giữ đúng số từ quy định của lượt này",
     "SYSTEM_VOICE": "nói như cô giáo, không đọc true/false hay kết quả nội bộ của máy chấm",
     "NEW_TASK_QUESTION": "ví dụ cô giảng có thể dùng số khác; câu con làm vẫn là đề đang mở",

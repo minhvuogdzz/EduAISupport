@@ -16,7 +16,8 @@ import { useTutorSession } from "./useTutorSession";
 /** The student's tutor session: question, conversation, answer box, hint button (T09). */
 export function SessionPage() {
   const { sessionId = "" } = useParams();
-  const { view, busy, turns, submitAnswer, requestHint, choose, dismissNotice } = useTutorSession(sessionId);
+  const { view, busy, turns, submitAnswer, requestHint, choose, dismissNotice, retryRecovery } =
+    useTutorSession(sessionId);
   const scrollerRef = useStickToBottom(`${turns.length}:${view.typing?.text.length ?? 0}`);
 
   if (view.status === "loading") return <Message>Cô đang mở bài học…</Message>;
@@ -36,17 +37,33 @@ export function SessionPage() {
 
   const { state } = view;
   const tutorName = capitalize(state.persona.tutor_self);
-  const notice = view.notice && (
-    <p
-      role="status"
-      className="flex items-center justify-between gap-3 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-950 ring-1 ring-sky-200"
-    >
-      {view.notice}
-      <button type="button" onClick={dismissNotice} className="rounded-lg px-2 py-1 font-semibold underline">
-        Đã hiểu
+  const notice =
+    state.tutor_recovery?.status === "stopped" ? (
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void retryRecovery()}
+        className="rounded-xl bg-brand-700 px-4 py-3 font-semibold text-white disabled:opacity-50"
+      >
+        {busy ? "Đang thử lại…" : "Thử lại"}
       </button>
-    </p>
-  );
+    ) : (
+      view.notice && (
+        <p
+          role="status"
+          className="flex items-center justify-between gap-3 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-950 ring-1 ring-sky-200"
+        >
+          {view.notice}
+          <button
+            type="button"
+            onClick={dismissNotice}
+            className="rounded-lg px-2 py-1 font-semibold underline"
+          >
+            Đã hiểu
+          </button>
+        </p>
+      )
+    );
   if (state.teaching) {
     return (
       <ChapterSession

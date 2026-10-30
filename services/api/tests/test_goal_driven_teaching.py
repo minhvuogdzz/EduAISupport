@@ -93,6 +93,19 @@ def test_unavailable_generation_does_not_present_raw_rag_as_a_teacher_response()
     assert turn.messages[-1].text == MODEL_WAIT_MESSAGE
 
 
+def test_opening_can_teach_examples_named_in_objective_but_not_answer_its_new_question():
+    node = CHAPTER.nodes[0].model_copy(
+        update={"description": "Bé nhận ra 3/10 viết thành 0,3. Bé viết được số thập phân đơn giản."}
+    )
+    safe = "Ba phần mười viết là 0,3. Con viết 7/10 thành số thập phân nào?"
+    leaked = "Ba phần mười viết là 0,3. Con viết 3/10 thành số thập phân nào?"
+    provider = FakeChatModel([opening_output(leaked), opening_output(safe), ENTRY_OK])
+    speaker = GroundedSpeaker(small_index(), AIRouter(chat_provider=provider), allow_knowledge=True)
+    result = speaker.lesson_opening(node, node.theory[0].text, session_entry=True)
+    assert result.source == "LLM" and safe in result.text
+    assert "ANSWER_LEAK" in result.rejected[0]
+
+
 @pytest.mark.parametrize(
     "text",
     [

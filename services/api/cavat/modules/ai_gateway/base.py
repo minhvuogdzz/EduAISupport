@@ -17,8 +17,14 @@ from typing import Any, Protocol
 
 # Groq free tier allows 8.000 token/minute; each call must stay <= 3.000 token (ADR-017).
 MAX_PROMPT_TOKENS = 3000
-MODEL_WAIT_MESSAGE = (
-    "Cô đang thử lại để tiếp tục đúng chỗ mình vừa học. Con không cần gửi lại câu vừa rồi nhé."
+MODEL_WAIT_MESSAGE = "Con chờ cô một chút nhé, cô đang chuẩn bị phần hướng dẫn."
+# Saved sessions may still contain the earlier operational notices.
+MODEL_WAIT_MESSAGES = frozenset(
+    {
+        MODEL_WAIT_MESSAGE,
+        "Con chờ cô một chút nhé.",
+        "Cô đang thử lại để tiếp tục đúng chỗ mình vừa học. Con không cần gửi lại câu vừa rồi nhé.",
+    }
 )
 # Estimate without a tokenizer. CFG-2 measured it on 35 real tutor calls (docs/poc/free-tier-quota.md):
 # Qwen 3,15 characters per token, so 3 over-counts it by 14%; gpt-oss-120b 2,76 (about right) and

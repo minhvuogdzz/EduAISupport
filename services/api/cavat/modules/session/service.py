@@ -20,6 +20,7 @@ from cavat.config import REPO_ROOT, get_settings
 from cavat.core.events import ChoiceMade, EventType, HintRequested, SafetyFlagged, StudentMessage
 from cavat.core.pedagogy import HINT_MOVES, ActivityType
 from cavat.core.repository import new_id
+from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE, MODEL_WAIT_MESSAGES
 from cavat.modules.ai_gateway.router import AIRouter
 from cavat.modules.content.lesson_package import ChoiceAnswer, LessonPackage, load_lesson_package
 from cavat.modules.session.repository import (
@@ -365,11 +366,33 @@ def apply_command(
 
 def transcript(session: LearningSession) -> list[dict[str, Any]]:
     """Chat turns for the student screen: what was said, never rule ids, outcomes or answers."""
+
+    def is_wait(payload: dict[str, Any]) -> bool:
+        return payload.get("ref") == "MODEL_WAIT" or payload.get("text") in MODEL_WAIT_MESSAGES
+
+    # Wait notices describe a temporary state, not a teaching turn. Keep the event log intact
+    # for teacher diagnostics/replay, but retire notices once actual guidance has arrived.
+    last_guidance = next(
+        (
+            e.sequence_no
+            for e in reversed(session.events)
+            if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT)
+            and e.payload.get("text")
+            and not is_wait(e.payload)
+            and not e.payload.get("operational")
+            and not e.payload.get("hidden_from_student")
+            and e.payload.get("ref") != "GREETING_ONLY"
+        ),
+        0,
+    )
     turns: list[dict[str, Any]] = []
     hint_level: int | None = None
     for e in session.events:
         p = e.payload
         if p.get("recovery_replay") or p.get("hidden_from_student"):
+            continue
+        waiting = e.event_type == EventType.TEACH_MESSAGE_SENT and (is_wait(p) or p.get("operational"))
+        if waiting and e.sequence_no < last_guidance:
             continue
         text: str | None = None
         move: str | None = None
@@ -378,6 +401,8 @@ def transcript(session: LearningSession) -> list[dict[str, Any]]:
         actor = e.actor.type
         if e.event_type == EventType.TEACH_MESSAGE_SENT:
             text, teach_kind = p["text"], p["kind"]
+            if text in MODEL_WAIT_MESSAGES:
+                text = MODEL_WAIT_MESSAGE
         elif e.event_type == EventType.POLICY_DECISION:
             hint_level = p.get("hint_level")
         elif e.event_type == EventType.TUTOR_MESSAGE_SENT:

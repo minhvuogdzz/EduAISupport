@@ -78,6 +78,27 @@ def test_greeting_and_valid_model_speech_can_commit():
     assert _hold_for_unavailable_models(session, step, recording()) is step
 
 
+def test_new_question_is_announced_in_the_conversation_after_theory_feedback():
+    before = SessionState(lifecycle=LifecycleState.ACTIVE, activity={"node_id": "n"})
+    session = SimpleNamespace(state=before, state_version=0, student_id="s", events=[])
+    step = Step(
+        before,
+        [
+            NewEvent(
+                event_type=EventType.TEACH_MESSAGE_SENT,
+                payload={"source": "LLM", "text": "Con trả lời đúng, 5/10 = 0,5."},
+            ),
+            NewEvent(
+                event_type=EventType.TUTOR_MESSAGE_SENT,
+                payload={"source": "TEMPLATE", "move": "PRESENT", "text": "Viết 7/10 thành số thập phân."},
+            ),
+        ],
+        {},
+    )
+    assert _hold_for_unavailable_models(session, step, recording()) is step
+    assert len(step.events) == 2 and "7/10" in step.events[-1].payload["text"]
+
+
 def test_rejected_live_dialogue_never_repeats_the_old_math_question(client, monkeypatch):  # noqa: F811
     from cavat.modules.session import api
 

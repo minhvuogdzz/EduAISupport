@@ -1274,7 +1274,7 @@ class GroundedSpeaker:
             "retry_codes": getattr(self, "recovery_codes", ()),
         }
 
-    def _lesson_say(self, pack, *, questions, session_entry=False):
+    def _lesson_say(self, pack, *, questions, session_entry=False, protect_pending=True):
         from cavat.modules.teaching.author import write_lesson
 
         if self.router is None:
@@ -1285,6 +1285,7 @@ class GroundedSpeaker:
             calls_used=self.calls_used + self.calls_made,
             questions=questions,
             session_entry=session_entry,
+            protect_pending=protect_pending,
         )
         self.calls_made += out.calls
         return Spoken(out.text or "", "LLM" if out.text else "TEMPLATE", (), out.rejected, out.flagged, ())
@@ -1339,7 +1340,11 @@ class GroundedSpeaker:
             prefer_mentor=True,
             **self._who(),
         )
-        return self._lesson_say(pack, questions="required", session_entry=session_entry)
+        # The objective contains worked examples, not a pending student question. Protect the
+        # question actually generated at the end; do not ban examples used to teach the objective.
+        return self._lesson_say(
+            pack, questions="required", session_entry=session_entry, protect_pending=False
+        )
 
     def theory_understanding(self, said, *, asked, node, recent=()):
         """Read the answer to the question actually taught, not to a teacher sample. Ungraded only."""

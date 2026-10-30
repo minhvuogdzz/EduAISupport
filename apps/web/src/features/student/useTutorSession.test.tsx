@@ -57,6 +57,25 @@ afterEach(() => {
 });
 
 describe("automatic tutor recovery", () => {
+  it("restarts a stopped turn on request without inventing student input", async () => {
+    vi.useFakeTimers();
+    const { result, join, submitResponse } = await setup(() => pending(3));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(result.current.view.state?.tutor_recovery?.status).toBe("stopped");
+    await act(async () => {
+      await result.current.submitAnswer("con chưa nói gì");
+    });
+    expect(submitResponse).not.toHaveBeenCalled();
+    join.mockResolvedValueOnce({ ...pending(), state_version: 5 });
+    await act(async () => {
+      await result.current.retryRecovery();
+    });
+    expect(join).toHaveBeenCalledTimes(2);
+    expect(result.current.view.state?.tutor_recovery?.status).toBe("retrying");
+    expect(submitResponse).not.toHaveBeenCalled();
+  });
   it("joins an existing lesson and recovers its saved turn without a student message", async () => {
     vi.useFakeTimers();
     const { result, recover, join, submitResponse } = await setup((current) => ({

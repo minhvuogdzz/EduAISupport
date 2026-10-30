@@ -34,5 +34,5 @@ run_import /dump/cavat-db.tar.gz 'python -m cavat.restore /tmp/cavat-import.tar.
 run_import /dump/cavat-storage.tar.gz 'python -m cavat.storage_transfer restore /tmp/cavat-import.tar.gz --dry-run'
 run_import /dump/cavat-db.tar.gz 'python -m cavat.restore /tmp/cavat-import.tar.gz'
 run_import /dump/cavat-storage.tar.gz 'python -m cavat.storage_transfer restore /tmp/cavat-import.tar.gz'
-docker compose up -d --wait --wait-timeout 180 app
-echo 'Đã nhập database và storage. Không chạy lại trên dữ liệu đã có.'
+docker compose up -d --wait --wait-timeout 900 app voice
+echo 'Đã nhập database và storage; App, Mongo và Voice đã sẵn sàng. Không chạy lại import khi cập nhật.'
