@@ -49,6 +49,16 @@ DEFAULT_TUTOR_MODEL: str = Settings.model_fields["groq_model"].default
 # Owner priority (2026-10-29): Gemini, then GPT-OSS 120B, Qwen, GPT-OSS 20B.
 # Gemini candidates are wired from settings when credentials are available in build_router.
 DEFAULT_TUTOR_CHAIN: tuple[str, ...] = ("openai/gpt-oss-120b", DEFAULT_TUTOR_MODEL, "openai/gpt-oss-20b")
+# DI-99 (STEADY-1, ADR-057): a model that did not answer (5xx, timeout) rests 30 s, doubled at each failure in
+# a row up to 5 minutes; an answer clears the count. Before, a Gemini 503/504 cost a turn its timeout
+# every 30 s.
+UNAVAILABLE_REST = timedelta(seconds=30)
+MAX_UNAVAILABLE_REST = timedelta(minutes=5)
+# DI-100 (STEADY-1, ADR-057): when the whole chain is held by a short limit (Groq's minute window answers
+# "try again in 13 s"), one call waits for the soonest reset up to 15 s, and one command up to 20 s in all,
+# instead of showing the child a wait notice. Daily limits and long rests still return at once.
+TRANSIENT_WAIT_S = 15.0
+COMMAND_WAIT_BUDGET_S = 20.0
 
 
 def parse_models(value: str) -> tuple[str, ...]:
@@ -104,6 +114,7 @@ class ChatOutcome:
     # Requests actually sent to a provider; the caller adds this to the session's counter.
     calls_made: int
     attempts: tuple[Attempt, ...] = ()
+    waited_s: float = 0.0  # seconds slept for a per-minute limit before the retry (DI-100)
 
     @property
     def use_template(self) -> bool:
@@ -151,6 +162,7 @@ class AIRouter:
         self.quota = quota or getattr(chat_provider, "quota", None) or QuotaTracker()
         self._clock = clock
         self._unavailable_until: dict[str, datetime] = {}
+        self._unavailable_strikes: dict[str, int] = {}  # failures in a row of each model (DI-99)
         self._transient_retry_s, self._sleep = transient_retry_s, sleeper
 
     def chain(self, model_class: ModelClass) -> tuple[str, ...]:
@@ -176,12 +188,23 @@ class AIRouter:
         return scoped
 
     @traced("model")
-    def chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
-        """Try the chain for ``model_class``. ``calls_used`` comes from the session state (SessionContext)."""
+    def chat(
+        self,
+        model_class: ModelClass,
+        request: ChatRequest,
+        *,
+        calls_used: int,
+        max_wait_s: float | None = None,
+    ) -> ChatOutcome:
+        """Try the chain for ``model_class``. ``calls_used`` comes from the session state (SessionContext).
+        ``max_wait_s``: what is left of the command's wait budget (``RecordingRouter``)."""
         outcome = self._attempt_chat(model_class, request, calls_used=calls_used)
+        wait_limit = self._transient_retry_s
+        if max_wait_s is not None:
+            wait_limit = min(wait_limit, max_wait_s)
         if (
             outcome.result is not None
-            or self._transient_retry_s <= 0
+            or wait_limit <= 0
             or outcome.fallback_reason
             not in (FallbackReason.QUOTA_EXCEEDED, FallbackReason.MODEL_UNAVAILABLE)
             or calls_used + outcome.calls_made >= self.max_calls_per_session
@@ -195,7 +218,7 @@ class AIRouter:
         # One short recovery attempt only after the entire chain failed. Daily exhaustion and long
         # cooldowns still return immediately; never spin or re-send against a known quota limit.
         delay = min(((reset - now).total_seconds() for reset in resets if reset > now), default=0)
-        if not 0 < delay <= self._transient_retry_s:
+        if not 0 < delay <= wait_limit:
             return outcome
         self._sleep(delay + 0.05)
         retried = self._attempt_chat(model_class, request, calls_used=calls_used + outcome.calls_made)
@@ -204,6 +227,7 @@ class AIRouter:
             retried.fallback_reason,
             outcome.calls_made + retried.calls_made,
             outcome.attempts + retried.attempts,
+            waited_s=delay + 0.05,
         )
 
     def _attempt_chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
@@ -252,7 +276,10 @@ class AIRouter:
                         model, max(existing, until) if existing else until, self._clock()
                     )
                 elif isinstance(exc, ModelUnavailable):
-                    self._unavailable_until[model] = self._clock() + timedelta(seconds=30)
+                    strikes = self._unavailable_strikes.get(model, 0) + 1
+                    self._unavailable_strikes[model] = strikes
+                    rest = min(UNAVAILABLE_REST * 2 ** (strikes - 1), MAX_UNAVAILABLE_REST)
+                    self._unavailable_until[model] = self._clock() + rest
                 attempts.append(
                     Attempt(
                         model,
@@ -266,6 +293,7 @@ class AIRouter:
                 reason = _REASON_BY_ERROR[type(exc)]
                 continue
             calls_made += 1
+            self._unavailable_strikes.pop(model, None)
             attempts.append(Attempt(model, sent=True))
             return ChatOutcome(result, None, calls_made, tuple(attempts))
         return ChatOutcome(None, reason, calls_made, tuple(attempts))
@@ -354,13 +382,19 @@ class RecordingRouter:
         self.calls: list[ChatCall] = []
         self._start_calls: int | None = None
         self._spent = 0
+        self._waited = 0.0
 
     def chat(self, model_class: ModelClass, request: ChatRequest, *, calls_used: int) -> ChatOutcome:
         if self._start_calls is None:
             self._start_calls = calls_used
         used = max(calls_used, self._start_calls + self._spent)
-        outcome = self._router.chat(model_class, request, calls_used=used)
+        if isinstance(self._router, AIRouter):
+            budget = max(COMMAND_WAIT_BUDGET_S - self._waited, 0.0)
+            outcome = self._router.chat(model_class, request, calls_used=used, max_wait_s=budget)
+        else:  # a scripted router of the tests
+            outcome = self._router.chat(model_class, request, calls_used=used)
         self._spent += outcome.calls_made
+        self._waited += getattr(outcome, "waited_s", 0.0)
         schema = "" if request.json_schema is None else json.dumps(request.json_schema, ensure_ascii=False)
         self.calls.append(
             ChatCall(
@@ -486,5 +520,5 @@ def build_router(
         stt_model=settings.groq_stt_model,
         max_calls_per_session=settings.max_llm_calls_per_session,
         model_only_speech=True,
-        transient_retry_s=6,
+        transient_retry_s=TRANSIENT_WAIT_S,
     )

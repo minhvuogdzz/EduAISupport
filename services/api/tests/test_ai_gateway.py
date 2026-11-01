@@ -863,3 +863,101 @@ def test_quota_fallback_reuses_the_exact_question_context_and_only_returns_final
     # Usage details remain in the technical trace, never in the returned utterance.
     assert out.attempts[0].error == "QuotaExceeded"
     assert "429" not in out.result.data["utterance"]
+
+
+# STEADY-1 (ADR-057): the chain does not stumble while the models are fine.
+class _Clock:
+    def __init__(self) -> None:
+        self.now = datetime(2026, 11, 1, 9, 0, tzinfo=UTC)
+        self.sleeps: list[float] = []
+
+    def __call__(self) -> datetime:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.now += timedelta(seconds=seconds)
+
+
+def test_a_model_that_keeps_failing_rests_longer_and_an_answer_clears_it():
+    clock = _Clock()
+    provider = FakeChatModel(
+        {
+            "flaky": [ModelUnavailable("HTTP 503"), ModelUnavailable("HTTP 504"), {"utterance": "Được rồi."}],
+            "steady": [{"utterance": "Cô đây."}] * 3,
+        }
+    )
+    router = AIRouter(
+        chat_provider=provider, chains={ModelClass.TUTOR_REASONING: ("flaky", "steady")}, clock=clock
+    )
+
+    def tried() -> list[str]:
+        out = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+        assert out.result is not None
+        return [a.model for a in out.attempts if a.sent]
+
+    assert tried() == ["flaky", "steady"]  # first failure: rests 30 s
+    clock.now += timedelta(seconds=31)
+    assert tried() == ["flaky", "steady"]  # second failure in a row: rests 60 s
+    clock.now += timedelta(seconds=31)
+    assert tried() == ["steady"]  # 31 s later it is still resting, no timeout paid
+    clock.now += timedelta(seconds=30)
+    assert tried() == ["flaky"]  # it answers: the count starts again
+    assert router._unavailable_strikes == {}
+
+
+def test_a_minute_limit_on_the_whole_chain_waits_for_the_reset_instead_of_a_wait_notice():
+    clock = _Clock()
+    provider = FakeChatModel(
+        [QuotaExceeded("ITPM", reset_at=clock.now + timedelta(seconds=13)), {"utterance": "Mình tiếp nhé."}]
+    )
+    router = build_router_like(provider, clock)
+    out = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert out.result is not None and out.result.data == {"utterance": "Mình tiếp nhé."}
+    assert clock.sleeps and 13 <= clock.sleeps[0] < 14 and out.waited_s == clock.sleeps[0]
+
+
+def test_a_reset_beyond_the_wait_limit_returns_at_once():
+    clock = _Clock()
+    provider = FakeChatModel([QuotaExceeded("TPM", reset_at=clock.now + timedelta(seconds=40))])
+    router = build_router_like(provider, clock)
+    out = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    assert out.result is None and out.fallback_reason is FallbackReason.QUOTA_EXCEEDED
+    assert not clock.sleeps and out.waited_s == 0
+
+
+def test_one_command_waits_at_most_its_budget_across_calls():
+    from cavat.modules.ai_gateway.router import COMMAND_WAIT_BUDGET_S, RecordingRouter
+
+    clock = _Clock()
+
+    class MinuteLimited:
+        """Every first try of a call meets a 13 s minute limit; the retry after the reset answers."""
+
+        def __init__(self) -> None:
+            self.sent = 0
+
+        def chat(self, request, model):
+            self.sent += 1
+            if self.sent % 2:
+                raise QuotaExceeded("ITPM", reset_at=clock.now + timedelta(seconds=13))
+            return FakeChatModel([{"utterance": "Mình tiếp nhé."}]).chat(request, model)
+
+    command = RecordingRouter(build_router_like(MinuteLimited(), clock))
+    first = command.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
+    second = command.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=first.calls_made)
+    assert first.result is not None and second.result is None  # 13 s more would pass the 20 s budget
+    assert len(clock.sleeps) == 1 and sum(clock.sleeps) <= COMMAND_WAIT_BUDGET_S
+
+
+def build_router_like(provider, clock) -> AIRouter:
+    """The live wait settings of ``build_router`` on a scripted one-model chain."""
+    from cavat.modules.ai_gateway.router import TRANSIENT_WAIT_S
+
+    return AIRouter(
+        chat_provider=provider,
+        chains={ModelClass.TUTOR_REASONING: ("m",)},
+        clock=clock,
+        sleeper=clock.sleep,
+        transient_retry_s=TRANSIENT_WAIT_S,
+    )
