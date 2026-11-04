@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from cavat.core.events import (
     AnswerSubmitted,
+    BanditReward,
     EventType,
     ExplanationSubmitted,
     HintDelivered,
@@ -73,8 +74,9 @@ from cavat.modules.content.lesson_package import (
     OrderAnswer,
 )
 from cavat.modules.rag.bm25 import content_words
+from cavat.modules.tutor.bandit import BANDIT_VERSION, reward_of
 from cavat.modules.tutor.brain import BRAIN_MAX_WORDS, math_errors
-from cavat.modules.tutor.chooser import MoveChooser, situation
+from cavat.modules.tutor.chooser import MoveChooser, help_of, situation
 from cavat.modules.tutor.contracts import (
     ItemState,
     MessageRenderer,
@@ -238,6 +240,8 @@ class ItemTutor:
         self.reader = reader
         self.chooser = chooser
         self._said = ""  # the child's message of this turn: what the chooser reads
+        # BANDIT-1: the last pick of a bandit, waiting for the next graded answer to be paid (DI-103)
+        self._bandit_pending: dict[str, Any] | None = None
         self.explainer = explainer
         self.knowledge = tuple(knowledge)
         self._dialogue_version = DIALOGUE_VERSION
@@ -707,6 +711,7 @@ class ItemTutor:
                 answer_changes=st.answer_changes,
             ),
         )
+        self._pay_bandit(check.outcome)
         if (
             self._dialogue_version >= DIALOGUE_VERSION
             and check.outcome == Outcome.CORRECT
@@ -966,9 +971,41 @@ class ItemTutor:
                 move=(played or decision).move.value,
                 reason=pick.reason,
                 accepted=played is not None,
+                source="BANDIT" if pick.source == "BANDIT" else "LLM",
+                arm=pick.arm,
+                propensity=pick.propensity,
+                context=list(pick.context) if pick.context is not None else None,
+                scores=dict(pick.scores) if pick.scores is not None else None,
             ),
         )
+        if pick.source == "BANDIT" and played is not None and pick.arm and pick.context is not None:
+            self._bandit_pending = {
+                "turn": self._turns,
+                "arm": pick.arm,
+                "context": list(pick.context),
+                "help": help_of(played),
+            }
         return played or decision
+
+    def _pay_bandit(self, outcome: Outcome) -> None:
+        """BANDIT-1 (DI-103): the next graded answer after a bandit's pick is the pick's reward. A pick made
+        on a turn that never gets one (the item ends first) is not paid."""
+        pending, self._bandit_pending = self._bandit_pending, None
+        if pending is None:
+            return
+        self._emit(
+            EventType.BANDIT_REWARD,
+            BanditReward(
+                item_id=self.item.id,
+                turn=pending["turn"],
+                arm=pending["arm"],
+                context=pending["context"],
+                help=pending["help"],
+                outcome=outcome.value,
+                reward=reward_of(outcome, pending["help"]),
+                version=BANDIT_VERSION,
+            ),
+        )
 
     def _act(self, d: PolicyDecision, student_text: str | None) -> TutorTurn:
         st = self.state

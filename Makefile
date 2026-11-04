@@ -108,6 +108,9 @@ paper-data: ## Regenerate docs/paper/data/*.json (database read-only, no writes)
 eval-baselines: ## CAVAT against a market chatbot (Gemini) and a prompted LLM (Qwen): hard students and grading (free-tier quota)
 	cd services/api && .venv/bin/python scripts/eval_vs_baselines.py
 
+eval-bandit: ## BANDIT-1: offline evaluation of the contextual bandit on the simulated environment (docs/thesis/data/bandit-eval.json)
+	cd services/api && .venv/bin/python scripts/eval_bandit.py
+
 eval-chooser: ## How Qwen picks among the moves the policy allows, on many turns (AUTO-3; reads the database, writes none; uses the Groq quota)
 	cd services/api/scripts && ../.venv/bin/python eval_chooser.py
 

@@ -60,7 +60,11 @@ class Settings(BaseSettings):
     tutor_renderer: Literal["template", "llm"] = "template"
     # AUTO-1 (ADR-031): with the LLM tutor, Qwen picks one of the moves the policy allows on a turn;
     # "policy" keeps the policy's own move (the ablation of AUTO-1).
-    tutor_chooser: Literal["policy", "llm"] = "llm"
+    # BANDIT-1 (ADR-058): "bandit" picks the move with a contextual bandit that learns from the answers
+    # that follow (LinUCB; the model only reads the menus the bandit does not learn from).
+    tutor_chooser: Literal["policy", "llm", "bandit"] = "llm"
+    bandit_alpha: float = 0.5  # DI-102: exploration width of LinUCB
+    bandit_epsilon: float = 0.1  # DI-102: share of picks drawn at random on the menu
     # BRAIN-7 (DI-97): discover lesson references; official/wikipedia keep legacy adapters; off disables web.
     web_lookup: Literal["off", "search", "official", "wikipedia"] = "search"
     tavily_api_key: SecretStr | None = None  # optional search API; no key: public engines, then known sources

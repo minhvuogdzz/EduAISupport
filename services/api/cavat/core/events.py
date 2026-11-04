@@ -13,7 +13,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 from cavat.core.pedagogy import (
     ActivityType,
@@ -72,6 +72,7 @@ class EventType(StrEnum):
     # contextual reading (CTX-1)
     MESSAGE_READ = "MESSAGE_READ"
     MOVE_CHOSEN = "MOVE_CHOSEN"
+    BANDIT_REWARD = "BANDIT_REWARD"
     ITEM_RESTARTED = "ITEM_RESTARTED"
     CONTEXT_ROUTED = "CONTEXT_ROUTED"
     WEB_LOOKED = "WEB_LOOKED"
@@ -348,7 +349,36 @@ class MoveChosen(_Payload):
     move: str  # the move that was played
     reason: str = ""
     accepted: bool = True  # False: the pick was not on the menu; the policy's own move was played
-    source: Literal["LLM"] = "LLM"
+    source: Literal["LLM", "BANDIT"] = "LLM"
+    # BANDIT-1 (ADR-058): what a contextual bandit adds to its pick. Left out of the record when empty, so
+    # the payload of an LLM pick stays as it was before and old logs replay unchanged.
+    arm: str | None = None  # the arm of the move that was picked ("PROBE", "HINT:1"...)
+    propensity: float | None = None  # the probability of this pick (for off-policy evaluation)
+    context: list[float] | None = None  # the context vector the pick was made on
+    scores: dict[str, float] | None = None  # the optimistic score of each arm of the menu
+
+    @model_serializer(mode="wrap")
+    def _without_empty_bandit_fields(self, handler: Any) -> dict[str, Any]:
+        data = handler(self)
+        for key in ("arm", "propensity", "context", "scores"):
+            if data.get(key) is None:
+                data.pop(key, None)
+        return data
+
+
+class BanditReward(_Payload):
+    """BANDIT-1 (ADR-058, DI-103): what the child did with the next graded answer after a bandit's pick. The
+    record holds everything the bandit learns from (arm, context, reward), so its state is a replayable fold
+    of these events and no model ever writes it (CLAUDE.md rule 3)."""
+
+    item_id: str
+    turn: int  # the item loop's student turn the pick was made on
+    arm: str
+    context: list[float]
+    help: int  # how much the move helped, 0 to 7
+    outcome: str  # CORRECT, PARTIAL or WRONG: the next graded answer
+    reward: float
+    version: str  # the bandit's own version
 
 
 class ItemRestarted(_Payload):
@@ -453,6 +483,7 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.RAG_RETRIEVED: RagRetrieved,
     EventType.MESSAGE_READ: MessageRead,
     EventType.MOVE_CHOSEN: MoveChosen,
+    EventType.BANDIT_REWARD: BanditReward,
     EventType.ITEM_RESTARTED: ItemRestarted,
     EventType.QUESTION_PARKED: QuestionParked,
 }
