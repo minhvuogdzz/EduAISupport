@@ -117,6 +117,13 @@ CHOOSE_SYSTEM = (
 class Choice:
     option_id: str
     reason: str = ""
+    # BANDIT-1 (ADR-058): a bandit's pick also carries the arm, the probability it had, the context and
+    # the score of every arm; a model's pick carries none of them.
+    source: str = "LLM"
+    arm: str | None = None
+    propensity: float | None = None
+    context: tuple[float, ...] | None = None
+    scores: Mapping[str, float] | None = None
 
 
 Situation = Mapping[str, int | bool]
@@ -236,6 +243,20 @@ class RecordedChooser:
 
 def recorded_choices(payloads: Sequence[Mapping[str, object]]) -> RecordedChooser:
     """A ``RecordedChooser`` from the MOVE_CHOSEN payloads of one item."""
-    return RecordedChooser(
-        {int(p["turn"]): Choice(str(p["option_id"]), str(p.get("reason", ""))) for p in payloads}  # type: ignore[call-overload]
+    return RecordedChooser({int(p["turn"]): _recorded(p) for p in payloads})  # type: ignore[call-overload]
+
+
+def _recorded(p: Mapping[str, object]) -> Choice:
+    """A pick as it was recorded. A bandit's pick keeps its arm and context: a rebuilt item loop pays it with
+    the child's next graded answer, as the live one would (BANDIT-1)."""
+    context = p.get("context")
+    scores = p.get("scores")
+    return Choice(
+        str(p["option_id"]),
+        str(p.get("reason", "")),
+        source=str(p.get("source", "LLM")),
+        arm=str(p["arm"]) if p.get("arm") else None,
+        propensity=float(p["propensity"]) if p.get("propensity") is not None else None,  # type: ignore[arg-type]
+        context=tuple(float(v) for v in context) if isinstance(context, list) else None,
+        scores=dict(scores) if isinstance(scores, dict) else None,
     )

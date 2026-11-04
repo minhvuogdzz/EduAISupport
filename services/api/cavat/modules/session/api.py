@@ -57,6 +57,8 @@ from cavat.modules.session.repository import (
     StateVersionConflict,
 )
 from cavat.modules.teaching.grounded import GroundedSpeaker
+from cavat.modules.tutor.bandit import BanditChooser
+from cavat.modules.tutor.bandit_store import BanditRepository
 from cavat.modules.tutor.chooser import ModelChooser
 from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.voice import api as voice_api
@@ -1181,6 +1183,7 @@ async def _command(
         shared = shared.with_session_cap(get_settings().max_llm_calls_per_chapter)
     # CFG-2: the model calls of this command, written down with its events (MODEL_CALLED, MODEL_FALLBACK)
     router = RecordingRouter(shared) if shared is not None else None
+    bandit_store: BanditRepository | None = None
     if chapter_service.is_chapter(session):
         content: Any = _chapter(session.lesson_id, session.lesson_version)
         # RAG-2: the child's questions are answered from the index of this moment (rebuilt when the
@@ -1192,13 +1195,25 @@ async def _command(
             ModelReader(router, calls_used=calls) if router is not None else None, semantic=True
         )
         # AUTO-1: Qwen picks one of the moves the policy allows, within the first half of the call budget.
-        choosing = router is not None and get_settings().tutor_chooser == "llm"
+        settings = get_settings()
+        choosing = router is not None and settings.tutor_chooser == "llm"
+        chooser: Any = ModelChooser(router, calls_used=calls) if choosing else None
+        if settings.tutor_chooser == "bandit":
+            # BANDIT-1 (ADR-058): the school's bandit, learned from the answers after earlier picks; the
+            # model reads only the menus the bandit does not learn from (a "vì sao" after a right answer).
+            bandit_store = BanditRepository(database, service.DEMO_SCHOOL_ID)
+            chooser = BanditChooser(
+                await bandit_store.load(alpha=settings.bandit_alpha),
+                seed_key=session.id,
+                epsilon=settings.bandit_epsilon,
+                fallback=ModelChooser(router, calls_used=calls) if router is not None else None,
+            )
         command_fn: Any = partial(
             chapter_service.apply_command,
             history=await _history(database, session),
             speaker=speaker,
             reader=reader,
-            chooser=ModelChooser(router, calls_used=calls) if choosing else None,
+            chooser=chooser,
         )
     else:
         content, command_fn = _package(session.lesson_id), service.apply_command
@@ -1228,6 +1243,10 @@ async def _command(
         raise ApiError(
             409, "STATE_VERSION_CONFLICT", "the session changed, reload its state", details
         ) from exc
+    if bandit_store is not None:
+        rewards = [e.payload for e in step.events if e.event_type == EventType.BANDIT_REWARD]
+        if rewards:
+            await bandit_store.apply(rewards)  # after the commit: a repeated command never pays twice
     if saved.state.lifecycle == LifecycleState.COMPLETED:
         # Copy for cross-session queries; idempotent, and the session document stays the source of truth.
         await repo.copy_events_to_ledger(saved.id, EventRepository(database, service.DEMO_SCHOOL_ID))
