@@ -100,6 +100,9 @@ paper-compact: ## Build the 8-page version docs/paper/cavat-paper-compact.pdf (T
 paper-rev: ## Build the 6-page REV-ECIT 2026 version docs/paper/rev-ecit-2026/main.pdf (Tectonic)
 	cd docs/paper/rev-ecit-2026 && tectonic -X compile main.tex
 
+thesis: ## Build the graduation thesis docs/thesis/latex/thesis.pdf (UET template, Tectonic)
+	cd docs/thesis/latex && tectonic -X compile thesis.tex
+
 paper-data: ## Regenerate docs/paper/data/*.json (database read-only, no writes) and the tables and figures in docs/paper/gen
 	cd services/api && .venv/bin/python scripts/paper_corpus.py && .venv/bin/python scripts/paper_rag.py \
 		&& .venv/bin/python scripts/paper_student.py && .venv/bin/python scripts/paper_assessment.py \

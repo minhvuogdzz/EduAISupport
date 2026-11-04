@@ -1,0 +1,43 @@
+\section{Đồ thị tri thức và mô hình người học}
+
+\subsection{Đồ thị tri thức trong giáo dục}
+Đồ thị tri thức biểu diễn các đơn vị kiến thức là đỉnh và quan hệ giữa chúng là cạnh. Quan hệ quan trọng nhất trong giáo dục là quan hệ tiên quyết: học sinh phải học $u$ trước $v$. Lý thuyết không gian tri thức mô hình hóa tập các trạng thái tri thức hợp lệ theo quan hệ tiên quyết~\cite{doignon1999}, và là nền của các hệ học thích ứng. Mô hình 2T-KT kết hợp mô hình ngôn ngữ với hai đồ thị, một đồ thị chung của môn học và một đồ thị riêng của từng học sinh, để mô phỏng cách giáo viên suy luận khi dữ liệu còn ít~\cite{li2026}. Đồ án kế thừa từ 2T-KT năm ý tưởng: đồ thị có kiểm chứng, ngưỡng tin cậy cho nhãn do mô hình đề xuất, khởi động nguội từ điểm của bài tiên quyết, kiểm khẳng định với bằng chứng và cách trình bày thí nghiệm loại bỏ từng thành phần.
+
+Một chương học trong đồ án là một đồ thị có hướng $G=(V,E)$. Mỗi đỉnh là một tiết học, và mỗi cạnh mang một trong hai kiểu: tiên quyết (học $u$ trước $v$) hoặc vận dụng ($v$ vận dụng kiến thức của $u$). Đồ thị này đồng thời quyết định thứ tự dạy và phạm vi truy xuất, nên một đồ thị sai cấu trúc kéo theo cả hành vi dạy sai lẫn truy xuất sai.
+
+\subsection{Truy vết tri thức}
+Truy vết tri thức ước lượng học sinh đã nắm từng kỹ năng đến đâu từ lịch sử làm bài. Mô hình Bayes mô tả mỗi kỹ năng là một biến ẩn hai trạng thái, đã biết hay chưa biết, với bốn tham số: xác suất biết từ đầu, xác suất học được sau mỗi lần luyện, xác suất đoán đúng khi chưa biết và xác suất sơ suất khi đã biết~\cite{corbett1995}. Phân tích yếu tố hiệu năng dùng hồi quy logistic trên số lần đúng và sai~\cite{pavlik2009}. Truy vết tri thức sâu dùng mạng nơ-ron hồi quy học trực tiếp từ chuỗi bài làm~\cite{piech2015}. Pelánek tổng hợp sự đánh đổi giữa độ chính xác dự đoán và khả năng diễn giải của các mô hình này~\cite{pelanek2017}. Bảng~\ref{tab:kt} so sánh ba hướng đó với cách tiếp cận của đồ án.
+
+\begin{table}[ht]
+\centering
+\caption{So sánh các phương pháp truy vết tri thức với cách tiếp cận của đồ án.}
+\label{tab:kt}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.6cm}XXX@{}}
+\toprule
+Phương pháp & Biểu diễn & Dữ liệu cần để dùng & Khả năng diễn giải \\
+\midrule
+BKT & Biến ẩn hai trạng thái, bốn tham số & Phải ước lượng tham số từ dữ liệu & Cao \\
+PFA & Hồi quy logistic trên số lần đúng, sai & Phải huấn luyện từ dữ liệu & Khá \\
+DKT & Mạng nơ-ron hồi quy & Rất nhiều chuỗi bài làm & Thấp \\
+Beta--Bernoulli (đồ án) & Phân phối Beta cho mỗi tiết và mỗi chiều & Không cần huấn luyện; tham số do khung đánh giá quy định & Cao; mỗi điểm truy ngược về một sự kiện \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Đồ án chọn khả năng diễn giải và khả năng phát lại thay vì độ chính xác dự đoán, vì hệ thống chưa có dữ liệu học sinh thật đủ lớn để huấn luyện và vì giáo viên cần nhìn được bằng chứng đằng sau mỗi con số.
+
+\subsection{Cập nhật Beta--Bernoulli}\label{sec:beta-ref}
+Phân phối $\mathrm{Beta}(\alpha,\beta)$ là tiên nghiệm liên hợp của xác suất thành công trong mô hình Bernoulli. Phép cập nhật cho một bằng chứng có điểm $s\in[0,1]$ và trọng số $w$ là
+\begin{equation}
+\alpha\leftarrow\alpha+w\,s,\qquad \beta\leftarrow\beta+w\,(1-s),\qquad \mu=\frac{\alpha}{\alpha+\beta}.
+\label{eq:beta}
+\end{equation}
+Phép cập nhật này có tính giao hoán: thứ tự của các bằng chứng không làm đổi kết quả cuối cùng, nên mức hiểu bài tính lại được từ sổ sự kiện theo bất kỳ thứ tự nào. Phép cập nhật cũng giải thích được, vì mỗi bằng chứng đóng góp một lượng rõ ràng vào $\alpha$ và $\beta$. Hình~\ref{fig:beta} minh họa cách phân phối thu hẹp và dịch chuyển khi bằng chứng tích lũy. Đồ án giữ một phân phối Beta cho mỗi tiết và mỗi chiều của khung đánh giá.
+
+\begin{figure}[ht]
+\centering
+\input{figures/fig-beta}
+\caption{Phân phối Beta của xác suất đã nắm tiết học qua ba trạng thái bằng chứng. Phân phối càng thu hẹp thì ước lượng càng chắc chắn.}
+\label{fig:beta}
+\end{figure}

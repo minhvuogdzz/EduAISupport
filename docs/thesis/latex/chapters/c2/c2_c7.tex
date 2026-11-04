@@ -1,0 +1,27 @@
+\section{Xử lý tiếng nói và đọc tài liệu}
+
+\subsection{Nhận dạng và tổng hợp tiếng nói}
+Whisper là mô hình Transformer mã hóa--giải mã nhận dạng tiếng nói, nhận đầu vào là phổ log-Mel của âm thanh và được huấn luyện có giám sát yếu trên khoảng 680\,000 giờ âm thanh nhiều ngôn ngữ, trong đó có tiếng Việt~\cite{radford2023}. Đồ án dùng \texttt{whisper-large-v3} trên Groq cho nhận dạng, và dùng Web Speech API của trình duyệt làm dự phòng khi dịch vụ lỗi.
+
+Tổng hợp tiếng nói nơ-ron biến văn bản thành âm thanh tự nhiên. Đồ án dùng VieNeu-TTS, một hệ tổng hợp tiếng Việt mã nguồn mở theo giấy phép Apache 2.0~\cite{vieneu}. Bản v3 Turbo chạy trên CPU qua ONNX Runtime, với giọng nữ miền Bắc vì gia sư xưng ``cô''. Đo trên Apple M1 Pro cho thấy từ câu thứ hai, 5,6 giây âm thanh được tạo trong 4,2 giây, tức nhanh hơn thời gian thực.
+
+Chữ Toán phải được chuẩn hóa trước khi đọc, sao cho giọng nói đọc như giáo viên đọc: ``3,05'' thành ``ba phẩy không năm'', ``3/10'' thành ``ba phần mười'' và ``cm$^2$'' thành ``xăng-ti-mét vuông''. Luân phiên lượt nói cũng cần quy ước riêng: hệ thống coi học sinh nói xong sau 1,5 giây im lặng, và cho phép học sinh ngắt lời cô.
+
+\subsection{Đọc tài liệu của giáo viên}
+Tài liệu của giáo viên gồm các tệp PDF có lớp chữ và các trang quét hoặc chụp. Trang có lớp chữ được trích trực tiếp, còn trang ảnh được đọc bằng mô hình thị giác--ngôn ngữ, vốn đọc được cả công thức và hỗn số. Mô hình có thể đọc sai số, nên đồ án kiểm chứng bằng cách đòi mọi số đọc được phải khớp giữa các nguồn và đánh dấu chỗ lệch để giáo viên quyết định.
+
+\section{Phương pháp đánh giá hệ dùng mô hình ngôn ngữ}
+
+Giám khảo là mô hình ngôn ngữ chấm đầu ra mở theo tiêu chí, và tương quan của giám khảo với người chấm khá cao~\cite{zheng2023}. Giám khảo vẫn có thiên lệch, chẳng hạn thích câu dài, thích văn phong giống mình và bỏ sót lỗi cùng loại. Đồ án vì thế dùng giám khảo khác họ với mô hình gia sư và ưu tiên chỉ số tất định mỗi khi có thể.
+
+Phần thống kê dùng khoảng Wilson cho tỉ lệ~\cite{wilson1927}, bootstrap cho khoảng tin cậy của chênh lệch theo cặp~\cite{efron1993} và kiểm định McNemar cho các cặp bất đồng~\cite{mcnemar1947}, theo khuyến nghị cho xử lý ngôn ngữ của Dror và cộng sự~\cite{dror2018}. Tham số chỉ được chỉnh trên tập chỉnh, còn con số báo cáo lấy từ tập giữ riêng viết sau và được đóng băng bằng thẻ git. Thí nghiệm loại bỏ từng thành phần đo đóng góp của thành phần đó vào kết quả chung.
+
+\section{Kỹ thuật phần mềm nền}
+
+Nhật ký sự kiện chỉ ghi thêm là kỹ thuật lưu trạng thái bằng chuỗi sự kiện thay vì ghi đè. Mức hiểu bài là một phép chiếu tất định của chuỗi đó: cùng chuỗi luôn cho cùng kết quả, và có thể tính lại khi đổi công thức. Vòng một câu hỏi là một máy trạng thái hữu hạn với các pha như chờ trả lời, chờ lý do, đang hỏi vì sao và đã khép. Chính sách dạy là một hệ luật có thứ tự: luật đầu tiên thỏa điều kiện quyết định nước đi và mã luật được ghi lại để giải thích.
+
+Ba kỹ thuật còn lại phục vụ tính đúng đắn của dữ liệu. Điều khiển đồng thời lạc quan gắn mỗi buổi học với một số phiên bản trạng thái và chỉ cho ghi khi phiên bản khớp. Mô hình đa thuê bao gắn mọi dữ liệu người học với một định danh trường và bắt buộc mọi truy vấn lọc theo định danh đó, vì MongoDB không có bảo mật mức dòng. Lập trình phòng thủ với dịch vụ bên ngoài gồm chuỗi mô hình dự phòng, cơ chế thử lại và lưu đệm vector nhúng.
+
+\section{Tổng kết chương}
+
+Chương này đã trình bày các cơ sở lý thuyết của đồ án. Phương pháp Socratic, giàn giáo, tự giải thích và xung đột nhận thức cho các ràng buộc hành vi mà gia sư phải giữ. Năm giới hạn cố hữu của mô hình ngôn ngữ giải thích vì sao quyết định không được giao cho mô hình. Truy xuất lai, đồ thị tri thức, cập nhật Beta--Bernoulli và nhật ký sự kiện cung cấp các thành phần tất định thay thế cho những việc mà mô hình không được làm. Bandit ngữ cảnh cho phép chọn nước đi theo kết quả quan sát được mà vẫn nằm trong tập nước đi hợp lệ. Chương~\ref{chap:design} sử dụng các cơ sở này để phân tích yêu cầu và đề xuất kiến trúc hệ thống.

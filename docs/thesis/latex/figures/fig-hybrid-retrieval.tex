@@ -1,0 +1,18 @@
+\begin{tikzpicture}[font=\footnotesize,
+  box/.style={draw=black,line width=0.5pt,fill=white,align=center,minimum height=11mm,text width=24mm,inner sep=2pt},
+  gbox/.style={box,fill=gray!14},
+  arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
+  lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
+\node[box] (q) at (0,0) {\textbf{Câu hỏi}\\\scriptsize của học sinh};
+\node[box] (bm) at (3.6,1.0) {\textbf{BM25}\\\scriptsize khớp từ khóa};
+\node[box] (vec) at (3.6,-1.0) {\textbf{Vector nhúng}\\\scriptsize khớp ngữ nghĩa};
+\node[box] (rrf) at (7.2,0) {\textbf{Hợp nhất RRF}\\\scriptsize theo thứ hạng};
+\node[gbox] (rr) at (10.8,0) {\textbf{Xếp hạng lại}\\\scriptsize phạm vi theo đồ thị};
+\node[box,draw=none,fill=none] (out) at (14.1,0) {\textbf{Top-$k$}\\\scriptsize đoạn nguồn};
+\draw[arr] (q.east) -- ++(0.4,0) |- (bm.west);
+\draw[arr] (q.east) -- ++(0.4,0) |- (vec.west);
+\draw[arr] (bm.east) -- ++(0.4,0) |- ([yshift=2mm]rrf.west);
+\draw[arr] (vec.east) -- ++(0.4,0) |- ([yshift=-2mm]rrf.west);
+\draw[arr] (rrf) -- (rr);
+\draw[arr] (rr) -- (out);
+\end{tikzpicture}

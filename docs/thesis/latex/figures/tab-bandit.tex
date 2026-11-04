@@ -1,0 +1,19 @@
+% Sinh bởi tools/bandit_tex.py từ docs/thesis/data/bandit-eval.json; không sửa tay.
+\begin{table}[ht]
+\centering
+\caption{Kết quả trên môi trường mô phỏng, $3\,000$ lượt, $30$ hạt giống, trung bình $\pm$ khoảng tin cậy $95\%$. Hai cột cuối tính trên một phần tư số lượt cuối.}
+\label{tab:bandit-results}
+\small
+\begin{tabularx}{\linewidth}{@{}Xrrr@{}}
+\toprule
+Chính sách & Hối tiếc tích lũy & Chọn đúng nước tốt nhất & Phần thưởng \\
+\midrule
+Nước của chính sách & $878{,}9 \pm 5{,}8$ & $0{,}315 \pm 0{,}005$ & $0{,}488 \pm 0{,}007$ \\
+Ngẫu nhiên & $621{,}1 \pm 5{,}6$ & $0{,}389 \pm 0{,}005$ & $0{,}573 \pm 0{,}006$ \\
+Giúp ít nhất & $368{,}6 \pm 5{,}0$ & $0{,}693 \pm 0{,}006$ & $0{,}657 \pm 0{,}006$ \\
+Bandit ($\varepsilon=0{,}1$) & $93{,}5 \pm 3{,}0$ & $0{,}833 \pm 0{,}009$ & $0{,}759 \pm 0{,}004$ \\
+Bandit ($\varepsilon=0$) & $73{,}9 \pm 41{,}0$ & $0{,}841 \pm 0{,}046$ & $0{,}763 \pm 0{,}015$ \\
+Oracle & $0{,}0 \pm 0{,}0$ & $1{,}000 \pm 0{,}000$ & $0{,}783 \pm 0{,}004$ \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -1,0 +1,51 @@
+\section{Bộ chọn nước đi bằng contextual bandit}\label{sec:bandit-design}
+
+\subsection{Vị trí trong hệ thống}
+Bộ chọn bandit thay thế bộ chọn do mô hình ngôn ngữ làm ở mỗi lượt có nhiều nước đi hợp lệ. Chính sách dạy vẫn là bên đưa ra tập nước đi: ở mỗi lượt, chính sách trả về tối đa ba nước đi, nước đứng đầu là nước của chính sách, và không nước nào giúp nhiều hơn nước đó. Bộ chọn chỉ chọn một nước trong tập này, và chính sách kiểm lại lựa chọn trước khi chơi. Bandit vì vậy không thể chọn nước ngoài thực đơn, không chọn trong lượt kiểm tra cuối tiết, và không đụng tới các luật cố định như giới hạn thời gian, giải thích đầy đủ hay trần gợi ý của câu kiểm tra. Hình~\ref{fig:bandit-flow} mô tả vòng chọn và vòng học.
+
+\begin{figure}[ht]
+\centering
+\input{figures/fig-bandit-flow}
+\caption{Vòng chọn và vòng học của bộ chọn bandit. Hàng trên là lượt chọn, hàng dưới là cách câu trả lời kế tiếp của học sinh trở thành phần thưởng và cập nhật kho trạng thái.}
+\label{fig:bandit-flow}
+\end{figure}
+
+\subsection{Cánh tay, ngữ cảnh và phần thưởng}
+Cánh tay là loại nước đi cùng bậc của nó, chẳng hạn hỏi lại cách làm, gợi ý ở bậc hai hay đưa phản ví dụ. Cách định nghĩa này làm cùng một cánh tay mang cùng một nghĩa trên mọi thực đơn, dù thực đơn gồm những nước nào. Các nước đóng câu hoặc xác nhận để sang câu sau không phải cánh tay của bandit. Thực đơn có nước như vậy, chẳng hạn lượt hỏi ``vì sao'' sau một câu đúng, được bộ chọn chuyển cho bộ chọn dự phòng hoặc giữ nước của chính sách.
+
+Ngữ cảnh là chín số trong đoạn $[0,1]$ rút từ tình hình của học sinh trên câu đang làm, mô tả ở Bảng~\ref{tab:bandit-context}. Ngữ cảnh chỉ gồm số đếm và không chứa lời của học sinh hay đáp án của câu hỏi, nên bandit không thể làm lộ đáp án.
+
+\begin{table}[ht]
+\centering
+\caption{Chín thành phần của vector ngữ cảnh và cách chuẩn hóa về đoạn $[0,1]$.}
+\label{tab:bandit-context}
+\small
+\begin{tabularx}{\linewidth}{@{}lXr@{}}
+\toprule
+Thành phần & Ý nghĩa & Chuẩn hóa \\
+\midrule
+Hệ số tự do & Hằng số $1$ cho phần tử chặn & $1$ \\
+Số lần trả lời & Số lần học sinh đã trả lời câu này & $\min(n,5)/5$ \\
+Số gợi ý & Số gợi ý học sinh đã nhận & $\min(n,4)/4$ \\
+Bậc gợi ý cao nhất & Bậc cao nhất đã dùng trên thang H0--H7 & $h/7$ \\
+Lượt chưa tiến bộ & Số lượt không tiến bộ liên tiếp & $\min(n,4)/4$ \\
+Lần xin gợi ý & Số lần học sinh chủ động xin gợi ý & $\min(n,3)/3$ \\
+Dấu hiệu nản & Số lần học sinh nói ra sự nản chí & $\min(n,3)/3$ \\
+Đã hỏi cách làm & Gia sư đã hỏi ``con làm thế nào'' chưa & $0$ hoặc $1$ \\
+Lỗi lặp lại nhiều nhất & Số lần lặp lại của lỗi quan niệm thường gặp nhất & $\min(n,3)/3$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Phần thưởng của một lượt chọn là giá trị của câu trả lời có chấm kế tiếp của học sinh trên cùng câu, trừ chi phí theo mức giúp của nước đi. Câu trả lời đúng được $1$, đúng một phần được $0{,}5$ và sai được $0$. Chi phí bằng $0{,}3$ nhân mức giúp của nước đi chia cho $7$, với mức giúp lấy từ bậc trên thang gợi ý và bằng $0$ cho nước hỏi lại. Một gợi ý bậc nhất đưa học sinh tới câu đúng vì thế được $1-0{,}3/7\approx 0{,}96$, còn một câu hỏi lại đưa học sinh tới câu đúng được đúng $1$. Cách tính này khiến bandit ưa nước giúp ít mà vẫn có tác dụng, phù hợp với nguyên tắc Socratic ở Mục~\ref{sec:socratic-ref}. Lượt chọn mà học sinh không có câu trả lời có chấm nào theo sau, vì câu đóng trước, không được trả thưởng, và lượt chọn bị chính sách từ chối cũng không được trả thưởng.
+
+\subsection{Quy tắc chọn và nhật ký}
+Mỗi cánh tay trong thực đơn nhận điểm cận trên tin cậy của LinUCB theo công thức~\eqref{eq:linucb} với $\alpha=0{,}5$ và ridge bằng $1$. Bộ chọn lấy cánh tay có điểm cao nhất với xác suất $0{,}9$ và chọn ngẫu nhiên đều trong thực đơn với xác suất $0{,}1$. Hai cánh tay hòa điểm thì cánh tay đứng đầu thực đơn thắng, tức nước của chính sách. Hệ quả là một bandit chưa học gì chơi đúng nước mà chính sách sẽ chơi. Số ngẫu nhiên sinh từ mã băm của khóa phiên, số lượt và đề bài, nên cùng phiên, cùng lượt và cùng thực đơn luôn cho cùng một lựa chọn.
+
+Mỗi lượt chọn của bandit được ghi vào nhật ký sự kiện cùng cánh tay, xác suất của lượt chọn, vector ngữ cảnh và điểm của mọi cánh tay trong thực đơn. Sự kiện phần thưởng ghi cánh tay, ngữ cảnh, phần thưởng và phiên bản của bandit. Buổi học dựng lại từ nhật ký đọc lượt chọn đã ghi thay vì hỏi bandit lại, và dựng lại mà vẫn nhớ lượt chọn nào đang chờ phần thưởng, nên không lượt chọn nào bị trả thưởng hai lần.
+
+\subsection{Trạng thái học và lưu trữ}
+Trạng thái của bandit gồm ba đại lượng cộng được cho mỗi cánh tay: tổng $\sum xx^{\top}$, tổng $\sum rx$ và số lượt. Tính cộng được có hai hệ quả. Hệ quả đầu là thứ tự các phần thưởng không ảnh hưởng tới trạng thái, giống tính giao hoán của cập nhật Beta--Bernoulli. Hệ quả sau là mỗi phần thưởng là một phép cộng nguyên tử vào một document duy nhất, phù hợp với cơ sở dữ liệu không có giao dịch trên nhiều document. Mỗi document thuộc một trường, một phiên bản bandit và một cánh tay, và mọi truy vấn bắt buộc lọc theo trường. Cập nhật diễn ra sau khi lệnh của học sinh được ghi thành công, nên lệnh lặp không làm trả thưởng hai lần. Toàn bộ kho là một phép chiếu của các sự kiện phần thưởng và dựng lại được khi cần. Không mô hình ngôn ngữ nào ghi vào kho này.
+
+\subsection{Cách bật và các bất biến được giữ}
+Tham số cấu hình \texttt{TUTOR\_CHOOSER=bandit} bật bộ chọn bandit, còn mặc định vẫn là bộ chọn do mô hình ngôn ngữ làm cho tới khi chủ dự án duyệt các tham số của bandit. Bandit giữ nguyên cả sáu bất biến của đồ án: chính sách quyết định nước đi và kiểm lại lựa chọn, đáp án không đi vào bandit, bộ chấm vẫn tất định, trạng thái học là phép gập của sự kiện, dữ liệu gắn định danh trường, và mô hình ngôn ngữ không ghi mức hiểu bài.

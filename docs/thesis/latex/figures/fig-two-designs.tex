@@ -1,0 +1,33 @@
+\begin{tikzpicture}[font=\footnotesize,
+  box/.style={draw=black,line width=0.5pt,fill=white,align=center,minimum height=11mm,text width=40mm,inner sep=2pt},
+  llm/.style={box,fill=gray!30,dashed,line width=0.7pt},
+  big/.style={box,fill=gray!30,dashed,line width=0.7pt,text width=39mm,minimum height=30mm},
+  store/.style={box,fill=gray!14,text width=31mm},
+  side/.style={box,text width=31mm},
+  arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
+  lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
+% (a) mô hình ngôn ngữ giữ mọi quyết định
+\node[box,draw=none,fill=none,text width=20mm] (k1) at (0,0) {\textbf{Học sinh}};
+\node[big] (m1) at (0,-3.9) {\textbf{Mô hình ngôn ngữ}\\[3pt]\scriptsize chọn câu hỏi, chấm đáp án,\\ chọn mức gợi ý, nhớ mức\\ hiểu bài, viết lời};
+\draw[arr] ([xshift=-7mm]k1.south) -- node[lab,left]{lời con} ([xshift=-7mm]m1.north);
+\draw[arr] ([xshift=7mm]m1.north) -- node[lab,right]{lời đáp} ([xshift=7mm]k1.south);
+\node[font=\footnotesize\itshape,text width=48mm,align=center] at (0,-7.2) {(a) Mô hình giữ mọi quyết định};
+% (b) hệ thống quyết định, mô hình diễn đạt
+\node[box,draw=none,fill=none,text width=20mm] (k2) at (6.6,0) {\textbf{Học sinh}};
+\node[box] (c2) at (6.6,-1.9) {\textbf{Bộ điều phối}\\\scriptsize đọc ý định};
+\node[box] (p2) at (6.6,-3.8) {\textbf{Chính sách tất định}\\\scriptsize chọn nước đi};
+\node[llm] (m2) at (6.6,-5.7) {\textbf{Mô hình ngôn ngữ}\\\scriptsize chỉ diễn đạt};
+\node[box] (v2) at (6.6,-7.6) {\textbf{Bộ kiểm chứng}\\\scriptsize lộ đáp án, nguồn};
+\node[side] (g2) at (11.9,-1.9) {\textbf{Bộ chấm tất định}\\\scriptsize chuẩn vi-VN};
+\node[store] (s2) at (11.9,-3.8) {\textbf{Sổ sự kiện}\\\scriptsize mức hiểu bài};
+\draw[arr] (k2) -- node[lab,right]{lời con} (c2);
+\draw[arr] (c2) -- (p2);
+\draw[arr] (p2) -- node[lab,right]{nước đi} (m2);
+\draw[arr] (m2) -- node[lab,right]{lời nháp} (v2);
+\draw[arr] (c2.east) -- node[lab,above]{đáp án} (g2.west);
+\draw[arr] (g2.south) -- (s2.north);
+\draw[arr] (s2.west) -- node[lab,above]{trạng thái} (p2.east);
+\draw[arr] (v2.west) -- ++(-0.8,0) |- (k2.west);
+\node[lab,rotate=90] at (4.1,-4.0) {lời đã được duyệt};
+\node[font=\footnotesize\itshape,text width=80mm,align=center] at (9.0,-8.9) {(b) Hệ thống quyết định, mô hình chỉ diễn đạt};
+\end{tikzpicture}

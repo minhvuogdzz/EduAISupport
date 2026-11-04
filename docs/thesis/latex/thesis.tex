@@ -1,0 +1,132 @@
+\documentclass[a4paper,13pt]{report}
+% \usepackage[utf8]{vietnam}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+\else
+  % XeTeX/Tectonic: cần phông OTF có đủ chữ Việt; Latin Modern giữ nguyên diện mạo của template.
+  \usepackage{fontspec}
+  \setmainfont{lmroman12-regular.otf}[BoldFont=lmroman12-bold.otf,ItalicFont=lmroman12-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+  \setsansfont{lmsans10-regular.otf}[BoldFont=lmsans10-bold.otf,ItalicFont=lmsans10-oblique.otf]
+  \setmonofont{lmmono12-regular.otf}
+\fi
+\usepackage[vietnamese=nohyphenation]{hyphsubst}
+\usepackage[vietnamese]{babel}
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{subcaption}
+\usepackage{graphicx}
+% \usepackage{caption}
+\usepackage[font=small]{caption}
+\usepackage{booktabs}
+\usepackage[unicode]{hyperref}
+\hypersetup{hidelinks}  % không vẽ khung màu quanh liên kết và trích dẫn
+\usepackage[left=3cm,right=2cm,top=2.5cm,bottom=3cm]{geometry}
+\usepackage{titlesec} 
+\usepackage{scrextend}
+\usepackage{enumerate}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{afterpage}
+\usepackage{multirow}
+\usepackage{sectsty}
+\usepackage{tocloft,calc}
+\usepackage{listings}
+\usepackage{makecell}
+\usepackage[sort&compress]{natbib}
+\usetikzlibrary{calc}
+\usepackage{algorithm}
+\usepackage{algpseudocode} 
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+\usepgfplotslibrary{groupplots}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,shapes.geometric,decorations.pathreplacing}
+% \usepackage[perpage]{footmisc}
+\usepackage{perpage} %the perpage package
+\MakePerPage{footnote} %the perpage package command
+% \usepackage[ruled,vlined]{algorithm2e}
+\PassOptionsToPackage{table}{xcolor}
+
+\def\changemargin#1#2{\list{}{\rightmargin#2\leftmargin#1}\item[]}
+\let\endchangemargin=\endlist 
+
+\changefontsizes{13pt}
+\bibliographystyle{unsrt}
+
+\makeatletter
+\def\l@figure{\@dottedtocline{1}{1em}{2.2em}}
+\def\l@table{\@dottedtocline{1}{1em}{2.2em}}
+\renewcommand*{\ALG@name}{Thuật toán}
+\makeatother
+
+\sectionfont{\fontsize{15}{15}\selectfont}
+\subsectionfont{\fontsize{13}{15}\selectfont}
+
+\titleformat{\chapter}[display]   
+{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{0pt}{\LARGE}
+\titlespacing*{\chapter}{0cm}{-\topskip}{0pt}[0pt]
+
+\renewcommand{\baselinestretch}{1.3}
+%\renewcommand{\cftsecpresnum}{Chương\space}
+\renewcommand{\cftchappresnum}{Chương }
+% số mục hai chữ số (2.10, 2.11) cần chỗ rộng hơn
+\setlength{\cftsecindent}{1em}
+\setlength{\cftsecnumwidth}{3em}
+\setlength{\cftsubsecindent}{4em}
+\setlength{\cftsubsecnumwidth}{3.8em}
+\AtBeginDocument{\addtolength\cftchapnumwidth{\widthof{\bfseries Chương }}}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+%
+\input{info}
+\title{\tendetai}
+\author{\tensinhvien}
+
+%
+\newcommand{\argmax}{\arg\!\max}
+
+\begin{document}
+\input{cover}\newpage\cleardoublepage
+
+% Acknowledgement
+\input{chapters/acknowledgement}\newpage\cleardoublepage
+% Assurance
+\input{chapters/assurance}\newpage\cleardoublepage
+% Abstract Vietnamese
+% \input{chapters/abtract_en}\newpage\cleardoublepage
+\input{chapters/abtract_vi}\newpage\cleardoublepage
+
+\addcontentsline{toc}{chapter}{Mục lục}
+\tableofcontents\newpage\cleardoublepage
+%
+
+\newpage
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures\cleardoublepage
+
+\newpage
+\addcontentsline{toc}{chapter}{\listtablename}
+\listoftables
+
+\newpage
+\input{chapters/glossary}\newpage\cleardoublepage
+
+\pagenumbering{arabic}
+%
+\input{chapters/c1/c1_chapter}\newpage\cleardoublepage
+\input{chapters/c2/c2_chapter}\newpage\cleardoublepage
+\input{chapters/c3/c3_chapter}\newpage\cleardoublepage
+\input{chapters/c4/c4_chapter}\newpage\cleardoublepage
+\input{chapters/c5/c5_chapter}\newpage\cleardoublepage
+
+\nocite{*}
+\phantomsection 
+\addcontentsline{toc}{chapter}{Tài liệu tham khảo}
+\bibliography{references}\newpage\cleardoublepage
+\end{document}

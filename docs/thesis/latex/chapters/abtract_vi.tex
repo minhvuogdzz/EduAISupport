@@ -1,0 +1,17 @@
+\begin{center}
+\textbf{\large{Tóm tắt}	}
+\end{center}
+
+\addcontentsline{toc}{chapter}{Tóm tắt}
+
+\begin{small}
+Mô hình ngôn ngữ lớn giúp việc xây dựng một gia sư biết trò chuyện trở nên rẻ và nhanh, nhưng đồng thời kéo theo những rủi ro sư phạm đã được ghi nhận: mô hình có xu hướng đưa ngay đáp án, đánh giá sai câu trả lời của học sinh và không biết học sinh đang ở đâu trong chương trình. Đồ án này nghiên cứu một hướng thiết kế khác, trong đó hệ thống học tập được xây dựng trước và mô hình ngôn ngữ chỉ giữ vai trò diễn đạt bên trong hệ thống đó.
+
+Đồ án hiện thực hướng thiết kế này trong CAVAT, một gia sư Toán lớp 5 tiếng Việt cho hai chương ``Số thập phân'' và ``Diện tích hình tam giác, hình thang'', vận hành dưới tên Monkey Edu. Một chính sách tất định có phiên bản chọn từng nước đi sư phạm theo phương pháp Socratic và thang gợi ý nhiều mức. Một bộ chấm tất định theo chuẩn viết số của Việt Nam quyết định đúng sai của đáp án. Mức hiểu bài là phép chiếu có phiên bản, phát lại được từ sổ sự kiện chỉ ghi thêm. Kiến thức của gia sư lấy từ tài liệu của giáo viên, được đọc, kiểm đáp án và dựng thành đồ thị tri thức, rồi truy xuất bằng phương pháp lai giữa từ khóa và vector có ràng buộc theo đồ thị. Mô hình ngôn ngữ chỉ diễn đạt lời gia sư, và mọi lời đều qua bộ kiểm chứng trước khi đến học sinh. Một bộ chọn bandit ngữ cảnh (LinUCB) chọn nước đi trong tập nước đi mà chính sách cho phép và học từ câu trả lời kế tiếp của học sinh.
+
+Thực nghiệm trên hai chương Toán lớp 5 cho thấy truy xuất lai theo đồ thị đạt độ chính xác ngang truy xuất phẳng nhưng không đưa kiến thức của bài sau vào các kết quả đầu, và bộ chọn bandit giảm hối tiếc tích lũy xuống dưới một phần chín so với nước mặc định của chính sách trên một môi trường mô phỏng khai báo. Trong các tình huống hội thoại mô phỏng, hệ thống không để lộ đáp án ở lượt nào, trong khi chatbot thương mại dùng lời nhắc thường để lộ đáp án ở phần lớn các lượt. Đồ án cũng trình bày các hạn chế, trong đó quan trọng nhất là chưa có đánh giá kết quả học tập với học sinh thật.
+
+\vspace*{1cm}
+\textbf{Từ khóa}: \textit{gia sư thông minh}, \textit{mô hình ngôn ngữ lớn}, \textit{phương pháp Socratic}, \textit{truy xuất tăng cường sinh}, \textit{đồ thị tri thức}, \textit{truy vết tri thức}, \textit{bandit ngữ cảnh}.
+
+\end{small}

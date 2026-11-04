@@ -1,0 +1,12 @@
+\begin{tikzpicture}
+\begin{axis}[width=0.86\linewidth,height=6.2cm,domain=0.001:0.999,samples=120,
+  xlabel={xác suất đã nắm tiết học $p$},ylabel={mật độ},xmin=0,xmax=1,ymin=0,ymax=4.2,
+  legend style={font=\footnotesize,at={(0.03,0.97)},anchor=north west,draw=none,fill=none},
+  tick label style={font=\footnotesize},label style={font=\small},ymajorgrids,
+  axis lines=left]
+\addplot[black,line width=0.9pt,dash pattern=on 3pt off 2pt]{1};
+\addplot[black!60,line width=0.9pt]{12*x^2*(1-x)};
+\addplot[black,line width=1.1pt]{252*x^6*(1-x)^2};
+\legend{{$\mathrm{Beta}(1,1)$ chưa có bằng chứng},{$\mathrm{Beta}(3,2)$ sau vài bằng chứng},{$\mathrm{Beta}(7,3)$ sau nhiều bằng chứng}}
+\end{axis}
+\end{tikzpicture}

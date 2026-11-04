@@ -1,0 +1,22 @@
+\section{Vấn đề nghiên cứu và mục tiêu}
+
+Vấn đề nghiên cứu của đồ án được phát biểu như sau: làm thế nào để xây dựng một gia sư Toán tiếng Việt dùng mô hình ngôn ngữ lớn nhưng vẫn bảo đảm các hành vi sư phạm bất biến, gồm không lộ đáp án khi đang kiểm tra, chấm đúng theo chuẩn viết số Việt Nam, không dạy trước nội dung bài sau và ghi nhận mức hiểu bài theo cách tái lập được. Hệ thống còn phải chạy trong giới hạn của các dịch vụ miễn phí và phải dạy từ tài liệu của chính giáo viên.
+
+Mục tiêu tổng quát của đồ án là thiết kế, hiện thực và đánh giá một kiến trúc gia sư trong đó hệ thống học tập được dựng trước và mô hình ngôn ngữ giữ vai trò hẹp bên trong. Mục tiêu đó được cụ thể hóa thành năm quyết định thiết kế. Một chính sách tất định, có phiên bản, chọn từng nước đi sư phạm, còn mô hình ngôn ngữ chỉ chuyển nước đi thành lời và lời đó phải qua bộ kiểm chứng. Một bộ chấm tất định quyết định đúng sai của đáp án, và đáp án của câu kiểm tra không bao giờ nằm trong ngữ cảnh gửi cho mô hình. Mức hiểu bài là một phép chiếu tất định phát lại được từ sổ sự kiện chỉ ghi thêm, nên mô hình không bao giờ ghi điểm. Kiến thức của gia sư là tài liệu của giáo viên, được đọc, kiểm tra đáp án và dựng thành đồ thị tri thức để truy xuất có ràng buộc. Một bộ chọn contextual bandit chọn nước đi trong tập nước đi mà chính sách cho phép và học từ câu trả lời kế tiếp của học sinh, mà không làm đổi các bất biến trên.
+
+Hình~\ref{fig:two-designs} đối chiếu hai cách đặt mô hình ngôn ngữ trong một gia sư. Cách thứ nhất để mô hình nhận lời học sinh và tự quyết định mọi việc. Cách thứ hai giao quyết định cho các thành phần tất định và chỉ để mô hình viết lời.
+
+\begin{figure}[ht]
+\centering
+\input{figures/fig-two-designs}
+\caption{Hai cách đặt mô hình ngôn ngữ trong một gia sư. Đồ án theo cách (b).}
+\label{fig:two-designs}
+\end{figure}
+
+\section{Phạm vi và đối tượng}
+
+Đối tượng sử dụng chính là học sinh lớp 5. Giáo viên và phụ huynh là hai đối tượng phụ: giáo viên duyệt nội dung và xem bằng chứng học tập, phụ huynh xem tiến bộ của con qua tài khoản của con. Phạm vi nội dung bị khóa ở hai chương Toán lớp 5, gồm ``Số thập phân'' và ``Diện tích hình tam giác, hình thang'', với 19 tiết học dựng từ 18 tệp tài liệu của giáo viên (77 trang). Đồ án không mở rộng sang chương, lớp hay môn học khác.
+
+Học sinh có thể gõ chữ hoặc nói chuyện với gia sư bằng giọng nói. Bộ nhận dạng tiếng nói dùng Whisper trên dịch vụ Groq và giọng của gia sư dùng VieNeu-TTS chạy cục bộ. Hệ thống chỉ gọi mô hình ngôn ngữ qua một cổng AI duy nhất và không dùng khung RAG hay khung tác tử có sẵn; các thành phần truy xuất, đồ thị tri thức, chấm điểm và chính sách dạy đều do đồ án tự xây dựng.
+
+Đồ án không nghiên cứu hiệu quả học tập dài hạn trên học sinh thật, không đánh giá chi phí vận hành thương mại và không xét các vấn đề pháp lý về dữ liệu của trẻ em. Những giới hạn này được nêu lại ở phần hạn chế của Chương~\ref{chap:conclusion}.
