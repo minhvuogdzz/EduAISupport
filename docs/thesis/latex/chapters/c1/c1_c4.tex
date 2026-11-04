@@ -1,0 +1,25 @@
+\section{Câu hỏi nghiên cứu và phương pháp}
+
+Đồ án đặt năm câu hỏi nghiên cứu. Câu hỏi thứ nhất (RQ1) hỏi nên đánh giá một hệ thống như vậy bằng phương pháp nào và theo những chiều nào. Câu hỏi thứ hai (RQ2) hỏi truy xuất lai có ràng buộc theo đồ thị đạt mức nào so với mục tiêu định hướng ban đầu và so với truy xuất phẳng không ràng buộc. Câu hỏi thứ ba (RQ3) hỏi gia sư hỗ trợ học sinh hơn các mô hình trên thị trường ở điểm nào. Câu hỏi thứ tư (RQ4) hỏi cách đánh giá mức hiểu bài của hệ thống sát bao nhiêu so với khung đánh giá ban đầu. Câu hỏi thứ năm (RQ5) hỏi bộ chọn nước đi bằng contextual bandit học được lựa chọn phụ thuộc ngữ cảnh nhanh đến đâu và nhật ký của nó có đủ để đánh giá một chính sách khác hay không. Bảng~\ref{tab:rq} nêu chỉ số chính và nơi trả lời từng câu hỏi.
+
+\begin{table}[ht]
+\centering
+\caption{Các câu hỏi nghiên cứu, chỉ số chính và nơi trả lời trong đồ án.}
+\label{tab:rq}
+\small
+\begin{tabularx}{\linewidth}{@{}p{1.7cm}XX@{}}
+\toprule
+Câu hỏi & Chỉ số chính & Nơi trả lời \\
+\midrule
+RQ1 & Khung đánh giá nhiều chiều; bộ đo tất định và bộ đo có giám khảo khác họ mô hình & Mục~\ref{sec:eval-method} \\
+RQ2 & Hit@$k$, MRR, tỉ lệ đoạn của bài sau lọt vào kết quả đầu; so với truy xuất phẳng & Mục~\ref{sec:eval-rag} \\
+RQ3 & Số lượt lộ đáp án, số câu hỏi mỗi lượt, độ Socratic; độ đúng của bộ chấm & Mục~\ref{sec:eval-socratic}, \ref{sec:eval-grading} \\
+RQ4 & Số mục của khung đánh giá đã hiện thực và mức sát khung & Mục~\ref{sec:eval-learner} \\
+RQ5 & Hối tiếc tích lũy, tỉ lệ chọn đúng nước tốt nhất; sai lệch của ước lượng IPS từ nhật ký & Mục~\ref{sec:eval-bandit} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Phương pháp nghiên cứu theo hướng nghiên cứu thiết kế: đồ án đề xuất một kiến trúc, hiện thực thành hệ thống chạy được rồi đánh giá bằng thực nghiệm có kiểm soát. Nguyên tắc đánh giá gồm ba điểm. Chỉ số nào đo được bằng luật thì đo bằng luật, còn mô hình chỉ làm giám khảo cho chất lượng ngôn ngữ và luôn khác họ với mô hình gia sư. Mỗi bộ câu dùng để chỉnh tham số có một bộ giữ riêng viết sau và không dùng để chỉnh. Các tập đánh giá được đóng băng bằng thẻ git trước khi sửa mã mà chúng đo, để thứ tự thời gian kiểm tra được. Mọi ngưỡng hay công thức không có trong khung đánh giá gốc được đánh dấu là cách hiểu đã khai báo (DI) và chờ người có thẩm quyền duyệt.
+
+Hệ thống được đánh giá chủ yếu trên học sinh mô phỏng, các vai khó dựng sẵn và các tập câu hỏi do người phát triển soạn, vì mục tiêu của giai đoạn này là kiểm chứng kiến trúc chứ chưa phải đo kết quả học tập. Phần hạn chế của Chương~\ref{chap:conclusion} nêu rõ hệ quả của lựa chọn đó.

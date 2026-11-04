@@ -1,0 +1,18 @@
+\section{Hệ thống gia sư thông minh và phương pháp Socratic}
+
+\subsection{Hệ thống gia sư thông minh}
+Hệ thống gia sư thông minh (ITS) là phần mềm dạy học mô phỏng một gia sư người: hệ thống theo dõi từng bước làm của học sinh, phản hồi và gợi ý đúng lúc, rồi điều chỉnh theo người học. Kiến trúc kinh điển của ITS gồm bốn mô-đun. Mô-đun miền tri thức chứa kiến thức cần dạy, lời giải và các lỗi thường gặp. Mô-đun người học ước lượng học sinh đã biết gì và đang sai gì. Mô-đun sư phạm quyết định dạy gì tiếp theo và gợi ý ra sao. Mô-đun giao diện là nơi học sinh tương tác với hệ thống. Hình~\ref{fig:its-modules} minh họa bốn mô-đun này cùng vị trí mà đồ án đặt mô hình ngôn ngữ.
+
+\begin{figure}[ht]
+\centering
+\input{figures/fig-its-modules}
+\caption{Bốn mô-đun của một hệ thống gia sư thông minh và cách CAVAT hiện thực từng mô-đun. Mô hình ngôn ngữ nằm giữa mô-đun sư phạm và giao diện, chỉ với vai trò diễn đạt.}
+\label{fig:its-modules}
+\end{figure}
+
+VanLehn phân biệt các hệ thống gia sư theo độ mịn của tương tác: hỗ trợ theo câu trả lời cuối, theo từng bước, hoặc theo từng ý trong một bước~\cite{vanlehn2011}. Hỗ trợ càng mịn thì hiệu quả càng gần với gia sư người. Cognitive Tutor và AutoTutor là hai hệ tiêu biểu. AutoTutor dẫn dắt học sinh bằng hội thoại có cấu trúc gồm các nước đi gợi ý, thúc đẩy và sửa sai~\cite{graesser2005}. Đồ án giữ nguyên bốn mô-đun cổ điển và hỗ trợ ở mức từng lượt nói của học sinh. Điểm khác biệt nằm ở chỗ mô hình ngôn ngữ được đặt vào giữa mô-đun sư phạm và giao diện, và quyết định sư phạm không rời khỏi mô-đun sư phạm.
+
+\subsection{Phương pháp Socratic}\label{sec:socratic-ref}
+Phương pháp Socratic dạy bằng câu hỏi dẫn người học tự phát hiện điều cần biết thay vì kể cho họ nghe. Nguyên tắc này khó kiểm chứng nếu chỉ phát biểu ở mức triết lý, vì một lời giảng có thể vừa hỏi vừa để lộ đáp án. Đồ án vì vậy tách phương pháp Socratic thành sáu ràng buộc hành vi mà bộ kiểm chứng có thể kiểm tra được. Gia sư không nói ra đáp án cuối trước khi học sinh tự giải được, trừ một nước đi được phép là giải thích đầy đủ sau khi cùng làm từng bước đã thất bại. Mỗi lượt chỉ chứa một câu hỏi và câu hỏi đó đặt ở cuối lượt. Gia sư hỏi cách làm và lý do trước khi sửa. Mức trợ giúp bắt đầu từ bậc nhẹ nhất rồi tăng dần, và gia sư rút trợ giúp lại khi học sinh đã làm được một bước. Những lượt không phải một lần thử, chẳng hạn lạc đề, hỏi lại hay phàn nàn, không bị tính là sai.
+
+Các ràng buộc này cũng là các tiêu chí đo ở Chương~\ref{chap:eval}. Hai tiêu chí đầu, không lộ đáp án và một câu hỏi mỗi lượt, đo được hoàn toàn bằng luật. Bốn tiêu chí còn lại phụ thuộc vào trạng thái của buổi học nên được thực thi ở chính sách dạy thay vì ở bộ kiểm chứng.

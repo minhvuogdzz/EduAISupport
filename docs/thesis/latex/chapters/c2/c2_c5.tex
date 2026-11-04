@@ -1,0 +1,41 @@
+\section{Truy xuất thông tin và sinh văn bản tăng cường truy xuất}
+
+\subsection{Khái niệm RAG}
+Sinh văn bản tăng cường truy xuất (RAG) là kỹ thuật tìm các đoạn tài liệu liên quan rồi đưa vào lời nhắc trước khi mô hình trả lời, để câu trả lời dựa trên nguồn thay vì dựa vào trí nhớ của mô hình~\cite{lewis2020}. Gao và cộng sự chia một hệ RAG thành các khâu lập chỉ mục, truy xuất, xếp hạng lại và sinh có căn cứ~\cite{gao2023survey}. RAG có hai tác dụng đối với gia sư. Tác dụng thứ nhất là neo lời giảng vào tài liệu của giáo viên. Tác dụng thứ hai là giới hạn phạm vi, vì gia sư không được trả lời bằng nội dung mà học sinh chưa học.
+
+\subsection{Truy xuất thưa theo từ khóa và truy xuất dày theo ngữ nghĩa}
+BM25 là hàm xếp hạng theo từ khóa chuẩn của truy xuất thông tin~\cite{robertson2009}. Điểm của đoạn $c$ đối với câu hỏi $q$ là tổng theo từng từ $t$ của $q$:
+\begin{equation}
+\mathrm{BM25}(q,c)=\sum_{t\in q}\mathrm{idf}(t)\cdot\frac{f(t,c)\,(k_1+1)}{f(t,c)+k_1\left(1-b+b\,\frac{|c|}{\mathrm{avgdl}}\right)},
+\label{eq:bm25}
+\end{equation}
+\begin{equation}
+\mathrm{idf}(t)=\ln\!\left(1+\frac{N-n(t)+0{,}5}{n(t)+0{,}5}\right).
+\end{equation}
+Ký hiệu $f(t,c)$ chỉ số lần từ $t$ xuất hiện trong đoạn $c$, $|c|$ là độ dài đoạn, $\mathrm{avgdl}$ là độ dài trung bình của các đoạn, $N$ là số đoạn và $n(t)$ là số đoạn chứa $t$. Tham số $k_1$ điều khiển độ bão hòa của tần suất và $b$ điều khiển chuẩn hóa độ dài; đồ án dùng $k_1=1{,}2$ và $b=0{,}75$. BM25 mạnh với thuật ngữ và con số chính xác, là hai loại thông tin chiếm phần lớn trong nội dung Toán.
+
+Truy xuất dày so cosin giữa vector của câu hỏi và vector của đoạn~\cite{karpukhin2020}. Cách này bắt được những câu hỏi diễn đạt khác với tài liệu, chẳng hạn trẻ hỏi ``số có phẩy là gì'' trong khi tài liệu viết ``số thập phân''. Điểm yếu của truy xuất dày nằm ở chỗ nó kém nhạy với số và ký hiệu chính xác.
+
+\subsection{Truy xuất lai, hợp nhất thứ hạng và xếp hạng lại}
+Truy xuất lai kết hợp nhiều bảng xếp hạng thành một. Phương pháp hợp nhất theo hạng nghịch đảo (RRF) cho điểm của một đoạn bằng tổng nghịch đảo thứ hạng của đoạn đó trong từng bảng~\cite{cormack2009}:
+\begin{equation}
+\mathrm{RRF}(c)=\sum_{r\in R}\frac{1}{k+\mathrm{rank}_r(c)},
+\label{eq:rrf}
+\end{equation}
+với $R$ là tập các bảng xếp hạng và $k$ thường bằng $60$. RRF không cần chuẩn hóa điểm giữa các hệ khác nhau. Bộ kiểm chuẩn BEIR cho thấy không hệ truy xuất nào thắng ở mọi miền và truy xuất từ khóa thường rất mạnh với văn bản chuyên ngành~\cite{thakur2021}, nên kết hợp hai phương pháp là lựa chọn an toàn. Hệ thống xếp hạng lại các ứng viên theo tiêu chí của bài toán sau bước hợp nhất. Hình~\ref{fig:hybrid-retrieval} mô tả chuỗi này, trong đó tiêu chí xếp hạng lại của đồ án là phạm vi trên đồ thị tri thức và mục đích sư phạm.
+
+\begin{figure}[ht]
+\centering
+\input{figures/fig-hybrid-retrieval}
+\caption{Chuỗi truy xuất lai: hai bảng xếp hạng độc lập được hợp nhất bằng RRF, sau đó các ứng viên được xếp hạng lại theo phạm vi trên đồ thị tri thức.}
+\label{fig:hybrid-retrieval}
+\end{figure}
+
+\subsection{Độ bám nguồn và chỉ số đánh giá truy xuất}
+Độ bám nguồn đòi hỏi câu trả lời chỉ khẳng định điều có trong đoạn nguồn. Các hướng đo gồm thước đo quy gán~\cite{rashkin2023}, bộ chỉ số RAGAs~\cite{es2024} và sinh văn bản kèm trích dẫn~\cite{gao2023alce}. GraphRAG dùng đồ thị để tổng hợp thông tin trên cả kho tài liệu~\cite{edge2024}, còn đồ án dùng đồ thị để giới hạn phạm vi truy xuất.
+
+Chất lượng truy xuất đo bằng hai chỉ số. Chỉ số Hit@$k$ của một câu hỏi có đoạn đúng đầu tiên ở hạng $r$ bằng $1$ nếu $r\le k$ và bằng $0$ nếu ngược lại. Hạng nghịch đảo của câu hỏi đó là $1/r$, và MRR là trung bình của hạng nghịch đảo trên mọi câu hỏi:
+\begin{equation}
+\mathrm{MRR}=\frac{1}{|Q|}\sum_{q\in Q}\frac{1}{r_q}.
+\label{eq:mrr}
+\end{equation}

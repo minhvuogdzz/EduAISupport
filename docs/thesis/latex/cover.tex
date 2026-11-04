@@ -1,0 +1,33 @@
+% Một trang bìa theo mẫu bìa của khoa (khung đôi, logo, tên đề tài, khối thông tin).
+\pagenumbering{gobble}
+\newcommand{\coverpage}{%
+\begin{center}
+	\begin{tikzpicture}[overlay,remember picture]
+	    \draw [line width=3pt,rounded corners=0pt]
+	        ($ (current page.north west) + (25mm,-25mm) $)
+	        rectangle
+	        ($ (current page.south east) + (-15mm,25mm) $);
+	    \draw [line width=1pt,rounded corners=0pt]
+	        ($ (current page.north west) + (26.5mm,-26.5mm) $)
+	        rectangle
+	        ($ (current page.south east) + (-16.5mm,26.5mm) $);
+	\end{tikzpicture}
+	\\[1mm]
+	\textbf{\large ĐẠI HỌC QUỐC GIA HÀ NỘI\\[1mm]TRƯỜNG ĐẠI HỌC CÔNG NGHỆ}\\[0.7cm]
+	\includegraphics[width=0.26\linewidth]{figures/uet}\\[0.9cm]
+	\textbf{\large ĐỒ ÁN TỐT NGHIỆP}\\[0.7cm]
+	\large{\textbf{\tendetai}}
+	\\[1.1cm]
+	\begin{tabular}{@{}l@{\hspace{6mm}}l@{}}
+		\textbf{Người thực hiện:} & \tensinhvien \\[2mm]
+		\textbf{Email:} & \emailsv \\[2mm]
+		\textbf{Chuyên ngành:} & \nganh \\[2mm]
+		\textbf{GV hướng dẫn:} & \gvhd \\[2mm]
+		\textbf{GV đồng hướng dẫn:} & \gvdhd \\
+	\end{tabular}
+	\vfill
+	\textbf{HÀ NỘI - \namhoc}
+	\vspace{4mm}
+\end{center}
+}
+\coverpage

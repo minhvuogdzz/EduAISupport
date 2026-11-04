@@ -1,0 +1,21 @@
+\section{Bối cảnh nghiên cứu}
+
+\subsection{Nhu cầu dạy kèm cá nhân}
+Dạy kèm từng học sinh là một trong những can thiệp giáo dục hiệu quả nhất được biết đến. Bloom ước lượng nhóm học với gia sư vượt nhóm học theo lớp khoảng hai độ lệch chuẩn~\cite{bloom1984}. VanLehn tổng hợp các nghiên cứu về sau và báo cáo rằng các hệ thống gia sư thông minh hỗ trợ theo từng bước có hiệu quả gần với gia sư người~\cite{vanlehn2011}. Lớp học đông người không cho phép giáo viên theo sát từng em, nên khoảng cách giữa hiệu quả của dạy kèm và dạy theo lớp vẫn là động lực chính của hướng nghiên cứu này.
+
+Một học sinh lớp 5 gặp khó với khái niệm số thập phân hay với công thức diện tích thường cần được hỏi lại, được gợi ý đúng chỗ vướng và được tự nói ra cách làm của mình. Mỗi việc đó đòi hỏi nhiều thời gian của người dạy hơn mức một tiết học theo lớp có thể dành cho từng em. Gia sư tự động vì vậy có ý nghĩa như một công cụ bổ trợ, trong đó giáo viên vẫn giữ vai trò định hướng nội dung và theo dõi tiến bộ của học sinh.
+
+\subsection{Mô hình ngôn ngữ lớn trong dạy học: cơ hội và rủi ro}
+Mô hình ngôn ngữ lớn làm chi phí xây dựng một gia sư biết trò chuyện giảm mạnh. Khả năng hội thoại tự nhiên cho phép mô hình giải thích lại bằng nhiều cách khác nhau và trả lời những câu hỏi mà một hệ thống soạn sẵn không lường trước. Các khảo sát về ứng dụng của mô hình ngôn ngữ trong giáo dục ghi nhận đồng thời cơ hội đó và những thách thức đi kèm~\cite{kasneci2023}.
+
+Những thách thức này mang tính sư phạm hơn là kỹ thuật. Mô hình có xu hướng đưa ngay đáp án hoặc làm hộ bài khi học sinh yêu cầu~\cite{macina2023,tack2022}. Mô hình có thể đánh giá sai câu trả lời của học sinh, và mô hình không có khái niệm rõ ràng về việc học sinh đang ở vị trí nào trong chương trình. Lời nhắc đặt trong ngữ cảnh cũng có thể bị vô hiệu hóa bằng những câu lệnh như ``bỏ qua mọi hướng dẫn trước đó''~\cite{perez2022}.
+
+Bằng chứng thực nghiệm cho thấy cách thiết kế quyết định kết quả. Một thử nghiệm ngẫu nhiên có đối chứng ở trường trung học báo cáo rằng quyền dùng GPT-4 không ràng buộc cải thiện điểm luyện tập nhưng làm điểm kiểm tra sau đó kém đi, trong khi một lời nhắc theo kiểu gia sư giảm phần lớn tác hại đó~\cite{bastani2025}. Một thử nghiệm ngẫu nhiên khác cho thấy gia sư AI được thiết kế theo nguyên tắc sư phạm giúp sinh viên học tốt hơn lớp học tích cực~\cite{kestin2025}. Hai kết quả trái chiều này dẫn tới nhận định rằng giá trị của gia sư AI phụ thuộc vào cách thiết kế chứ không phụ thuộc vào việc có dùng mô hình ngôn ngữ hay không.
+
+\subsection{Dạy Toán lớp 5 bằng tiếng Việt}
+Toán lớp 5 là giai đoạn học sinh tiểu học chuyển từ phân số sang số thập phân và làm quen với các công thức tính diện tích hình phẳng. Hai nội dung này có nhiều lỗi quan niệm quen thuộc, chẳng hạn trẻ coi $0{,}25$ lớn hơn $0{,}3$ vì $25$ lớn hơn $3$, hoặc nhầm đường cao với cạnh bên của hình thang. Một gia sư hữu ích phải nhận ra những lỗi như vậy từ câu trả lời của trẻ và phản hồi đúng vào lỗi đó thay vì chỉ báo đúng hay sai.
+
+Tiếng Việt đặt thêm những yêu cầu riêng. Dấu phẩy là dấu phân cách phần thập phân, nên $0{,}9$ và $0.9$ cùng chỉ một số nhưng chỉ cách viết thứ nhất theo chuẩn của Việt Nam. Trẻ thường viết số bằng chữ (``không phẩy chín''), viết tắt không dấu (``ko bit'') hoặc thêm lời đệm vào câu trả lời. Một bộ chấm xây theo chuẩn quốc tế dễ bác nhầm những câu trả lời đúng ở dạng này. Mục~\ref{sec:eval-grading} đo mức độ nghiêm trọng của lỗi đó ở một chatbot thương mại.
+
+\subsection{Giới hạn về nguồn lực}
+Đồ án được thực hiện bởi một sinh viên cùng trợ lý lập trình AI, với mục tiêu tạo ra sản phẩm nội bộ để kiểm thử và chưa nhắm tới triển khai thương mại. Hạn chế này dẫn tới một ràng buộc thiết kế xuyên suốt: hệ thống ưu tiên dịch vụ miễn phí, mã nguồn mở và chạy cục bộ. Các mô hình ngôn ngữ miễn phí có hạn mức theo phút và theo ngày, nên hạn mức trở thành một yêu cầu thiết kế chứ không phải chi tiết triển khai (Mục~\ref{sec:nfr}).

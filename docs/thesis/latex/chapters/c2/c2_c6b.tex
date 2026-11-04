@@ -1,0 +1,30 @@
+\section{Bandit ngữ cảnh và đánh giá ngoài chính sách}
+
+\subsection{Bài toán bandit và đánh đổi giữa khai thác và thăm dò}
+Bài toán bandit nhiều tay mô tả một tác nhân phải chọn lặp đi lặp lại một trong số các lựa chọn, gọi là cánh tay, và chỉ quan sát được phần thưởng của cánh tay đã chọn~\cite{auer2002}. Tác nhân không biết trước cánh tay nào tốt nhất. Mỗi lần chọn cánh tay đang có vẻ tốt nhất là khai thác kiến thức hiện có, còn mỗi lần thử một cánh tay ít được biết đến là thăm dò để tìm ra lựa chọn tốt hơn. Đánh đổi giữa hai việc này là vấn đề trung tâm của bài toán, và thước đo chất lượng của một thuật toán là hối tiếc tích lũy, tức tổng chênh lệch giữa phần thưởng của lựa chọn tốt nhất và phần thưởng của lựa chọn thuật toán đã chọn~\cite{lattimore2020}.
+
+Dạy học là một bối cảnh tự nhiên của bài toán này. Mỗi lượt dạy đặt gia sư trước vài nước đi sư phạm cùng hợp lệ, chẳng hạn hỏi lại cách làm hoặc đưa gợi ý, và gia sư chỉ biết kết quả của nước đã chơi. Clement và cộng sự dùng bandit nhiều tay để chọn hoạt động cho từng học sinh trong một hệ gia sư thông minh~\cite{clement2015}, và Lan và Baraniuk đề xuất khung bandit ngữ cảnh để chọn hành động học tập cá nhân hóa~\cite{lan2016}.
+
+\subsection{Bandit ngữ cảnh}
+Bandit ngữ cảnh bổ sung vào bài toán một vector ngữ cảnh $x_t$ quan sát được trước mỗi lượt. Tác nhân nhận ở lượt $t$ ngữ cảnh $x_t$ và một tập cánh tay cho phép $\mathcal{A}_t$, chọn $a_t\in\mathcal{A}_t$ và nhận phần thưởng $r_t$ chỉ của cánh tay đã chọn. Mục tiêu là học chính sách $\pi(x,\mathcal{A})$ làm tổng phần thưởng lớn nhất, và hối tiếc sau $T$ lượt là
+\begin{equation}
+R_T=\sum_{t=1}^{T}\Big(\max_{a\in\mathcal{A}_t}\mu(x_t,a)-\mu(x_t,a_t)\Big),
+\label{eq:regret}
+\end{equation}
+trong đó $\mu(x,a)=\mathbb{E}[r\mid x,a]$ là phần thưởng kỳ vọng. Ngữ cảnh cho phép lựa chọn tốt nhất thay đổi theo từng học sinh: nước đi hợp với một em đang tự suy nghĩ có thể không hợp với một em đang bế tắc.
+
+\subsection{Thuật toán LinUCB và thăm dò $\varepsilon$-tham lam}
+LinUCB giả định phần thưởng kỳ vọng của mỗi cánh tay là hàm tuyến tính của ngữ cảnh, $\mu(x,a)=\theta_a^{\top}x$, và ước lượng $\theta_a$ bằng hồi quy ridge trên các lượt đã chọn cánh tay đó~\cite{li2010linucb}. Thuật toán tính $\hat\theta_a=A_a^{-1}b_a$, với $A_a=\lambda I+\sum x\,x^{\top}$ và $b_a=\sum r\,x$ cộng trên các lượt chọn $a$, rồi chọn cánh tay có cận trên tin cậy lớn nhất:
+\begin{equation}
+a_t=\arg\max_{a\in\mathcal{A}_t}\ \hat\theta_a^{\top}x_t+\alpha\sqrt{x_t^{\top}A_a^{-1}x_t}.
+\label{eq:linucb}
+\end{equation}
+Số hạng thứ hai là phần thưởng cho sự bất định: một cánh tay ít được chọn ở ngữ cảnh gần $x_t$ có $A_a^{-1}$ lớn nên được ưu tiên thăm dò. Hệ số $\alpha$ điều khiển mức thăm dò. Các tổng $\sum xx^{\top}$, $\sum rx$ và số lượt đều cộng được, nên trạng thái của LinUCB không phụ thuộc thứ tự các lượt chọn và tính lại được từ nhật ký bằng một phép gập, giống cách tính mức hiểu bài ở Mục~\ref{sec:beta-ref}. Đồ án thêm thăm dò $\varepsilon$-tham lam: với xác suất $1-\varepsilon$ thuật toán chọn theo công thức~\eqref{eq:linucb}, với xác suất $\varepsilon$ chọn ngẫu nhiên đều trong $\mathcal{A}_t$. Cách này làm mọi cánh tay có xác suất được chọn lớn hơn không và cho phép ghi lại xác suất của từng lượt chọn.
+
+\subsection{Đánh giá ngoài chính sách}
+Đánh giá một chính sách chưa từng chạy trên người học thật cần phương pháp ngoài chính sách: chỉ dùng nhật ký của một chính sách đã chạy. Ước lượng cho điểm theo nghịch đảo xác suất (IPS) dựa trên phép lấy mẫu của Horvitz và Thompson~\cite{horvitz1952}. Cho nhật ký $\{(x_t,a_t,r_t,p_t)\}$ với $p_t$ là xác suất chính sách ghi nhật ký đã chọn $a_t$, giá trị của chính sách đích tất định $\pi$ được ước lượng bởi
+\begin{equation}
+\hat V(\pi)=\frac{1}{T}\sum_{t=1}^{T}\frac{\mathbb{1}[\pi(x_t,\mathcal{A}_t)=a_t]\,r_t}{p_t}.
+\label{eq:ips}
+\end{equation}
+Ước lượng này không chệch khi $p_t>0$ cho mọi cánh tay mà chính sách đích có thể chọn, và phương sai tăng khi chính sách đích khác xa chính sách ghi nhật ký~\cite{li2011replay}. Đồ án vì vậy ghi xác suất của mỗi lượt chọn trong nhật ký sự kiện, điều mà một chính sách tham lam thuần túy không làm được.

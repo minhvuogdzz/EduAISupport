@@ -1,0 +1,34 @@
+\section{Các mô hình và hạ tầng suy luận được sử dụng}
+
+\subsection{Họ mô hình Qwen}
+Qwen là họ mô hình ngôn ngữ lớn do đội Qwen của Alibaba Cloud phát triển, với các thế hệ chính gồm Qwen~\cite{qwen2023}, Qwen2.5~\cite{qwen25} và Qwen3~\cite{qwen3}. Phần lớn mô hình được công bố trọng số mở, nhiều phiên bản theo giấy phép Apache 2.0. Các thế hệ gần đây dùng Transformer chỉ giải mã với chú ý truy vấn nhóm để giảm bộ nhớ khi suy luận, mã hóa vị trí xoay và chuẩn hóa RMSNorm. Qwen3 được tiền huấn luyện trên khoảng 36 nghìn tỉ token, hỗ trợ khoảng 119 ngôn ngữ và phương ngữ trong đó có tiếng Việt, gồm cả mô hình dày và mô hình hỗn hợp chuyên gia từ 0,6 đến 235 tỉ tham số. Một mô hình Qwen3 gộp hai chế độ, chế độ suy nghĩ cho bài khó và chế độ không suy nghĩ cho phản hồi nhanh~\cite{qwen3}.
+
+Đồ án dùng phiên bản \texttt{qwen/qwen3.8-27b} phục vụ qua Groq làm bộ não của gia sư ở giai đoạn đầu. Thẻ mô hình của Groq mô tả đây là mô hình dày 27 tỉ tham số, đa phương thức, có 64 lớp với kiến trúc lai Gated DeltaNet và Gated Attention, cửa sổ ngữ cảnh 131\,072 token và hai chế độ suy nghĩ chuyển bằng tham số \texttt{reasoning\_effort}~\cite{groqdocs}. Bốn lý do dẫn tới lựa chọn này. Tiếng Việt của mô hình tốt trong các mô hình miễn phí đã thử. Mô hình miễn phí trên Groq với hạn mức đủ cho giai đoạn thử nghiệm. Mô hình hỗ trợ đầu ra JSON theo lược đồ chặt, điều kiện cần cho bộ chọn nước đi và bộ đọc ngữ cảnh. Khả năng tắt chế độ suy luận là lý do cuối: đo thực tế cho thấy một lượt trả lời ngắn tốn khoảng 392 token khi để mặc định và khoảng 148 token khi tắt suy luận, vì phần suy luận vẫn bị tính vào hạn mức.
+
+\subsection{Các mô hình dự phòng và vai trò của Gemini}
+Hai mô hình gpt-oss-120b và gpt-oss-20b của OpenAI được dùng làm dự phòng khi Qwen không dùng được. Cả hai có kiến trúc hỗn hợp chuyên gia và giấy phép Apache 2.0, với 117 và 21 tỉ tham số, trong đó 5,1 và 3,6 tỉ tham số hoạt động cho mỗi token~\cite{gptoss2025}. Mô hình gpt-oss-120b còn là giám khảo trong các thực nghiệm, vì giám khảo cần khác họ với mô hình gia sư được chấm.
+
+Gemini là họ mô hình đa phương thức đọc được văn bản, ảnh và âm thanh~\cite{gemini2023}. Đồ án dùng Gemini cho hai việc: đọc ảnh và nhận dạng ký tự trên các trang tài liệu chụp hoặc quét cùng hình học trong đề, và tạo vector nhúng bằng mô hình \texttt{gemini-embedding-001} với 768 chiều. Chủ dự án cho phép đặt cả Gemini và các mô hình khác vào chuỗi viết lời của gia sư ở giai đoạn sau. Chuỗi hiện hành, theo thứ tự ưu tiên do chủ dự án chốt, là Gemini, gpt-oss-120b, Qwen và gpt-oss-20b, và Chương~\ref{chap:design} trình bày cách cổng AI điều phối chuỗi đó.
+
+Vector nhúng là cách biểu diễn một đoạn văn bản bằng một vector số sao cho các đoạn gần nghĩa có vector gần nhau, và độ gần thường đo bằng cosin của góc giữa hai vector. Mô hình nhúng được huấn luyện bằng học tương phản trên các cặp câu liên quan.
+
+\subsection{Hạ tầng suy luận Groq và hạn mức miễn phí}
+Groq cung cấp dịch vụ suy luận trên chip LPU do hãng tự thiết kế, cho tốc độ sinh token cao và độ trễ thấp, với giao diện tương thích OpenAI. Đồ án dùng gói miễn phí của Groq, và gói này có hạn mức theo phút và theo ngày như Bảng~\ref{tab:quota}.
+
+\begin{table}[ht]
+\centering
+\caption{Hạn mức gói miễn phí của Groq tại thời điểm đo (docs/poc/free-tier-quota.md).}
+\label{tab:quota}
+\small
+\begin{tabularx}{\linewidth}{@{}lXXXX@{}}
+\toprule
+Mô hình & Lần gọi/phút & Lần gọi/ngày & Token/phút & Token/ngày \\
+\midrule
+qwen/qwen3.8-27b & 30 & 1\,000 & 8\,000 & 200\,000 \\
+gpt-oss-120b, gpt-oss-20b & 30 & 1\,000 & 8\,000 & 200\,000 \\
+whisper-large-v3 & 20 & 2\,000 & \multicolumn{2}{l}{7\,200 giây âm thanh/giờ} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Hạn mức theo phút đo được thấp hơn con số công bố: Groq từ chối khi số token đầu vào vượt khoảng 7\,000 trong một phút. Một ngày đủ cho khoảng bốn buổi học dùng hết trần gọi, vì mỗi lần gọi Qwen tốn trung bình 1\,126 token (đo trên hai buổi mô phỏng). Hệ quả thiết kế là mỗi lời nhắc không quá 3\,000 token, mỗi buổi học có trần số lần gọi mô hình, và hệ thống phải xử lý được tình huống mô hình tạm hết hạn mức mà không làm gián đoạn buổi học. Đây là một ràng buộc thiết kế chứ không phải chi tiết triển khai.

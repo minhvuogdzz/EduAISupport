@@ -1,0 +1,31 @@
+\section{Bộ chọn nước đi bằng bandit}\label{sec:eval-bandit}
+
+\subsection{Môi trường mô phỏng}
+Câu hỏi thứ năm (RQ5) hỏi bộ chọn bandit học được lựa chọn phụ thuộc ngữ cảnh nhanh đến đâu và log của nó có đủ để đánh giá một chính sách khác hay không. Việc trả lời cần một môi trường trong đó nước đi tốt nhất thay đổi theo học sinh, nên đồ án dựng một môi trường mô phỏng khai báo thay vì dùng dữ liệu của trẻ thật, vì chưa có đủ dữ liệu thật để huấn luyện hay đánh giá. Môi trường sinh ở mỗi lượt tình hình của học sinh với chín thành phần của vector ngữ cảnh, sinh một trong ba loại thực đơn mà chính sách có thể đưa ra, rồi quyết định học sinh trả lời đúng hay sai ở câu kế tiếp. Xác suất trả lời đúng là hàm logistic của ngữ cảnh với một vector trọng số riêng cho mỗi nước đi. Nước hỏi lại cách làm có xác suất cao với học sinh đang tự suy nghĩ và thấp với học sinh bế tắc, còn các gợi ý ở bậc cao có xu hướng ngược lại. Nước tốt nhất là hỏi lại cách làm ở $44\%$ ngữ cảnh, gợi ý bậc một ở $38\%$ và gợi ý bậc hai ở $18\%$, nên bandit có điều để học.
+
+Môi trường này là một khai báo của đồ án, không phải số đo trên học sinh. Kết quả vì vậy cho biết thuật toán có học được lựa chọn phụ thuộc ngữ cảnh hay không và học nhanh ra sao, không cho biết nước đi nào giúp học sinh thật. Chính sách của hệ thống không có cách nào làm tốt hơn trên môi trường này vì nó không đọc ngữ cảnh, nên khoảng cách giữa chính sách và bandit ở bảng dưới phản ánh cách khai báo môi trường chứ không phản ánh dữ liệu thật.
+
+\subsection{Các chính sách so sánh}
+Năm chính sách được so sánh. Chính sách thứ nhất là nước mặc định của chính sách dạy, tức nước đứng đầu thực đơn, là hành vi của hệ thống khi không có bộ chọn nào. Chính sách ngẫu nhiên chọn đều trong thực đơn. Chính sách giúp ít nhất luôn chọn nước giúp ít nhất, một quy tắc thủ công hợp lý theo nguyên tắc Socratic. Hai biến thể của bandit gồm bản đang cấu hình ($\alpha=0{,}5$, $\varepsilon=0{,}1$) và bản không thăm dò ngẫu nhiên ($\varepsilon=0$). Oracle biết xác suất thật và chọn nước tốt nhất, cho cận trên.
+
+\subsection{Kết quả}
+Mỗi chính sách chạy $3\,000$ lượt trên $30$ hạt giống ngẫu nhiên, và Bảng~\ref{tab:bandit-results} báo trung bình cùng khoảng tin cậy $95\%$ của hối tiếc tích lũy, tỉ lệ chọn đúng nước tốt nhất và phần thưởng trung bình ở một phần tư số lượt cuối.
+
+\input{figures/tab-bandit}
+
+Bandit giảm hối tiếc tích lũy từ $878{,}9$ của nước mặc định xuống $93{,}5$, tức xuống dưới $11\%$, và còn khoảng một phần tư hối tiếc của quy tắc giúp ít nhất. Bandit chọn đúng nước tốt nhất ở $83{,}3\%$ số lượt trong một phần tư cuối và đạt phần thưởng $0{,}759$ so với $0{,}783$ của oracle. Hình~\ref{fig:bandit-regret} cho thấy hối tiếc trung bình mỗi lượt của bandit giảm nhanh trong vài trăm lượt đầu rồi ổn định ở mức thấp, trong khi các chính sách cố định giữ nguyên mức hối tiếc của mình.
+
+\begin{figure}[ht]
+\centering
+\input{figures/fig-bandit-regret}
+\caption{Hối tiếc trung bình mỗi lượt, tính theo khối $100$ lượt và trung bình trên $30$ hạt giống. Các chính sách cố định không học nên giữ nguyên mức hối tiếc.}
+\label{fig:bandit-regret}
+\end{figure}
+
+Bản bandit không thăm dò có hối tiếc trung bình thấp hơn nhưng khoảng tin cậy rộng hơn mười lần ($73{,}9\pm41{,}0$ so với $93{,}5\pm3{,}0$). Một số hạt giống của bản này kẹt ở một cánh tay xấu vì thuật toán không bao giờ thử lại cánh tay khác khi các cánh tay đều có điểm gần nhau. Thăm dò ngẫu nhiên $\varepsilon=0{,}1$ giữ độ rộng này ở mức nhỏ, và đồng thời cho xác suất dương cho mọi lượt chọn, điều kiện cần của đánh giá ngoài chính sách ở mục sau.
+
+\subsection{Đánh giá ngoài chính sách từ nhật ký}
+Một bandit với $\varepsilon=0{,}3$ chạy $3\,000$ lượt trên mỗi hạt giống và ghi xác suất của từng lượt chọn. Công thức~\eqref{eq:ips} ước lượng từ nhật ký đó giá trị của hai chính sách đích tất định chưa từng chạy, gồm chính sách giúp ít nhất và oracle. Ước lượng cho chính sách giúp ít nhất là $0{,}665\pm0{,}007$ so với giá trị thật $0{,}661$, và cho oracle là $0{,}788\pm0{,}006$ so với $0{,}782$. Sai lệch nằm trong khoảng tin cậy của ước lượng, nên nhật ký của bandit đủ để so sánh các chính sách đích mà không cần chạy chúng trên học sinh. Đây là lý do đồ án ghi xác suất của mỗi lượt chọn vào nhật ký sự kiện.
+
+\subsection{Thảo luận và giới hạn}
+Kết quả chứng minh được rằng bộ chọn bandit học một lựa chọn phụ thuộc ngữ cảnh trong vài trăm lượt, không bao giờ chọn nước ngoài thực đơn của chính sách và để lại nhật ký đủ dùng cho đánh giá ngoài chính sách. Kết quả không chứng minh bandit giúp học sinh thật học tốt hơn, vì môi trường là khai báo. Phần thưởng chỉ nhìn một câu trả lời kế tiếp, nên bandit có thể ưa nước làm học sinh đúng ngay hơn nước giúp học sinh hiểu sâu. Hệ số chi phí của sự giúp đỡ và các tham số của thuật toán chưa được chủ dự án duyệt, và bộ chọn bandit chưa chạy trên buổi học thật nên chưa là cấu hình mặc định. Bandit gộp dữ liệu của cả trường chứ chưa tách theo từng học sinh, và các cánh tay hiếm xuất hiện trong thực đơn học chậm hơn các cánh tay phổ biến.

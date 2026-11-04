@@ -1,0 +1,32 @@
+\section{Mô hình ngôn ngữ lớn}
+
+\subsection{Nguyên lý hoạt động}
+Mô hình ngôn ngữ ước lượng xác suất của một chuỗi từ. Các mô hình ngôn ngữ lớn hiện nay là mô hình tự hồi quy: mô hình nhận một đoạn văn bản, dự đoán token tiếp theo rồi lặp lại bước đó để sinh văn bản. Văn bản được cắt thành các đơn vị con bằng thuật toán như Byte-Pair Encoding, và tiếng Việt có dấu thường tốn nhiều token hơn tiếng Anh cho cùng một ý. Chi phí và giới hạn độ dài vì vậy bị ảnh hưởng trực tiếp khi dùng tiếng Việt.
+
+Kiến trúc Transformer là nền của các mô hình này~\cite{vaswani2017}. Cơ chế tự chú ý cho phép mỗi token ``nhìn'' mọi token đứng trước với trọng số học được, nhiều đầu chú ý chạy song song và mã hóa vị trí cho biết thứ tự. Các mô hình sinh văn bản dùng kiến trúc chỉ có bộ giải mã. Giai đoạn tiền huấn luyện dạy mô hình dự đoán token tiếp theo trên khối văn bản rất lớn, nhờ đó mô hình học được ngôn ngữ và kiến thức chung. Giai đoạn tinh chỉnh theo chỉ dẫn và học tăng cường từ phản hồi của người sau đó dạy mô hình làm theo yêu cầu và trả lời theo cách người đánh giá ưa thích~\cite{ouyang2022}.
+
+\subsection{Cách sử dụng trong hệ thống}
+Mô hình làm theo chỉ dẫn và ví dụ đặt trong lời nhắc mà không cần huấn luyện lại, một khả năng gọi là học trong ngữ cảnh~\cite{brown2020}. Lời nhắc hệ thống đặt vai trò và luật cho mô hình, còn cửa sổ ngữ cảnh giới hạn tổng độ dài của lời nhắc và câu trả lời. Một số mô hình có chế độ suy luận, trong đó mô hình sinh thêm một chuỗi suy nghĩ trước câu trả lời; chế độ này chính xác hơn với bài khó nhưng tốn nhiều token và chậm hơn. Chương trình có thể yêu cầu mô hình trả về JSON theo một lược đồ để đọc được kết quả bằng máy. Tham số nhiệt độ điều khiển độ ngẫu nhiên của đầu ra, và nhiệt độ thấp cho câu trả lời ổn định hơn.
+
+\subsection{Các giới hạn liên quan tới dạy học}
+Năm giới hạn của mô hình ngôn ngữ liên quan trực tiếp tới dạy học. Ảo giác là hiện tượng mô hình nói tự tin những điều không đúng hoặc không có căn cứ~\cite{ji2023}. Xu hướng chiều người dùng làm mô hình dễ đồng ý với học sinh, kể cả khi học sinh sai. Việc được tối ưu để hữu ích khiến mô hình hay giải hộ và để lộ đáp án~\cite{macina2023}. Tấn công chèn lời nhắc xảy ra khi lời của người dùng hoặc dữ liệu ngoài chứa chỉ thị làm mô hình đổi hành vi~\cite{perez2022,greshake2023}. Tính không tất định và khó kiểm toán là giới hạn cuối: cùng một đầu vào có thể cho đầu ra khác nhau, và mô hình không giải thích được vì sao chọn một cách dạy. Bảng~\ref{tab:llm-limits} đối chiếu từng giới hạn với cách đồ án ứng phó.
+
+\begin{table}[ht]
+\centering
+\caption{Giới hạn của mô hình ngôn ngữ lớn trong dạy học và cơ chế ứng phó của đồ án.}
+\label{tab:llm-limits}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}XX@{}}
+\toprule
+Giới hạn & Biểu hiện trong dạy học & Cơ chế ứng phó \\
+\midrule
+Ảo giác & Khẳng định kiến thức hoặc số liệu không có căn cứ & Truy xuất có ràng buộc theo đồ thị; kiểm số và thuật ngữ so với nguồn \\
+Chiều người dùng & Đồng ý với đáp án sai của học sinh & Bộ chấm tất định quyết định đúng sai \\
+Lộ đáp án & Giải hộ khi học sinh nhờ & Đáp án câu kiểm tra không có trong lời nhắc; bộ kiểm chứng quét đáp án \\
+Chèn lời nhắc & Lời học sinh làm đổi vai và luật & Lời học sinh và đoạn nguồn chỉ là dữ liệu; chính sách nằm ngoài mô hình \\
+Không tất định & Mức hiểu bài khó tái lập & Mô hình không ghi điểm; mức hiểu bài là phép chiếu từ sổ sự kiện \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Các giới hạn này là lý do đồ án không để mô hình ngôn ngữ quyết định nước đi, chấm điểm hay ghi mức hiểu bài. Phần còn lại của chương xem xét các thành phần tất định thay thế cho những việc đó.

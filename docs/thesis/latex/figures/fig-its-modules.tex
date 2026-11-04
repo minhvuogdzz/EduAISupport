@@ -1,0 +1,17 @@
+\begin{tikzpicture}[font=\footnotesize,
+  mod/.style={draw=black,line width=0.5pt,fill=white,align=center,minimum height=17mm,text width=42mm,inner sep=2pt},
+  llm/.style={mod,fill=gray!30,dashed,line width=0.7pt,text width=40mm,minimum height=13mm},
+  arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
+  lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
+\node[mod] (dom) at (0,0) {\textbf{Mô-đun miền tri thức}\\\scriptsize kiến thức, lời giải, lỗi thường gặp\\[1pt]\scriptsize\itshape CAVAT: gói chương, đồ thị};
+\node[mod] (stu) at (6.0,0) {\textbf{Mô-đun người học}\\\scriptsize ước lượng đã biết gì, sai gì\\[1pt]\scriptsize\itshape CAVAT: phép chiếu mức hiểu bài};
+\node[mod] (tut) at (3.0,-3.3) {\textbf{Mô-đun sư phạm}\\\scriptsize dạy gì tiếp, gợi ý ra sao\\[1pt]\scriptsize\itshape CAVAT: luật N-*, R-*};
+\node[mod] (ui) at (3.0,-6.6) {\textbf{Mô-đun giao diện}\\\scriptsize nơi học sinh tương tác\\[1pt]\scriptsize\itshape CAVAT: web, giọng nói};
+\node[llm] (lm) at (9.4,-4.95) {\textbf{Mô hình ngôn ngữ}\\\scriptsize chỉ diễn đạt lời gia sư};
+\draw[arr] (dom.south) -- ++(0,-0.6) -| ([xshift=-6mm]tut.north);
+\draw[arr] (stu.south) -- ++(0,-0.6) -| ([xshift=6mm]tut.north);
+\draw[arr] (tut) -- (ui);
+\draw[arr,dashed] (tut.east) -| (lm.north);
+\draw[arr,dashed] (lm.south) |- ([yshift=3mm]ui.east);
+\draw[arr] ([yshift=-3mm]ui.east) -- (12.4,-6.9) |- node[lab,pos=0.2,right]{câu trả lời} (stu.east);
+\end{tikzpicture}

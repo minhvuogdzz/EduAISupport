@@ -1,0 +1,17 @@
+\begin{center}
+\textbf{\large{Abstract}	}
+\end{center}
+
+\addcontentsline{toc}{chapter}{Abstract}
+
+\begin{small}
+Large language models make it cheap and fast to build a conversational tutor, but they carry documented pedagogical risks: they tend to reveal answers immediately, may misjudge student responses, and have no notion of where a student stands in the curriculum. This thesis studies a different design in which the learning system is built first and the language model plays only a narrow role of verbalisation inside it.
+
+The design is realised in CAVAT, a Vietnamese Grade 5 mathematics tutor covering the chapters ``Decimals'' and ``Areas of triangles and trapezoids'', deployed as Monkey Edu. A versioned deterministic policy chooses each Socratic move and hint level. A deterministic checker following Vietnamese number notation decides whether an answer is correct. Mastery is a versioned projection replayable from an append-only event log. The tutor's knowledge comes from the teacher's own documents, which are read, answer-checked and organised into a knowledge graph, then retrieved with a graph-constrained hybrid of keyword and vector search. The language model only phrases the tutor's words, and every utterance passes a validator before reaching the student. A contextual bandit (LinUCB) chooses among the moves the policy allows and learns from the student's next answer.
+
+Experiments on the two chapters show that graph-constrained hybrid retrieval matches the accuracy of flat retrieval while never surfacing content of later lessons among the top results. In a declared simulated environment the bandit cuts cumulative regret to below one ninth of the policy's default move. In simulated dialogues the system never reveals an answer, whereas a commercial chatbot with a plain prompt reveals it in most turns. The thesis also reports limitations, the most important being that learning outcomes have not yet been evaluated with real students.
+
+\vspace*{1cm}
+\textbf{Keywords}: \textit{intelligent tutoring systems}, \textit{large language models}, \textit{Socratic method}, \textit{retrieval-augmented generation}, \textit{knowledge graph}, \textit{knowledge tracing}, \textit{contextual bandits}.
+
+\end{small}
