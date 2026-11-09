@@ -242,7 +242,7 @@ export interface KnowledgeRelation {
 export interface TeachingView {
   chapter: { chapter_id: string; title: string };
   current_node_id: string | null;
-  /** 1–7: step of the teaching cycle (plan v1, 5.2). */
+  /** 1–6: step of the teaching cycle (plan v1, 5.2, ADR-059). */
   step: number | null;
   awaiting: TeachingAwaiting;
   /** Sent back as `item_attempt_id` with the student's reply. */

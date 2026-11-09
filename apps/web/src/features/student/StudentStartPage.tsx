@@ -19,6 +19,7 @@ import {
 import { LIFECYCLE_LABEL, minutesText, QUALITY_TONE, studentWords } from "../../components/labels";
 import { Mascot } from "../../components/Mascot";
 import { formatViDateTime } from "../../lib/viNumber";
+import { SubjectSwitch } from "../english/SubjectSwitch";
 import { ChapterPicker } from "../teaching/ChapterPicker";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
 import { readLastSessionId, rememberSession } from "./lastSession";
@@ -73,6 +74,7 @@ export function StudentStartPage() {
     <AppShell>
       <title>Học sinh · Monkey Edu</title>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8">
+        <SubjectSwitch current="math" />
         <section className="student-welcome">
           <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
             <div>

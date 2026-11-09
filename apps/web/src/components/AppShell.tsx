@@ -62,9 +62,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
             {landing && (
               <nav aria-label="Điều hướng nhanh" className="public-nav">
+                <a href="#subjects">Môn học</a>
                 <a href="#learning">Cách học</a>
-                <a href="#benefits">Lợi ích</a>
-                <a href="#comparison">Điểm khác biệt</a>
+                <a href="#for-everyone">Đồng hành</a>
                 <a href="#buddy">Monkey Buddy</a>
               </nav>
             )}

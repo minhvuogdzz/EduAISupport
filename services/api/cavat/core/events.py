@@ -234,7 +234,7 @@ class ItemResolved(_Payload):
 
 
 class RetellJudged(_Payload):
-    """The student's own retell of a node ("con nói lại", plan v1 step 3), judged against its key ideas.
+    """The student's own retell of a node ("con nói lại", plan v1 step 2), judged against its key ideas.
 
     ``score`` is the share of key ideas found. RUBRIC_RULE is the deterministic keyword rubric of
     milestone 1; an LLM label (milestone 2) is only a proposal and keeps its confidence (PART 26.5).

@@ -35,11 +35,11 @@ interface ChapterSessionProps {
 /** What the card above an item says in a chapter session: the step of the cycle it belongs to. */
 const ITEM_STEP_LABEL: Record<number, string> = {
   1: "Ôn bài nền",
-  3: "Kiểm tra hiểu",
-  4: "Cô làm cùng con",
-  5: "Luyện tập",
-  6: "Vận dụng",
-  7: "Ôn bài cũ",
+  2: "Kiểm tra hiểu",
+  3: "Cô làm cùng con",
+  4: "Luyện tập",
+  5: "Vận dụng",
+  6: "Ôn bài cũ",
 };
 
 /**

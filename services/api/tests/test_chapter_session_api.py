@@ -90,13 +90,13 @@ def advance(client, state: dict, key: str, text: str | None = None) -> dict:
 def test_the_teaching_loop_runs_through_the_session_api(client):
     state = start(client)
     teaching = state["teaching"]
-    assert (teaching["awaiting"], teaching["current_node_id"], teaching["step"]) == ("THEORY_REPLY", FRAC, 2)
+    assert (teaching["awaiting"], teaching["current_node_id"], teaching["step"]) == ("THEORY_REPLY", FRAC, 1)
     assert state["item"] is None and state["allowed_commands"] == ["ANSWER"]
     assert [t["kind"] for t in state["transcript"]] == ["NODE", "THEORY"]
     assert teaching["prompt"] == CHAPTER.node(FRAC).theory[0].ask
 
     state = advance(client, state, "k0")
-    assert state["teaching"]["awaiting"] == "ANSWER" and state["teaching"]["step"] == 3
+    assert state["teaching"]["awaiting"] == "ANSWER" and state["teaching"]["step"] == 2
     assert (
         state["item"]["item_id"] == "TP-CC-01"
         and state["teaching"]["input_id"] == state["item"]["item_attempt_id"]

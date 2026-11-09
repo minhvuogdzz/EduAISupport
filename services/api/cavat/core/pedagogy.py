@@ -143,19 +143,19 @@ class TeachAction(StrEnum):
     """What the node teaching policy decides (plan v1, 5.4). One action per decision."""
 
     ENTER_NODE = "ENTER_NODE"
-    WARMUP_ITEM = "WARMUP_ITEM"  # step 1: a quick item of a prerequisite
+    WARMUP_ITEM = "WARMUP_ITEM"  # step 1 (revise and teach the base): a quick item of a prerequisite
     RECALL_PRIOR = "RECALL_PRIOR"  # step 1 (DI-52): recall a related node learnt before
     SWITCH_TO_PREREQUISITE = "SWITCH_TO_PREREQUISITE"  # the current node waits; teach the prerequisite
-    TEACH_THEORY = "TEACH_THEORY"  # step 2 (and re-teaching): one theory variant
-    CHECK_ITEM = "CHECK_ITEM"  # step 3: a concept-check item
-    ASK_RETELL = "ASK_RETELL"  # step 3: "con nói lại" the rule in the student's own words
-    SHOW_WORKED_EXAMPLE = "SHOW_WORKED_EXAMPLE"  # step 4: "cô làm mẫu"
-    COMPLETION_ITEM = "COMPLETION_ITEM"  # step 4: "cô làm nửa, con làm nửa"
-    PRACTICE_ITEM = "PRACTICE_ITEM"  # step 5
-    TRANSFER_ITEM = "TRANSFER_ITEM"  # step 6
+    TEACH_THEORY = "TEACH_THEORY"  # step 1 (and re-teaching): one theory variant
+    CHECK_ITEM = "CHECK_ITEM"  # step 2: a concept-check item
+    ASK_RETELL = "ASK_RETELL"  # step 2: "con nói lại" the rule in the student's own words
+    SHOW_WORKED_EXAMPLE = "SHOW_WORKED_EXAMPLE"  # step 3: "cô làm mẫu"
+    COMPLETION_ITEM = "COMPLETION_ITEM"  # step 3: "cô làm nửa, con làm nửa"
+    PRACTICE_ITEM = "PRACTICE_ITEM"  # step 4
+    TRANSFER_ITEM = "TRANSFER_ITEM"  # step 5
     REVIEW_ITEM = "REVIEW_ITEM"  # interleaved review of a node passed before
-    PASS_NODE = "PASS_NODE"  # step 7
-    STOP_NODE = "STOP_NODE"  # step 7: out of budget or items, "cần học lại"
+    PASS_NODE = "PASS_NODE"  # step 6
+    STOP_NODE = "STOP_NODE"  # step 6: out of budget or items, "cần học lại"
     FINISH = "FINISH"
 
 

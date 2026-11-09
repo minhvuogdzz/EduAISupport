@@ -1,231 +1,352 @@
-import { useState } from "react";
-import { Mascot } from "../components/Mascot";
-import { BookIcon, ChartIcon, UsersIcon } from "../components/icons";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+
+import { Burst } from "../components/Burst";
+import { CalculatorIcon, GlobeIcon, StarIcon } from "../components/icons";
+import { Mascot, type Mood } from "../components/Mascot";
+import "./home.css";
+import { Wave } from "./Wave";
+
+type Subject = "math" | "english";
+
+const STEPS: { title: string; text: string; caption: string; mood: Mood }[] = [
+  {
+    title: "Bắt đầu từ điều con nhìn thấy.",
+    text: "Một hình vẽ, một tình huống quen thuộc để con có chỗ dựa khi suy nghĩ.",
+    caption: "Nhìn một chút",
+    mood: "happy",
+  },
+  {
+    title: "Một câu hỏi. Một lần tự nghĩ.",
+    text: "Buddy gợi mở và lắng nghe cách con giải thích. Còn vướng thì mình thử cách khác.",
+    caption: "Thử nghĩ xem",
+    mood: "thinking",
+  },
+  {
+    title: "Hiểu rồi, con nói lại thử nhé.",
+    text: "Con tự nói được cách làm, Buddy nhận ra chỗ cần ôn và chọn bước tiếp theo.",
+    caption: "Nói theo cách của con",
+    mood: "encouraging",
+  },
+];
+
+const EXAMPLES: Record<Subject, { question: string; answer: string; lang?: string }[]> = {
+  math: [
+    { question: "Có 3 trong 10 phần được tô màu.", answer: "Ba phần mười" },
+    { question: "Ba phần mười viết bằng số thập phân thế nào?", answer: "3/10 = 0,3" },
+    { question: "Vì sao 0,3 bằng ba phần mười?", answer: "Vì 3 ở hàng phần mười!" },
+  ],
+  english: [
+    { question: "Hai bạn gặp nhau lần đầu và vẫy tay.", answer: "Hello!", lang: "en" },
+    { question: "Bạn hỏi “What's your name?”. Con đáp thế nào?", answer: "My name is Buddy.", lang: "en" },
+    { question: "Khi nào mình nói “Nice to meet you”?", answer: "Khi lần đầu gặp bạn!" },
+  ],
+};
+
+const WORDS = [
+  { word: "hello", meaning: "xin chào" },
+  { word: "friend", meaning: "bạn bè" },
+  { word: "school", meaning: "trường học" },
+  { word: "family", meaning: "gia đình" },
+];
 
 const LOOP = [
   [
-    "Ôn bài nền",
-    "Bắt đầu từ điều con đã biết.",
-    "Một câu ôn nhỏ giúp Buddy nhận ra phần kiến thức nền cần nhắc lại.",
-  ],
-  [
-    "Giảng bài",
-    "Hiểu vì sao, trước khi ghi nhớ.",
-    "Lý thuyết được giải thích qua những hình ảnh và ví dụ gần gũi.",
+    "Ôn và giảng bài nền",
+    "Nhắc lại điều con biết, rồi hiểu vì sao.",
+    "Một câu ôn nhỏ giúp Buddy nhận ra phần nền cần nhắc lại, rồi lý thuyết được giải thích qua hình ảnh và ví dụ gần gũi.",
   ],
   [
     "Kiểm tra hiểu",
     "Con thử nói theo cách của mình.",
-    "Một câu hỏi ngắn hoặc một lời giải thích để nhìn rõ điều con vừa hiểu và điều còn đang vướng.",
+    "Một câu hỏi ngắn để nhìn rõ điều con vừa hiểu và điều còn vướng.",
   ],
-  [
-    "Học cách làm",
-    "Cùng nhìn một cách làm.",
-    "Con khám phá phương pháp và xem ví dụ từng bước, với lý do cho cách làm đó.",
-  ],
-  [
-    "Luyện tập",
-    "Đến lượt con tự thử sức.",
-    "Con thực hành, nhận gợi ý theo mức cần thiết và quay lại tự làm.",
-  ],
-  [
-    "Vận dụng",
-    "Mang điều đã hiểu sang bài mới.",
-    "Một tình huống khác giúp kiểm tra khả năng vận dụng kiến thức.",
-  ],
-  [
-    "Qua bài",
-    "Đi tiếp khi đã có đủ bằng chứng.",
-    "Hệ thống đối chiếu các điều kiện qua bài, lưu tiến bộ và chọn bước học tiếp theo.",
-  ],
+  ["Học cách làm", "Cùng nhìn một cách làm.", "Con xem ví dụ từng bước, với lý do cho cách làm đó."],
+  ["Luyện tập", "Đến lượt con tự thử sức.", "Con thực hành, nhận gợi ý vừa đủ và quay lại tự làm."],
+  ["Vận dụng", "Mang điều đã hiểu sang bài mới.", "Một tình huống khác để thử khả năng vận dụng."],
+  ["Qua bài", "Đi tiếp khi đã có đủ bằng chứng.", "Hệ thống đối chiếu điều kiện qua bài và lưu tiến bộ."],
 ];
-export function CorePromise() {
+
+function loopMood(step: number): Mood {
+  if (step === 5) return "celebrating";
+  if (step === 2) return "listening";
+  return step === 1 ? "thinking" : "encouraging";
+}
+
+function TenGrid({ parts }: { parts: number }) {
   return (
-    <section className="core-promise" aria-label="Giá trị cốt lõi Monkey Edu">
-      <p className="eyebrow">HỌC ĐỂ HIỂU. CÓ NGƯỜI ĐỒNG HÀNH.</p>
-      <div>
-        {[
-          ["01", "Con tự tìm ra cách làm", "Gia sư gợi mở, từng bước một."],
-          ["02", "Tiến bộ có bằng chứng", "Nhìn cả cách nghĩ, không chỉ đáp án."],
-          ["03", "Thầy cô giữ định hướng", "Nội dung được quản lý và có bước duyệt."],
-        ].map(([id, title, text]) => (
-          <article data-reveal key={id}>
-            <span>{id}</span>
-            <div>
-              <h2>{title}</h2>
-              <p>{text}</p>
+    <div className="hm-ten" role="img" aria-label={`${parts} trong 10 phần được tô màu`}>
+      {Array.from({ length: 10 }, (_, i) => (
+        <span key={i} className={i < parts ? "is-on" : ""} style={{ "--i": i } as CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
+/** The worked example of how a lesson goes; one way of learning, shown in either subject. */
+function LearningStory() {
+  const [subject, setSubject] = useState<Subject>("math");
+  const [step, setStep] = useState(0);
+  const example = EXAMPLES[subject][step];
+  return (
+    <section id="learning" className="hm-section">
+      <div className="hm-intro" data-reveal>
+        <p className="hm-kicker">Cách mình học</p>
+        <h2>
+          Từ “con chưa biết” <mark>đến “con làm được”.</mark>
+        </h2>
+      </div>
+      <div className="hm-toggle" role="group" aria-label="Xem ví dụ theo môn" data-reveal>
+        <button aria-pressed={subject === "math"} onClick={() => setSubject("math")}>
+          <CalculatorIcon /> Toán
+        </button>
+        <button aria-pressed={subject === "english"} onClick={() => setSubject("english")}>
+          <GlobeIcon /> Tiếng Anh
+        </button>
+      </div>
+      <div className="hm-story" data-reveal>
+        <div className="hm-story-steps" role="group" aria-label="Các bước minh họa">
+          {STEPS.map((item, i) => (
+            <button key={item.caption} aria-pressed={step === i} onClick={() => setStep(i)}>
+              <span className="hm-index">{i + 1}</span>
+              <span>
+                <strong>{item.title}</strong>
+                <small>{item.text}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className={`hm-story-card is-${subject}`} key={`${subject}-${step}`}>
+          <p className="hm-story-caption">{STEPS[step].caption}</p>
+          {subject === "math" ? (
+            <TenGrid parts={3} />
+          ) : (
+            <div className="hm-chat-scene" aria-hidden="true">
+              <span lang="en">Hello!</span>
+              <span lang="en">Hi!</span>
             </div>
-          </article>
-        ))}
+          )}
+          <p className="hm-story-question">{example.question}</p>
+          <p className="hm-story-answer" lang={example.lang}>
+            {example.answer}
+          </p>
+          <Mascot size={92} mood={STEPS[step].mood} animated />
+          <small className="hm-note">Minh họa cách học, không phải buổi học thật</small>
+        </div>
       </div>
     </section>
   );
 }
-export function LearningExperience() {
-  const [parts, setParts] = useState(3);
-  const [step, setStep] = useState(0);
+
+function WordFlip({ word, meaning }: { word: string; meaning: string }) {
+  const [open, setOpen] = useState(false);
+  const [fire, setFire] = useState(0);
   return (
-    <>
-      <section className="lesson-lab" id="try-math">
-        <div data-reveal>
-          <p className="eyebrow">CHẠM MỘT CHÚT. HIỂU THÊM MỘT CHÚT.</p>
+    <button
+      type="button"
+      className={`flip-card tone-coral ${open ? "is-open" : ""}`}
+      aria-pressed={open}
+      onClick={() => {
+        setOpen(!open);
+        if (!open) setFire((value) => value + 1);
+      }}
+    >
+      <span className="flip-inner">
+        <span className="flip-face">
+          <strong lang="en">{word}</strong>
+          <small>Chạm để lật</small>
+        </span>
+        <span className="flip-face flip-back">
+          <strong>{meaning}</strong>
+        </span>
+      </span>
+      <Burst fire={fire} />
+    </button>
+  );
+}
+
+/** Two small things to touch: a slider for decimals and word cards for English. Neither is graded. */
+function TryIt() {
+  const [parts, setParts] = useState(3);
+  return (
+    <section id="try" className="hm-band">
+      <Wave colour="#fff6df" flip />
+      <div className="hm-section">
+        <div className="hm-intro" data-reveal>
+          <p className="hm-kicker">Chạm một chút, hiểu thêm một chút</p>
           <h2>
-            Đổi một chữ số.
-            <br />
-            <em>Thấy ngay ý nghĩa.</em>
+            Thử ngay <mark>ở đây.</mark>
           </h2>
-          <p>
-            Toán không chỉ nằm trên dòng chữ. Kéo thanh bên cạnh và nhìn số thập phân thành một phần của cả
-            chiếc bánh.
-          </p>
-          <span className="lab-caption">Minh họa tương tác · Không phải bài kiểm tra</span>
+          <p>Minh họa tương tác, không phải bài kiểm tra.</p>
         </div>
-        <div className="lab-notebook" data-reveal>
-          <div className="lab-paper-top">
-            <span>SỔ KHÁM PHÁ CỦA CON</span>
-            <BookIcon aria-hidden="true" />
-          </div>
-          <div className="lab-grid" aria-label={`${parts} trong 10 phần được tô màu`}>
-            {Array.from({ length: 10 }, (_, i) => (
-              <span key={i} className={i < parts ? "is-filled" : ""} />
-            ))}
-          </div>
-          <div className="lab-equation">
-            <span>
-              <sup>{parts}</sup>
-              <sub>10</sub>
-            </span>
-            <span>=</span>
-            <strong>0,{parts}</strong>
-            <Mascot size={82} mood="encouraging" />
-          </div>
-          <label htmlFor="fraction-parts">
-            Tô màu <output htmlFor="fraction-parts">{parts}</output> trong 10 phần
-          </label>
-          <input
-            id="fraction-parts"
-            type="range"
-            min="1"
-            max="9"
-            value={parts}
-            onChange={(event) => setParts(Number(event.target.value))}
-            aria-valuetext={`${parts} phần mười, bằng 0 phẩy ${parts}`}
-          />
-          <div className="lab-range-labels">
-            <span>1 phần mười</span>
-            <span>9 phần mười</span>
-          </div>
-        </div>
-      </section>
-      <section className="learning-loop-section" id="journey">
-        <div className="section-intro" data-reveal>
-          <p className="eyebrow">MỘT BUỔI HỌC CÓ ĐỊNH HƯỚNG</p>
-          <h2>
-            Không chỉ hỏi đáp.
-            <br />
-            <em>Có cả một cách dạy.</em>
-          </h2>
-          <p>
-            Khám phá vòng học 7 bước. Mỗi bước có một mục đích; khi con còn vướng, gia sư có thể quay lại phần
-            cần củng cố.
-          </p>
-        </div>
-        <div
-          className="learning-loop-controls"
-          role="group"
-          aria-label="Khám phá vòng học 7 bước"
-          data-reveal
-        >
-          {LOOP.map(([label], i) => (
-            <button key={label} aria-pressed={step === i} onClick={() => setStep(i)}>
-              <span>0{i + 1}</span>
-              <strong>{label}</strong>
-            </button>
-          ))}
-        </div>
-        <div className="learning-loop-panel" data-reveal>
-          <div className="loop-orbit" aria-hidden="true">
-            <svg viewBox="0 0 250 220">
-              <ellipse
-                cx="125"
-                cy="110"
-                rx="110"
-                ry="82"
-                fill="none"
-                stroke="#bdd4dd"
-                strokeDasharray="4 7"
-              />
-              {LOOP.map((_, i) => {
-                const angle = (i / 7) * Math.PI * 2 - Math.PI / 2;
-                return (
-                  <circle
-                    key={i}
-                    cx={125 + 110 * Math.cos(angle)}
-                    cy={110 + 82 * Math.sin(angle)}
-                    r={step === i ? 8 : 4}
-                    fill={step === i ? "#6099c5" : "#5d737e"}
-                  />
-                );
-              })}
-            </svg>
-            <Mascot
-              size={145}
-              mood={
-                step === 6
-                  ? "celebrating"
-                  : step === 3
-                    ? "listening"
-                    : step === 2
-                      ? "thinking"
-                      : "encouraging"
-              }
+        <div className="hm-labs">
+          <div className="hm-lab subject-tile-math" data-reveal>
+            <h3>Toán: kéo để tô màu</h3>
+            <TenGrid parts={parts} />
+            <p className="hm-lab-result" key={parts}>
+              {parts}/10 = <strong>0,{parts}</strong>
+            </p>
+            <label htmlFor="fraction-parts">
+              Tô màu <output htmlFor="fraction-parts">{parts}</output> trong 10 phần
+            </label>
+            <input
+              id="fraction-parts"
+              type="range"
+              min="1"
+              max="9"
+              value={parts}
+              onChange={(event) => setParts(Number(event.target.value))}
+              aria-valuetext={`${parts} phần mười, bằng 0 phẩy ${parts}`}
             />
           </div>
-          <div key={step} className="loop-copy">
-            <p className="eyebrow">
-              BƯỚC 0{step + 1} · {LOOP[step][0]}
-            </p>
-            <h3>{LOOP[step][1]}</h3>
-            <p>{LOOP[step][2]}</p>
-            <button className="text-link" onClick={() => setStep((step + 1) % LOOP.length)}>
-              Khám phá bước tiếp <span aria-hidden="true">→</span>
-            </button>
+          <div className="hm-lab subject-tile-english" data-reveal>
+            <h3>Tiếng Anh: chạm để lật thẻ</h3>
+            <div className="hm-word-grid">
+              {WORDS.map((item) => (
+                <WordFlip key={item.word} word={item.word} meaning={item.meaning} />
+              ))}
+            </div>
           </div>
         </div>
-      </section>
-      <section className="learning-connection" data-reveal>
-        <div>
-          <p className="eyebrow">TỪ MỘT GÓC HỌC, KẾT NỐI CẢ HÀNH TRÌNH</p>
-          <h2>
-            Con học từng bước.
-            <br />
-            <em>Mọi người cùng hiểu.</em>
-          </h2>
-          <p>
-            Mỗi lượt trả lời góp thêm bằng chứng về việc học. Con nhìn điều mình đã làm được; người lớn có góc
-            nhìn phù hợp để cùng con đi tiếp.
+      </div>
+      <Wave colour="#fff6df" />
+    </section>
+  );
+}
+
+/** Scrolling distance that one step of the loop takes, as a share of the screen height. */
+const STEP_SCROLL_VH = 0.55;
+
+/**
+ * The six-step teaching loop, which today runs in maths; English will follow it once it is taught.
+ *
+ * Sticky scroll: the section is tall and its content sticks under the header, and the step follows how far
+ * the page is scrolled through it (CSS class `hm-scrolly`). A chip scrolls to its step. On a short screen the
+ * content does not fit under the header, so the section is plain and a chip sets the step directly.
+ */
+function TeachingLoop() {
+  const [step, setStep] = useState(0);
+  const wrap = useRef<HTMLElement>(null);
+  const stick = useRef<HTMLDivElement>(null);
+
+  const shortScreen = () => window.matchMedia?.("(max-height: 680px)").matches ?? false;
+
+  // The header is sticky too: the content sticks right under it, whatever its height is on this screen.
+  useEffect(() => {
+    const place = () => {
+      const header = document.querySelector(".site-header");
+      const top = (header?.getBoundingClientRect().height ?? 0) + 8;
+      wrap.current?.style.setProperty("--stick-top", `${Math.round(top)}px`);
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, []);
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const section = wrap.current;
+      if (!section || shortScreen()) return;
+      const top = parseFloat(section.style.getPropertyValue("--stick-top")) || 0;
+      const span = section.getBoundingClientRect().height - (stick.current?.offsetHeight ?? 0);
+      if (span <= 0) return;
+      const progress = Math.min(0.9999, Math.max(0, (top - section.getBoundingClientRect().top) / span));
+      setStep(Math.floor(progress * LOOP.length));
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const goTo = (index: number) => {
+    const section = wrap.current;
+    if (!section || shortScreen()) {
+      setStep(index);
+      return;
+    }
+    const top = parseFloat(section.style.getPropertyValue("--stick-top")) || 0;
+    const span = section.getBoundingClientRect().height - (stick.current?.offsetHeight ?? 0);
+    const start = section.getBoundingClientRect().top + window.scrollY - top;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    // The middle of the band of that step, so rounding never lands on its neighbour.
+    window.scrollTo({
+      top: start + (span * (index + 0.5)) / LOOP.length,
+      behavior: reduced ? "auto" : "smooth",
+    });
+    setStep(index);
+  };
+
+  return (
+    <section
+      id="journey"
+      className="hm-dark hm-scrolly"
+      ref={wrap}
+      style={{ "--step-vh": `${STEP_SCROLL_VH * 100}vh`, "--steps": LOOP.length } as CSSProperties}
+    >
+      <Wave colour="#23506e" flip />
+      <div className="hm-scrolly-stick" ref={stick}>
+        <span className="hm-stars" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, i) => (
+            <StarIcon key={i} style={{ "--i": i } as CSSProperties} />
+          ))}
+        </span>
+        <div className="hm-section">
+          <div className="hm-intro">
+            <p className="hm-kicker">Một buổi học có định hướng</p>
+            <h2>Không chỉ hỏi đáp, có cả một cách dạy.</h2>
+            <p>Mỗi bước có một mục đích; khi con còn vướng, gia sư quay lại phần cần củng cố.</p>
+          </div>
+          <div className="hm-loop-steps" role="group" aria-label="Khám phá vòng học 6 bước">
+            {LOOP.map(([label], i) => (
+              <button
+                key={label}
+                aria-pressed={step === i}
+                className={i < step ? "is-done" : ""}
+                onClick={() => goTo(i)}
+              >
+                <span>{i + 1}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="hm-loop-panel">
+            <span className="hm-hop" key={step}>
+              <Mascot size={150} mood={loopMood(step)} animated />
+            </span>
+            <div key={`copy-${step}`} className="hm-loop-copy">
+              <p className="hm-loop-count">
+                Bước {step + 1} · {LOOP[step][0]}
+              </p>
+              <h3>{LOOP[step][1]}</h3>
+              <p>{LOOP[step][2]}</p>
+            </div>
+          </div>
+          <p className="hm-loop-note">
+            Cuộn xuống để sang bước tiếp theo. Vòng 6 bước đang chạy ở môn Toán; Tiếng Anh sẽ theo cùng cách
+            dạy khi hoàn thiện.
           </p>
         </div>
-        <div className="connection-flow">
-          <article>
-            <BookIcon />
-            <strong>Con khám phá</strong>
-            <span>Thử, giải thích và luyện tập.</span>
-          </article>
-          <span className="connection-thread" aria-hidden="true" />
-          <article>
-            <UsersIcon />
-            <strong>Bố mẹ đồng hành</strong>
-            <span>Hiểu nhịp học và phần cần giúp.</span>
-          </article>
-          <span className="connection-thread" aria-hidden="true" />
-          <article>
-            <ChartIcon />
-            <strong>Thầy cô định hướng</strong>
-            <span>Xem bằng chứng, chọn cách hỗ trợ.</span>
-          </article>
-        </div>
-      </section>
+      </div>
+      <Wave colour="#23506e" />
+    </section>
+  );
+}
+
+export function LearningExperience() {
+  return (
+    <>
+      <LearningStory />
+      <TryIt />
+      <TeachingLoop />
     </>
   );
 }

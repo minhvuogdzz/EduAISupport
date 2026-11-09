@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderApp } from "../test/renderApp";
 
@@ -20,6 +20,56 @@ describe("the notebook landing page", () => {
       "aria-expanded",
       "false",
     );
+  });
+
+  it("presents both subjects and marks English as a preview", async () => {
+    renderApp("/");
+    expect(await screen.findByRole("heading", { level: 3, name: "Toán lớp 5" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Tiếng Anh lớp 5" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Xem trước Tiếng Anh/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Bản xem trước").length).toBeGreaterThan(0);
+  });
+
+  it("switches the worked example between subjects", async () => {
+    const { user } = renderApp("/");
+    expect(await screen.findByText("Có 3 trong 10 phần được tô màu.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Tiếng Anh" }));
+    expect(screen.getByRole("button", { name: "Tiếng Anh" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Hai bạn gặp nhau lần đầu và vẫy tay.")).toBeVisible();
+  });
+
+  it("changes the teaching step as the page scrolls through the sticky section, and a tab scrolls to its step", async () => {
+    const { user } = renderApp("/");
+    const loop = await screen.findByRole("group", { name: "Khám phá vòng học 6 bước" });
+    const section = loop.closest("section") as HTMLElement;
+    const stepOf = () =>
+      within(loop)
+        .getAllByRole("button")
+        .findIndex((button) => button.getAttribute("aria-pressed") === "true");
+    // jsdom has no layout: say how tall the section is and how far the page is scrolled into it.
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+    const scrolledInto = (pixels: number) => {
+      section.getBoundingClientRect = () =>
+        ({ top: -pixels, height: 2800, bottom: 2800 - pixels }) as DOMRect;
+      fireEvent.scroll(window);
+    };
+    expect(stepOf()).toBe(0);
+
+    scrolledInto(700); // 700 of 2800 (the sticky part is 0 high here): the second sixth
+    await waitFor(() => expect(stepOf()).toBe(1));
+    scrolledInto(1500); // past half: the fourth sixth
+    await waitFor(() => expect(stepOf()).toBe(3));
+    scrolledInto(2790); // the end
+    await waitFor(() => expect(stepOf()).toBe(5));
+    scrolledInto(0); // back to the top
+    await waitFor(() => expect(stepOf()).toBe(0));
+
+    // No auto-advance bar or pause button is left; a tab scrolls the page to the middle of its step.
+    expect(screen.queryByRole("button", { name: /tự chạy/ })).not.toBeInTheDocument();
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+    await user.click(within(loop).getByRole("button", { name: /Luyện tập/ }));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: (2800 * 3.5) / 6 - 8 }));
+    scrollTo.mockRestore();
   });
 
   it("shows direct contact links and scrolls the page back to the top", async () => {

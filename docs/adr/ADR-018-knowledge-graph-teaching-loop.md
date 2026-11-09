@@ -9,7 +9,7 @@
 
 ## Quyết định
 
-1. **Vòng dạy 7 bước là trung tâm:** ôn nền → giảng lý thuyết → kiểm tra hiểu → dạy phương pháp (cô làm, cùng làm, con làm) → luyện tập → vận dụng → quyết định qua node hay quay lại. Vòng kèm từng câu hiện có (T02, T04) trở thành bước luyện tập.
+1. **Vòng dạy là trung tâm** (bản đầu 7 bước; từ 09/11/2026 là 6 bước, bước ôn nền và giảng gộp làm một, xem ADR-059): ôn nền → giảng lý thuyết → kiểm tra hiểu → dạy phương pháp (cô làm, cùng làm, con làm) → luyện tập → vận dụng → quyết định qua node hay quay lại. Vòng kèm từng câu hiện có (T02, T04) trở thành bước luyện tập.
 2. **Đồ thị tri thức theo khuôn 2T-KT:** node hai tầng (cơ bản, vận dụng); quan hệ tiên quyết, lớp con, tương tự, vận dụng; quan hệ tiên quyết không có vòng lặp. Mỗi node mang nội dung dạy gắn theo 4 mức (Tiếp xúc, Hiểu, Luyện tập, Vận dụng).
 3. **Điểm từng node** theo blueprint PART 25.2 và 26.1 (Beta theo chiều, 7 chiều, cổng UNDERSTOOD và DI-6), là projection tất định từ sự kiện. Node mới lấy điểm khởi đầu từ node tiên quyết. LLM không ghi điểm.
 4. **Chính sách dạy theo node:** luật tất định có mã `N-*`, có version.

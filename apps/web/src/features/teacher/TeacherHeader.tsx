@@ -23,6 +23,11 @@ const TABS = [
     match: (path: string) => path.startsWith("/teacher/documents"),
   },
   {
+    to: "/teacher/english",
+    label: "Tiếng Anh",
+    match: (path: string) => path.startsWith("/teacher/english"),
+  },
+  {
     to: "/teacher/rag",
     label: "RAG",
     match: (path: string) => path.startsWith("/teacher/rag"),

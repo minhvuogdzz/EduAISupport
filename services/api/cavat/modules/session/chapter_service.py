@@ -70,21 +70,37 @@ from cavat.modules.tutor.reader import ContextReader
 MODE = "CHAPTER"
 DEFAULT_CHAPTER_ID = "math-g5-decimals"
 
-# Step of the teaching cycle (plan v1, 5.2) that each decision carries out.
+# Step of the teaching cycle (plan v1, 5.2; six steps since ADR-059) that each decision carries out:
+# 1 revise and teach the base, 2 check the understanding, 3 learn the method, 4 practise, 5 apply, 6 decide.
 STEP_OF: dict[TeachAction, int] = {
     TeachAction.WARMUP_ITEM: 1,
     TeachAction.RECALL_PRIOR: 1,
-    TeachAction.TEACH_THEORY: 2,
-    TeachAction.CHECK_ITEM: 3,
-    TeachAction.ASK_RETELL: 3,
-    TeachAction.SHOW_WORKED_EXAMPLE: 4,
-    TeachAction.COMPLETION_ITEM: 4,
-    TeachAction.PRACTICE_ITEM: 5,
-    TeachAction.TRANSFER_ITEM: 6,
-    TeachAction.REVIEW_ITEM: 7,
-    TeachAction.PASS_NODE: 7,
-    TeachAction.STOP_NODE: 7,
+    TeachAction.TEACH_THEORY: 1,
+    TeachAction.CHECK_ITEM: 2,
+    TeachAction.ASK_RETELL: 2,
+    TeachAction.SHOW_WORKED_EXAMPLE: 3,
+    TeachAction.COMPLETION_ITEM: 3,
+    TeachAction.PRACTICE_ITEM: 4,
+    TeachAction.TRANSFER_ITEM: 5,
+    TeachAction.REVIEW_ITEM: 6,
+    TeachAction.PASS_NODE: 6,
+    TeachAction.STOP_NODE: 6,
 }
+
+# ADR-059 (DI-105): the cycle had seven steps before, with "revise the base" and "teach" apart. A session
+# saved then keeps its seven-step number in its stored activity (no ``step_scheme``); the student view maps it
+# to the six-step number, so a session open across the change shows the right step. Events are not touched.
+STEP_SCHEME = 2
+LEGACY_STEP_TO_STEP: dict[int, int] = {1: 1, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6}
+
+
+def current_step(activity: dict[str, Any]) -> int | None:
+    """The step of the six-step cycle that a stored activity is in, whichever scheme saved it."""
+    step = activity.get("step")
+    if step is None or activity.get("step_scheme", 1) >= STEP_SCHEME:
+        return step
+    return LEGACY_STEP_TO_STEP.get(step, step)
+
 
 # Events of the item loop: they carry the attempt id of the item they belong to.
 _ITEM_EVENTS = frozenset(
@@ -448,6 +464,7 @@ def _state_after(
         "awaiting": turn.awaiting.value,
         "node_id": turn.node_id or node_id,
         "step": step,
+        "step_scheme": STEP_SCHEME,
         "prompt": turn.prompt,
         "llm_calls": llm_calls,
     }
@@ -578,7 +595,7 @@ def student_view(chapter: Chapter, session: LearningSession, history: Sequence[A
         "teaching": {
             "chapter": {"chapter_id": pkg.chapter_id, "title": pkg.title},
             "current_node_id": state.current.node_id if state.current else None,
-            "step": act.get("step") if active else None,
+            "step": current_step(act) if active else None,
             "awaiting": act.get("awaiting", Awaiting.NOTHING.value) if active else Awaiting.NOTHING.value,
             "input_id": item.get("item_attempt_id") if active else None,
             "prompt": act.get("prompt") if active else None,

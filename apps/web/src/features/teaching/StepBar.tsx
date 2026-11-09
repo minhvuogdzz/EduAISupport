@@ -1,7 +1,7 @@
 import { TEACHING_STEPS } from "../../components/labels";
 
 /**
- * The seven steps of the teaching cycle (plan v1, 5.2) with the current one marked. UI-1: numbered dots
+ * The six steps of the teaching cycle (plan v1, 5.2) with the current one marked. UI-1: numbered dots
  * on a line and the current step named once below, so no label wraps over three lines in the side column.
  */
 export function StepBar({ step, nodeName }: { step: number | null; nodeName: string | null }) {

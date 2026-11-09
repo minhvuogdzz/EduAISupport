@@ -6,6 +6,7 @@ import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
 import type { ParentChildView, Quality } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
+import { SubjectSwitch } from "../english/SubjectSwitch";
 import {
   BookIcon,
   CheckIcon,
@@ -75,7 +76,10 @@ function MyChildPage() {
   return (
     <AppShell>
       <title>Tình hình học của con · Monkey Edu</title>
-      <div className="mx-auto max-w-7xl px-4 py-8">{body}</div>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <SubjectSwitch current="math" mathTo="/parent" englishTo="/parent/english" />
+        {body}
+      </div>
     </AppShell>
   );
 }
@@ -88,6 +92,7 @@ function CodePage() {
     <AppShell>
       <title>Phụ huynh · Monkey Edu</title>
       <div className="mx-auto max-w-4xl px-4 py-10">
+        <SubjectSwitch current="math" mathTo="/parent" englishTo="/parent/english" />
         <section className="card brand-gradient grid items-center gap-6 p-6 md:grid-cols-[1fr_auto] md:p-8">
           <div>
             <h1 className="text-2xl font-extrabold md:text-3xl">Theo dõi việc học của con</h1>
@@ -166,7 +171,10 @@ export function ParentChildPage() {
   return (
     <AppShell>
       <title>Tình hình học của con · Monkey Edu</title>
-      <div className="mx-auto max-w-7xl px-4 py-8">{body}</div>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <SubjectSwitch current="math" mathTo={`/parent/${code}`} englishTo={`/parent/english?code=${code}`} />
+        {body}
+      </div>
     </AppShell>
   );
 }
