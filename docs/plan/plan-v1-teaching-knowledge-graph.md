@@ -91,17 +91,20 @@ Một file cho mỗi chương (ví dụ `docs/pedagogy/math-g5/so-thap-phan/chap
 - Lỗi sai hay gặp, phản ví dụ, gợi ý chung: như `lesson.yaml` hiện nay.
 - Trạng thái DRAFT hoặc APPROVED; chỉ nội dung đã duyệt mới tới học sinh.
 
-### 5.2. Vòng dạy 7 bước (trung tâm)
+### 5.2. Vòng dạy 6 bước (trung tâm)
+
+> Từ 09/11/2026 (ADR-059, DI-105, chủ dự án yêu cầu) vòng có **6 bước**: bước "Ôn kiến thức nền" và bước "Giảng lý thuyết" của bản đầu (7 bước) gộp thành bước 1. Chỉ đổi cách đếm và gọi tên bước; các luật `N-*`, thứ tự quyết định của chính sách và công thức mastery giữ nguyên.
 
 | Bước | Gia sư làm gì | Mức (2T-KT) | Bằng chứng thu được (chiều PART 26.1) |
 |---|---|---|---|
-| 1. Ôn kiến thức nền | Hỏi nhanh node tiên quyết. Sai thì **quay về dạy node tiên quyết**, xong mới quay lại | (của node tiên quyết) | C của node tiên quyết |
-| 2. Giảng lý thuyết | Giảng ngắn (3–4 câu) kèm hình ảnh, kết thúc bằng câu hỏi gợi suy nghĩ. **Dạy ngắn, hỏi nhiều** | Tiếp xúc | — |
-| 3. Kiểm tra hiểu | Câu hỏi khái niệm và yêu cầu nói lại quy tắc bằng lời của con. Chưa đạt thì **giảng lại theo cách khác**, không lặp câu cũ | Hiểu | C, R, D |
-| 4. Dạy phương pháp | Cô làm mẫu từng bước và nói vì sao; cô làm nửa, con làm nửa; rồi con tự làm | Luyện tập | C (có hỗ trợ) |
-| 5. Luyện tập | Vòng kèm từng câu hiện có: gợi ý 5 mức, hỏi "con làm thế nào", phản ví dụ cho lỗi sai | Luyện tập | C, I |
-| 6. Vận dụng | Bài dạng mới hoặc có lời văn, hỏi "vì sao" | Vận dụng | A, T, R |
-| 7. Quyết định | Đủ bằng chứng thì qua node; thiếu loại nào quay lại đúng bước đó; ôn xen kẽ node cũ | — | S (ôn lại sau, Mốc 2) |
+| 1. Ôn và giảng bài nền | Hỏi nhanh node tiên quyết; sai thì **quay về dạy node tiên quyết**, xong mới quay lại. Rồi giảng ngắn (3–4 câu) kèm hình ảnh, kết thúc bằng câu hỏi gợi suy nghĩ. **Dạy ngắn, hỏi nhiều** | Tiếp xúc | C của node tiên quyết |
+| 2. Kiểm tra hiểu | Câu hỏi khái niệm và yêu cầu nói lại quy tắc bằng lời của con. Chưa đạt thì **giảng lại theo cách khác**, không lặp câu cũ | Hiểu | C, R, D |
+| 3. Dạy phương pháp | Cô làm mẫu từng bước và nói vì sao; cô làm nửa, con làm nửa; rồi con tự làm | Luyện tập | C (có hỗ trợ) |
+| 4. Luyện tập | Vòng kèm từng câu hiện có: gợi ý 5 mức, hỏi "con làm thế nào", phản ví dụ cho lỗi sai | Luyện tập | C, I |
+| 5. Vận dụng | Bài dạng mới hoặc có lời văn, hỏi "vì sao" | Vận dụng | A, T, R |
+| 6. Quyết định | Đủ bằng chứng thì qua node; thiếu loại nào quay lại đúng bước đó; ôn xen kẽ node cũ | — | S (ôn lại sau, Mốc 2) |
+
+Hành động của chính sách theo bước (`STEP_OF` trong `session/chapter_service.py`): bước 1 gồm `WARMUP_ITEM`, `RECALL_PRIOR`, `TEACH_THEORY`; bước 2 `CHECK_ITEM`, `ASK_RETELL`; bước 3 `SHOW_WORKED_EXAMPLE`, `COMPLETION_ITEM`; bước 4 `PRACTICE_ITEM`; bước 5 `TRANSFER_ITEM`; bước 6 `REVIEW_ITEM`, `PASS_NODE`, `STOP_NODE`.
 
 ### 5.3. Điểm từng node (theo PART 25.2 và 26.1)
 
@@ -193,7 +196,7 @@ RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã du
 **Câu truy vấn** ghép từ: câu học sinh vừa nói, tên và mô tả node, mã lỗi sai vừa phát hiện (nếu có).
 
 **Hai chế độ:**
-- **Theo chính sách:** bước dạy cần "cách giảng tiếp theo của node X". Bước 1 và 5 quyết định gần hết; bước 2–4 dùng để chọn cách giảng hợp với điều học sinh vừa nói.
+- **Theo chính sách:** bước dạy cần "cách giảng tiếp theo của node X". Bước ôn nền và luyện tập quyết định gần hết; các bước giảng, kiểm tra hiểu và dạy phương pháp dùng để chọn cách giảng hợp với điều học sinh vừa nói.
 - **Học sinh hỏi tự do** ("sao 0,5 lại bằng 0,50?"): chạy đủ 6 bước. Điểm hợp nhất cao nhất dưới ngưỡng (DI-17) thì gia sư không bịa: trả lời bằng nội dung chính của node và ghi câu hỏi cho giáo viên.
 
 #### 5.5.4. Dự phòng và kiểm tra
@@ -313,14 +316,14 @@ RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã du
 - Transcript có nhãn hiện có (kết quả chấm, lỗi sai, mã luật, nguồn câu nói).
 - **Cài đặt (M1-7):**
   - API: buổi học mặc định là buổi học theo chương (`session/chapter_service.py`). Mỗi lệnh dựng lại vòng dạy từ sự kiện của buổi học. `GET /v1/sessions/{id}/report` trả "bộ não gia sư" cho giáo viên.
-  - Web, phía học sinh: bản đồ bài học (cây tri thức hai tầng, trạng thái từng bài, mức hiểu bằng chữ), thanh 7 bước, thẻ "Cô giảng bài", thẻ "Cô làm mẫu", ô "con nói lại".
+  - Web, phía học sinh: bản đồ bài học (cây tri thức hai tầng, trạng thái từng bài, mức hiểu bằng chữ), thanh 6 bước, thẻ "Cô giảng bài", thẻ "Cô làm mẫu", ô "con nói lại".
   - Web, phía giáo viên: tab "Bộ não gia sư" gồm cây tri thức có điểm M từng bài, điểm M qua từng lượt so với ngưỡng, 7 chiều đánh giá, điều kiện qua bài, bảng bằng chứng cộng/trừ kèm lý do, dòng quyết định của cô kèm mã luật. Tab "Hội thoại" thêm nhãn bước dạy, mã luật và kết quả phần nói lại.
   - Lịch sử (M1-7b): `make demo` lưu vào `cavat_dev`; học sinh có "Lịch sử học"; buổi mới đọc sự kiện các buổi trước của cùng học sinh trên chương. Bài đã qua giữ nguyên, điểm cộng dồn, gia sư vào bài tiếp bằng câu ôn bài nền (N-WARMUP).
   - Chưa làm: tô màu theo dải §25 và nhận xét kiểu "tư duy giáo viên" (Mốc 2).
 
 ## 6. Giữ, thay, bỏ
 
-- **Giữ:** bộ chấm Toán (T01), policy gợi ý và vòng kèm từng câu (T02, T04; thành bước 5), câu mẫu và bộ kiểm tra (T03), kết nối Groq/Gemini (T06a), Qwen bám câu mẫu (T06b), lưu trữ Atlas (T07), API buổi học (T08), web (T09, T13).
+- **Giữ:** bộ chấm Toán (T01), policy gợi ý và vòng kèm từng câu (T02, T04; thành bước luyện tập), câu mẫu và bộ kiểm tra (T03), kết nối Groq/Gemini (T06a), Qwen bám câu mẫu (T06b), lưu trữ Atlas (T07), API buổi học (T08), web (T09, T13).
 - **Thay:** danh sách 8 câu cố định của buổi học bằng chính sách dạy theo đồ thị.
 - **Bỏ khỏi demo:** English, giọng nói (T15).
 - **Bỏ hẳn:** LlamaParse (D-T11); khóa `LLAMA_CLOUD_API_KEY` không còn được dùng.
@@ -338,13 +341,13 @@ RAG trả lời câu hỏi: **gia sư nên dựa vào đoạn nội dung đã du
 | M1-3 | Điểm từng node theo mục 5.3: projector tất định từ sự kiện, cổng qua node, điểm khởi đầu từ tiên quyết |
 | M1-4 | Chính sách dạy theo node (mục 5.4) |
 | M1-5 | Hybrid RAG (mục 5.5): chia đoạn, chỉ mục BM25 hai bản, chỉ mục vector, hợp nhất RRF, xếp hạng lại theo sư phạm, ghi vết; model class `EMBEDDING` trong gateway; bộ câu hỏi đánh giá đầu tiên |
-| M1-6 | Bộ máy vòng dạy: chạy 7 bước trên đồ thị, gọi vòng kèm từng câu ở bước luyện tập; test hội thoại trọn 7 node, chạy offline |
+| M1-6 | Bộ máy vòng dạy: chạy 6 bước trên đồ thị, gọi vòng kèm từng câu ở bước luyện tập; test hội thoại trọn 7 node, chạy offline |
 | M1-7 | Nối vào API buổi học và web: bản đồ node (đã qua, đang học, chưa mở), lời giảng lý thuyết, ô giải thích |
 | M1-8 | Học sinh ảo (thay T05): mỗi em mang một lỗi sai hoặc một chỗ hổng tiên quyết; đo số lần công nhận "đã hiểu" sai, số lần quay về đúng node tiên quyết |
 | M1-9 | Qwen diễn đạt lời giảng neo vào đoạn của Hybrid RAG; chạy thử thật trên web |
 
 **Xong Mốc 1 khi:**
-- Một học sinh học trọn 7 node theo vòng 7 bước: cô ôn nền, giảng, hỏi lại, làm mẫu, cho làm cùng rồi tự làm.
+- Một học sinh học trọn 7 node theo vòng 6 bước: cô ôn nền và giảng, hỏi lại, làm mẫu, cho làm cùng rồi tự làm.
 - Cô quay về node tiên quyết khi con hổng, giảng lại cách khác khi con chưa hiểu, và chỉ cho qua node khi đủ bằng chứng (5.3).
 - Học sinh ảo mang lỗi sai không lần nào được công nhận "đã hiểu" ở node chứa lỗi đó.
 - `make test` và `make web-check` xanh.
@@ -488,7 +491,7 @@ Chạy song song từ Mốc 1:
     | Lượt hết trần | 2 | 0 |
     | Lần gọi model trong buổi | 15 | 19 |
     | Lần Groq trả 429 | 3 | 3 |
-    | Lời giảng bài (vòng 7 bước) là câu mẫu | 18/18 | 18/18 |
+    | Lời giảng bài (vòng 6 bước) là câu mẫu | 18/18 | 18/18 |
 
   - **Đọc kết quả:** phần lớn lời vẫn là câu mẫu, vì phần lớn lượt rơi vào các nước đi chỉ dùng câu mẫu (mở câu, khen đúng, hỏi "gợi ý hay tự thử") và lời giảng bài của vòng dạy (`teaching/loop.py`). Hai phần này nằm ngoài REFORM-1. Mẫu nhỏ: một buổi, một con mô phỏng **[cần kiểm tra]**.
   - **Còn mở:** số lần gọi của buổi học (`llm_calls`) không về 0 khi con học tiếp buổi cũ vào ngày khác. "0/7 bài" trong bằng chứng là do buổi học bắt đầu ngày 07/10 với bản chương `0.1.1`, trước khi kế hoạch được phát hành ngày 19/10; buổi học giữ bản lúc bắt đầu để dựng lại được. Đây không phải race. Race của `load_published` có thật trong code và đã được sửa.

@@ -1,0 +1,28 @@
+.burst {
+  position: absolute;
+  z-index: 6;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+.burst i {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--c);
+  animation: burst-fly 850ms cubic-bezier(0.16, 0.8, 0.3, 1) forwards;
+}
+.burst i:nth-child(3n) {
+  border-radius: 50%;
+}
+@keyframes burst-fly {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--x), var(--y)) rotate(var(--turn)) scale(1.1);
+  }
+}

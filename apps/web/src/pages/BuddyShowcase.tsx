@@ -10,14 +10,13 @@ export function BuddyShowcase() {
   return (
     <section id="buddy" ref={ref} className={`buddy-section ${running ? "" : "buddy-paused"}`}>
       <div className="buddy-stage" data-reveal>
-        <span className="buddy-stage-caption">GẶP NGƯỜI BẠN MỚI CỦA CON</span>
         <div className="buddy-stage-art">
           <span className="buddy-stage-orbit" aria-hidden="true" />
           <span className="buddy-doodle buddy-doodle-one" aria-hidden="true">
-            a + b
+            0,3
           </span>
           <span className="buddy-doodle buddy-doodle-two" aria-hidden="true">
-            0,3
+            Hello!
           </span>
           <Mascot size={300} mood={moment.mood} animated={playing && !reduced} label="Monkey Buddy" />
           <span className="buddy-name-tag">
@@ -29,15 +28,13 @@ export function BuddyShowcase() {
         </button>
       </div>
       <div className="buddy-intro" data-reveal>
-        <p className="eyebrow">LINH VẬT CỦA MONKEY EDU</p>
+        <p className="hm-kicker">Linh vật của Monkey Edu</p>
         <h2>
-          Một người bạn nhỏ.
-          <br />
-          <em>Thật nhiều thấu hiểu.</em>
+          Một người bạn nhỏ, <mark>thật nhiều thấu hiểu.</mark>
         </h2>
         <p>
           Đây là Monkey Buddy — chú khỉ tò mò với chiếc khăn vàng và một tinh thần luôn sẵn sàng thử. Buddy
-          đồng hành cùng con qua từng khoảnh khắc học Toán.
+          đồng hành cùng con qua từng khoảnh khắc học.
         </p>
         <p className="buddy-autoplay-note">
           {reduced

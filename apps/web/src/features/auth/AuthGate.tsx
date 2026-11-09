@@ -139,9 +139,9 @@ function LoginPage({ config }: { config: AuthConfig }) {
   };
   return (
     <main className="login-page">
-      <title>Đăng nhập · Monkey Edu · Gia sư Toán 5</title>
-      <aside className="login-aside" aria-label="Cùng Buddy học Toán">
-        <p className="eyebrow">MONKEY EDU · TOÁN LỚP 5</p>
+      <title>Đăng nhập · Monkey Edu</title>
+      <aside className="login-aside" aria-label="Cùng Buddy học bài">
+        <p className="eyebrow">MONKEY EDU · LỚP 5</p>
         <h2>
           Một chút tò mò.
           <br />

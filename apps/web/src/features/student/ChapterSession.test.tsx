@@ -46,7 +46,10 @@ describe("chapter session screen (M1-7)", () => {
     expect(screen.queryByRole("region", { name: "Cô hỏi con" })).not.toBeInTheDocument();
     // One step bar for desktop (side column), one for tablets; CSS shows one of them.
     const [steps] = screen.getAllByRole("navigation", { name: "Các bước học bài Khái niệm số thập phân" });
-    expect(within(steps).getByText("Giảng bài").closest("li")).toHaveAttribute("aria-current", "step");
+    expect(within(steps).getByText("Ôn và giảng bài nền").closest("li")).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
     expect(screen.queryByRole("button", { name: /Xin gợi ý/ })).not.toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Tiến độ chương" })).toHaveAttribute("aria-valuenow", "1");
     expect(screen.getAllByText("Khái niệm số thập phân: Đang học, Làm theo mẫu").length).toBeGreaterThan(0);

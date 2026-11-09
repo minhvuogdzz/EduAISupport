@@ -141,10 +141,9 @@ export const NODE_STATUS_LABEL: Record<NodeStatus, string> = {
   LOCKED: "Chưa mở",
 };
 
-/** The teaching cycle (plan v1, 5.2), step 1 to 7. Student-facing wording: draft for the teacher. */
+/** The teaching cycle (plan v1, 5.2; six steps since ADR-059), step 1 to 6. Student-facing wording. */
 export const TEACHING_STEPS = [
-  "Ôn bài nền",
-  "Giảng bài",
+  "Ôn và giảng bài nền",
   "Kiểm tra hiểu",
   "Học cách làm",
   "Luyện tập",

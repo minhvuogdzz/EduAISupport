@@ -62,7 +62,7 @@ export function teachingView(overrides: Partial<TeachingView> = {}): TeachingVie
   return {
     chapter: { chapter_id: "math-g5-decimals", title: "Số thập phân" },
     current_node_id: "KC-DEC-CONCEPT",
-    step: 2,
+    step: 1,
     awaiting: "THEORY_REPLY",
     input_id: "in-1",
     prompt: THEORY_ASK,
@@ -119,7 +119,7 @@ export function checkState(reply: string): SessionState {
       turn(4, "FEEDBACK", "Cô cảm ơn con."),
       { ...turn(5, null, "Số 12,45 có phần nguyên là bao nhiêu?"), move: "PRESENT" },
     ],
-    teaching: teachingView({ step: 3, awaiting: "ANSWER", input_id: "att-1", prompt: null }),
+    teaching: teachingView({ step: 2, awaiting: "ANSWER", input_id: "att-1", prompt: null }),
   };
 }
 

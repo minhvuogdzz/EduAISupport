@@ -1,4 +1,4 @@
-"""Deterministic rubric for the node retell ("con nói lại", plan v1 step 3).
+"""Deterministic rubric for the node retell ("con nói lại", plan v1 step 2 of six).
 
 A key idea counts when the student's text contains one of its phrasings, as whole words, with or without
 diacritics. The score is the share of key ideas found (DI: keyword rubric until the LLM label of milestone
