@@ -1,6 +1,13 @@
-# ENG-POC-voice: giọng cô và bộ nghe cho Tiếng Anh lớp 5, unit "My family"
+# ENG-POC-voice: giọng cô và bộ nghe cho Tiếng Anh lớp 5, Unit 11 "Family time"
 
-**Ngày:** 12/11/2026 · **Liên quan:** ADR-030 (giọng nói), ADR-053 (triển khai voice), ADR-016 (free-first), ADR-060 (khung đánh giá Tiếng Anh, phiên khác đang viết) · **Code:** `poc/english-voice/` (README chạy lại được) · **Số liệu đầy đủ:** `poc/english-voice/results/score.md`
+**Ngày:** 12/11/2026 · **Liên quan:** ADR-030 (giọng nói), ADR-053 (triển khai voice), ADR-016 (free-first), ADR-060 (khung đánh giá Tiếng Anh) · **Code:** `poc/english-voice/` (README chạy lại được) · **Số liệu đầy đủ:** `poc/english-voice/results/score.md`, `poc/english-voice/results/unit11.md`
+
+**Phạm vi:**
+- **[FACT]** Unit chủ dự án chốt là Unit 11 "Family time", SGK Tiếng Anh 5 Global Success, tập hai. Bộ sách này không có unit "My family".
+- **[FACT]** Bộ 20 câu đo chính (mục 2–4) là câu thuộc **chủ đề gia đình chung** (mother, father, "This is my mother."…), **chưa phải câu của Unit 11**.
+- **[FACT]** Mục 3.5 đo bổ sung 10 câu theo Unit 11: kể chuyện gia đình đi chơi ở thì quá khứ.
+  - Hai câu đầu do chủ dự án đưa.
+  - Các câu còn lại theo đúng chủ đề và mẫu câu của unit, nhưng chưa đối chiếu nguyên văn SGK.
 
 ## Tóm tắt
 
@@ -8,6 +15,12 @@
 - **[FACT]** VieNeu đọc **mẫu câu tiếng Anh trọn câu** rõ: Whisper chép lại đúng nguyên văn 6/6 mẫu câu (đặt `vi` hoặc `en`). Câu cô nói kiểu "Con nói theo cô nhé: This is my father." cũng rõ (5/5 với `en`, 4/5 với `vi`).
 - **[FACT]** VieNeu đọc **từ đơn đứng một mình** kém: khoảng một nửa số lần đọc bị lặp từ ("Mato. Mato.") hoặc nói thêm tiếng không có trong văn bản ("Grandmother, what happened there?"). "Sister" có lúc nghe thành "xí tự". Đặt từ vào câu dẫn tiếng Việt ("Con nói theo cô: mother.") thì sạch 11/12 lần, so với 7/12 khi để từ trần.
 - **[FACT]** Whisper **tự nhận dạng ngôn ngữ thì không dùng được**: với giọng VieNeu, nó nhận câu tiếng Anh là tiếng Mã Lai rồi **dịch luôn** ("This is my mother" → "Ini ialah ibu saya"), còn từ đơn bị nhận thành tiếng Đức, Nhật, Hàn. Đúng 50% so với 95% khi đặt `en`.
+- **[FACT] Unit 11 (10 câu, thì quá khứ):**
+  - Trong câu trọn vẹn, Whisper `en` nghe VieNeu chép đúng dạng quá khứ của "took", "went", "bought".
+  - "We ate seafood." nghe thành "We are seafood." (cả `vi` lẫn `en`). Giọng tham chiếu thì ra "ate", nên lỗi nằm ở cách VieNeu đọc "ate".
+  - Câu liệt kê "Con nhớ nhé: go, went. Eat, ate." hỏng hẳn ("nguồn quên. Eat, eat.").
+  - "Did you…" đầu câu có lúc thành "Diesel…".
+  - Tổng: cụm đúng nguyên văn 60% (`en`), 40% (`vi`); giọng tham chiếu 100%.
 - **[REC]** Dùng VieNeu cho Tiếng Anh của unit này, với điều kiện: lời cô **luôn đặt từ đích trong câu** (câu dẫn tiếng Việt hoặc mẫu câu), không gửi từ trần. Whisper: `language=en` cho bước nói theo mẫu, `language=vi` cho bước hỏi đáp có lời Việt; không bao giờ để tự nhận dạng.
 - **[OPEN]** Chưa có giọng trẻ em thật. Mọi số ở đây là giọng tổng hợp, chỉ đo độ rõ của giọng cô và cách Whisper xử lý; chưa đo được Whisper nghe trẻ em lớp 5 nói tiếng Anh ra sao.
 
@@ -82,12 +95,53 @@ Với giọng tham chiếu, `en` và tự nhận dạng đều đúng 100%, còn
 
 ### 3.4. Kết luận cho giọng cô
 
-- **[REC] Dùng được VieNeu v3 Turbo cho Tiếng Anh unit "My family"**, không cần thêm dịch vụ. Nhưng giáo án/lời cô phải theo quy ước:
+- **[REC] Dùng được VieNeu v3 Turbo cho phần lớn câu của Unit 11**, không cần thêm dịch vụ; riêng các từ quá khứ ngắn như "ate" và câu liệt kê động từ cần giọng khác (mục 3.5). Giáo án/lời cô phải theo quy ước:
   - không bao giờ gửi một từ tiếng Anh đứng riêng: luôn có câu dẫn tiếng Việt kết thúc bằng dấu hai chấm, ví dụ "Con nói theo cô: mother.";
   - để cụm Anh sau dấu hai chấm hoặc ở cuối câu; tránh đặt từ Anh đứng đầu câu ngắn, hoặc kẹp giữa hai âm tiết Việt ("Từ mother nghĩa là mẹ" nên viết thành "Mother: nghĩa là mẹ" hay "Con nhớ nhé: mother, nghĩa là mẹ"). **[ASSUME]** Hai cách viết thay thế này chưa đo, cần đo lại trước khi chốt.
   - Quy ước này đặt ở tầng viết lại chữ để đọc (giống `speech_text` của Toán), không phải trong prompt.
 - **[REC] Lưu đệm (cache) audio các câu cố định của giáo án** (đã có ở `var/storage/voice/tts/`). Chủ dự án nghe duyệt bản đã lưu một lần; vì VieNeu lấy mẫu ngẫu nhiên, mỗi lần tạo lại có thể khác.
 - **[OPEN]** Có nên kiểm tự động từng audio (đếm cụm tiếng / cho Whisper nghe lại) rồi tạo lại khi lỗi hay không, hay chỉ cần chủ dự án duyệt bằng tai? Bộ câu cố định của một unit nhỏ, nên duyệt bằng tai là khả thi.
+
+### 3.5. Đo bổ sung Unit 11 "Family time" (`unit11.py`)
+
+**Cách đo:**
+- 10 câu, mỗi câu VieNeu đọc một lần.
+- Whisper nghe giọng VieNeu với `vi` và `en`, nghe giọng tham chiếu với `en`: tổng 30 lượt.
+- Không đo lại chế độ tự nhận dạng, vì lần đo chính đã cho thấy không dùng được.
+- Ngoài WER, kiểm từng động từ quá khứ: bản chép có đúng dạng quá khứ ("took"), có viết thành dạng gốc ("take"), hay mất hẳn.
+
+| Audio | Lang | Từ đích đúng | WER phần Anh | Cụm đúng nguyên văn | Động từ quá khứ đúng dạng |
+|---|---|---:|---:|---:|---:|
+| VieNeu | `vi` | 75% | 25% | 40% | 6/9 |
+| VieNeu | `en` | 82% | 18% | 60% | 6/9 |
+| Tham chiếu | `en` | 100% | 0% | 100% | 9/9 |
+
+| Câu | VieNeu, Whisper `en` nghe được |
+|---|---|
+| Did you collect seashells? Yes, I did. | Diesel collects seashells. Yes, I did. Yep. |
+| What did your family do in Ha Long Bay? We took a boat trip around the bay. | đúng nguyên văn (cả `vi`) |
+| Con nói theo cô nhé: We ate seafood. | Con nói theo cô nhé. We **are** seafood. (cả `vi`) |
+| We went to the beach. | đúng (`vi`: "Quay went to the beach") |
+| My mother bought some souvenirs. | đúng (cả `vi`) |
+| Did you swim in the sea? No, I didn't. | đúng (`vi`: "Bị đâu xui mình the sea? No, I didn't.") |
+| Where did you go last summer? I went to Ha Long Bay. | đúng nguyên văn (cả `vi`) |
+| Con nói theo cô nhé: My father took a lot of photos. | đúng nguyên văn (cả `vi`) |
+| Con nhớ nhé: go, went. Eat, ate. | Con nhớ nhé, nguồn quên. Eat, eat. |
+| Con nghĩ là we bought some souvenirs. | Con nghĩ là we bought some souvenir. (cả `vi`) |
+
+**Kết luận phần Unit 11:**
+- **[FACT]** Câu dài, ngữ cảnh đủ ("We took a boat trip…", "I went to Ha Long Bay", "My father took a lot of photos") được VieNeu đọc rõ, Whisper giữ đúng dạng quá khứ.
+- **[FACT]** Lỗi tập trung ở **từ ngắn một âm tiết đứng sát nhau hoặc đứng riêng**:
+  - "ate" thành "are";
+  - "go, went" thành "nguồn quên";
+  - "Did you" đầu câu thành "Diesel".
+  Đây là cùng dạng lỗi với từ trần ở mục 3.3, nặng hơn vì từ ngắn hơn.
+- **[FACT]** "ate" là chỗ nguy hiểm nhất cho dạy ngữ pháp: nếu cô đọc ra "are", bé học sai dạng quá khứ. Giọng tham chiếu đọc đúng, nên phần Whisper không có lỗi.
+- **[REC]** Với Unit 11:
+  - không cho VieNeu đọc bảng động từ (go/went, eat/ate, buy/bought, take/took) hay câu có "ate" khi chưa nghe duyệt;
+  - các cụm này nên dùng phương án dự phòng ở mục 5 (giọng Anh cho riêng cụm tiếng Anh), hoặc audio đã được chủ dự án nghe duyệt rồi lưu đệm.
+- **[REC] Chấm câu trả lời có động từ quá khứ** phải so đúng dạng ("took" ≠ "take"). Whisper `en` đã giữ đúng dạng quá khứ ở mọi chỗ audio rõ (9/9 với giọng chuẩn). Nhưng với giọng trẻ em, Whisper có thể "sửa" thành dạng đúng ngữ pháp dù bé nói dạng gốc. **[OPEN]** Phải đo bằng ca sai có chủ đích (bé nói "We eat seafood" cho câu quá khứ) khi có bản ghi thật.
+- **[FACT]** Tốc độ lần này chậm hơn: 16,8 s cho 28,0 s âm thanh (RTF 0,60, so với 0,35 ở lần đo chính), cùng máy. **[ASSUME]** Máy đang chạy việc khác; chưa đo lại.
 
 ## 4. Kết quả: Whisper nghe cụm tiếng Anh
 
@@ -159,6 +213,7 @@ Chủ dự án đã được phép dùng giọng học sinh cho kiểm thử.
 
 ## 8. Việc còn mở
 
+- **[OPEN]** Đối chiếu nguyên văn SGK Unit 11 và đo lại các câu thật của unit khi giáo án xong; thử phương án dự phòng cho bảng động từ quá khứ.
 - **[OPEN]** Đo hai cách viết thay thế cho câu giải nghĩa ("Mother: nghĩa là mẹ") và câu có từ Anh đứng đầu.
 - **[OPEN]** Chủ dự án nghe audio mẫu và quyết định VieNeu có đủ làm mẫu phát âm không, hay cần phương án A/B.
 - **[OPEN]** Thử `prompt` của Whisper với từ vựng unit; kiểm bộ lọc VOICE-3 với câu trả lời một từ.
@@ -167,6 +222,8 @@ Chủ dự án đã được phép dùng giọng học sinh cho kiểm thử.
 ## Audio mẫu để nghe
 
 Không commit (gitignore `var/`). Đã chép sang checkout chính: `var/storage/poc/english-voice/`.
+
+- `u11_vieneu/<id>.wav`, `u11_ref/<id>.wav`: 10 câu Unit 11. Nghe u3 ("We ate seafood") và u9 (bảng động từ) để thấy lỗi.
 
 - `vieneu/<id>.wav`: VieNeu đọc 20 câu. Nghe w1, w3, w4, w5 để thấy lỗi từ trần; p1–p6, t1, t4, t5 để thấy mẫu câu tốt.
 - `ref/<id>.wav`: giọng tham chiếu, câu trộn là bản ghép (phương án B).

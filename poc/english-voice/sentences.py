@@ -1,4 +1,6 @@
-"""ENG-POC-voice: the sentences the tutor (and a child) would say in the Grade 5 unit "My family".
+"""ENG-POC-voice: the sentences the tutor (and a child) would say about the family, the general
+topic of Grade 5 English. Not the sentences of the unit the project uses (Unit 11 "Family time", Global
+Success 5, book two): those are measured separately by unit11.py.
 
 Each item: id, kind, the full text, the English target the learner must hear/say, and for mixed
 sentences the Vietnamese and English parts in speaking order (used to build the "hybrid" reference

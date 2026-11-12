@@ -1,4 +1,6 @@
-# ENG-POC-voice: giọng cô và bộ nghe cho unit "My family"
+# ENG-POC-voice: giọng cô và bộ nghe cho Tiếng Anh lớp 5, Unit 11 "Family time"
+
+Unit chủ dự án chốt là Unit 11 "Family time" (SGK Tiếng Anh 5 Global Success, tập hai). Bộ 20 câu đo chính (`sentences.py`) là câu thuộc chủ đề gia đình chung, **chưa phải câu của Unit 11**; `unit11.py` đo bổ sung 10 câu theo Unit 11.
 
 POC đo hai việc cho module Tiếng Anh lớp 5 (kết quả và đề xuất: `docs/poc/english-voice-decision.md`):
 
@@ -16,6 +18,7 @@ Code ở đây không được import vào `services/` hay `apps/`.
 | `synth.py` | Tổng hợp bằng VieNeu, đo thời gian; tạo audio tham chiếu → `results/synth.json` |
 | `listen.py` | Gửi Groq Whisper, 2 bộ audio × 20 câu × 3 cách đặt ngôn ngữ = 120 lượt → `results/transcripts.json` (có cache) |
 | `score.py` | Chấm, không gọi mạng → `results/score.md`, `results/score.json` |
+| `unit11.py` | Bổ sung 10 câu theo Unit 11: tổng hợp, Whisper nghe (VieNeu với `vi`, `en`; tham chiếu với `en`; 30 lượt, có cache), kiểm dạng quá khứ của động từ → `results/unit11.md` |
 
 Audio tham chiếu (`ref`): câu thuần Anh do giọng hệ thống macOS "Samantha" (en_US) đọc; câu trộn ghép phần Việt do VieNeu đọc với phần Anh do Samantha đọc, cách nhau 150 ms. Đây cũng là bản thử của phương án dự phòng "VieNeu cho tiếng Việt + giọng Anh của máy/trình duyệt cho cụm tiếng Anh".
 
@@ -41,6 +44,12 @@ GROQ_API_KEY="$(grep '^GROQ_API_KEY=' services/api/.env | cut -d= -f2- | tr -d "
 
 ```bash
 python3 poc/english-voice/score.py
+```
+
+Đo bổ sung Unit 11 (cần khóa Groq như trên):
+
+```bash
+GROQ_API_KEY="$(grep '^GROQ_API_KEY=' services/api/.env | cut -d= -f2- | tr -d "'\"")" services/voice/.venv/bin/python poc/english-voice/unit11.py
 ```
 
 - Lần đầu `synth.py` tải model VieNeu (~580 MB) về `var/storage/voice/hf`.
