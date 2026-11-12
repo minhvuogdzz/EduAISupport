@@ -8,9 +8,12 @@ folded form) and into the content words that coverage weighs (``content_words``)
   syllables and adjacent pairs, ``core/vi_text``, the decimal dot read as the Vietnamese comma, and the
   filler words of a child's question. Its output is byte for byte what ``bm25.tokens`` gave before ENG-2.
 - **English** (``ENGLISH``): lowercase, punctuation dropped, contractions written out ("I'm" = "I am",
-  "don't" = "do not", "father's" = "father"), then the same two forms and pairs, so that a question in
-  Vietnamese with English words in it ("brother nghĩa là gì hả cô") still matches: the Vietnamese words
-  fold, the English ones stay as they are. ``core/vi_text`` is used, not changed (english-module-rules G4).
+  "didn't" = "did not", "father's" = "father"), then the same two forms and pairs, so that a question in
+  Vietnamese with English words in it ("seashells nghĩa là gì hả cô") still matches: the Vietnamese words
+  fold, the English ones stay as they are. A verb in the past meets its base form ("collected" and
+  "collect", "went" and "go", "did" and "do"): every English word of four letters or more, and every
+  irregular past form, also gives its lemma as a token (``lemma``). ``core/vi_text`` is used, not changed
+  (english-module-rules G4).
 """
 
 from __future__ import annotations
@@ -111,6 +114,40 @@ _CONTRACTIONS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
 _ENGLISH_HOMOGRAPHS = frozenset({"a", "the", "may"})
 
 
+# The irregular past forms of the verbs a primary class meets (Global Success 5, a unit about what a family
+# did: "Did you go…? We went…"). Not exhaustive: a form not listed is a word of its own.
+_IRREGULAR_PAST = {
+    "did": "do", "went": "go", "had": "have", "was": "be", "were": "be", "made": "make", "saw": "see",
+    "ate": "eat", "came": "come", "took": "take", "got": "get", "gave": "give", "bought": "buy",
+    "swam": "swim", "ran": "run", "flew": "fly", "wrote": "write", "built": "build", "caught": "catch",
+    "drank": "drink", "found": "find", "left": "leave", "met": "meet", "sang": "sing", "sat": "sit",
+    "slept": "sleep", "spent": "spend", "taught": "teach", "told": "tell", "thought": "think",
+    "won": "win", "wore": "wear", "rode": "ride", "drew": "draw", "grew": "grow", "knew": "know",
+    "sent": "send", "stood": "stand", "brought": "bring", "began": "begin", "drove": "drive",
+    "felt": "feel", "heard": "hear", "kept": "keep", "lost": "lose", "paid": "pay", "said": "say",
+    "sold": "sell", "spoke": "speak", "threw": "throw", "understood": "understand", "woke": "wake",
+}  # fmt: skip
+_DOUBLED = re.compile(r"([bgmnprt])\1$")  # "stopped" -> "stopp" -> "stop"; not "called", "added"
+
+
+def lemma(word: str) -> str:
+    """The form an English word is matched on besides itself: the base of a past form, without a final
+    "e", so that "baked" and "bake" meet ("bak"), as do "visited" and "visit", "studied" and "study",
+    "stopped" and "stop", "went" and "go". Words shorter than four letters, and words with Vietnamese
+    letters, are their own lemma."""
+    if word in _IRREGULAR_PAST:
+        word = _IRREGULAR_PAST[word]
+    elif len(word) >= 5 and word.endswith("ied"):
+        word = word[:-3] + "y"
+    elif len(word) >= 6 and word.endswith("eed"):  # "agreed" -> "agree"; "need", "feed" stay
+        word = word[:-1]
+    elif len(word) >= 5 and word.endswith("ed"):
+        word = _DOUBLED.sub(r"\1", word[:-2])
+    if len(word) >= 4 and word.isascii() and word.isalpha() and word.endswith("e"):
+        word = word[:-1]
+    return word
+
+
 def english_normalize(text: str) -> str:
     """Lowercase NFC, contractions written out, punctuation dropped (``core/vi_text.normalize``)."""
     text = unicodedata.normalize("NFC", text).lower().translate(_APOSTROPHES)
@@ -138,11 +175,14 @@ class _EnglishAnalyzer:
             for i, (a, b) in enumerate(zip(words, words[1:], strict=False))
             if keep[i] and keep[i + 1]
         ]
-        return [w for w, k in zip(words, keep, strict=True) if k] + pairs
+        kept = [w for w, k in zip(words, keep, strict=True) if k]
+        lemmas = [base for w in kept if (base := lemma(w)) != w]  # "collected" also counts as "collect"
+        return kept + lemmas + pairs
 
     def content_words(self, text: str) -> list[str]:
-        words = dict.fromkeys(english_normalize(text).split())
-        return [w for w in words if not _filler(w) and not _NUMBER.match(w)]
+        """The question's content words on their lemma, which every text of the index holds as a token."""
+        words = english_normalize(text).split()
+        return list(dict.fromkeys(lemma(w) for w in words if not _filler(w) and not _NUMBER.match(w)))
 
 
 ENGLISH: Analyzer = _EnglishAnalyzer()

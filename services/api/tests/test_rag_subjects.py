@@ -7,7 +7,8 @@
 - Regression: every retrieval of the Mathematics eval questions is the same as before subjects existed
   (golden digests made at commit 565b6a0, before this change).
 
-The English unit here is a small fake made for these tests, not teaching content.
+The English unit here is a small fake made for these tests in the style of Unit 11 "Family time" (Tiếng Anh 5
+Global Success, tập hai), not teaching content.
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ from pydantic import ValidationError
 
 SCHOOL = service.DEMO_SCHOOL_ID
 DECIMALS = "math-g5-decimals"
-FAMILY = "eng-g5-family-test"  # the fake English unit of these tests
+FAMILY = "eng-g5-u11-family-time-test"  # the fake English unit of these tests (Unit 11 "Family time")
 TEACHER = {"X-Demo-Teacher": "1"}
 GOLDEN = Path(__file__).parent / "golden" / "rag-math-before-eng2.json"
 
@@ -51,13 +52,13 @@ def _node(node_id: str, name: str, theory: str, rule: str, example: str) -> dict
         "name": name,
         "layer": "BASIC",
         "description": name,
-        "lesson_id": "eng-g5-family-test-l1",
-        "theory": [{"id": "T1", "representation": "picture", "text": theory, "ask": "Who is he?"}],
+        "lesson_id": "eng-g5-u11-family-time-test-l1",
+        "theory": [{"id": "T1", "representation": "picture", "text": theory, "ask": "What did you do?"}],
         "method": {"rule": rule, "steps": ["Look at the picture.", "Say the word."]},
         "worked_examples": [
-            {"id": "W1", "problem": example, "steps": ["Point.", "Say."], "answer": "father"}
+            {"id": "W1", "problem": example, "steps": ["Point.", "Say."], "answer": "Yes, I did."}
         ],
-        "explain": {"prompt": "Tell me about your family.", "key_ideas": [["father"]]},
+        "explain": {"prompt": "Tell me about your family time.", "key_ideas": [["did"]]},
         "checks": [],
         "practice": [],
         "transfer": [],
@@ -72,25 +73,25 @@ def english_unit() -> Chapter:
             "status": "DRAFT",
             "subject": "english",
             "grade": 5,
-            "title": "My family (test)",
+            "title": "Unit 11. Family time (test)",
             "lessons": [],
             "nodes": [
                 _node(
-                    "EN-FAM-WORDS",
-                    "Family words",
-                    "Father, mother, brother and sister are the people in my family.",
-                    "A family word names a person: father, mother, brother, sister.",
-                    "Who is this man? He's my father.",
+                    "EN-FT-ACTIVITIES",
+                    "Family activities",
+                    "Last summer my family went to the beach. We collected seashells and had a picnic.",
+                    "An activity is a verb and what it is about: collect seashells, have a picnic.",
+                    "What did your family do at the beach? We collected seashells.",
                 ),
                 _node(
-                    "EN-FAM-HAVE",
-                    "I have a brother",
-                    "I'm Mai. I have a brother and a sister. My brother's name is Nam.",
-                    "Say I have and a family word: I have a brother.",
-                    "How many sisters have you got? I have one sister.",
+                    "EN-FT-DID",
+                    "Did you…? Yes, I did.",
+                    "Did you collect seashells? Yes, I did. Did you swim? No, I didn't.",
+                    "Ask with Did you and the base verb; answer Yes, I did or No, I didn't.",
+                    "Did you visit your grandparents? Yes, I did.",
                 ),
             ],
-            "relations": [{"source": "EN-FAM-WORDS", "target": "EN-FAM-HAVE", "type": "PREREQUISITE"}],
+            "relations": [{"source": "EN-FT-ACTIVITIES", "target": "EN-FT-DID", "type": "PREREQUISITE"}],
         }
     )
     return Chapter(package=package, lessons={})
@@ -124,10 +125,10 @@ def raw_document(doc_id: str, text: str, *, chapter_id, subject=None, kind="BAI_
 
 MATH_TEXT = (
     "Muốn so sánh hai số thập phân, ta so sánh phần nguyên trước, rồi so sánh hàng phần mười. "
-    "Phần nguyên là phần bên trái dấu phẩy. Father brother. "
+    "Phần nguyên là phần bên trái dấu phẩy. Seashells picnic beach. "
 )
 ENGLISH_TEXT = (
-    "My father is a doctor. I'm Mai and I have a brother. So sánh hai số thập phân, phần nguyên, "
+    "Did you go to the beach? Yes, I did. We collected seashells. So sánh hai số thập phân, phần nguyên, "
     "dấu phẩy, hàng phần mười: words a child may type in a lesson of English. "
 )
 
@@ -156,8 +157,12 @@ MATH_QUESTIONS = (
     "0,5 và 0,50 cái nào lớn hơn",
     "so sanh phan nguyen truoc",
 )
-ENGLISH_QUESTIONS = ("brother nghĩa là gì hả cô", "I'm Mai, I have a brother", "Who's he? He's my father.")
-NODES = {"math": (None, "KC-DEC-CMP", "KC-DEC-EQ"), "english": (None, "EN-FAM-WORDS", "EN-FAM-HAVE")}
+ENGLISH_QUESTIONS = (
+    "seashells nghĩa là gì hả cô",
+    "Did you collect seashells?",
+    "We didn't swim, we had a picnic.",
+)
+NODES = {"math": (None, "KC-DEC-CMP", "KC-DEC-EQ"), "english": (None, "EN-FT-ACTIVITIES", "EN-FT-DID")}
 
 
 # --- cross-subject leaks, both ways ---------------------------------------------------------------------
@@ -176,8 +181,8 @@ async def test_each_index_is_built_from_its_own_subject_only():
     assert not any(c.chapter_id == DECIMALS or (c.node_id or "").startswith("KC-") for c in english.chunks)
     # The graph of each index is its own subject's (no edge reaches the other subject's nodes).
     assert not any(n.startswith("EN-") for n in math.graph) and set(english.graph) <= {
-        "EN-FAM-WORDS",
-        "EN-FAM-HAVE",
+        "EN-FT-ACTIVITIES",
+        "EN-FT-DID",
     }
     assert set(rag.chapters("english")) == {FAMILY} and FAMILY not in rag.chapters("math")
     assert {d.id for d in rag.state("english").documents} == english_docs
@@ -194,8 +199,8 @@ async def test_a_math_question_in_an_english_session_finds_no_math_chunk(mode):
             assert all(s.chunk.subject == "english" for s in found.ranked), (question, node)
             # the English documents with no chapter and no node are the passages that would have matched
             assert all(not (s.chunk.document_id or "").startswith("m-") for s in found.ranked)
-        later, found = english.question(question, "EN-FAM-HAVE", ["EN-FAM-WORDS", "EN-FAM-HAVE"])
-        assert later in (None, "EN-FAM-WORDS", "EN-FAM-HAVE")
+        later, found = english.question(question, "EN-FT-DID", ["EN-FT-ACTIVITIES", "EN-FT-DID"])
+        assert later in (None, "EN-FT-ACTIVITIES", "EN-FT-DID")
         assert all(s.chunk.subject == "english" for s in found.results)
 
 
@@ -244,11 +249,11 @@ def test_a_passage_is_only_tied_to_a_node_of_its_own_subject():
     (en,) = tag_passages([passage("english", MATH_TEXT * 3)], reference)
     assert not (en.node_id or "").startswith("KC-") and not any(n.startswith("KC-") for n in en.candidates)
     # A Mathematics passage full of English family words: never tied to an English node.
-    (ma,) = tag_passages([passage("math", ENGLISH_TEXT * 3 + "father mother brother sister")], reference)
+    (ma,) = tag_passages([passage("math", ENGLISH_TEXT * 3 + "collect seashells have a picnic")], reference)
     assert not (ma.node_id or "").startswith("EN-") and not any(n.startswith("EN-") for n in ma.candidates)
     # Within its own subject it is tied as before.
-    (fam,) = tag_passages([passage("english", "I have a brother. I have a sister. I have")], reference)
-    assert fam.node_id == "EN-FAM-HAVE" and fam.chapter_id == FAMILY
+    (fam,) = tag_passages([passage("english", "Did you swim? No, I didn't. Did you? Yes, I did.")], reference)
+    assert fam.node_id == "EN-FT-DID" and fam.chapter_id == FAMILY
 
 
 # --- a subject is required on new data; old data is Mathematics (DI-120) --------------------------------
@@ -295,7 +300,7 @@ async def test_a_document_stored_before_subjects_is_read_as_mathematics():
     await ensure_indexes(database)
     await database["documents"].insert_one(raw_document("old", "Phần nguyên.", chapter_id=DECIMALS))
     await database["documents"].insert_one(
-        raw_document("new", "My father.", chapter_id=None, subject="english")
+        raw_document("new", "We had a picnic.", chapter_id=None, subject="english")
     )
     await database["documents"].insert_one({**raw_document("bad", "x", chapter_id=None), "subject": None})
     repo = DocumentRepository(database, SCHOOL)
@@ -325,6 +330,9 @@ def test_the_english_analyzer_writes_contractions_out_and_drops_punctuation():
     assert english_normalize("I'm Mai!") == "i am mai"
     assert english_normalize("I’m Mai.") == "i am mai"  # a typographic apostrophe too
     assert english_normalize("Who's he? He's my father's brother.") == "who is he he is my father brother"
+    assert english_normalize("Did you collect seashells? No, I didn't.") == (
+        "did you collect seashells no i did not"
+    )
     assert english_normalize("I don't have a sister, I can't swim; we won't go.") == (
         "i do not have a sister i can not swim we will not go"
     )
@@ -337,15 +345,41 @@ def test_the_english_analyzer_writes_contractions_out_and_drops_punctuation():
     assert first > 0 and second == 0
 
 
+def test_the_english_analyzer_meets_a_past_verb_with_its_base_form():
+    """A child asks with the base form ("collect") about a text in the past ("collected"), or the other way
+    round; an irregular past ("went", "had", "did") meets its base too."""
+    from cavat.modules.rag.analyzers import lemma
+
+    pairs = {
+        "collected": "collect", "visited": "visit", "played": "play", "studied": "study", "stopped": "stop",
+        "baked": "bake", "agreed": "agree", "went": "go", "had": "have", "did": "do", "swam": "swim",
+        "bought": "buy",
+    }  # fmt: skip
+    for past, base in pairs.items():
+        assert lemma(past) == lemma(base), (past, base)
+    assert lemma("called") == "call" and lemma("added") == "add" and lemma("need") == "need"
+    assert lemma("seashells") == "seashells" and lemma("nghe") == "ngh" and lemma("nghé") == "nghé"
+    index = TwoFormBM25(
+        ["Last summer we collected seashells and went to the beach.", "We have a cat."], ENGLISH
+    )
+    for question in ("Did you collect seashells?", "Do you go to the beach?"):
+        first, second = index.scores(question)
+        assert first > second, question
+    assert index.coverage("collect seashells")[0] == 1.0
+    assert TwoFormBM25(["Did you collect seashells?"], ENGLISH).coverage("collected seashells")[0] == 1.0
+    # "didn't" is "did not": a question with "did" meets an answer that says "didn't".
+    assert TwoFormBM25(["No, I didn't."], ENGLISH).coverage("did")[0] == 1.0
+
+
 def test_the_english_analyzer_reads_vietnamese_with_english_words_in_it():
     # The child's Vietnamese is filler ("nghĩa là gì hả cô"); the English word is the content.
-    assert ENGLISH.content_words("brother nghĩa là gì hả cô") == ["brother"]
-    assert ENGLISH.content_words("Brother nghia la gi ha co") == ["brother"]
+    assert ENGLISH.content_words("seashells nghĩa là gì hả cô") == ["seashells"]
+    assert ENGLISH.content_words("Seashells nghia la gi ha co") == ["seashells"]
     # English words that fold like Vietnamese fillers stay English; with diacritics they are fillers.
-    assert "the" in ENGLISH.content_words("the father")
-    assert "thế" not in ENGLISH.content_words("thế father")
-    index = TwoFormBM25(["My brother is ten.", "Phần nguyên của số thập phân."], ENGLISH)
-    assert index.coverage("brother nghĩa là gì hả cô")[0] == 1.0
+    assert "the" in ENGLISH.content_words("the beach")
+    assert "thế" not in ENGLISH.content_words("thế beach")
+    index = TwoFormBM25(["We collected seashells.", "Phần nguyên của số thập phân."], ENGLISH)
+    assert index.coverage("seashells nghĩa là gì hả cô")[0] == 1.0
     assert index.coverage("phan nguyen la gi")[1] == 1.0  # folded Vietnamese still matches
 
 
@@ -354,7 +388,7 @@ def test_the_math_only_rules_do_not_run_in_another_subject():
     mathematics; in an English index a question stays a question and names no foreign term."""
     english = RagIndex(chapter_chunks(english_unit()), None, {}, subject="english")
     assert english.foreign_terms("dien tich hinh tron tinh the nao") == []
-    assert english.retrieve("brother là gì vậy cô").mode == "question"
+    assert english.retrieve("seashells là gì vậy cô").mode == "question"
     math = RagIndex(chapter_chunks(chapter_service.chapters()[DECIMALS]), None, {}, subject="math")
     assert "hinh tron" in math.foreign_terms("dien tich hinh tron tinh the nao")
     assert math.retrieve("phần nguyên là gì vậy cô").mode == "definition"
@@ -380,7 +414,7 @@ def test_the_teacher_reads_the_index_of_one_subject_and_sees_it(client):
     english = client.get("/v1/teachers/rag/status", params={"subject": "english"}, headers=TEACHER).json()
     assert (math["subject"], english["subject"]) == ("math", "english")
     assert {d["document_id"] for d in english["documents"]} == {"e-unit", "e-none", "e-empty"}
-    assert {n["node_id"] for n in english["nodes"]} == {"EN-FAM-WORDS", "EN-FAM-HAVE"}
+    assert {n["node_id"] for n in english["nodes"]} == {"EN-FT-ACTIVITIES", "EN-FT-DID"}
     assert not any(n["node_id"].startswith("EN-") for n in math["nodes"])
     found = client.get(
         "/v1/teachers/rag/search",
@@ -389,7 +423,9 @@ def test_the_teacher_reads_the_index_of_one_subject_and_sees_it(client):
     ).json()
     assert found["subject"] == "english" and found["results"]
     assert {r["subject"] for r in found["results"]} == {"english"}
-    found = client.get("/v1/teachers/rag/search", params={"q": "I have a brother"}, headers=TEACHER).json()
+    found = client.get(
+        "/v1/teachers/rag/search", params={"q": "Did you collect seashells?"}, headers=TEACHER
+    ).json()
     assert {r["subject"] for r in found["results"]} <= {"math"}
     rebuilt = client.post("/v1/teachers/rag/rebuild", params={"subject": "english"}, headers=TEACHER).json()
     assert rebuilt["subject"] == "english"
@@ -399,7 +435,7 @@ def test_the_teacher_reads_the_index_of_one_subject_and_sees_it(client):
 
 def test_the_trace_records_the_subject_of_the_index_and_of_every_chunk():
     index = RagIndex(chapter_chunks(english_unit()), None, {}, subject="english")
-    found = index.retrieve("I have a brother")
+    found = index.retrieve("Did you collect seashells?")
     details = _result("rag", "retrieve", found, (), {})["details"]
     assert details["subject"] == "english" and details["chunks"]
     assert {c["subject"] for c in details["chunks"]} == {"english"}
