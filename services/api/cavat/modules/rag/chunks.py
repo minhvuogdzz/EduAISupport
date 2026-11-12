@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from cavat.core.subjects import check_subject
 from cavat.modules.content.chapter_package import Chapter
 
 MIN_SYLLABLES, MAX_SYLLABLES = 150, 300  # plan v1 5.5.1 (tokens counted as syllables)
@@ -37,12 +38,19 @@ class Chunk:
     # A document passage tied to no node: the nodes it could be about (DI-50). It may ground a question only
     # when one of them is in scope: a passage on a later period never reaches an earlier one.
     candidates: tuple[str, ...] = ()
+    # ENG-2 (ADR-061): the subject of the chunk, required (keyword only, no default). An index holds the
+    # chunks of one subject; a chunk without a known subject cannot be made.
+    subject: str = field(kw_only=True)
+
+    def __post_init__(self) -> None:
+        check_subject(self.subject)
 
 
 def chapter_chunks(chapter: Chapter) -> list[Chunk]:
     """Teaching units of every node, and the notes on the misconceptions of its lessons."""
     pkg = chapter.package
     cid, approved = pkg.chapter_id, pkg.status in ("APPROVED", "PUBLISHED")
+    subject = pkg.subject
     out: list[Chunk] = []
     for node in pkg.nodes:
         for t in node.theory:
@@ -58,6 +66,7 @@ def chapter_chunks(chapter: Chapter) -> list[Chunk]:
                     f"{node.name} · cách giảng {t.id} ({t.representation})",
                     approved,
                     extra={"reply": t.reply} if t.reply else {},
+                    subject=subject,
                 )
             )
         steps = " ".join(f"Bước {i}: {s}" for i, s in enumerate(node.method.steps, 1))
@@ -71,6 +80,7 @@ def chapter_chunks(chapter: Chapter) -> list[Chunk]:
                 "chapter",
                 f"{node.name} · phương pháp",
                 approved,
+                subject=subject,
             )
         )
         for w in node.worked_examples:
@@ -85,6 +95,7 @@ def chapter_chunks(chapter: Chapter) -> list[Chunk]:
                     "chapter",
                     f"{node.name} · cô làm mẫu {w.id}",
                     approved,
+                    subject=subject,
                 )
             )
     for lesson in chapter.lessons.values():
@@ -103,6 +114,7 @@ def chapter_chunks(chapter: Chapter) -> list[Chunk]:
                     f"Lỗi sai {m.id}: {m.name}",
                     approved,
                     misconception_id=m.id,
+                    subject=subject,
                 )
             )
     return out
@@ -119,8 +131,12 @@ def _pieces(line: str) -> list[str]:
     return [s for s in _SENTENCE_END.split(line) if s.strip()]
 
 
-def document_chunks(document_id: str, title: str, chapter_id: str | None, text: str) -> list[Chunk]:
-    """Passages of 150-300 syllables cut at line ends, overlapping by one sentence, with their first page."""
+def document_chunks(
+    document_id: str, title: str, chapter_id: str | None, text: str, *, subject: str
+) -> list[Chunk]:
+    """Passages of 150-300 syllables cut at line ends, overlapping by one sentence, with their first page.
+
+    ``subject``: the document's (ENG-2); every passage carries it, also one with no chapter."""
     passages: list[tuple[int | None, str]] = []
     page: int | None = None  # the page being read ("[Trang n]" markers of the extracted text)
     start_page: int | None = None  # where the passage being built starts
@@ -172,6 +188,7 @@ def document_chunks(document_id: str, title: str, chapter_id: str | None, text: 
             True,  # the teacher's own documents are the reference
             document_id=document_id,
             page=p,
+            subject=subject,
         )
         for i, (p, body) in enumerate(passages, 1)
     ]

@@ -151,7 +151,8 @@ def test_an_answer_from_the_trusted_web_source_is_in_the_transcript(client, monk
             assert query == "mẫu số"
             return page
 
-    async def index(_):
+    async def index(_, subject):
+        assert subject == "math"  # ENG-2: the subject of the chapter the session runs
         return RagIndex(
             [
                 Chunk(
@@ -163,10 +164,12 @@ def test_an_answer_from_the_trusted_web_source_is_in_the_transcript(client, monk
                     "chapter",
                     "Phân số thập phân",
                     True,
+                    subject="math",
                 )
             ],
             None,
             {"KC-DEC-FRAC": set()},
+            subject="math",
         )
 
     monkeypatch.setattr(session_api, "_web_source", lambda: Source())

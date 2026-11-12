@@ -52,7 +52,7 @@ class ScriptedRouter:
 @pytest.fixture(scope="module")
 async def index():
     rag = RagService(service.DEMO_SCHOOL_ID, chapter_service.chapters, embedder=lambda: None)
-    return await rag.current(InMemoryDatabase())
+    return await rag.current(InMemoryDatabase(), "math")
 
 
 def evidence(index, *texts: str) -> Evidence:

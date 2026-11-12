@@ -108,12 +108,12 @@ async def build_indexes():
     database = db.get_db(settings)
     await chapter_service.load_published(database, DEMO_SCHOOL_ID)
     published = await RagService(DEMO_SCHOOL_ID, chapter_service.chapters, embedder=lambda: embedder).current(
-        database
+        database, "math"
     )
     await db.close_client()
     sample_chapters = {cid: c for cid, (c, _) in chapter_service.chapter_sources().items()}
     sample = await RagService(DEMO_SCHOOL_ID, lambda: sample_chapters, embedder=lambda: embedder).current(
-        InMemoryDatabase()
+        InMemoryDatabase(), "math"
     )
     for name, index in (("published", published), ("sample", sample)):
         if index.semantic_error:
