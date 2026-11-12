@@ -2,7 +2,7 @@
 
 Ngày: 12/11/2026 · Quyết định D-T13 · Trạng thái: **chủ dự án duyệt mặc định ngày 12/11/2026**
 
-File này là **luật**; hướng đi, quyết định và các mốc nằm ở `docs/plan/plan-english-g5-my-family.md`, khung đánh giá ở `docs/adr/ADR-060-english-assessment-framework.md`. Mọi phiên làm task ENG phải tuân theo file này. Khi plan, ADR-060 hay blueprint khác với file này về một luật, file này thắng.
+File này là **luật**; hướng đi, quyết định và các mốc nằm ở `docs/plan/plan-english-g5-unit11-family-time.md`, khung đánh giá ở `docs/adr/ADR-060-english-assessment-framework.md`. Mọi phiên làm task ENG phải tuân theo file này. Khi plan, ADR-060 hay blueprint khác với file này về một luật, file này thắng.
 
 **Mục tiêu duy nhất của các luật dưới đây:** thêm môn Tiếng Anh mà **không làm thay đổi hành vi, công thức, ngưỡng, prompt hay kết quả eval của Toán**, và không để nội dung hai môn lẫn vào nhau.
 
@@ -65,7 +65,7 @@ Từ ngữ: "phần dùng chung" là code mà cả hai môn chạy qua (projecto
 
 **Cách kiểm**
 - Test: dựng prompt buổi Tiếng Anh, không có từ nào trong danh sách thuật ngữ Toán; dựng prompt buổi Toán, giống hệt trước PR (so chuỗi).
-- Test validator: lời cô Tiếng Anh có "số thập phân" bị từ chối; lời cô Toán có "This is my mother" bị từ chối.
+- Test validator: lời cô Tiếng Anh có "số thập phân" bị từ chối; lời cô Toán có "We ate seafood" bị từ chối.
 - Test học sinh mô phỏng: câu Toán trong buổi Tiếng Anh cho `OFF_TOPIC`, không có `ITEM_RESOLVED` hay evidence mới.
 - Eval regression prompt Toán (quy tắc 7): `make eval-hard`, `make eval-grounded` không đổi.
 
@@ -99,12 +99,14 @@ Từ ngữ: "phần dùng chung" là code mà cả hai môn chạy qua (projecto
 
 **Luật**
 - V1. Ngôn ngữ Whisper và giọng TTS được chọn theo **môn và bước** bởi backend. Buổi Toán giữ đúng mặc định hiện tại (`language="vi"`, giọng cô VieNeu hiện có).
-- V2. Buổi Tiếng Anh: câu đích → `en`; hỏi đáp, "vì sao" → tự nhận dạng (plan, R-VOICE).
+- V2. Buổi Tiếng Anh: nói theo mẫu và hỏi đáp bằng tiếng Anh → `en`; giải nghĩa, "vì sao", câu lẫn Việt–Anh → `vi`. **Không bao giờ để Whisper tự nhận dạng** (POC PR #139).
+- V2b. Lời cô gửi TTS luôn đặt từ đích tiếng Anh trong một câu (câu dẫn tiếng Việt kết thúc bằng dấu hai chấm, hoặc trong mẫu câu); không gửi từ trần.
 - V3. Audio vẫn ở `var/storage/` (gitignore); không vào database, không vào `db-dump`, không gửi ra ngoài trừ Whisper qua `ai_gateway`.
 - V4. Không chấm phát âm theo âm vị; không thêm dịch vụ chấm phát âm.
 
 **Cách kiểm**
-- Test với gateway giả (`ai_gateway/fake.py`): buổi Toán gọi transcribe với `vi`; buổi Tiếng Anh ở bước câu đích gọi với `en`.
+- Test với gateway giả (`ai_gateway/fake.py`): buổi Toán gọi transcribe với `vi`; buổi Tiếng Anh ở bước câu đích gọi với `en`, ở bước giải nghĩa gọi với `vi`; không lời gọi nào bỏ trống `language`.
+- Test `speech_text` của buổi Tiếng Anh: không có lượt TTS nào chỉ gồm một từ tiếng Anh trần.
 - Test `voice/api.py` của Toán: response và tệp lưu như trước PR.
 
 ## 8. API và frontend
@@ -156,7 +158,7 @@ Từ ngữ: "phần dùng chung" là code mà cả hai môn chạy qua (projecto
 - Mỗi task một nhánh `task/ENG-<n>-<tên-ngắn>` và một PR vào `main`; CI xanh trước khi gộp.
 - PR chạm **phần dùng chung** với Toán phải có mục "Ảnh hưởng tới Toán" trong mô tả: liệt kê file dùng chung đã sửa, vì sao, và kết quả regression Toán.
 - Đổi prompt, policy hay mastery policy của Tiếng Anh phải tăng version và chạy eval (quy tắc 7).
-- DI mới đánh số tiếp từ DI-117; quyết định kiến trúc mới thành ADR.
+- DI mới đánh số tiếp sau số DI lớn nhất trên `main` và các PR đang mở (kiểm bằng grep trước khi đặt số); quyết định kiến trúc mới thành ADR.
 - Mỗi PR có mục "Ghi chép luận văn" (quy tắc trong `CLAUDE.md`).
 
 ## 13. Definition of done (copy vào mô tả PR)

@@ -98,11 +98,11 @@ Baseline: `START → GOAL → REVIEW → CONCEPT CHECK → GUIDED EXAMPLE → SO
 
 ## PART 19 — ENGLISH GRADE 5 TUTOR (viết lại 12/11/2026)
 
-> Bản cũ của PART 19 (chuẩn kỹ năng lớp 5 theo khung English, skill taxonomy Reading/Speaking, Support Ladder S0–S5, flow Reading 10 bước, flow Speaking, rubric 0–4, mastery rule §10.1) **đã bị xóa** theo yêu cầu của chủ dự án. Hướng hiện hành: `docs/plan/plan-english-g5-my-family.md`; khung đánh giá: `docs/adr/ADR-060-english-assessment-framework.md`.
+> Bản cũ của PART 19 (chuẩn kỹ năng lớp 5 theo khung English, skill taxonomy Reading/Speaking, Support Ladder S0–S5, flow Reading 10 bước, flow Speaking, rubric 0–4, mastery rule §10.1) **đã bị xóa** theo yêu cầu của chủ dự án. Hướng hiện hành: `docs/plan/plan-english-g5-unit11-family-time.md`; khung đánh giá: `docs/adr/ADR-060-english-assessment-framework.md`.
 
 ### 19.1. Phạm vi
 
-- Một unit **"My family"** lớp 5. Gia sư **ôn bài ở nhà** sau khi con đã học trên lớp, không phải khóa học kỹ năng, không đo trình độ CEFR/IELTS.
+- Một unit lớp 5: **Unit 11 "Family time"**, SGK Tiếng Anh 5 Global Success tập hai (chủ đề "Me and my family"). Gia sư **ôn bài ở nhà** sau khi con đã học trên lớp, không phải khóa học kỹ năng, không đo trình độ CEFR/IELTS.
 - Nội dung (từ, mẫu câu, item, đáp án) lấy từ ấn phẩm công khai chủ dự án cung cấp (SGK/sách giáo viên Tiếng Anh 5, giáo án, bài tập kèm đáp án), qua cùng đường ingest với Toán. Không bịa item hay đáp án.
 
 ### 19.2. Cùng khuôn với Toán
@@ -111,16 +111,16 @@ Baseline: `START → GOAL → REVIEW → CONCEPT CHECK → GUIDED EXAMPLE → SO
 |---|---|---|
 | Gói nội dung | `ChapterPackage` + `LessonPackage` | Như Toán, `subject: english`; một unit là một gói chương |
 | Vòng dạy | 6 bước (ADR-059) | Giữ nguyên 6 bước |
-| Nút kiến thức | Khái niệm/phương pháp của chương | Từ vựng, "This is my ___", "He/She is ___", hội thoại giới thiệu gia đình (ADR-060 mục 3) |
+| Nút kiến thức | Khái niệm/phương pháp của chương | Cụm hoạt động kỳ nghỉ (buy souvenirs, eat seafood…), "Did you …? – Yes, I did. / No, I didn't.", "What did your family do in …? – We …", hội thoại kể kỳ nghỉ (ADR-060 mục 3) |
 | Item | Mức A–E + DIAG | Mức A–E + DIAG (ADR-060 mục 3.2) |
 | Đúng/sai | `MathChecker` tất định | `EnglishChecker` tất định, so với đáp án chấp nhận (có biến thể "I'm"/"I am", DI-110) |
 | Thang gợi ý | H0–H7 | H0–H7, nội dung theo DI-112 |
 | Đánh giá | Projector node-mastery, 7 chiều | Cùng projector, `MasteryPolicy` tiếng Anh |
-| Ngôn ngữ cô | Tiếng Việt | Tiếng Việt; từ và câu đích bằng tiếng Anh ("Con nói theo cô nhé: *This is my mother.*") |
-| Giọng nói | Một cách trả lời | Một cách trả lời, không phải kỹ năng riêng; Whisper chọn ngôn ngữ theo bước; chưa chấm phát âm |
+| Ngôn ngữ cô | Tiếng Việt | Tiếng Việt; từ và câu đích bằng tiếng Anh ("Con nói theo cô nhé: *We ate seafood.*"); từ đích luôn nằm trong một câu |
+| Giọng nói | Một cách trả lời | Một cách trả lời, không phải kỹ năng riêng; Whisper chọn `en`/`vi` theo bước, không tự nhận dạng; chưa chấm phát âm |
 
 ### 19.3. Khác Toán ở đâu
 
-- Hiểu lầm điển hình là ngôn ngữ chứ không phải số học: nhầm *he/she*, thiếu *my*, nhầm nghĩa cặp từ (ADR-060 mục 5).
+- Hiểu lầm điển hình là ngôn ngữ chứ không phải số học: trả lời "Yes, I do" cho câu hỏi "Did you…?", dùng động từ nguyên mẫu sau "We" khi kể việc đã qua, quên "did", nhầm nghĩa cụm từ (ADR-060 mục 5).
 - Lời giải thích "vì sao" bằng tiếng Việt; câu trả lời đích bằng tiếng Anh.
 - Dữ liệu giọng nói có độ tin cậy ASR (DI-109) và giáo viên nghe lại được audio.

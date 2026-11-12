@@ -77,7 +77,7 @@ M = 0.20·C + 0.20·R + 0.15·A + 0.15·T + 0.10·I + 0.10·S + 0.10·D
 
 ### 26.2. Khung Tiếng Anh: đã thay bằng ADR-060
 
-> **Đã xóa theo yêu cầu của chủ dự án (12/11/2026).** Khung English cũ (subskill Reading/Speaking, rubric 0–4, Support Ladder S0–S5, DI-9, DI-10) không còn hiệu lực. Môn Tiếng Anh (một unit "My family" lớp 5) dùng khung Toán ở 26.1 ánh xạ lại: xem `docs/adr/ADR-060-english-assessment-framework.md` (DI-106 đến DI-116) và `docs/plan/plan-english-g5-my-family.md`. Số hiệu DI-9 và DI-10 không được dùng lại.
+> **Đã xóa theo yêu cầu của chủ dự án (12/11/2026).** Khung English cũ (subskill Reading/Speaking, rubric 0–4, Support Ladder S0–S5, DI-9, DI-10) không còn hiệu lực. Môn Tiếng Anh (một unit lớp 5, Unit 11 "Family time") dùng khung Toán ở 26.1 ánh xạ lại: xem `docs/adr/ADR-060-english-assessment-framework.md` (DI-106 đến DI-116) và `docs/plan/plan-english-g5-unit11-family-time.md`. Số hiệu DI-9 và DI-10 không được dùng lại.
 
 ### 26.3. Confidence (khung Toán §21, §33 + DI-11)
 

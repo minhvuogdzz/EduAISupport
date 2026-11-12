@@ -217,15 +217,16 @@ Quy tắc evidence: câu trả lời qua voice **chỉ thành evidence sau khi �
 
 ### 20.3. Giọng nói trong module Tiếng Anh (viết lại 12/11/2026)
 
-> Các mục cũ 20.3 (English Realtime Speaking, hai kiến trúc speech-to-speech/cascade, POC 6), 20.4 (quy tắc sửa lỗi khi nói theo khung English §16, Support Ladder S0–S5) và phần English của 20.5 (ba lớp dữ liệu theo khung English §12.1, chấm Speaking theo nhiều chiều) **đã bị bỏ** cùng khung English cũ. Hướng hiện hành: `docs/plan/plan-english-g5-my-family.md` (quy tắc R-VOICE) và ADR-060 mục 7.
+> Các mục cũ 20.3 (English Realtime Speaking, hai kiến trúc speech-to-speech/cascade, POC 6), 20.4 (quy tắc sửa lỗi khi nói theo khung English §16, Support Ladder S0–S5) và phần English của 20.5 (ba lớp dữ liệu theo khung English §12.1, chấm Speaking theo nhiều chiều) **đã bị bỏ** cùng khung English cũ. Hướng hiện hành: `docs/plan/plan-english-g5-unit11-family-time.md` (quy tắc R-VOICE) và ADR-060 mục 7.
 
 Tóm tắt:
 - Cùng pipeline cascade với Toán: Groq Whisper → bộ chấm tất định → chính sách dạy → lời cô → VieNeu-TTS (ADR-030).
-- Whisper chọn ngôn ngữ theo bước: nói theo mẫu và câu đích tiếng Anh → `en`; hỏi đáp, "vì sao" → tự nhận dạng.
+- Whisper chọn ngôn ngữ theo bước: nói theo mẫu và hỏi đáp bằng tiếng Anh → `en`; giải nghĩa, "vì sao", câu lẫn Việt–Anh → `vi`; không bao giờ tự nhận dạng (POC `docs/poc/english-voice-decision.md`, PR #139).
+- Lời cô gửi TTS luôn đặt từ đích tiếng Anh trong một câu ("Con nói theo cô: seafood."), không gửi từ trần.
 - Mỗi lượt nói có độ tin cậy ASR (DI-109): thấp thì chỉ được làm tăng, không làm giảm mastery. Đúng sau khi cô đọc mẫu không bằng đúng độc lập (DI-108).
 - Gợi ý theo thang H0–H7 chung (DI-112); cô nhắc lại câu hỏi hay nói chậm không phải gợi ý.
 - Giáo viên nghe lại audio và thấy độ tin cậy ASR từng lượt. Chưa chấm phát âm theo âm vị; phát âm chưa chuẩn mà không cản nghĩa không phải lỗi (DI-107).
-- VieNeu-TTS đọc câu trộn Việt–Anh phải được đo trước khi dùng (POC trong Mốc ENG-6).
+- VieNeu-TTS v3 Turbo đọc mẫu câu tiếng Anh trọn câu rõ, từ đơn đứng một mình thì kém (POC PR #139).
 
 ### 20.4. Ràng buộc chung của giọng nói
 

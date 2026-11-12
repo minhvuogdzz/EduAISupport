@@ -83,7 +83,7 @@ Tối đa 1 lần retry (giữ độ trễ); sau đó fallback nội dung đã d
 
 ```text
 [L1] Tutor Constitution (tĩnh, dùng chung mọi môn)            — cache
-[L2] Subject Pedagogy Module (Math G5 | English G5 unit "My family", prompt riêng theo môn)  — cache
+[L2] Subject Pedagogy Module (Math G5 | English G5 Unit 11 "Family time", prompt riêng theo môn)  — cache
 [L3] Lesson Package (đã duyệt, bất biến theo contract)           — cache
 [L4] Student Snapshot (tất định, ≤ 400 token, đổi theo session) — cache theo session
 ──────────── cache breakpoint ────────────
