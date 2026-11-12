@@ -2,7 +2,7 @@
 
 Ngày: 12/11/2026 · Quyết định D-T13 (blueprint 00) · Trạng thái: **chủ dự án duyệt mặc định ngày 12/11/2026** · Khung đánh giá: `docs/adr/ADR-060-english-assessment-framework.md` (DI-106 đến DI-116).
 
-Tài liệu này là **hướng đi và quy tắc bắt buộc** cho mọi phiên làm module Tiếng Anh. Đọc cùng `CLAUDE.md`, kế hoạch v1 (`plan-v1-teaching-knowledge-graph.md`) và ADR-060 trước khi làm bất kỳ task ENG nào. Khi tài liệu này mâu thuẫn với blueprint v0.1–v0.3 về Tiếng Anh, tài liệu này thắng.
+Tài liệu này là **hướng đi** của module Tiếng Anh. **Luật bắt buộc theo từng tầng** (nội dung, RAG, session, prompt, chấm, event, giọng nói, API/web, cấu hình, dữ liệu, kiểm thử, quy trình) và checklist Definition of done nằm ở `docs/plan/english-module-rules.md`; khi hai file khác nhau, file luật thắng. Đọc cùng `CLAUDE.md`, kế hoạch v1 (`plan-v1-teaching-knowledge-graph.md`) và ADR-060 trước khi làm bất kỳ task ENG nào. Khi tài liệu này mâu thuẫn với blueprint v0.1–v0.3 về Tiếng Anh, tài liệu này thắng.
 
 ---
 
@@ -20,7 +20,7 @@ Tài liệu này là **hướng đi và quy tắc bắt buộc** cho mọi phiê
 | E8 | Giữ hai ý của khung cũ thành DI mới: ASR thấp chỉ được tăng mastery (DI-109); đúng sau mẫu không bằng đúng độc lập (DI-108) | |
 | E9 | **Giáo viên và phụ huynh xem kết quả như Toán**; thêm bản chép lời + nghe lại audio + độ tin cậy ASR cho giáo viên; phân biệt đúng nhờ gợi ý và đúng độc lập; phụ huynh không có một điểm số duy nhất | ADR-060 mục 9 |
 | E10 | **RAG tách theo môn** | Quy tắc R-ISO ở mục 2 |
-| E11 | **Bật `WEB_LOOKUP` cho Tiếng Anh**, vẫn theo luật BRAIN-2/7 | Chỉ gửi khái niệm chuẩn, không gửi lời hay tên học sinh |
+| E11 | **Bật `WEB_LOOKUP` cho Tiếng Anh**, vẫn theo luật BRAIN-2/7 | Chỉ gửi khái niệm chuẩn, không gửi lời hay tên học sinh; bật bằng biến riêng của môn (ví dụ `ENGLISH_WEB_LOOKUP`), không đổi `WEB_LOOKUP` của Toán (luật C1) |
 | E12 | **Nguồn nội dung làm như Toán** (ADR-020/023/024/025): chủ dự án cung cấp ấn phẩm công khai (SGK/sách giáo viên Tiếng Anh 5, giáo án, bài tập kèm đáp án) | Không tự bịa item hay đáp án |
 | E13 | **Giáo viên duyệt:** nội dung soạn trong quá trình làm được chấp nhận mặc định | Ghi rõ "chủ dự án duyệt mặc định ngày 12/11/2026" trên mỗi artifact |
 | E14 | **Giọng nói:** đo VieNeu-TTS code-switching Việt–Anh trước khi dùng; Whisper chọn ngôn ngữ theo bước; chưa chấm phát âm theo âm vị | Mốc ENG-6 |
@@ -28,7 +28,7 @@ Tài liệu này là **hướng đi và quy tắc bắt buộc** cho mọi phiê
 
 ## 2. Quy tắc bắt buộc
 
-Các quy tắc này bổ sung cho 25 quy tắc của `CLAUDE.md`, không thay chúng.
+Các quy tắc này bổ sung cho 25 quy tắc của `CLAUDE.md`, không thay chúng. Đây là bản tóm tắt theo chủ đề; bản bắt buộc có cách kiểm cho từng luật là `docs/plan/english-module-rules.md`.
 
 ### R-ISO: cô lập môn
 
@@ -59,7 +59,7 @@ Các quy tắc này bổ sung cho 25 quy tắc của `CLAUDE.md`, không thay ch
 ### R-VOICE: giọng nói
 
 1. Whisper chọn `language` **theo bước**, do backend quyết: item nói theo mẫu và item yêu cầu câu tiếng Anh → `en`; hỏi đáp, "vì sao", xin gợi ý → tự nhận dạng (không gửi `language`). Hiện code cố định `language="vi"` (`voice/api.py`).
-2. Mỗi lượt nói ghi `asr_confidence` theo DI-109 và **tham chiếu tới tệp audio** đã lưu, để giáo viên nghe lại. Audio vẫn ở `var/storage/` (gitignore), không vào database và không vào `db-dump` công khai.
+2. Mỗi lượt nói ghi `asr_confidence` theo DI-109 và **tham chiếu tới tệp audio** đã lưu (trong một loại sự kiện mới, luật E1), để giáo viên nghe lại. Audio vẫn ở `var/storage/` (gitignore), không vào database và không vào `db-dump` công khai.
 3. Lượt có q thấp: không trừ mastery, mời nói lại hoặc gõ (DI-109).
 4. **Không chấm phát âm theo âm vị**, không dùng dịch vụ chấm phát âm. Phát âm chưa chuẩn mà không cản nghĩa không phải lỗi (DI-107).
 5. **VieNeu-TTS code-switching:** PyPI mô tả có hỗ trợ trộn Việt–Anh, nhưng bản v3 Turbo trong repo **chưa được kiểm**. Phải đo trước (Mốc ENG-6) và ghi `docs/poc/vieneu-codeswitch-decision.md`. Nếu không đạt: phương án dự phòng là tách câu thành đoạn Việt/Anh và đọc đoạn tiếng Anh bằng giọng tiếng Anh miễn phí chạy local (chọn trong POC), hoặc TTS của trình duyệt.
@@ -91,7 +91,7 @@ Các quy tắc này bổ sung cho 25 quy tắc của `CLAUDE.md`, không thay ch
 | `rag/bm25.py`, `core/vi_text` | tokenizer tiếng Việt | tokenizer tiếng Anh | ENG-2 |
 | `assessment/math_checker.py` | chỉ chấm Toán | `assessment/english_checker.py` (DI-110, DI-107) | ENG-4 |
 | `assessment/projector.py` | không đọc `asr_confidence`/`modality`; `ErrorClass` chưa có `L1` | `MasteryPolicy` tiếng Anh, DI-108/109, lớp `L1` | ENG-4 |
-| `core/events.py` | `ItemResolved.asr_confidence` có nhưng không ai điền; `StudentMessage` không có tham chiếu audio | điền q, thêm `audio_ref` (thêm trường tùy chọn, không đổi event cũ) | ENG-6 |
+| `core/events.py` | `ItemResolved.asr_confidence` có nhưng không ai điền; `StudentMessage` không có tham chiếu audio | điền q; thêm **loại sự kiện mới** (ví dụ `VOICE_TURN_RECORDED`: `audio_ref`, q, ngôn ngữ) thay vì sửa event cũ (luật E1) | ENG-6 |
 | `voice/api.py` | `language="vi"` cố định; trả `Transcript(text, model)` không có độ tin cậy | ngôn ngữ theo bước, trả q | ENG-6 |
 | `ai_gateway/groq.py` | đọc `avg_logprob`/`no_speech_prob` chỉ để bỏ im lặng | trả q theo DI-109 | ENG-6 |
 | `tutor/prompts/` | prompt Toán (`constitution.v18`…) | bộ prompt tiếng Anh riêng | ENG-5 |
@@ -130,7 +130,7 @@ Toàn bộ ở ADR-060. Tóm tắt cho phiên sau:
 5. Unit thứ hai thêm được chỉ bằng dữ liệu (không sửa code).
 6. Mọi mốc có mục nhật ký Phụ lục E trong tài liệu luận văn.
 
-## 8. Thứ tự các mốc (mỗi mốc một hoặc vài phiên, task chi tiết ở `docs/tasks/BACKLOG.md`)
+## 8. Thứ tự các mốc (mỗi mốc một hoặc vài phiên, task chi tiết ở `docs/tasks/BACKLOG.md`; mọi PR phải qua checklist của `english-module-rules.md`)
 
 | Mốc | Task | Nội dung | Phụ thuộc |
 |---|---|---|---|
@@ -139,7 +139,7 @@ Toàn bộ ở ADR-060. Tóm tắt cho phiên sau:
 | ENG-3 | Dữ liệu unit "My family" | Đọc mẫu giáo án Tiếng Anh thật, bộ đọc ingest cho khung đó, `chapter.yaml` + `lesson.yaml` của unit, báo cáo câu thiếu/mâu thuẫn đáp án | ENG-2, tài liệu của chủ dự án |
 | ENG-4 | Bộ chấm tiếng Anh và ánh xạ projector | `EnglishChecker` (DI-110, DI-107), lớp `L1`, `MasteryPolicy` tiếng Anh (DI-108, DI-111), test golden | ENG-3 |
 | ENG-5 | Vòng dạy và prompt tiếng Anh | Bộ prompt tiếng Anh, thang gợi ý DI-112, validator lộ đáp án hai thứ tiếng, `WEB_LOOKUP` cho tiếng Anh, buổi học chạy trong `make teach`/API | ENG-4 |
-| ENG-6 | Giọng nói | Whisper theo bước, q (DI-109), `audio_ref`, POC VieNeu code-switching và dự phòng | ENG-5 |
+| ENG-6 | Giọng nói | Whisper theo bước, q (DI-109), sự kiện lượt nói mới có `audio_ref`, POC VieNeu code-switching và dự phòng | ENG-5 |
 | ENG-7 | Giao diện nối API thật | Trang học sinh tiếng Anh thật; trang giáo viên/phụ huynh theo môn; transcript + audio + ASR; bỏ dữ liệu minh họa của unit | ENG-6 |
 | ENG-8 | Unit thứ hai chỉ bằng dữ liệu | Thêm một unit khác của SGK lớp 5 do chủ dự án chọn, không sửa code | ENG-7, tài liệu |
 | ENG-9 | Eval chéo, tập vàng, regression Toán | Tập vàng DI-115/116, hiệu chỉnh ngưỡng ASR, học sinh mô phỏng, eval rò rỉ hai môn, regression Toán; số liệu cho luận văn | ENG-8, chủ dự án chấm tay |

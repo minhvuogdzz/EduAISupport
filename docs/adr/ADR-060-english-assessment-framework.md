@@ -2,7 +2,7 @@
 
 Ngày: 12/11/2026 · Quyết định D-T13 (blueprint 00) · DI-106 đến DI-116 · Trạng thái: **chủ dự án duyệt mặc định ngày 12/11/2026** (nội dung soạn trong quá trình làm được chấp nhận mặc định; chủ dự án có thể sửa bất kỳ lúc nào, mọi sửa đổi đi qua ADR mới hoặc mục Revision của file này).
 
-- Kế hoạch đi kèm (hướng đi, quy tắc, mốc): `docs/plan/plan-english-g5-my-family.md`.
+- Kế hoạch đi kèm (hướng đi, mốc): `docs/plan/plan-english-g5-my-family.md`. Luật bắt buộc khi cài đặt (cô lập môn, không đổi Toán, kiểm thử mỗi PR): `docs/plan/english-module-rules.md`.
 - Thay thế: khung English cũ trong blueprint (09 mục 26.2; 06 PART 19; Support Ladder S0–S5, rubric 0–4, DI-9, DI-10). Chủ dự án yêu cầu xóa khung đó ngày 12/11/2026.
 - Dựa trên: khung Toán (blueprint 09 PART 25, 26.1, 26.3–26.6, PART 27), `services/api/cavat/modules/assessment/projector.py` (`node-mastery/0.3.0`), ADR-018 (đồ thị tri thức), ADR-059 (vòng dạy 6 bước), ADR-024/025 (nội dung từ tài liệu giáo viên).
 
@@ -295,3 +295,4 @@ Phụ huynh **không** có bản chép lời, audio hay điểm M (PART 27.4).
 - Trang giáo viên/phụ huynh dùng lại gần như toàn bộ; việc thêm là transcript + audio + ASR, nhãn chiều theo môn và bỏ dữ liệu minh họa của bản xem trước.
 - Nội dung (từ, mẫu, item, đáp án) là việc của dữ liệu và của chủ dự án; khung này không bịa nội dung.
 - Mọi thay đổi ngưỡng ở đây đều là thay đổi policy có version, phải chạy eval regression (quy tắc 7).
+- Cài đặt khung này phải tuân theo `docs/plan/english-module-rules.md`, đặc biệt mục 5 (chấm và mastery: không đổi công thức, ngưỡng hay version của Toán) và mục 6 (event: chỉ thêm loại mới).
