@@ -47,6 +47,10 @@ Tài liệu này dành cho mọi phiên Claude Code (local và cloud) làm việ
 9. Công thức hoặc ngưỡng không có trong hai khung đánh giá phải được đánh dấu **DI (Declared Interpretation)**.
 10. Atlas M0 không có multi-document transaction: state và event của một buổi học nằm trong **một document** (ghi atomic), dùng `state_version` cho optimistic concurrency.
 
+## Module Tiếng Anh: không được ảnh hưởng tới Toán
+
+Mọi việc của module Tiếng Anh (task ENG, D-T13) phải tuân theo `docs/plan/english-module-rules.md` và qua checklist Definition of done ở cuối file đó. Không được làm thay đổi hành vi, công thức, ngưỡng, version mastery hay prompt của Toán; PR chạm phần dùng chung phải nêu rõ ảnh hưởng tới Toán và chạy regression Toán, kèm eval rò rỉ chéo hai môn.
+
 ## Quy tắc bắt buộc về Database Test / Seed / Dữ liệu thật
 
 11. **Tuyệt đối tách database test, demo và dữ liệu thật.** Không test, fixture, script seed hoặc migration nào được phép ghi vào `cavat_dev` hoặc `cavat_prod`.
