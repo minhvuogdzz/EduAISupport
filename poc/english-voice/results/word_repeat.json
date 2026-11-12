@@ -1,0 +1,1111 @@
+{
+ "summary": {
+  "Word.": {
+   "n": 24,
+   "more_bursts_than_expected": 8,
+   "expected_bursts": 1
+  },
+  "word": {
+   "n": 24,
+   "more_bursts_than_expected": 11,
+   "expected_bursts": 1
+  },
+  "Word, word.": {
+   "n": 24,
+   "more_bursts_than_expected": 12,
+   "expected_bursts": 2
+  },
+  "Từ: word.": {
+   "n": 24,
+   "more_bursts_than_expected": 5,
+   "expected_bursts": 2
+  },
+  "Con nói: word.": {
+   "n": 24,
+   "more_bursts_than_expected": 3,
+   "expected_bursts": 2
+  }
+ },
+ "rows": [
+  {
+   "spelling": "Word.",
+   "word": "mother",
+   "text": "Mother.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "Word_mother_0.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "mother",
+   "text": "Mother.",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "Word_mother_1.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "mother",
+   "text": "Mother.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "Word_mother_2.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "mother",
+   "text": "Mother.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.28,
+   "file": "Word_mother_3.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "father",
+   "text": "Father.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "Word_father_0.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "father",
+   "text": "Father.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 0.8,
+   "file": "Word_father_1.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "father",
+   "text": "Father.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 0.72,
+   "file": "Word_father_2.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "father",
+   "text": "Father.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 0.72,
+   "file": "Word_father_3.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "sister",
+   "text": "Sister.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 0.72,
+   "file": "Word_sister_0.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "sister",
+   "text": "Sister.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 0.8,
+   "file": "Word_sister_1.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "sister",
+   "text": "Sister.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 0.8,
+   "file": "Word_sister_2.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "sister",
+   "text": "Sister.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "Word_sister_3.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "brother",
+   "text": "Brother.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "Word_brother_0.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "brother",
+   "text": "Brother.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "Word_brother_1.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "brother",
+   "text": "Brother.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "Word_brother_2.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "brother",
+   "text": "Brother.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "Word_brother_3.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandmother",
+   "text": "Grandmother.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.04,
+   "file": "Word_grandmother_0.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandmother",
+   "text": "Grandmother.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 1.12,
+   "file": "Word_grandmother_1.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandmother",
+   "text": "Grandmother.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 1.04,
+   "file": "Word_grandmother_2.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandmother",
+   "text": "Grandmother.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "Word_grandmother_3.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandfather",
+   "text": "Grandfather.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.04,
+   "file": "Word_grandfather_0.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandfather",
+   "text": "Grandfather.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 1.12,
+   "file": "Word_grandfather_1.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandfather",
+   "text": "Grandfather.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 1.12,
+   "file": "Word_grandfather_2.wav"
+  },
+  {
+   "spelling": "Word.",
+   "word": "grandfather",
+   "text": "Grandfather.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 1.12,
+   "file": "Word_grandfather_3.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "mother",
+   "text": "mother",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_mother_0.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "mother",
+   "text": "mother",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_mother_1.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "mother",
+   "text": "mother",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_mother_2.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "mother",
+   "text": "mother",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_mother_3.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "father",
+   "text": "father",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_father_0.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "father",
+   "text": "father",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 0.8,
+   "file": "word_father_1.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "father",
+   "text": "father",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "word_father_2.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "father",
+   "text": "father",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 0.8,
+   "file": "word_father_3.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "sister",
+   "text": "sister",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "word_sister_0.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "sister",
+   "text": "sister",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "word_sister_1.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "sister",
+   "text": "sister",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "word_sister_2.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "sister",
+   "text": "sister",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 0.8,
+   "file": "word_sister_3.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "brother",
+   "text": "brother",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 0.88,
+   "file": "word_brother_0.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "brother",
+   "text": "brother",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_brother_1.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "brother",
+   "text": "brother",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_brother_2.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "brother",
+   "text": "brother",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.44,
+   "file": "word_brother_3.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandmother",
+   "text": "grandmother",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.12,
+   "file": "word_grandmother_0.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandmother",
+   "text": "grandmother",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "word_grandmother_1.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandmother",
+   "text": "grandmother",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "word_grandmother_2.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandmother",
+   "text": "grandmother",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "word_grandmother_3.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandfather",
+   "text": "grandfather",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.2,
+   "file": "word_grandfather_0.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandfather",
+   "text": "grandfather",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 1.12,
+   "file": "word_grandfather_1.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandfather",
+   "text": "grandfather",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 1.04,
+   "file": "word_grandfather_2.wav"
+  },
+  {
+   "spelling": "word",
+   "word": "grandfather",
+   "text": "grandfather",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 1.04,
+   "file": "word_grandfather_3.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "mother",
+   "text": "Mother, mother.",
+   "run": 0,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_mother_0.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "mother",
+   "text": "Mother, mother.",
+   "run": 1,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_mother_1.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "mother",
+   "text": "Mother, mother.",
+   "run": 2,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_mother_2.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "mother",
+   "text": "Mother, mother.",
+   "run": 3,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_mother_3.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "father",
+   "text": "Father, father.",
+   "run": 0,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_father_0.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "father",
+   "text": "Father, father.",
+   "run": 1,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_father_1.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "father",
+   "text": "Father, father.",
+   "run": 2,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_father_2.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "father",
+   "text": "Father, father.",
+   "run": 3,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_father_3.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "sister",
+   "text": "Sister, sister.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 2.16,
+   "file": "Word_word_sister_0.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "sister",
+   "text": "Sister, sister.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 2.16,
+   "file": "Word_word_sister_1.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "sister",
+   "text": "Sister, sister.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 1.84,
+   "file": "Word_word_sister_2.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "sister",
+   "text": "Sister, sister.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 2.24,
+   "file": "Word_word_sister_3.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "brother",
+   "text": "Brother, brother.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 2.0,
+   "file": "Word_word_brother_0.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "brother",
+   "text": "Brother, brother.",
+   "run": 1,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Word_word_brother_1.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "brother",
+   "text": "Brother, brother.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 2.24,
+   "file": "Word_word_brother_2.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "brother",
+   "text": "Brother, brother.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 1.92,
+   "file": "Word_word_brother_3.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandmother",
+   "text": "Grandmother, grandmother.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 2.56,
+   "file": "Word_word_grandmother_0.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandmother",
+   "text": "Grandmother, grandmother.",
+   "run": 1,
+   "bursts": 3,
+   "audio_s": 2.48,
+   "file": "Word_word_grandmother_1.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandmother",
+   "text": "Grandmother, grandmother.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 2.8,
+   "file": "Word_word_grandmother_2.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandmother",
+   "text": "Grandmother, grandmother.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 2.72,
+   "file": "Word_word_grandmother_3.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandfather",
+   "text": "Grandfather, grandfather.",
+   "run": 0,
+   "bursts": 4,
+   "audio_s": 2.88,
+   "file": "Word_word_grandfather_0.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandfather",
+   "text": "Grandfather, grandfather.",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 2.72,
+   "file": "Word_word_grandfather_1.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandfather",
+   "text": "Grandfather, grandfather.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 2.96,
+   "file": "Word_word_grandfather_2.wav"
+  },
+  {
+   "spelling": "Word, word.",
+   "word": "grandfather",
+   "text": "Grandfather, grandfather.",
+   "run": 3,
+   "bursts": 3,
+   "audio_s": 2.8,
+   "file": "Word_word_grandfather_3.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "mother",
+   "text": "Từ: mother.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "Từ_word_mother_0.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "mother",
+   "text": "Từ: mother.",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "Từ_word_mother_1.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "mother",
+   "text": "Từ: mother.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "Từ_word_mother_2.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "mother",
+   "text": "Từ: mother.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.68,
+   "file": "Từ_word_mother_3.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "father",
+   "text": "Từ: father.",
+   "run": 0,
+   "bursts": 3,
+   "audio_s": 1.84,
+   "file": "Từ_word_father_0.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "father",
+   "text": "Từ: father.",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.36,
+   "file": "Từ_word_father_1.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "father",
+   "text": "Từ: father.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.28,
+   "file": "Từ_word_father_2.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "father",
+   "text": "Từ: father.",
+   "run": 3,
+   "bursts": 3,
+   "audio_s": 1.84,
+   "file": "Từ_word_father_3.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "sister",
+   "text": "Từ: sister.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.28,
+   "file": "Từ_word_sister_0.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "sister",
+   "text": "Từ: sister.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 1.2,
+   "file": "Từ_word_sister_1.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "sister",
+   "text": "Từ: sister.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 1.04,
+   "file": "Từ_word_sister_2.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "sister",
+   "text": "Từ: sister.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 1.36,
+   "file": "Từ_word_sister_3.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "brother",
+   "text": "Từ: brother.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "Từ_word_brother_0.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "brother",
+   "text": "Từ: brother.",
+   "run": 1,
+   "bursts": 3,
+   "audio_s": 1.84,
+   "file": "Từ_word_brother_1.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "brother",
+   "text": "Từ: brother.",
+   "run": 2,
+   "bursts": 3,
+   "audio_s": 1.84,
+   "file": "Từ_word_brother_2.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "brother",
+   "text": "Từ: brother.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.76,
+   "file": "Từ_word_brother_3.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandmother",
+   "text": "Từ: grandmother.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.44,
+   "file": "Từ_word_grandmother_0.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandmother",
+   "text": "Từ: grandmother.",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.36,
+   "file": "Từ_word_grandmother_1.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandmother",
+   "text": "Từ: grandmother.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.36,
+   "file": "Từ_word_grandmother_2.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandmother",
+   "text": "Từ: grandmother.",
+   "run": 3,
+   "bursts": 3,
+   "audio_s": 2.24,
+   "file": "Từ_word_grandmother_3.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandfather",
+   "text": "Từ: grandfather.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.44,
+   "file": "Từ_word_grandfather_0.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandfather",
+   "text": "Từ: grandfather.",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 1.52,
+   "file": "Từ_word_grandfather_1.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandfather",
+   "text": "Từ: grandfather.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 1.44,
+   "file": "Từ_word_grandfather_2.wav"
+  },
+  {
+   "spelling": "Từ: word.",
+   "word": "grandfather",
+   "text": "Từ: grandfather.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 1.44,
+   "file": "Từ_word_grandfather_3.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "mother",
+   "text": "Con nói theo cô: mother.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.84,
+   "file": "Con_nói_word_mother_0.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "mother",
+   "text": "Con nói theo cô: mother.",
+   "run": 1,
+   "bursts": 3,
+   "audio_s": 2.8,
+   "file": "Con_nói_word_mother_1.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "mother",
+   "text": "Con nói theo cô: mother.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 1.84,
+   "file": "Con_nói_word_mother_2.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "mother",
+   "text": "Con nói theo cô: mother.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 1.68,
+   "file": "Con_nói_word_mother_3.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "father",
+   "text": "Con nói theo cô: father.",
+   "run": 0,
+   "bursts": 2,
+   "audio_s": 1.84,
+   "file": "Con_nói_word_father_0.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "father",
+   "text": "Con nói theo cô: father.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 1.76,
+   "file": "Con_nói_word_father_1.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "father",
+   "text": "Con nói theo cô: father.",
+   "run": 2,
+   "bursts": 3,
+   "audio_s": 2.48,
+   "file": "Con_nói_word_father_2.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "father",
+   "text": "Con nói theo cô: father.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 1.76,
+   "file": "Con_nói_word_father_3.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "sister",
+   "text": "Con nói theo cô: sister.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.68,
+   "file": "Con_nói_word_sister_0.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "sister",
+   "text": "Con nói theo cô: sister.",
+   "run": 1,
+   "bursts": 2,
+   "audio_s": 2.0,
+   "file": "Con_nói_word_sister_1.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "sister",
+   "text": "Con nói theo cô: sister.",
+   "run": 2,
+   "bursts": 2,
+   "audio_s": 1.92,
+   "file": "Con_nói_word_sister_2.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "sister",
+   "text": "Con nói theo cô: sister.",
+   "run": 3,
+   "bursts": 1,
+   "audio_s": 1.68,
+   "file": "Con_nói_word_sister_3.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "brother",
+   "text": "Con nói theo cô: brother.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 1.76,
+   "file": "Con_nói_word_brother_0.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "brother",
+   "text": "Con nói theo cô: brother.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 1.84,
+   "file": "Con_nói_word_brother_1.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "brother",
+   "text": "Con nói theo cô: brother.",
+   "run": 2,
+   "bursts": 3,
+   "audio_s": 2.88,
+   "file": "Con_nói_word_brother_2.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "brother",
+   "text": "Con nói theo cô: brother.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 2.56,
+   "file": "Con_nói_word_brother_3.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandmother",
+   "text": "Con nói theo cô: grandmother.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 2.08,
+   "file": "Con_nói_word_grandmother_0.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandmother",
+   "text": "Con nói theo cô: grandmother.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 2.0,
+   "file": "Con_nói_word_grandmother_1.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandmother",
+   "text": "Con nói theo cô: grandmother.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 2.0,
+   "file": "Con_nói_word_grandmother_2.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandmother",
+   "text": "Con nói theo cô: grandmother.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 2.0,
+   "file": "Con_nói_word_grandmother_3.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandfather",
+   "text": "Con nói theo cô: grandfather.",
+   "run": 0,
+   "bursts": 1,
+   "audio_s": 2.0,
+   "file": "Con_nói_word_grandfather_0.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandfather",
+   "text": "Con nói theo cô: grandfather.",
+   "run": 1,
+   "bursts": 1,
+   "audio_s": 2.08,
+   "file": "Con_nói_word_grandfather_1.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandfather",
+   "text": "Con nói theo cô: grandfather.",
+   "run": 2,
+   "bursts": 1,
+   "audio_s": 2.08,
+   "file": "Con_nói_word_grandfather_2.wav"
+  },
+  {
+   "spelling": "Con nói: word.",
+   "word": "grandfather",
+   "text": "Con nói theo cô: grandfather.",
+   "run": 3,
+   "bursts": 2,
+   "audio_s": 2.16,
+   "file": "Con_nói_word_grandfather_3.wav"
+  }
+ ]
+}
