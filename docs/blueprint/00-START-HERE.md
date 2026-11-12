@@ -20,6 +20,7 @@
 | **D-T12** (2026-10-13) | **Giọng nói quay lại demo**: học sinh nói chuyện với gia sư (ADR-030) | Bộ nghe: Groq Whisper (STT_VI, miễn phí). Giọng cô: VieNeu-TTS chạy local (TTS_VI). Trình duyệt tự nghe và đọc khi máy chủ không có. Phần "giọng nói ra khỏi demo" của D-T9 không còn hiệu lực |
 | **D-T9** (v0.4) | **Phạm vi demo: hai chương Toán lớp 5**, Số thập phân và Diện tích hình tam giác, hình thang. English và giọng nói ra khỏi demo | Mọi chỗ nói về English, voice, POC 6 trong blueprint không còn trên lộ trình demo. Bằng chứng khuôn mẫu dùng lại được: hai chương rất khác nhau, cộng một bài của chương thứ ba chỉ bằng nội dung |
 | **D-T10** (v0.4) | **Gia sư dạy theo đồ thị tri thức:** vòng dạy 6 bước (ôn và giảng bài nền, kiểm tra hiểu, dạy phương pháp, luyện tập, vận dụng, quyết định; ADR-059); điểm từng node theo PART 25–26; chính sách dạy chọn bước tiếp theo, quay về node tiên quyết khi học sinh hổng | Kế hoạch hiện hành: `docs/plan/plan-v1-teaching-knowledge-graph.md`; ADR-018. Danh sách câu cố định của buổi học (T08) được thay bằng chính sách dạy. Tham khảo đồ thị từ bài báo 2T-KT (doi:10.1016/j.inffus.2025.103577) |
+| **D-T13** (12/11/2026) | **Tiếng Anh thật, một unit "My family" lớp 5**: gia sư ôn bài ở nhà, cùng vòng dạy 6 bước và cùng projector với Toán; cô giảng tiếng Việt, câu đích tiếng Anh. **Xóa khung English cũ** (subskill Reading/Speaking, rubric 0–4, Support Ladder S0–S5, DI-9, DI-10) | Khung đánh giá: ADR-060 (DI-106 đến DI-116). Hướng đi và quy tắc: `docs/plan/plan-english-g5-my-family.md`. Phần "English ra khỏi demo" của D-T9 không còn hiệu lực cho unit này. Các PART nói về English Reading/Speaking, POC 6, realtime voice, chấm phát âm là bản ghi lịch sử |
 | **D-T11** (v0.4) | **Tự xây kiến trúc AI**, hạn chế kiến trúc của bên thứ ba: Hybrid RAG, đồ thị tri thức, chấm điểm, chính sách dạy, đọc tài liệu đều tự viết; chỉ dùng API model qua `ai_gateway` | Không dùng framework RAG hay agent, dịch vụ vector database, dịch vụ đọc tài liệu. **Bỏ LlamaParse** (thay vai trò trong ADR-017) |
 
 **Stack free-first mặc định** (chi tiết PART 12.1):
@@ -56,7 +57,7 @@ Claude không có free tier cho API, nên chuyển thành **ứng viên so sánh
 
 Đầu vào đã đọc:
 - Khung đánh giá Toán: `MathAIsupport.v2/docs/current/pedagogy/math/Kế hoạch đánh giá mức độ hiểu bài của học sinh bằng dữ liệu trực quan.md` (60 mục) và alignment contract đi kèm.
-- Khung đánh giá Tiếng Anh: `MathAIsupport.v2/docs/current/pedagogy/english/CAVAT_Khung_danh_gia_muc_do_hieu_bai_Tieng_Anh_lop_4-7.docx` (v1.0, 16/09/2026).
+- ~~Khung đánh giá Tiếng Anh: `MathAIsupport.v2/docs/current/pedagogy/english/CAVAT_Khung_danh_gia_muc_do_hieu_bai_Tieng_Anh_lop_4-7.docx` (v1.0, 16/09/2026).~~ **Không còn dùng (D-T13, 12/11/2026):** Tiếng Anh dùng khung Toán ánh xạ lại, ADR-060.
 
 Hai file không nằm ở đường dẫn gốc mà brief ghi (thư mục gốc `MathAIsupport.v2/`), mà nằm trong `docs/current/pedagogy/`. Nội dung đã được đọc đầy đủ. Dự án này là **greenfield**: codebase cũ trong `MathAIsupport.v2` **không** được dùng làm nền; chỉ hai tài liệu đánh giá được dùng làm chuẩn.
 
@@ -147,7 +148,7 @@ LLM **diễn đạt** nước đi đã được chọn, và **đề xuất** nh�
 | Voice dependency | Không bắt buộc | Bắt buộc cho Speaking |
 | Pedagogical complexity | Vừa, misconception có catalog và bug rule | Cao (đáp án mở, nhiều chiều) |
 | RAG dependency | Tương đương | Tương đương |
-| Assessment complexity | Vừa, correctness tất định + nhãn reasoning | Cao, rubric 0–4 × nhiều chiều, cần giáo viên chấm song song |
+| Assessment complexity | Vừa, correctness tất định + nhãn reasoning | Cao, rubric 0–4 × nhiều chiều, cần giáo viên chấm song song (khung cũ; từ 12/11/2026 Tiếng Anh dùng khung Toán ánh xạ lại, ADR-060) |
 | Validation speed | **Nhanh**: eval tự động bằng checker và synthetic students | Chậm, cần người chấm và dữ liệu giọng trẻ |
 
 English **Reading** (text) là slice thứ hai, chạy trên cùng runtime từ khoảng tuần 9. English **Speaking/Voice** đi cuối, sau khi POC 6 chốt kiến trúc voice.

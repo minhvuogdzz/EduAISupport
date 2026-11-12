@@ -57,7 +57,7 @@
 | **P3 Vertical Slice** (D18–30) | Loop hoàn chỉnh, đo được | Chứng minh giá trị | P2 | Reports, observability, hardening | Eval CI, red team v1 | Read models | Reports UI | Reporting API | E2E, chaos, load 100 | PART 34.2 đạt |
 | **P4 MVP Math** (tuần 5–10) | Một chương Toán 5, sẵn sàng kiểm thử | Slice đã chứng minh loop | P3 | Nhiều lesson, review schedule, parent, override, voice-to-text, degraded mode | STT normalizer, hint tuning, AI flag → dataset | Retention, forgetting risk | Parent view, radar, timeline | Notification, review scheduler | Security review, load test (AI stub) | MVP exit (PART 35) |
 | **P5 Kiểm thử Math** (tuần 11–16) | Kiểm chứng với học sinh thật; số liệu cho chương thực nghiệm | MVP xong | P4 | Vận hành, đo lường, hiệu chỉnh | Calibrate judge vs giáo viên; policy v2 | κ, pre/post | Sửa theo phản hồi | Hardening | Monitoring thật | Tiêu chí PART 36 |
-| **P6 English Reading** (tuần 9–14, song song P4–P5) | Reading lớp 5 trên cùng runtime | Runtime ổn định; không cần voice | P3 | Skill taxonomy, rubric 0–4, reading flow | Prompt English module, rubric scorer, support S0–S5 | Skill state | Reading UI | Assessment English | Eval English | Slice English Reading đạt |
+| **P6 English Reading** (tuần 9–14, song song P4–P5) | Reading lớp 5 trên cùng runtime | Runtime ổn định; không cần voice | P3 | ~~Skill taxonomy, rubric 0–4, reading flow~~ (bỏ, thay bằng `plan-english-g5-my-family.md`) | ~~Prompt English module, rubric scorer, support S0–S5~~ | Skill state | Reading UI | Assessment English | Eval English | Slice English Reading đạt |
 | **P7 English Speaking + Voice** (tuần 13–22) | Speaking realtime | Rủi ro voice cao, cần nền ổn định | P6 + POC 6 đầy đủ | Voice gateway, pronunciation, speaking flow | Realtime control, speaking scoring, calibration | Audio lifecycle | Voice UI, mic preflight | Voice gateway | Latency, ASR fairness | Sẵn sàng kiểm thử English Speaking |
 | **P8 Production scale** (ngoài phạm vi đồ án, tham chiếu) | 1,000+ học sinh | Có bằng chứng giá trị | P5 | HA, Redis, warehouse, multi-school onboarding | Cost optimization | CDC | Admin trường | Tenancy ops | Load 2,000 | SLO đạt |
 
@@ -153,7 +153,7 @@ Ký hiệu owner: TL (Tech Lead), BE, FE, AI, PM (UX/Product), TA (Teacher Advis
 | E8-S2 Projector | Beta per dimension, M, confidence, state, gates | BE | E1-S5 | P0 | Golden + boundary tests; determinism 100% |
 | E8-S3 Teacher override | API + projection semantics + audit | BE | S2 | P1 | — |
 | E8-S4 Retention & forgetting risk | Delayed probes, risk | BE | E5-S4 | P1 | — |
-| E8-S5 English rubric scorer | 0–4 + support S0–S5 | AI | P6 | P2 | κ với giáo viên ≥ 0.6 |
+| ~~E8-S5 English rubric scorer~~ | Bỏ; thay bằng ENG-4 (bộ chấm tất định, ADR-060) | AI | P6 | P2 | κ với giáo viên ≥ 0.6 |
 
 ### Epic E9 — Reports & Analytics
 

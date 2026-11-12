@@ -194,5 +194,5 @@ Teacher Design → Schedule → Tutor Contract → Tutor Session → Socratic AI
 
 ### 36.2. Ghi chú đạo đức
 
-- Không dùng hệ thống để xếp loại hay đánh giá học sinh chính thức trong pilot. Assessment chỉ là **formative/diagnostic** (khung English §15).
+- Không dùng hệ thống để xếp loại hay đánh giá học sinh chính thức trong pilot. Assessment chỉ là **formative/diagnostic** (nguyên tắc giữ cho cả hai môn; ADR-060).
 - Học sinh và phụ huynh có quyền rút khỏi pilot bất cứ lúc nào, và dữ liệu sẽ bị xóa theo yêu cầu.

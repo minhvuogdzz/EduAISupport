@@ -96,76 +96,31 @@ Baseline: `START → GOAL → REVIEW → CONCEPT CHECK → GUIDED EXAMPLE → SO
 
 ---
 
-## PART 19 — ENGLISH GRADE 5 TUTOR
+## PART 19 — ENGLISH GRADE 5 TUTOR (viết lại 12/11/2026)
 
-### 19.1. Chuẩn lớp 5 (khung English §11, lấy từ CT GDPT 2018)
+> Bản cũ của PART 19 (chuẩn kỹ năng lớp 5 theo khung English, skill taxonomy Reading/Speaking, Support Ladder S0–S5, flow Reading 10 bước, flow Speaking, rubric 0–4, mastery rule §10.1) **đã bị xóa** theo yêu cầu của chủ dự án. Hướng hiện hành: `docs/plan/plan-english-g5-my-family.md`; khung đánh giá: `docs/adr/ADR-060-english-assessment-framework.md`.
 
-**[FACT — theo tài liệu khung]**
-- Listening: hội thoại hoặc độc thoại ngắn khoảng **45–60 từ**.
-- Reading: đoạn ngắn, đơn giản khoảng **60–80 từ**; thông điệp/chỉ dẫn ngắn.
-- Writing: khoảng **30–40 từ** có gợi ý.
-- Trọng tâm assessment: **main idea, detail, simple inference, retell with prompts, interview response**.
-- Task gợi ý: short factual/story text, familiar dialogue; Speaking: mini interview, picture story, 2–3 sentence retell. Độ sâu: main idea → cause → inference một bước.
-- Mục tiêu cuối tiểu học: Bậc 1 khung năng lực ngoại ngữ 6 bậc (CEFR A1).
+### 19.1. Phạm vi
 
-### 19.2. Skill taxonomy dùng trong Student Model (theo khung English §3, lọc theo scope)
+- Một unit **"My family"** lớp 5. Gia sư **ôn bài ở nhà** sau khi con đã học trên lớp, không phải khóa học kỹ năng, không đo trình độ CEFR/IELTS.
+- Nội dung (từ, mẫu câu, item, đáp án) lấy từ ấn phẩm công khai chủ dự án cung cấp (SGK/sách giáo viên Tiếng Anh 5, giáo án, bài tập kèm đáp án), qua cùng đường ingest với Toán. Không bịa item hay đáp án.
 
-```text
-reading.detail   reading.main_idea   reading.sequence   reading.cause_effect
-reading.vocab_in_context   reading.inference   reading.evidence   reading.retell
-reading.oral_fluency (tách riêng, KHÔNG gộp vào comprehension — khung §4.1)
-speaking.semantic   speaking.vocab_grammar   speaking.pronunciation   speaking.fluency
-speaking.coherence   speaking.interaction   support.dependency (theo S0–S5)
-language.vocabulary   language.grammar_target (ví dụ "because", "past simple")
-```
+### 19.2. Cùng khuôn với Toán
 
-### 19.3. Socratic Mode cho English: khác Math ở đâu
-
-| Khía cạnh | Math | English |
+| Khía cạnh | Toán | Tiếng Anh |
 |---|---|---|
-| "Đáp án" | Một giá trị đúng, kiểm tra tất định | Thường mở (main idea, retell); đúng về **nghĩa** chứ không về câu chữ |
-| Chẩn đoán | Bước sai, bug rule | Hiểu sai nghĩa, thiếu từ vựng, không tìm được dẫn chứng, lỗi ngữ pháp target |
-| Gợi ý | Hint ladder H0–H7 theo target | Support ladder S0–S5: repeat → rephrase/slow → hint (vùng thông tin) → choice → model |
-| Self-correction | "Con kiểm tra lại bước 2" | Recast, mời nói lại; "Which part of the text helped you know that?" |
-| Ngôn ngữ tutor | Tiếng Việt | Tiếng Anh đơn giản (A1), có thể **code-switch** sang tiếng Việt ở S2/S3 khi học sinh kẹt. Đây là quyết định sư phạm cần chốt **[OPEN]** |
-| Kiểm tra hiểu | "Vì sao?" | "How do you know?" + chỉ ra câu trong bài |
+| Gói nội dung | `ChapterPackage` + `LessonPackage` | Như Toán, `subject: english`; một unit là một gói chương |
+| Vòng dạy | 6 bước (ADR-059) | Giữ nguyên 6 bước |
+| Nút kiến thức | Khái niệm/phương pháp của chương | Từ vựng, "This is my ___", "He/She is ___", hội thoại giới thiệu gia đình (ADR-060 mục 3) |
+| Item | Mức A–E + DIAG | Mức A–E + DIAG (ADR-060 mục 3.2) |
+| Đúng/sai | `MathChecker` tất định | `EnglishChecker` tất định, so với đáp án chấp nhận (có biến thể "I'm"/"I am", DI-110) |
+| Thang gợi ý | H0–H7 | H0–H7, nội dung theo DI-112 |
+| Đánh giá | Projector node-mastery, 7 chiều | Cùng projector, `MasteryPolicy` tiếng Anh |
+| Ngôn ngữ cô | Tiếng Việt | Tiếng Việt; từ và câu đích bằng tiếng Anh ("Con nói theo cô nhé: *This is my mother.*") |
+| Giọng nói | Một cách trả lời | Một cách trả lời, không phải kỹ năng riêng; Whisper chọn ngôn ngữ theo bước; chưa chấm phát âm |
 
-**Reading không được bị Speaking làm nhiễu:** câu trả lời đúng về nghĩa nhưng phát âm kém vẫn là evidence *đúng* cho reading comprehension (khung English §4.1, §6).
+### 19.3. Khác Toán ở đâu
 
-### 19.4. English Reading flow (lớp 5, không copy Math flow)
-
-| Bước | Mục đích | Construct | Evidence | Mandatory |
-|---|---|---|---|---|
-| 1. Warm-up | Kích hoạt chủ đề ("Do you like animals?") | — | — | ✅ (ngắn) |
-| 2. Vocabulary activation | 3–5 từ then chốt, có hình | language.vocabulary | nhận biết từ | ⚪ (bỏ nếu mastery cao) |
-| 3. Pre-reading | Dự đoán từ tiêu đề hoặc hình | — | — | ⚪ |
-| 4. Reading | Đọc thầm đoạn 60–80 từ; có thể nghe đọc mẫu | — | thời gian đọc, số lần đọc lại | ✅ |
-| 5. Literal / gist | Who/Where/What? + main idea | reading.detail, reading.main_idea | correctness + support | ✅ |
-| 6. Connect | Sequence / cause (dùng "because") | reading.sequence, reading.cause_effect | answer + support | ✅ |
-| 7. Inference (1 bước) | "How did X feel? Why?" | reading.inference | inference + reasoning | ✅ |
-| 8. Evidence | "Which sentence helped you?" | reading.evidence | câu được chỉ ra (khớp span) | ⚪ (khuyến nghị) |
-| 9. Retell with prompts | Kể lại 2–3 câu (nói hoặc viết) | reading.retell (+ speaking nếu nói) | key propositions | ✅ |
-| 10. Exit check | 2–3 câu trên đoạn mới ngắn, S0/S1 | các subskill trên | independent evidence | ✅ |
-
-Oral reading (đọc to 2–3 câu) là **tùy chọn** và chỉ tạo evidence cho `reading.oral_fluency`.
-
-### 19.5. English Speaking flow (lớp 5)
-
-| Bước | Hoạt động | Construct | Quy tắc sửa lỗi |
-|---|---|---|---|
-| 1. Warm-up | Chào, 1–2 câu hỏi quen thuộc | interaction | Không sửa |
-| 2. Guided speaking | Mẫu câu target có khung ("I like … because …") | vocab_grammar (target) | Recast ngay nếu sai target structure |
-| 3. Q&A (mini interview) | 3–5 câu hỏi về chủ đề lesson | semantic, interaction | Hỏi làm rõ nếu không hiểu nghĩa; không ngắt vì lỗi nhỏ |
-| 4. Picture story / role play | Kể theo tranh 3 khung hoặc đóng vai tình huống | coherence, fluency, interaction | Để học sinh nói hết lượt |
-| 5. Independent speaking | 2–3 câu tự do theo chủ đề | fluency, semantic | Không ngắt |
-| 6. Feedback | Chọn 1–2 điểm ưu tiên (meaning-blocking hoặc target) + 1 điểm khen cụ thể | — | Delayed feedback |
-| 7. Retry | Nói lại phần được góp ý | target skill | Ghi evidence *sau hỗ trợ* |
-| 8. Assessment | 1 prompt mới, S0 (không gợi ý), đánh giá theo rubric 0–4 | tất cả | Không sửa trong lúc nói |
-
-**Interrupt policy:** không bao giờ ngắt khi học sinh đang nói, trừ khi (a) vượt thời lượng lượt tối đa (ví dụ 45s), hoặc (b) lạc đề hoàn toàn quá 15s. Khi đó tutor chen nhẹ bằng một câu hỏi kéo về chủ đề.
-
-**Đánh giá speaking:** mỗi lượt có 3 lớp dữ liệu (audio, transcript, pedagogical). Chấm theo các chiều riêng của khung English §6: semantic adequacy; vocabulary và grammar; pronunciation/intelligibility (từ audio, không từ transcript); fluency; coherence; interaction; support required. Kết quả mỗi chiều là rubric 0–4 + `data_quality`. LLM chấm theo rubric cố định có anchor examples; pronunciation dùng dịch vụ chuyên dụng. **Bắt buộc chấm song song với giáo viên** trước khi dùng cho báo cáo (khung English "Ghi chú triển khai").
-
-### 19.6. Mastery rule English (khung English §10.1)
-
-Skill chỉ đạt "independent mastery" khi có **≥ 2 bằng chứng hợp lệ ở nhiệm vụ hoặc thời điểm khác nhau**, trong đó **≥ 1 lần ở S0/S1** ở độ khó mục tiêu. `reading.inference`, `reading.evidence` và `speaking.interaction` cần thêm một delayed/transfer probe. Đây là luật vận hành cần hiệu chỉnh bằng dữ liệu thực tế, không phải chuẩn chính thức.
+- Hiểu lầm điển hình là ngôn ngữ chứ không phải số học: nhầm *he/she*, thiếu *my*, nhầm nghĩa cặp từ (ADR-060 mục 5).
+- Lời giải thích "vì sao" bằng tiếng Việt; câu trả lời đích bằng tiếng Anh.
+- Dữ liệu giọng nói có độ tin cậy ASR (DI-109) và giáo viên nghe lại được audio.

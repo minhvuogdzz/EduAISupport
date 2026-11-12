@@ -1,6 +1,6 @@
 # 09 — Student Model · Assessment · Learning Analytics
 
-> PART 25 → PART 27. Nguồn chuẩn: khung đánh giá Toán ("Kế hoạch đánh giá mức độ hiểu bài của học sinh bằng dữ liệu trực quan", 60 mục) và khung đánh giá Tiếng Anh CAVAT v1.0 (16/09/2026).
+> PART 25 → PART 27. Nguồn chuẩn: khung đánh giá Toán ("Kế hoạch đánh giá mức độ hiểu bài của học sinh bằng dữ liệu trực quan", 60 mục). Môn Tiếng Anh dùng khung Toán ánh xạ lại theo ADR-060 (12/11/2026); khung đánh giá Tiếng Anh CAVAT v1.0 (16/09/2026) không còn được dùng.
 > Mọi công thức ghi rõ **nguồn** hoặc là **Declared Interpretation (DI)**, tức diễn giải do dự án tự đặt, cần pedagogy lead duyệt và hiệu chỉnh bằng dữ liệu pilot. Việc này tuân theo yêu cầu "Strict algorithm and test gate" trong `ai_understanding_assessment_alignment.md` §9.
 
 ---
@@ -75,18 +75,9 @@ M = 0.20·C + 0.20·R + 0.15·A + 0.15·T + 0.10·I + 0.10·S + 0.10·D
 
 **Interpretation (§23, §43, §44):** báo cáo giáo viên gồm tổng quan, điểm mạnh, điểm yếu, rủi ro, misconception nổi bật, khuyến nghị; báo cáo học sinh dùng ngôn ngữ đơn giản, "Đã nắm chắc / Cần luyện thêm / Mục tiêu tiếp theo".
 
-### 26.2. Khung Tiếng Anh: những gì được trích xuất
+### 26.2. Khung Tiếng Anh: đã thay bằng ADR-060
 
-- **Dimensions:** subskill theo miền (Reading: literal/detail, main idea, sequence, cause–effect, vocabulary in context, inference, evidence, summary/retelling; Speaking: semantic adequacy, vocabulary & grammar, pronunciation/intelligibility, fluency, coherence, interaction, support required; Language knowledge; Learning support) (§3).
-- **Metrics per skill (§13):** `mastery_estimate, confidence, evidence_count, independent_success_rate, supported_success_rate, support_dependency, first_pass_rate, difficulty_band, trend, last_seen, data_quality`.
-- **Thang:** Rubric lõi 0–4: 0 No valid evidence · 1 Emerging · 2 Partial/Supported · 3 Independent · 4 Deep/Transfer (§10).
-- **Support ladder:** S0 Independent · S1 Repeat · S2 Rephrase/slow · S3 Hint · S4 Choice · S5 Model (§9).
-- **Threshold mastery (§10.1):** ≥ 2 evidence hợp lệ ở task hoặc thời điểm khác nhau, ≥ 1 lần S0/S1 ở độ khó mục tiêu; inference, evidence và interaction cần thêm delayed/transfer probe.
-- **Evidence layers cho voice (§12.1):** audio, transcript, pedagogical.
-- **Quy tắc cập nhật (§13):** đúng sau Model không tăng mastery ngang đúng độc lập; sai do ASR confidence thấp không giảm mastery mạnh; confidence tăng khi mẫu năng lực lặp lại ở nhiều dạng task và thời điểm.
-- **DI-9 (trọng số support):** S0 1.0 · S1 0.9 · S2 0.7 · S3 0.5 · S4 0.3 · S5 0.1.
-- **DI-10 (data quality):** `non_scorable` bị loại; ASR confidence < 0.6 thì `w × 0.3`, và chỉ cho phép *tăng*, không cho phép *giảm* mastery.
-- **Interpretation (§14):** mô tả theo miền, ví dụ "Reading — Inference: Partial/Supported". Tránh "English = 8.2". Không tuyên bố "chuẩn Bộ" (§16).
+> **Đã xóa theo yêu cầu của chủ dự án (12/11/2026).** Khung English cũ (subskill Reading/Speaking, rubric 0–4, Support Ladder S0–S5, DI-9, DI-10) không còn hiệu lực. Môn Tiếng Anh (một unit "My family" lớp 5) dùng khung Toán ở 26.1 ánh xạ lại: xem `docs/adr/ADR-060-english-assessment-framework.md` (DI-106 đến DI-116) và `docs/plan/plan-english-g5-my-family.md`. Số hiệu DI-9 và DI-10 không được dùng lại.
 
 ### 26.3. Confidence (khung Toán §21, §33 + DI-11)
 
@@ -108,7 +99,7 @@ Ví dụ kiểm tra độ hợp lý: 8 evidence trong 1 session, phủ B/C/D/Dia
 
 | Đường | Đồng bộ | Làm gì | Vì sao |
 |---|---|---|---|
-| `assessment.check(item, response)` | Có (trong lượt) | MathChecker, bug rules, English rubric scoring (khi cần ngay) | Tutor cần biết đúng/sai để chọn move |
+| `assessment.check(item, response)` | Có (trong lượt) | MathChecker, bug rules; với Tiếng Anh là bộ chấm tất định `EnglishChecker` (ADR-060, DI-110) | Tutor cần biết đúng/sai để chọn move |
 | `assessment.record_evidence(events)` → projector | Không (worker, vài giây) | Tạo Evidence (L1), AssessmentResult (L3), cập nhật Student Model (L4–L5) | Tất định, replay được, có version, tách khỏi độ trễ LLM |
 
 Lý do tách: (1) assessment phải **deterministic và replayable** (alignment §4, §9), còn runtime thì không; (2) teacher override và re-projection khi đổi policy chỉ đụng tới assessment; (3) test độc lập.
@@ -156,7 +147,7 @@ Không có code path nào cho phép LLM ghi trực tiếp vào `student_kc_state
 }
 ```
 
-**English: `student_skill_state` (mỗi học sinh × skill):** các field của khung English §13, cộng `rubric_level_current` (0–4) và `support_profile` (phân phối S0–S5).
+**English:** không có `student_skill_state` riêng. Unit tiếng Anh là một gói chương (`subject: english`), nên trạng thái mỗi học sinh × node tiếng Anh dùng đúng cấu trúc `student_kc_state` ở trên, với `policy_version` tiếng Anh `node-mastery-en/…` (ADR-060).
 
 **Cấp học sinh:** attendance, completion rate, active minutes, average hints per item, response latency, persistence (tỉ lệ item không bỏ cuộc), answer change rate (khung Toán §29). Các metric hành vi này **không** dùng để đánh giá "thông minh hay kém".
 
@@ -197,16 +188,16 @@ Không có code path nào cho phép LLM ghi trực tiếp vào `student_kc_state
 | Class | — | — | Heatmap lớp × KC, lỗi phổ biến, học sinh cần chú ý |
 | Lesson effectiveness | — | — | Pre/post mastery theo lesson, tỉ lệ WORKED, thời gian |
 
-**Trạng thái định tính dùng chung hai môn (DI-14),** cho Student và Parent:
+**Trạng thái định tính dùng chung hai môn (DI-14, cột Tiếng Anh viết lại thành DI-113 trong ADR-060),** cho Student và Parent. Hai môn dùng cùng projector nên dùng cùng một ánh xạ từ state:
 
-| Nhãn hiển thị | Math (state) | English (rubric/support) |
-|---|---|---|
-| Chưa đủ dữ liệu | INSUFFICIENT_DATA | evidence_count < 2 |
-| Đang làm quen | NOT_LEARNED, LEARNING, RECOGNIZED | rubric 1 |
-| Làm được khi có hỗ trợ | PROCEDURAL | rubric 2 / phần lớn S2–S4 |
-| Tự làm được | CONCEPTUAL, APPLIED | rubric 3 với S0/S1 |
-| Vững và vận dụng | MASTERED, MASTERED_STABLE | rubric 4 + transfer |
-| Cần ôn lại | AT_RISK, FORGOTTEN | trend giảm |
+| Nhãn hiển thị | State (Toán và Tiếng Anh) |
+|---|---|
+| Chưa đủ dữ liệu | INSUFFICIENT_DATA |
+| Đang làm quen | NOT_LEARNED, LEARNING, RECOGNIZED |
+| Làm được khi có hỗ trợ | PROCEDURAL |
+| Tự làm được | CONCEPTUAL, APPLIED |
+| Vững và vận dụng | MASTERED, MASTERED_STABLE |
+| Cần ôn lại | AT_RISK, FORGOTTEN |
 
 ### 27.2. Biểu đồ (khung Toán §56) và thời điểm đưa vào
 
