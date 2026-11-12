@@ -1,0 +1,439 @@
+# Lesson package — Tiếng Anh 5 (Global Success, tập hai), Unit 11 "Family time", Lesson 3
+# TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK/SGV ngày 12/11/2026; chủ dự án duyệt mặc định ngày 12/11/2026.
+# Nguồn gốc và trạng thái đáp án của từng câu: sources.yaml. Quy ước: như lesson-1 và ../README.md.
+#
+# Nội dung: trọng âm trong câu hỏi Wh- (Rhythm) và kể/hỏi đáp về chuyến đi của gia đình.
+# SGK tr.10–11 (Lesson 3). SGV tr.188–190.
+#
+# Bài đọc tr.11 (chuyến đi Hạ Long của Linda) KHÔNG chép vào repo. Các câu U11-TR-* dùng một đoạn tóm tắt do
+# phiên viết lại bằng lời khác, giữ đúng các sự kiện mà câu hỏi của sách cần (đáp án theo SGV tr.190).
+
+lesson_id: eng-g5-u11-l3
+version: 0.1.0
+status: DRAFT
+subject: english
+grade: 5
+locale: vi-VN
+title: "Unit 11 Family time — Lesson 3: Our family trip"
+persona:
+  tutor_self: cô
+  student_address: con
+
+objectives:
+  - id: LO1
+    text: "Nhấn đúng các từ mang nghĩa trong câu hỏi Wh-: 'When did you 'go to 'London? / 'What did they 'do in 'Finland?"
+    kc_ids: [ENG5-U11-STRESS]
+  - id: LO2
+    text: "Đọc hiểu đoạn kể ngắn về chuyến đi của một gia đình và kể lại chuyến đi của gia đình mình bằng vài câu ở thì quá khứ."
+    kc_ids: [ENG5-U11-TRIP]
+
+kcs:
+  - id: ENG5-U11-STRESS
+    name: "Trọng âm trong câu hỏi Wh-"
+    description: "Trong câu hỏi When/What did … ?, ba từ được nhấn là từ để hỏi, động từ chính và tên nơi chốn (SGV tr.189)."
+    prerequisites: []  # tiên quyết ENG5-U11-WHATDID nằm ở lesson-2
+  - id: ENG5-U11-TRIP
+    name: "Kể và hỏi đáp về chuyến đi của gia đình"
+    description: "Ghép các mẫu của unit: đi đâu (went to), khi nào (last …), làm gì (We + động từ quá khứ); đọc hiểu và trả lời câu hỏi về một đoạn kể."
+    prerequisites: []  # tiên quyết ENG5-U11-DIDYOU, ENG5-U11-WHATDID nằm ở lesson-1, lesson-2
+
+concepts:
+  - id: C1
+    name: "Nhịp câu hỏi Wh-"
+    explanation: "Câu 'When did you go to London?' đọc nhấn ở When, go, London; các từ did, you, to đọc nhẹ và nhanh. Câu 'What did they do in Finland?' nhấn ở What, do, Finland."
+    representations: [vỗ tay theo nhịp, gạch chân từ mang nghĩa]
+  - id: C2
+    name: "Kể một chuyến đi"
+    explanation: "Một đoạn kể ngắn trả lời ba câu hỏi: đi đâu (Last weekend, my family went to …), làm gì (We visited … / We took … / We swam …), thấy thế nào (Our trip was …). Mọi động từ ở dạng quá khứ."
+    representations: [bài đọc chuyến đi, nhật ký ảnh (photo journal)]
+  - id: C3
+    name: "Đoạn tóm tắt dùng cho câu U11-TR-* (viết lại, không phải nguyên văn SGK tr.11)"
+    explanation: "Last weekend, Linda and her family visited Ha Long Bay and stayed in a hotel by the beach. On Saturday, they sunbathed, took some photos of the bay and swam in the sea. On Sunday, they took a boat trip around the bay, explored the caves and had seafood. Linda and her brother bought some souvenirs for their friends."
+    representations: [bài đọc chuyến đi]
+
+misconceptions:
+  - id: ENG5-U11-M10
+    kc_id: ENG5-U11-STRESS
+    name: "Nhấn vào từ chức năng"
+    description: "Đọc nhấn did, you, to, in thay vì từ để hỏi, động từ chính và tên nơi chốn."
+    severity: NORMAL
+    counter_examples:
+      - "Nếu chỉ nghe được ba từ When … go … London, con có đoán ra bạn hỏi gì không? Còn nếu chỉ nghe did … you … to thì sao?"
+  - id: ENG5-U11-M11
+    kc_id: ENG5-U11-TRIP
+    name: "Kể chuyến đi lẫn động từ nguyên mẫu"
+    description: "Kể 'Last summer, my family go to Hue. We visit the citadel.'. Cả đoạn kể chuyện đã qua thì mọi động từ đều ở dạng quá khứ."
+    severity: CRITICAL
+    counter_examples:
+      - "Câu đầu có last summer. Các câu sau vẫn kể về mùa hè năm ngoái hay đã chuyển sang hôm nay?"
+  - id: ENG5-U11-M12
+    kc_id: ENG5-U11-TRIP
+    name: "Trả lời lệch câu hỏi khi kể chuyến đi"
+    description: "Bạn hỏi When (khi nào) mà kể việc làm, hoặc hỏi What … do mà nói nơi chốn."
+    severity: NORMAL
+    counter_examples:
+      - "When là hỏi khi nào. 'We bought souvenirs.' có cho bạn biết khi nào không con?"
+
+generic_hints:
+  - {target: TASK, level: 1, text: "Con đọc lại câu hỏi giúp cô nhé: bạn hỏi đi đâu, khi nào hay làm gì?"}
+  - {target: CONCEPT, level: 2, text: "Kể chuyến đi đã qua thì mọi động từ ở dạng quá khứ: went, took, swam, ate, bought, visited."}
+  - {target: STRATEGY, level: 3, text: "Con tìm trong đoạn đọc câu có chữ của câu hỏi, rồi đọc câu đó thật kỹ nhé."}
+  - {target: SELF_CHECK, level: 1, text: "Con đọc lại câu trả lời: đã đúng điều bạn hỏi và động từ đã ở dạng quá khứ chưa?"}
+  - {target: FORMAT, level: 1, text: "Con trả lời bằng một câu tiếng Anh trọn vẹn giúp cô nhé?"}
+
+default_verify_prompt: "Đúng rồi! Con chỉ cho cô chỗ nào giúp con tìm ra câu trả lời được không?"
+
+items:
+  # ================================================================ ENG5-U11-STRESS
+  # [SGK tr.10 Ex1; SGV tr.188]
+  - id: U11-ST-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [ENG5-U11-STRESS]
+    cognitive_level: A
+    difficulty: 0.25
+    expected_time_s: 40
+    stem: "Trong câu 'When did you go to London?', ba từ nào được đọc nhấn mạnh?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "When – go – London", correct: true, aliases: ["when go london", "when, go, london"]}
+        - {id: B, text: "did – you – to", aliases: ["did you to", "did, you, to"], misconceptions: [ENG5-U11-M10]}
+        - {id: C, text: "When – did – you", aliases: ["when did you", "when, did, you"], misconceptions: [ENG5-U11-M10]}
+    hints:
+      - {target: TASK, level: 1, text: "Con vỗ tay theo cô khi đọc câu này nhé: When did you go to London? Con vỗ ở những từ nào?"}
+      - {target: CONCEPT, level: 2, text: "Từ được nhấn là từ mang nghĩa chính: từ để hỏi, động từ chính và tên nơi chốn."}
+    explanation: "Câu hỏi nhấn ở từ để hỏi When, động từ chính go và tên nơi chốn London; did, you, to đọc nhẹ."
+
+  # [SGK tr.10 Ex2 câu 1; SGV tr.188 audio, tr.189 Key: Sydney]
+  - id: U11-ST-PR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-STRESS]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 40
+    isomorphic_group: U11-ST-UNDERLINE
+    stem: "Câu 'When did you go to Sydney?': sách đã gạch chân When và go. Con chọn thêm một từ nữa được đọc nhấn nhé."
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "Sydney", correct: true, aliases: ["sydney"]}
+        - {id: B, text: "did", aliases: ["did"], misconceptions: [ENG5-U11-M10]}
+        - {id: C, text: "to", aliases: ["to"], misconceptions: [ENG5-U11-M10]}
+    hints:
+      - {target: TASK, level: 1, text: "Hai từ đã nhấn là từ để hỏi và động từ chính. Còn thiếu loại từ nào trong ba loại?"}
+      - {target: CONCEPT, level: 2, text: "Ba từ được nhấn: từ để hỏi, động từ chính, tên nơi chốn."}
+      - {target: STEP, level: 4, text: "Tên nơi chốn trong câu này là gì? Đó là từ thứ ba được nhấn."}
+    worked_solution:
+      - "When là từ để hỏi, go là động từ chính, đều đã được gạch."
+      - "Còn thiếu tên nơi chốn: Sydney."
+    explanation: "Câu nhấn ở When, go và tên nơi chốn Sydney."
+
+  # [SGK tr.10 Ex2 câu 2; SGV tr.189 Key: Paris]
+  - id: U11-ST-PR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-STRESS]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 40
+    isomorphic_group: U11-ST-UNDERLINE
+    stem: "Câu 'What did he do in Paris?': sách đã gạch chân What và do. Con chọn thêm một từ nữa được đọc nhấn nhé."
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "Paris", correct: true, aliases: ["paris"]}
+        - {id: B, text: "he", aliases: ["he"], misconceptions: [ENG5-U11-M10]}
+        - {id: C, text: "in", aliases: ["in"], misconceptions: [ENG5-U11-M10]}
+    hints:
+      - {target: TASK, level: 1, text: "What và do đã được gạch. Câu này còn tên nơi chốn nào không?"}
+      - {target: CONCEPT, level: 2, text: "Ba từ được nhấn: từ để hỏi, động từ chính, tên nơi chốn."}
+      - {target: STEP, level: 4, text: "Tên nơi chốn ở cuối câu chính là từ thứ ba được nhấn."}
+    worked_solution:
+      - "What là từ để hỏi, do là động từ chính, đều đã được gạch."
+      - "Còn thiếu tên nơi chốn: Paris."
+    explanation: "Câu nhấn ở What, do và tên nơi chốn Paris."
+
+  # [SGK tr.10 Ex2 câu 3; SGV tr.189 Key: When]
+  - id: U11-ST-PR-03
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-STRESS]
+    cognitive_level: B
+    difficulty: 0.4
+    expected_time_s: 40
+    isomorphic_group: U11-ST-UNDERLINE
+    stem: "Câu 'When did she go to England?': sách đã gạch chân go và England. Con chọn thêm một từ nữa được đọc nhấn nhé."
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "When", correct: true, aliases: ["when"]}
+        - {id: B, text: "did", aliases: ["did"], misconceptions: [ENG5-U11-M10]}
+        - {id: C, text: "she", aliases: ["she"], misconceptions: [ENG5-U11-M10]}
+    hints:
+      - {target: TASK, level: 1, text: "Động từ chính và tên nơi chốn đã được gạch. Còn thiếu loại từ nào?"}
+      - {target: CONCEPT, level: 2, text: "Ba từ được nhấn: từ để hỏi, động từ chính, tên nơi chốn."}
+      - {target: STEP, level: 4, text: "Từ để hỏi đứng đầu câu. Đó là từ nào?"}
+    worked_solution:
+      - "go là động từ chính, England là tên nơi chốn, đều đã được gạch."
+      - "Còn thiếu từ để hỏi ở đầu câu: When."
+    explanation: "Câu nhấn ở từ để hỏi When, động từ go và tên nơi chốn England."
+
+  # [SGK tr.10 Ex2 câu 4; SGV tr.189 Key: do]
+  - id: U11-ST-PR-04
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-STRESS]
+    cognitive_level: B
+    difficulty: 0.45
+    expected_time_s: 40
+    isomorphic_group: U11-ST-UNDERLINE
+    stem: "Câu 'What did they do in Thailand?': sách đã gạch chân What và Thailand. Con chọn thêm một từ nữa được đọc nhấn nhé."
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "do", correct: true, aliases: ["do"]}
+        - {id: B, text: "did", aliases: ["did"], misconceptions: [ENG5-U11-M10]}
+        - {id: C, text: "they", aliases: ["they"], misconceptions: [ENG5-U11-M10]}
+    hints:
+      - {target: TASK, level: 1, text: "Từ để hỏi và tên nơi chốn đã được gạch. Còn thiếu loại từ nào?"}
+      - {target: CONCEPT, level: 2, text: "Ba từ được nhấn: từ để hỏi, động từ chính, tên nơi chốn. Did chỉ là từ giúp hỏi, đọc nhẹ."}
+      - {target: STEP, level: 4, text: "Động từ chính của câu là việc làm: 'làm gì'. Đó là từ nào?"}
+    worked_solution:
+      - "What là từ để hỏi, Thailand là tên nơi chốn, đều đã được gạch."
+      - "Động từ chính là do (làm); did chỉ giúp hỏi nên đọc nhẹ."
+      - "Từ còn thiếu: do."
+    explanation: "Câu nhấn ở What, động từ chính do và tên nơi chốn Thailand; did đọc nhẹ."
+
+  # [SOẠN THÊM, theo ý SGV tr.189 Ex2 Step 3] Mức C: nhận ra quy luật.
+  - id: U11-ST-PR-05
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-STRESS]
+    cognitive_level: C
+    difficulty: 0.5
+    expected_time_s: 60
+    stem: "Con nhìn lại bốn câu: When did you go to Sydney? What did he do in Paris? When did she go to England? What did they do in Thailand? Các từ được nhấn thường thuộc những loại từ nào? Con trả lời bằng tiếng Việt nhé."
+    answer:
+      type: open
+      rubric: "Nêu được ba loại: từ để hỏi (When/What), động từ chính (go/do), tên nơi chốn."
+      sample_answer: "Từ để hỏi như When, What; động từ chính như go, do; và tên nơi chốn như Sydney, Paris."
+      facts:
+        phrases: [["từ để hỏi", "when", "what"], ["động từ", "go", "do"], ["nơi", "địa danh", "tên chỗ", "thành phố", "nước"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con đọc to từng câu và vỗ tay ở từ được nhấn. Những từ đó có điểm gì giống nhau?"}
+      - {target: CONCEPT, level: 2, text: "Từ được nhấn là từ mang nghĩa chính của câu hỏi; did, you, he, to, in đọc nhẹ."}
+      - {target: STEP, level: 4, text: "Con xếp các từ được nhấn vào ba nhóm: từ hỏi ở đầu câu, từ chỉ việc làm, và tên …"}
+    worked_solution:
+      - "Từ đầu câu When, What là từ để hỏi."
+      - "go, do là động từ chính chỉ việc làm."
+      - "Sydney, Paris, England, Thailand là tên nơi chốn."
+    explanation: "Trong câu hỏi Wh- này, từ được nhấn là từ để hỏi, động từ chính và tên nơi chốn."
+
+  # ================================================================ ENG5-U11-TRIP
+  # [SGK tr.11 Ex4 câu 1; SGV tr.190 Key 1] Đoạn đọc là bản tóm tắt viết lại (concept C3).
+  - id: U11-TR-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 60
+    stem: "Con đọc đoạn này nhé: 'Last weekend, Linda and her family visited Ha Long Bay and stayed in a hotel by the beach. On Saturday, they sunbathed, took some photos of the bay and swam in the sea. On Sunday, they took a boat trip around the bay, explored the caves and had seafood. Linda and her brother bought some souvenirs for their friends.' Câu hỏi: Where did Linda's family go last weekend?"
+    answer:
+      type: open
+      rubric: "Nêu đúng nơi: Ha Long Bay (SGV tr.190: They went to Ha Long Bay.)."
+      sample_answer: "They went to Ha Long Bay."
+      facts:
+        phrases: [["ha long"]]
+    hints:
+      - {target: TASK, level: 1, text: "Where là hỏi ở đâu. Con tìm câu có last weekend trong đoạn nhé."}
+      - {target: CONCEPT, level: 2, text: "Trả lời câu hỏi Where did … go? bằng They went to + nơi chốn."}
+    explanation: "Câu đầu của đoạn cho biết gia đình Linda đi Hạ Long: They went to Ha Long Bay."
+
+  # [SOẠN THÊM, dùng khung viết SGK tr.11 Ex5; SGV tr.190 gợi ý 'Sa Pa'] Cùng làm: cô viết câu đầu.
+  - id: U11-TR-CP-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 45
+    stem: "Cô viết câu đầu, con viết tiếp câu thứ hai nhé. 'Last weekend, my family went to Sa Pa. On Saturday, we … (visit) the market.'"
+    answer:
+      type: open
+      rubric: "Điền visited (quá khứ của visit, thêm -ed)."
+      sample_answer: "On Saturday, we visited the market."
+      facts:
+        phrases: [["visited"]]
+    hints:
+      - {target: TASK, level: 1, text: "Đoạn kể chuyện cuối tuần trước. Động từ visit phải ở dạng nào?"}
+      - {target: CONCEPT, level: 2, text: "Visit là động từ thêm -ed khi đổi sang quá khứ, giống walk thành walked."}
+      - {target: STEP, level: 4, text: "Visit thành visit…: con viết nốt nhé, On Saturday, we … the market."}
+    worked_solution:
+      - "Đoạn kể chuyện cuối tuần trước, nên động từ ở dạng quá khứ."
+      - "Visit thêm -ed: visited."
+      - "Câu hoàn chỉnh: On Saturday, we visited the market."
+    explanation: "Chuyện đã qua nên visit thêm -ed: On Saturday, we visited the market."
+
+  # [SGK tr.11 Ex4 câu 2; SGV tr.190 Key 2] Đoạn đọc là bản tóm tắt viết lại.
+  - id: U11-TR-PR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: B
+    difficulty: 0.45
+    expected_time_s: 75
+    stem: "Đọc lại đoạn về chuyến đi của Linda: 'On Saturday, they sunbathed, took some photos of the bay and swam in the sea. On Sunday, they took a boat trip around the bay, explored the caves and had seafood.' Câu hỏi: What did they do there on Saturday?"
+    answer:
+      type: open
+      rubric: "Đủ ba việc của thứ Bảy: sunbathed, took (some) photos, swam in the sea (SGV tr.190)."
+      sample_answer: "They sunbathed, took some photos and swam in the sea."
+      facts:
+        phrases: [["sunbathed"], ["took some photos", "took photos"], ["swam"]]
+    hints:
+      - {target: TASK, level: 1, text: "Câu hỏi về thứ Bảy (Saturday). Con tìm câu bắt đầu bằng On Saturday nhé."}
+      - {target: CONCEPT, level: 2, text: "Câu On Saturday kể ba việc, ngăn bởi dấu phẩy và chữ and. Con kể đủ cả ba nhé."}
+      - {target: STEP, level: 4, text: "Việc thứ nhất là sunbathed (tắm nắng). Con kể tiếp hai việc còn lại nhé: took …, swam …"}
+    worked_solution:
+      - "Tìm câu có On Saturday."
+      - "Câu đó kể ba việc: sunbathed, took some photos of the bay, swam in the sea."
+      - "Trả lời: They sunbathed, took some photos and swam in the sea."
+    explanation: "Thứ Bảy, gia đình Linda tắm nắng, chụp ảnh vịnh và bơi ở biển: They sunbathed, took some photos and swam in the sea."
+
+  # [SGK tr.11 Ex4 câu 3; SGV tr.190 Key 3] Đoạn đọc là bản tóm tắt viết lại.
+  - id: U11-TR-PR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: B
+    difficulty: 0.4
+    expected_time_s: 60
+    stem: "Theo đoạn đọc về chuyến đi của Linda, câu hỏi: When did they take a boat trip around the bay?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "On Sunday.", correct: true, aliases: ["on sunday", "sunday", "they took a boat trip around the bay on sunday"]}
+        - {id: B, text: "On Saturday.", aliases: ["on saturday", "saturday"]}
+        - {id: C, text: "They bought some souvenirs.", aliases: ["they bought some souvenirs"], misconceptions: [ENG5-U11-M12]}
+    hints:
+      - {target: TASK, level: 1, text: "When là hỏi khi nào. Con tìm câu có boat trip trong đoạn nhé."}
+      - {target: CONCEPT, level: 2, text: "Câu trả lời cho When phải là thời gian, ví dụ On Sunday hoặc On Saturday."}
+      - {target: STEP, level: 4, text: "Câu có boat trip bắt đầu bằng On … Con đọc từ đó nhé."}
+    worked_solution:
+      - "Tìm câu có boat trip: On Sunday, they took a boat trip around the bay."
+      - "When hỏi thời gian, nên trả lời: On Sunday."
+    explanation: "Đoạn đọc viết On Sunday, they took a boat trip around the bay, nên trả lời: They took a boat trip around the bay on Sunday."
+
+  # [SGK tr.11 Ex4 câu 4; SGV tr.190 Key 4] Đoạn đọc là bản tóm tắt viết lại.
+  - id: U11-TR-PR-03
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 60
+    stem: "Theo đoạn đọc về chuyến đi của Linda, câu hỏi: What did Linda and her brother buy?"
+    answer:
+      type: open
+      rubric: "Nêu được souvenirs (SGV tr.190: They bought some souvenirs for their friends.)."
+      sample_answer: "They bought some souvenirs for their friends."
+      facts:
+        phrases: [["souvenirs"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con tìm câu có Linda and her brother trong đoạn nhé."}
+      - {target: CONCEPT, level: 2, text: "Câu hỏi What did … buy? hỏi mua gì. Trả lời: They bought + đồ vật."}
+      - {target: STEP, level: 4, text: "Câu trong đoạn là: Linda and her brother bought some s… Con đọc nốt nhé."}
+    worked_solution:
+      - "Tìm câu có Linda and her brother."
+      - "Câu đó viết họ bought some souvenirs for their friends."
+      - "Trả lời: They bought some souvenirs for their friends."
+    explanation: "Linda và anh trai mua quà lưu niệm cho bạn: They bought some souvenirs for their friends."
+
+  # [SOẠN THÊM] Mức C: nhận ra câu trả lời lệch câu hỏi When.
+  - id: U11-TR-PR-04
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: C
+    difficulty: 0.5
+    expected_time_s: 60
+    stem: "Bạn hỏi Nam: 'When did you go to Hoi An?' Nam trả lời: 'We bought some lanterns.' Nam trả lời đúng điều bạn hỏi chưa? Vì sao?"
+    answer:
+      type: boolean
+      value: false
+      requires_explanation: true
+      wrong_answers: {"true": ENG5-U11-M12}
+    hints:
+      - {target: TASK, level: 1, text: "When là hỏi gì: ở đâu, khi nào hay làm gì?"}
+      - {target: CONCEPT, level: 2, text: "Câu hỏi When cần câu trả lời chỉ thời gian, như We went there last summer."}
+      - {target: STEP, level: 4, text: "Câu của Nam kể việc mua đèn lồng. Câu đó có chữ chỉ thời gian không?"}
+    worked_solution:
+      - "When hỏi khi nào, nên câu trả lời phải nói thời gian."
+      - "Nam kể việc đã làm (mua đèn lồng), không nói khi nào."
+      - "Nam trả lời chưa đúng; có thể nói: We went there last summer."
+    explanation: "Chưa đúng. When hỏi khi nào, còn Nam kể việc đã làm. Câu đúng chẳng hạn: We went there last summer."
+
+  # [SOẠN THÊM] Tìm lỗi (DIAG): đoạn kể lẫn nguyên mẫu.
+  - id: U11-TR-PR-05
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: DIAG
+    difficulty: 0.55
+    expected_time_s: 90
+    stem: "Bạn Hoa kể: 'Last summer, my family go to Hue. We visit the citadel and eat bun bo.' Có ba động từ chưa đổi sang quá khứ. Con sửa lại giúp bạn nhé."
+    answer:
+      type: open
+      rubric: "Sửa đủ ba động từ: go → went, visit → visited, eat → ate."
+      sample_answer: "Last summer, my family went to Hue. We visited the citadel and ate bun bo."
+      facts:
+        phrases: [["went"], ["visited"], ["ate"]]
+    hints:
+      - {target: TASK, level: 1, text: "Đoạn kể về last summer. Con gạch dưới các động từ trong đoạn nhé."}
+      - {target: CONCEPT, level: 2, text: "Cả đoạn kể chuyện đã qua thì mọi động từ ở dạng quá khứ: visit thêm -ed; go và eat có dạng riêng."}
+      - {target: STEP, level: 4, text: "Ba động từ là go, visit, eat. Go thành w…, visit thành visit…, eat thành a… Con sửa nhé?"}
+    worked_solution:
+      - "Các động từ trong đoạn: go, visit, eat."
+      - "Chuyện mùa hè năm ngoái đã qua: go → went, visit → visited, eat → ate."
+      - "Đoạn đúng: Last summer, my family went to Hue. We visited the citadel and ate bun bo."
+    explanation: "Đoạn kể chuyện đã qua nên đổi cả ba động từ: went, visited, ate."
+
+  # [SOẠN THÊM] Vận dụng (mức D): hội thoại hai lượt với cụm của unit.
+  - id: U11-TR-TR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: D
+    difficulty: 0.6
+    transfer: near
+    expected_time_s: 75
+    stem: "Bạn hỏi: 'Where did your family go last summer?' Con đáp: 'We went to Phu Quoc.' Bạn hỏi tiếp: 'What did your family do there?' Trong ảnh, cả nhà con đang đi thuyền quanh đảo và ăn hải sản. Con trả lời câu hỏi cuối nhé."
+    answer:
+      type: open
+      rubric: "We + took a boat trip + ate seafood (hai việc, động từ quá khứ)."
+      sample_answer: "We took a boat trip and ate seafood."
+      facts:
+        phrases: [["took a boat trip"], ["ate seafood", "ate some seafood"]]
+    hints:
+      - {target: TASK, level: 1, text: "Bạn hỏi cả nhà đã làm gì ở Phú Quốc. Trong ảnh có mấy việc?"}
+      - {target: CONCEPT, level: 2, text: "Trả lời bằng We + động từ quá khứ; hai việc thì nối bằng and."}
+      - {target: STEP, level: 4, text: "Con nói nhé: We took a boat trip and ate …"}
+    worked_solution:
+      - "Ảnh có hai việc: đi thuyền (take a boat trip) và ăn hải sản (eat seafood)."
+      - "Kể chuyện đã qua: took, ate; nối hai việc bằng and."
+      - "Câu trả lời: We took a boat trip and ate seafood."
+    explanation: "Cả nhà đã đi thuyền và ăn hải sản: We took a boat trip and ate seafood."
+
+  # [SOẠN THÊM, theo khung SGK tr.11 Ex5 và Project tr.11] Vận dụng bối cảnh mới (mức E). Bài mở: chấm theo facts tối thiểu,
+  # nội dung tự do. Facts chỉ kiểm có kể đi đâu bằng went to và có mốc thời gian last …
+  - id: U11-TR-TR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-TRIP]
+    cognitive_level: E
+    difficulty: 0.7
+    transfer: far
+    expected_time_s: 120
+    stem: "Con kể cho cô nghe về một chuyến đi của gia đình con (chuyến thật hoặc tưởng tượng) bằng ba câu: đi đâu và khi nào, cả nhà làm gì, con thấy chuyến đi thế nào. Con nhớ dùng động từ quá khứ nhé."
+    answer:
+      type: open
+      rubric: "Ba câu ở thì quá khứ: đi đâu + khi nào (went to … last …), làm gì (We + động từ quá khứ), cảm nhận (It was … / Our trip was …). Nội dung tự do."
+      sample_answer: "Last summer, my family went to Da Lat. We visited a flower garden and took lots of photos. Our trip was great."
+      facts:
+        phrases: [["went to"], ["last"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con nghĩ về một chuyến đi nhé: cả nhà đi đâu, đi khi nào?"}
+      - {target: CONCEPT, level: 2, text: "Câu đầu theo khung: Last summer, my family went to … Câu sau kể việc làm với We + động từ quá khứ."}
+      - {target: STEP, level: 4, text: "Câu đầu: Last … , my family went to … Câu hai: We … Câu ba: Our trip was …"}
+    worked_solution:
+      - "Câu 1, đi đâu và khi nào: Last summer, my family went to Da Lat."
+      - "Câu 2, làm gì: We visited a flower garden and took lots of photos."
+      - "Câu 3, cảm nhận: Our trip was great."
+    explanation: "Một đoạn kể chuyến đi có ba ý: đi đâu và khi nào (went to … last …), làm gì (We + động từ quá khứ), và chuyến đi thế nào."

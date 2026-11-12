@@ -1,0 +1,370 @@
+# Chapter package — Tiếng Anh 5 (Global Success, tập hai): Unit 11 "Family time"
+# TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK, SGV và tài liệu tập huấn của NXB Giáo dục ngày 12/11/2026;
+# chủ dự án duyệt mặc định ngày 12/11/2026 (sửa bất kỳ lúc nào, mọi sửa đổi ghi vào ../README.md mục "Lịch sử").
+#
+# Khuôn: giống docs/pedagogy/math-g5/chuong-so-thap-phan/chapter.yaml (ADR-018, kế hoạch v1 mục 5.1), áp khung
+# đánh giá ADR-060 (PR #138): nút kiến thức, item mức A–E và DIAG, phân loại lỗi.
+# Đây là gia sư ÔN BÀI Ở NHÀ sau khi con đã học trên lớp: cô giảng bằng tiếng Việt, từ và câu đích nói bằng tiếng Anh,
+# luôn đặt trong một câu trọn vẹn ("Con nói theo cô: We swam in the sea.").
+#
+# TÊN FILE: đây là một ChapterPackage, nhưng cố ý KHÔNG đặt tên chapter.yaml (và lesson KHÔNG đặt tên lesson.yaml):
+# lúc chạy, chapter_service.chapter_sources() và session.service.lesson_packages() tự nạp mọi file mang hai tên
+# đó dưới docs/pedagogy, không lọc theo môn. Đặt tên như Toán sẽ đưa unit Tiếng Anh vào gia sư Toán (vi phạm
+# luật cô lập môn S1/F1, PR #138) và làm hỏng khởi động vì schema chương chưa nhận "english".
+# Khi module Tiếng Anh có bước nạp theo môn thì đổi tên (../README.md, "Khoảng trống schema" G0).
+#
+# LƯU Ý SCHEMA: ChapterPackage.subject hiện chỉ nhận "math", nên load_chapter() chưa đọc được file này.
+# File vẫn ghi subject: english theo luật N1 (docs/plan/english-module-rules.md, PR #138). Kiểm đồ thị bằng cách
+# thay tạm subject khi chạy validate_chapter (xem ../README.md, mục "Kiểm tra" và "Khoảng trống schema").
+#
+# Đồ thị (2T-KT):
+#   VOCAB ──PRE──▶ PAST ──PRE──▶ DIDYOU ──APP──┐
+#                     └──PRE──▶ WHATDID ──APP──┴─▶ TRIP (IMPLEMENT)
+#                                   └──PRE──▶ STRESS
+# Nút BASIC VOCAB, PAST, STRESS không đòi bằng chứng vận dụng (require_application: false), như các nút cơ bản
+# của Toán (DI-6, 2026-10-12): phần vận dụng nằm ở DIDYOU, WHATDID và TRIP.
+# key_ideas: mỗi ý liệt kê các cách nói được tính là có ý đó (so khớp sau chuẩn hóa chữ thường; DI tạm như Toán).
+
+chapter_id: eng-g5-u11-family-time
+version: 0.1.0
+status: DRAFT
+subject: english
+grade: 5
+locale: vi-VN
+title: "Unit 11: Family time"
+persona:
+  tutor_self: cô
+  student_address: con
+
+lessons:
+  - lesson-1-did-you.yaml
+  - lesson-2-what-did-your-family-do.yaml
+  - lesson-3-family-trip.yaml
+
+nodes:
+  # ---------------------------------------------------------------- BASIC
+  - id: ENG5-U11-VOCAB
+    name: "Cụm từ hoạt động kỳ nghỉ"
+    layer: BASIC
+    description: "Tám cụm động từ của unit: swim, take photos, collect seashells, walk on the beach (SGK tr.6); take a boat trip around the bay, eat seafood, see some interesting places, buy souvenirs (SGK tr.8)."
+    home_tip: "Xem lại ảnh một chuyến đi của gia đình, chỉ vào từng ảnh và hỏi con bằng tiếng Việt: ở đây cả nhà làm gì? Con nói câu tiếng Anh, ví dụ 'We took photos.' hay 'We ate seafood.'"
+    lesson_id: eng-g5-u11-l1
+    theory:
+      - id: T1
+        representation: tranh kỳ nghỉ
+        text: "Cô cho con xem bốn bức tranh ở bãi biển trong sách. Tranh thứ nhất bạn đang bơi, cô nói: 'I swim in the sea.' Tranh thứ hai bạn cầm máy ảnh: 'I take photos.' Tranh thứ ba hai bạn cúi xuống cát nhặt vỏ sò: 'I collect seashells.' Tranh thứ tư cả nhà đi dọc bờ biển: 'We walk on the beach.' Mỗi tranh là một cụm chỉ việc làm; con nhớ cụm bằng cách nhớ hình ảnh của nó."
+        ask: "Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?"
+        reply: "Nhặt vỏ sò là collect seashells, nên cô nói: I collect seashells."
+        accept: ["collect seashells", "i collect seashells", "nhặt vỏ sò"]
+      - id: T2
+        representation: diễn tả bằng động tác
+        text: "Bây giờ mình chơi đoán việc làm nhé. Cô làm động tác cầm đũa gắp tôm, cua và nói: 'We eat seafood.' Cô làm động tác lắc lư như đang ngồi trên thuyền: 'We take a boat trip around the bay.' Cô đưa tay lên mắt nhìn xa, chỉ chỗ này chỗ kia: 'We see some interesting places.' Cô làm động tác trả tiền và cầm món quà nhỏ: 'We buy souvenirs.' Souvenirs là quà lưu niệm, thứ mình mua mang về làm kỷ niệm."
+        ask: "Nếu cô làm động tác trả tiền rồi cầm một chiếc móc khóa nhỏ mang về, cô đang nói câu nào?"
+        reply: "Trả tiền mua món quà nhỏ mang về là buy souvenirs, nên cô nói: We buy souvenirs."
+        accept: ["buy souvenirs", "we buy souvenirs", "mua quà lưu niệm", "mua quà"]
+    method:
+      rule: "Mỗi cụm gồm một động từ chỉ việc làm và phần đi kèm: swim; take photos; collect seashells; walk on the beach; take a boat trip around the bay; eat seafood; see some interesting places; buy souvenirs. Nhớ cụm bằng hình ảnh và luôn nói cả câu."
+      steps:
+        - "Nhìn tranh hoặc nghe câu, tìm việc mà người trong tranh đang làm."
+        - "Nhớ động từ chỉ việc đó: swim, take, collect, walk, eat, see, buy."
+        - "Ghép động từ với phần đi kèm thành cụm: collect + seashells, buy + souvenirs..."
+        - "Nói cụm trong một câu trọn vẹn, ví dụ: We collect seashells."
+    worked_examples:
+      - id: W1
+        problem: "Tranh: cả nhà đang ngồi trên thuyền đi quanh vịnh Hạ Long. Con nói câu nào?"
+        steps:
+          - "Việc cả nhà đang làm: đi thuyền quanh vịnh."
+          - "Đi thuyền là take a boat trip; quanh vịnh là around the bay."
+          - "Ghép thành câu: We take a boat trip around the bay."
+        answer: "We take a boat trip around the bay."
+      - id: W2
+        problem: "Tranh: cả nhà đứng chụp ảnh trước những ngôi nhà và cây cầu nổi tiếng ở một thành phố lạ. Cụm nào hợp: see some interesting places hay eat seafood?"
+        steps:
+          - "Cả nhà đang đi ngắm những nơi nổi tiếng, không phải đang ăn."
+          - "Đi xem những nơi thú vị là see some interesting places."
+          - "Câu hợp với tranh: We see some interesting places."
+        answer: "We see some interesting places."
+    explain:
+      prompt: "Con nói lại giúp cô: con nhớ các cụm từ hoạt động kỳ nghỉ bằng cách nào, và nói một câu với cụm 'buy souvenirs' được không?"
+      key_ideas:
+        - ["tranh", "hình", "động tác", "hình ảnh", "nhìn"]
+        - ["việc làm", "đang làm", "làm gì", "động từ"]
+        - ["buy souvenirs", "bought souvenirs"]
+    checks: [U11-VO-CC-01]
+    completion: [U11-VO-CP-01]
+    practice: [U11-VO-PR-01, U11-VO-PR-02, U11-VO-PR-03, U11-VO-PR-04]
+    transfer: []
+    pass_rule:
+      require_application: false
+    verify_prompt: "Đúng rồi! Con chỉ cho cô chỗ nào trong tranh giúp con chọn được cụm đó không?"
+
+  - id: ENG5-U11-PAST
+    name: "Dạng quá khứ của động từ"
+    layer: BASIC
+    description: "Kể chuyện đã xảy ra thì động từ đổi sang quá khứ: thêm -ed (walk → walked, collect → collected, visit → visited) hoặc dạng riêng (swim → swam, take → took, eat → ate, see → saw, buy → bought, go → went, are → were)."
+    home_tip: "Buổi tối, hỏi con bằng tiếng Việt 'hôm nay con làm gì?' rồi cùng con nói câu tiếng Anh ở quá khứ, ví dụ 'I walked to school.' hay 'I ate rice.'"
+    lesson_id: eng-g5-u11-l1
+    theory:
+      - id: T1
+        representation: dòng thời gian
+        text: "Cô vẽ một đường thẳng: bên trái là hôm qua, ở giữa là hôm nay. Chuyện hôm nay, cô nói: 'Today I swim.' Chuyện hôm qua đã qua rồi, động từ phải đổi: 'Yesterday I swam.' Bạn Mai trong sách kể về Chủ nhật tuần trước cũng đổi động từ: 'We went to the beach.' Go đổi thành went, swim đổi thành swam. Thấy chữ yesterday, last Sunday, last summer là biết chuyện đã qua."
+        ask: "Nếu con kể chuyện Chủ nhật tuần trước, con nói 'We go to the beach' hay 'We went to the beach'?"
+        reply: "Chủ nhật tuần trước đã qua rồi, nên go đổi thành went: We went to the beach."
+        accept: ["we went to the beach", "went"]
+      - id: T2
+        representation: bảng hai cột nguyên mẫu – quá khứ
+        text: "Cô kẻ bảng hai cột. Nhóm thứ nhất chỉ cần thêm -ed: walk thành walked, collect thành collected, visit thành visited, nên 'We walked on the beach.' Nhóm thứ hai có dạng riêng, phải học thuộc: swim thành swam, take thành took, eat thành ate, see thành saw, buy thành bought, go thành went, và are thành were. Ví dụ: 'We bought souvenirs.' Con đừng thêm -ed cho nhóm thứ hai nhé, không có từ 'taked' hay 'buyed' đâu."
+        ask: "Take thuộc nhóm thêm -ed hay nhóm có dạng riêng, và dạng quá khứ của nó là gì?"
+        reply: "Take có dạng riêng, quá khứ là took, ví dụ: We took photos."
+        accept: ["took", "dạng riêng took", "nhóm dạng riêng"]
+    method:
+      rule: "Kể chuyện đã qua (yesterday, last Sunday, last weekend, last summer) thì đổi động từ sang quá khứ: động từ có quy tắc thêm -ed; động từ có dạng riêng thì dùng dạng đã học (swam, took, ate, saw, bought, went, were)."
+      steps:
+        - "Tìm chữ chỉ thời gian: có yesterday, last … là chuyện đã qua."
+        - "Tìm động từ trong câu."
+        - "Xem động từ thuộc nhóm thêm -ed hay nhóm có dạng riêng."
+        - "Đổi động từ sang dạng quá khứ rồi nói lại cả câu."
+    worked_examples:
+      - id: W1
+        problem: "Đổi câu sang chuyện hôm qua: 'Today we collect seashells.'"
+        steps:
+          - "Chuyện hôm qua đã qua, nên động từ phải đổi sang quá khứ."
+          - "Collect thuộc nhóm thêm -ed: collected."
+          - "Câu mới: Yesterday we collected seashells."
+        answer: "Yesterday we collected seashells."
+      - id: W2
+        problem: "Chọn từ đúng: 'Last summer, we (see / saw) some interesting places in Sydney.'"
+        steps:
+          - "Last summer là mùa hè năm ngoái, chuyện đã qua."
+          - "See có dạng quá khứ riêng là saw."
+          - "Chọn saw: Last summer, we saw some interesting places in Sydney."
+        answer: "saw"
+    explain:
+      prompt: "Con nói lại giúp cô: khi nào mình phải đổi động từ sang quá khứ, và đổi bằng những cách nào?"
+      key_ideas:
+        - ["đã qua", "đã xảy ra", "hôm qua", "yesterday", "last", "quá khứ", "tuần trước"]
+        - ["thêm ed", "thêm -ed", "-ed", "ed"]
+        - ["dạng riêng", "học thuộc", "đặc biệt", "bất quy tắc", "swam", "took", "went"]
+    checks: [U11-PA-CC-01]
+    completion: [U11-PA-CP-01]
+    practice: [U11-PA-PR-01, U11-PA-PR-02, U11-PA-PR-03, U11-PA-PR-04, U11-PA-PR-05, U11-PA-PR-06]
+    transfer: []
+    pass_rule:
+      require_application: false
+    verify_prompt: "Đúng rồi! Con nói cho cô biết chữ nào trong câu cho con biết đây là chuyện đã qua được không?"
+
+  - id: ENG5-U11-DIDYOU
+    name: "Did you …? – Yes, I did. / No, I didn't."
+    layer: BASIC
+    description: "Hỏi ai đó đã làm việc gì chưa: Did you + động từ giữ nguyên …? Trả lời: Yes, I did. I + động từ quá khứ … / No, I didn't. (SGK tr.6–7, Review 3 tr.37)."
+    home_tip: "Cuối tuần, hỏi con bằng tiếng Anh về một việc con vừa làm, ví dụ 'Did you take photos?', để con trả lời 'Yes, I did. I took photos with …' hoặc 'No, I didn't.'"
+    lesson_id: eng-g5-u11-l1
+    theory:
+      - id: T1
+        representation: hội thoại mẫu SGK
+        text: "Trong sách, bạn Mary hỏi Mai về Chủ nhật tuần trước. Mai kể cả nhà đi biển, Mary hỏi tiếp: 'Did you swim?' Mai trả lời: 'Yes, I did. I swam with my mother.' Câu hỏi bắt đầu bằng Did để hỏi một việc đã qua, và sau Did, động từ swim giữ nguyên. Câu trả lời ngắn là Yes, I did., rồi Mai kể thêm bằng động từ quá khứ swam. Nếu không bơi, Mai sẽ nói: 'No, I didn't.'"
+        ask: "Trong câu hỏi 'Did you swim?', vì sao động từ là swim chứ không phải swam?"
+        reply: "Vì chữ Did ở đầu câu đã cho biết chuyện đã qua rồi, nên động từ sau did giữ nguyên là swim."
+        accept: ["did", "vì có did", "did đã báo", "giữ nguyên"]
+      - id: T2
+        representation: so sánh do và did
+        text: "Cô đặt hai câu cạnh nhau. Câu thứ nhất hỏi việc con hay làm: 'Do you swim?' – 'Yes, I do.' Câu thứ hai hỏi việc đã làm hôm qua: 'Did you swim yesterday?' – 'Yes, I did.' Câu hỏi dùng chữ nào thì câu trả lời ngắn dùng lại đúng chữ đó: hỏi do thì đáp do, hỏi did thì đáp did. Hôm nay mình ôn câu hỏi về chuyến đi đã qua, nên dùng did."
+        ask: "Bạn hỏi 'Did you take photos?' và con đã chụp ảnh. Con trả lời ngắn là 'Yes, I do.' hay 'Yes, I did.'?"
+        reply: "Bạn hỏi bằng did nên con đáp bằng did: Yes, I did. Rồi con có thể kể thêm: I took photos with my father."
+        accept: ["yes, i did", "yes i did", "i did"]
+    method:
+      rule: "Hỏi việc đã qua: Did you + động từ giữ nguyên …? Trả lời: Yes, I did. hoặc No, I didn't.; muốn kể thêm thì nói I + động từ quá khứ …"
+      steps:
+        - "Mở đầu câu hỏi bằng Did you."
+        - "Thêm động từ giữ nguyên và phần đi kèm: Did you collect seashells?"
+        - "Trả lời ngắn bằng did: Yes, I did. hoặc No, I didn't."
+        - "Nếu trả lời Yes, kể thêm bằng động từ quá khứ: I collected seashells with my brother."
+    worked_examples:
+      - id: W1
+        problem: "Hỏi bạn xem bạn đã đi dạo trên bãi biển chưa, và trả lời giúp bạn là có, đi cùng gia đình."
+        steps:
+          - "Câu hỏi: Did you + walk on the beach (giữ nguyên walk): Did you walk on the beach?"
+          - "Bạn có đi nên trả lời ngắn: Yes, I did."
+          - "Kể thêm bằng động từ quá khứ: I walked on the beach with my family."
+        answer: "Did you walk on the beach? – Yes, I did. I walked on the beach with my family."
+      - id: W2
+        problem: "Bạn hỏi: 'Did you eat seafood?' Con không ăn hải sản. Con trả lời thế nào?"
+        steps:
+          - "Câu hỏi bằng Did, hỏi việc đã qua."
+          - "Con không ăn nên trả lời phủ định với did: No, I didn't."
+        answer: "No, I didn't."
+    explain:
+      prompt: "Con nói lại giúp cô: muốn hỏi bạn đã làm việc gì chưa thì con hỏi thế nào, và bạn trả lời ra sao?"
+      key_ideas:
+        - ["did you"]
+        - ["giữ nguyên", "không đổi", "nguyên mẫu", "để nguyên"]
+        - ["yes, i did", "yes i did", "no, i didn't", "no i didn't", "i did"]
+    checks: [U11-DY-CC-01]
+    completion: [U11-DY-CP-01]
+    practice: [U11-DY-PR-01, U11-DY-PR-02, U11-DY-PR-03, U11-DY-PR-04, U11-DY-PR-05]
+    transfer: [U11-DY-TR-01]
+    verify_prompt: "Đúng rồi! Con nói cho cô biết vì sao con trả lời bằng chữ did được không?"
+
+  - id: ENG5-U11-WHATDID
+    name: "What did your family do in …? – We …"
+    layer: BASIC
+    description: "Hỏi gia đình đã làm gì ở một nơi: What did your family do in/at …? – We + động từ quá khứ …; hỏi khi nào: When did you go to …? – We went there last … (SGK tr.8–9, Review 3 tr.36)."
+    home_tip: "Khi cả nhà đi chơi về, hỏi con 'What did our family do there?' và giúp con trả lời bằng câu bắt đầu bằng 'We …', ví dụ 'We ate seafood.'"
+    lesson_id: eng-g5-u11-l2
+    theory:
+      - id: T1
+        representation: hội thoại xem ảnh gia đình
+        text: "Trong sách, hai bạn xem ảnh gia đình trên máy tính. Một bạn hỏi: 'Where were you?' – 'We were in Ha Long.' Hỏi tiếp khi nào: 'When did you go to Ha Long?' – 'We went there last summer.' Rồi hỏi cả nhà đã làm gì: 'What did your family do in Ha Long?' – 'We took a boat trip around the bay.' Câu trả lời bắt đầu bằng We, và động từ took ở dạng quá khứ vì chuyến đi đã qua."
+        ask: "Bạn hỏi 'What did your family do in Nha Trang?' và cả nhà con đã ăn hải sản. Con trả lời bằng câu bắt đầu bằng We thế nào?"
+        reply: "Cả nhà đã ăn hải sản nên con nói: We ate seafood. Eat đổi thành ate vì chuyện đã qua."
+        accept: ["we ate seafood", "ate seafood"]
+      - id: T2
+        representation: khung câu hỏi – câu trả lời
+        text: "Cô viết khung câu hỏi: What + did + your family + do + in + nơi chốn? Chữ did đã báo chuyện đã qua, nên do ở cuối giữ nguyên. Khung câu trả lời: We + động từ quá khứ + phần đi kèm. Ví dụ: 'What did your family do in Singapore?' – 'We bought souvenirs.' Khác với câu hỏi, câu trả lời không có did, nên chính động từ phải đổi: buy thành bought. Nhớ: What hỏi làm gì, When hỏi khi nào."
+        ask: "Trong câu trả lời 'We bought souvenirs.', vì sao động từ đổi thành bought mà không giữ nguyên buy?"
+        reply: "Vì câu trả lời không có did, nên chính động từ phải báo chuyện đã qua: buy đổi thành bought."
+        accept: ["không có did", "quá khứ", "đã qua", "bought"]
+    method:
+      rule: "Hỏi: What did your family do in/at + nơi chốn? (do giữ nguyên). Trả lời: We + động từ quá khứ + phần đi kèm. Hỏi khi nào: When did you go to + nơi chốn? – We went there + last summer/last weekend/last Sunday."
+      steps:
+        - "Nghe từ để hỏi: What … do? là hỏi làm gì; When là hỏi khi nào."
+        - "Với What: chọn cụm việc làm hợp với nơi chốn hoặc tranh."
+        - "Bắt đầu câu trả lời bằng We và đổi động từ sang quá khứ: We took …, We ate …, We saw …, We bought …"
+        - "Với When: trả lời We went there + chữ chỉ thời gian."
+    worked_examples:
+      - id: W1
+        problem: "Bạn hỏi: 'What did your family do in Sydney?' Trong ảnh, cả nhà đi xem những nơi nổi tiếng. Con trả lời thế nào?"
+        steps:
+          - "What … do? là hỏi cả nhà đã làm gì."
+          - "Đi xem những nơi nổi tiếng là see some interesting places."
+          - "Bắt đầu bằng We, see đổi thành saw: We saw some interesting places."
+        answer: "We saw some interesting places."
+      - id: W2
+        problem: "Bạn hỏi: 'When did you go to Do Son Beach?' Cả nhà con đi vào Chủ nhật tuần trước. Con trả lời thế nào?"
+        steps:
+          - "When là hỏi khi nào, nên câu trả lời phải có thời gian."
+          - "Chủ nhật tuần trước là last Sunday; go đổi thành went; there thay cho Do Son Beach."
+          - "Câu trả lời: We went there last Sunday."
+        answer: "We went there last Sunday."
+    explain:
+      prompt: "Con nói lại giúp cô: khi bạn hỏi 'What did your family do …?', con trả lời bắt đầu bằng chữ gì, và động từ phải thế nào?"
+      key_ideas:
+        - ["we"]
+        - ["quá khứ", "đã qua", "đổi", "took", "ate", "bought", "saw"]
+        - ["làm gì", "việc làm", "what"]
+    checks: [U11-WD-CC-01]
+    completion: [U11-WD-CP-01]
+    practice: [U11-WD-PR-01, U11-WD-PR-02, U11-WD-PR-03, U11-WD-PR-04, U11-WD-PR-05, U11-WD-PR-06, U11-WD-PR-07]
+    transfer: [U11-WD-TR-01]
+    verify_prompt: "Đúng rồi! Con nói cho cô biết vì sao động từ sau We ở dạng quá khứ được không?"
+
+  - id: ENG5-U11-STRESS
+    name: "Trọng âm trong câu hỏi Wh-"
+    layer: BASIC
+    description: "Rhythm của unit: 'When did you 'go to 'London? / 'What did they 'do in 'Finland? Ba từ được nhấn là từ để hỏi, động từ chính và tên nơi chốn (SGK tr.10, SGV tr.189)."
+    home_tip: "Cùng con vỗ tay theo câu 'When did you go to London?': vỗ ba cái đúng vào When, go, London. Đổi London thành tên nơi cả nhà từng đi và vỗ lại."
+    lesson_id: eng-g5-u11-l3
+    theory:
+      - id: T1
+        representation: vỗ tay theo nhịp
+        text: "Cô đọc và vỗ tay: 'When did you go to London?' Cô vỗ ba cái, đúng vào When, go và London. Các chữ did, you, to cô đọc nhẹ và nhanh, kẹp giữa các tiếng vỗ. Câu thứ hai cũng vậy: 'What did they do in Finland?', cô vỗ ở What, do và Finland."
+        ask: "Trong câu 'What did they do in Finland?', con vỗ tay ở ba chữ nào?"
+        reply: "Con vỗ ở What, do và Finland; did, they, in đọc nhẹ."
+        accept: ["what do finland", "what, do, finland", "what, do và finland"]
+      - id: T2
+        representation: gạch chân từ mang nghĩa
+        text: "Cô gạch chân những chữ mang nghĩa chính. Nếu chỉ nghe được ba chữ 'When … go … Sydney', con vẫn đoán ra bạn hỏi 'con đi Sydney khi nào'. Vì vậy ba chữ đó được nhấn: từ để hỏi, động từ chính, tên nơi chốn. Còn did chỉ là chữ giúp đặt câu hỏi, nên đọc nhẹ, kể cả trong câu 'What did they do in Thailand?' có cả did lẫn do: did đọc nhẹ, do được nhấn."
+        ask: "Trong câu 'What did they do in Thailand?', chữ nào được nhấn: did hay do?"
+        reply: "Do được nhấn vì nó là động từ chính (làm); did chỉ giúp đặt câu hỏi nên đọc nhẹ."
+        accept: ["do", "chữ do", "do được nhấn"]
+    method:
+      rule: "Trong câu hỏi Wh- của unit, nhấn ba từ mang nghĩa: từ để hỏi (When/What), động từ chính (go/do), tên nơi chốn; đọc nhẹ did, you, he, she, they, to, in."
+      steps:
+        - "Tìm từ để hỏi ở đầu câu."
+        - "Tìm động từ chính chỉ việc làm (go, do), không nhầm với did."
+        - "Tìm tên nơi chốn ở cuối câu."
+        - "Đọc to, nhấn và vỗ tay ở ba từ đó; các từ khác đọc nhẹ."
+    worked_examples:
+      - id: W1
+        problem: "Câu 'When did he go to Paris?' nhấn ở những từ nào?"
+        steps:
+          - "Từ để hỏi: When."
+          - "Động từ chính: go (did chỉ giúp hỏi)."
+          - "Tên nơi chốn: Paris. Vậy nhấn When, go, Paris."
+        answer: "When – go – Paris"
+    explain:
+      prompt: "Con nói lại giúp cô: trong câu hỏi 'When did you go to London?', mình nhấn những loại từ nào và vì sao?"
+      key_ideas:
+        - ["từ để hỏi", "when", "what"]
+        - ["động từ", "go", "do"]
+        - ["nơi", "địa danh", "london", "tên chỗ", "thành phố"]
+    checks: [U11-ST-CC-01]
+    practice: [U11-ST-PR-01, U11-ST-PR-02, U11-ST-PR-03, U11-ST-PR-04, U11-ST-PR-05]
+    transfer: []
+    pass_rule:
+      require_application: false
+    verify_prompt: "Đúng rồi! Con đọc to câu đó và vỗ tay cho cô nghe được không?"
+
+  # ---------------------------------------------------------------- IMPLEMENT
+  - id: ENG5-U11-TRIP
+    name: "Kể và hỏi đáp về chuyến đi của gia đình"
+    layer: IMPLEMENT
+    description: "Ghép các mẫu của unit: đi đâu và khi nào (went to … last …), làm gì (We + động từ quá khứ), trả lời đúng câu hỏi Where/When/What; đọc hiểu đoạn kể ngắn (SGK tr.11 Ex4–6)."
+    home_tip: "Làm một trang nhật ký ảnh về chuyến đi gần nhất của cả nhà; dưới mỗi ảnh, cùng con viết một câu tiếng Anh như 'We swam in the sea.'"
+    lesson_id: eng-g5-u11-l3
+    theory:
+      - id: T1
+        representation: bài đọc chuyến đi
+        text: "Cô kể lại chuyến đi của bạn Linda trong sách. Câu đầu nói đi đâu và khi nào: 'Last weekend, Linda's family went to Ha Long Bay.' Các câu sau kể từng ngày làm gì: 'On Saturday, they swam in the sea. On Sunday, they took a boat trip around the bay.' Mọi động từ đều ở dạng quá khứ vì đó là chuyện đã qua. Khi đọc để trả lời câu hỏi, con tìm câu có chữ của câu hỏi, như Saturday hay boat trip."
+        ask: "Muốn trả lời câu hỏi 'When did they take a boat trip around the bay?', con tìm câu có chữ nào trong đoạn?"
+        reply: "Con tìm câu có boat trip: On Sunday, they took a boat trip around the bay. Vậy câu trả lời là On Sunday."
+        accept: ["boat trip", "on sunday", "sunday"]
+      - id: T2
+        representation: nhật ký ảnh (photo journal)
+        text: "Ở phần Project, bạn trong sách làm nhật ký ảnh và kể: 'I went to Ba Na Hills last summer.' Một đoạn kể chuyến đi của con có ba ý: đi đâu và khi nào, 'Last summer, my family went to Da Lat.'; làm gì, 'We visited a flower garden and took lots of photos.'; thấy thế nào, 'Our trip was great.' Bạn hỏi Where thì con nói nơi chốn, hỏi When thì nói thời gian, hỏi What … do thì nói việc làm."
+        ask: "Bạn hỏi 'When did you go to Da Lat?'. Con trả lời bằng nơi chốn, thời gian hay việc làm?"
+        reply: "When là hỏi khi nào, nên con trả lời bằng thời gian: We went there last summer."
+        accept: ["thời gian", "we went there last summer", "last summer"]
+    method:
+      rule: "Kể một chuyến đi bằng ba ý ở thì quá khứ: đi đâu và khi nào (Last …, my family went to …), làm gì (We + động từ quá khứ), thấy thế nào (Our trip was …). Trả lời đúng loại câu hỏi: Where → nơi chốn, When → thời gian, What … do → việc làm."
+      steps:
+        - "Nghe hoặc đọc kỹ từ để hỏi: Where, When hay What … do."
+        - "Với bài đọc: tìm câu có chữ của câu hỏi, đọc kỹ câu đó."
+        - "Trả lời đúng loại thông tin được hỏi, bắt đầu bằng We hoặc They."
+        - "Kiểm tra mọi động từ đã ở dạng quá khứ."
+    worked_examples:
+      - id: W1
+        problem: "Kể ngắn chuyến đi Nha Trang cuối tuần trước của gia đình: cả nhà bơi ở biển và ăn hải sản."
+        steps:
+          - "Đi đâu và khi nào: Last weekend, my family went to Nha Trang."
+          - "Làm gì, động từ quá khứ: We swam in the sea and ate seafood."
+          - "Thấy thế nào: Our trip was great."
+        answer: "Last weekend, my family went to Nha Trang. We swam in the sea and ate seafood. Our trip was great."
+      - id: W2
+        problem: "Bạn hỏi: 'What did your family do in Phu Quoc?' Bạn kia trả lời: 'We went there last summer.' Trả lời đã đúng câu hỏi chưa?"
+        steps:
+          - "What … do? là hỏi làm gì."
+          - "'We went there last summer' nói về thời gian, không nói việc làm."
+          - "Chưa đúng; nên trả lời bằng việc làm, ví dụ: We walked on the beach."
+        answer: "Chưa đúng; ví dụ đúng: We walked on the beach."
+    explain:
+      prompt: "Con nói lại giúp cô: khi kể một chuyến đi của gia đình, con kể những ý nào, và động từ phải ở dạng nào?"
+      key_ideas:
+        - ["đi đâu", "nơi", "went to", "ở đâu"]
+        - ["khi nào", "thời gian", "last"]
+        - ["làm gì", "việc làm", "we"]
+        - ["quá khứ", "đã qua"]
+    checks: [U11-TR-CC-01]
+    completion: [U11-TR-CP-01]
+    practice: [U11-TR-PR-01, U11-TR-PR-02, U11-TR-PR-03, U11-TR-PR-04, U11-TR-PR-05]
+    transfer: [U11-TR-TR-01, U11-TR-TR-02]
+    verify_prompt: "Đúng rồi! Con chỉ cho cô câu nào trong đoạn giúp con trả lời được không?"
+
+relations:
+  - {source: ENG5-U11-VOCAB, target: ENG5-U11-PAST, type: PREREQUISITE}
+  - {source: ENG5-U11-PAST, target: ENG5-U11-DIDYOU, type: PREREQUISITE}
+  - {source: ENG5-U11-PAST, target: ENG5-U11-WHATDID, type: PREREQUISITE}
+  - {source: ENG5-U11-WHATDID, target: ENG5-U11-STRESS, type: PREREQUISITE}
+  - {source: ENG5-U11-DIDYOU, target: ENG5-U11-WHATDID, type: SIMILAR}
+  - {source: ENG5-U11-DIDYOU, target: ENG5-U11-TRIP, type: APPLICATION}
+  - {source: ENG5-U11-WHATDID, target: ENG5-U11-TRIP, type: APPLICATION}
