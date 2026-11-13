@@ -1,0 +1,639 @@
+# Lesson package — Tiếng Anh 5 (Global Success, tập hai), Unit 11 "Family time", Lesson 1
+# TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK/SGV ngày 12/11/2026; chủ dự án duyệt mặc định ngày 12/11/2026
+# (sửa bất kỳ lúc nào). Nguồn gốc và trạng thái đáp án của từng câu: sources.yaml.
+#
+# Nội dung: cụm từ hoạt động kỳ nghỉ, dạng quá khứ của động từ, mẫu "Did you …? – Yes, I did. I … / No, I didn't."
+# SGK tr.6–7 (Lesson 1), một phần tr.8 (cụm từ Lesson 2), Review 3 tr.37. SGV tr.178–182, 253.
+#
+# Quy ước (xem ../README.md):
+# - Cô giảng bằng tiếng Việt; từ và câu đích bằng tiếng Anh, luôn nằm trong một câu trọn vẹn
+#   ("Con nói theo cô: We swam in the sea."), không đọc một từ tiếng Anh đứng riêng (POC giọng nói, PR #139).
+# - Mỗi câu ghi nguồn ở dòng chú thích ngay trên nó: [SGK tr.N …], [SGV tr.N …] là câu của sách;
+#   [SOẠN THÊM] là câu phiên soạn, chờ chủ dự án duyệt. Câu có tranh trong sách được tả tranh bằng lời.
+# - Câu trả lời dạng câu dùng answer.type "open" + facts.phrases: mỗi nhóm là các cách nói được chấp nhận cho
+#   một ý (so khớp sau chuẩn hóa chữ thường). Đây là cách tạm vì schema chưa có kiểu "phrase" (README, Khoảng trống schema).
+# - hint.level 1..7 theo thang gợi ý tiếng Anh DI-112 (ADR-060): H1 định hướng, H2 nhắc khái niệm, H3 chiến lược,
+#   H4 cho một phần, H5 cho lựa chọn, H6 cùng làm, H7 cô đọc nguyên câu mẫu.
+# - Item "nói theo cô" là item cùng làm (completion), không tính thành công (DI-108).
+
+lesson_id: eng-g5-u11-l1
+version: 0.1.0
+status: DRAFT
+subject: english
+grade: 5
+locale: vi-VN
+title: "Unit 11 Family time — Lesson 1: Did you …?"
+persona:
+  tutor_self: cô
+  student_address: con
+
+objectives:
+  - id: LO1
+    text: "Nhận ra và nói được các cụm từ hoạt động kỳ nghỉ của Unit 11 trong câu: swim, take photos, collect seashells, walk on the beach, take a boat trip around the bay, eat seafood, see some interesting places, buy souvenirs."
+    kc_ids: [ENG5-U11-VOCAB]
+  - id: LO2
+    text: "Đổi được động từ của các cụm trên sang dạng quá khứ khi kể chuyện đã xảy ra (swam, took, collected, walked, ate, saw, bought, went, were)."
+    kc_ids: [ENG5-U11-PAST]
+  - id: LO3
+    text: "Hỏi và trả lời ai đó đã làm việc gì chưa bằng 'Did you …? – Yes, I did. I … / No, I didn't.'"
+    kc_ids: [ENG5-U11-DIDYOU]
+
+kcs:
+  - id: ENG5-U11-VOCAB
+    name: "Cụm từ hoạt động kỳ nghỉ"
+    description: "Tám cụm động từ chỉ việc làm trong chuyến đi của gia đình (SGK tr.6, tr.8; Book map tr.4)."
+    prerequisites: []
+  - id: ENG5-U11-PAST
+    name: "Dạng quá khứ của động từ"
+    description: "Kể chuyện đã xảy ra thì đổi động từ sang quá khứ: thêm -ed (walked, collected) hoặc nhớ dạng riêng (swam, took, ate, saw, bought, went, were)."
+    prerequisites: [ENG5-U11-VOCAB]
+  - id: ENG5-U11-DIDYOU
+    name: "Did you …? – Yes, I did. / No, I didn't."
+    description: "Hỏi ai đó đã làm việc gì chưa; trả lời Yes, I did. hoặc No, I didn't., rồi có thể kể thêm bằng động từ quá khứ."
+    prerequisites: [ENG5-U11-PAST]
+
+concepts:
+  - id: C1
+    name: "Tám cụm từ hoạt động kỳ nghỉ"
+    explanation: "swim (bơi), take photos (chụp ảnh), collect seashells (nhặt vỏ sò), walk on the beach (đi dạo trên bãi biển), take a boat trip around the bay (đi thuyền quanh vịnh), eat seafood (ăn hải sản), see some interesting places (đi xem vài nơi thú vị), buy souvenirs (mua quà lưu niệm)."
+    representations: [tranh kỳ nghỉ, diễn tả bằng động tác, câu kể của bạn trong sách]
+  - id: C2
+    name: "Dạng quá khứ của động từ trong unit"
+    explanation: "Thêm -ed: walk → walked, collect → collected, visit → visited. Dạng riêng phải nhớ: swim → swam, take → took, eat → ate, see → saw, buy → bought, go → went, am/is → was, are → were."
+    representations: [dòng thời gian, bảng hai cột nguyên mẫu – quá khứ]
+  - id: C3
+    name: "Câu hỏi Did you …?"
+    explanation: "Hỏi về việc đã qua: Did + you + động từ nguyên mẫu …? Trả lời: Yes, I did. hoặc No, I didn't. Kể thêm thì dùng động từ quá khứ: Yes, I did. I swam with my mother. Sau did, động từ giữ nguyên: Did you swim? (không nói Did you swam?)."
+    representations: [hội thoại mẫu SGK, so sánh do và did]
+
+misconceptions:
+  - id: ENG5-U11-M01
+    kc_id: ENG5-U11-DIDYOU
+    name: "Hỏi chuyện đã qua mà dùng do hoặc bỏ did"
+    description: "Hỏi về hôm qua, tuần trước mà nói 'Do you swim yesterday?' hoặc 'You swam yesterday?'. Câu hỏi về quá khứ cần did."
+    severity: CRITICAL
+    counter_examples:
+      - "Nếu bạn hỏi con 'Do you swim?' thì bạn đang hỏi con có hay bơi không, hay hỏi hôm qua con đã bơi chưa?"
+      - "Câu hỏi có chữ 'yesterday' (hôm qua) thì mình mở đầu bằng Do hay bằng Did cho hợp nhỉ?"
+  - id: ENG5-U11-M02
+    kc_id: ENG5-U11-DIDYOU
+    name: "Sau did vẫn đổi động từ sang quá khứ"
+    description: "Nói 'Did you swam?', 'Did you walked on the beach?'. Did đã cho biết chuyện đã qua, nên động từ sau did giữ nguyên."
+    severity: CRITICAL
+    counter_examples:
+      - "Trong câu 'Did you swim?', chữ nào đã cho mình biết đây là chuyện đã qua rồi?"
+      - "Chữ did đã báo 'đã qua' rồi. Nếu đổi thêm swim thành swam thì câu báo 'đã qua' mấy lần?"
+  - id: ENG5-U11-M03
+    kc_id: ENG5-U11-DIDYOU
+    name: "Nhầm Yes, I did với Yes, I do (hoặc Yes, I will)"
+    description: "Bạn hỏi 'Did you take photos?' mà trả lời 'Yes, I do.' hoặc 'Yes, I will.'. Câu hỏi bằng did thì trả lời bằng did."
+    severity: CRITICAL
+    counter_examples:
+      - "Bạn hỏi bằng chữ did. Vậy con trả lời Yes, I … bằng chữ nào cho khớp với câu hỏi?"
+      - "'Yes, I will.' là con sẽ làm. Bạn hỏi con đã làm hay sẽ làm?"
+  - id: ENG5-U11-M04
+    kc_id: ENG5-U11-PAST
+    name: "Kể chuyện đã qua bằng động từ nguyên mẫu"
+    description: "Kể 'I swim with my father yesterday', 'We are at the Golden Pagoda last summer'. Chuyện đã xảy ra thì động từ đổi sang quá khứ."
+    severity: CRITICAL
+    counter_examples:
+      - "Câu có 'yesterday' (hôm qua). Hôm qua đã qua rồi hay chưa tới, con nhỉ?"
+      - "Nếu con nói 'I swim with my father' thì bạn nghe sẽ hiểu con hay bơi, hay hôm qua con đã bơi?"
+  - id: ENG5-U11-M05
+    kc_id: ENG5-U11-PAST
+    name: "Thêm -ed cho động từ có dạng quá khứ riêng"
+    description: "Viết 'swimmed', 'taked', 'eated', 'buyed', 'goed'. Các động từ này có dạng quá khứ riêng: swam, took, ate, bought, went."
+    severity: NORMAL
+    counter_examples:
+      - "Walk thành walked là thêm -ed. Còn take có thêm -ed được không, hay nó có dạng riêng là took?"
+  - id: ENG5-U11-M06
+    kc_id: ENG5-U11-VOCAB
+    name: "Nhầm nghĩa giữa các cụm hoạt động"
+    description: "Gọi việc nhặt vỏ sò là 'buy souvenirs', gọi việc tham quan là 'eat seafood'... Nhầm nghĩa cụm hoặc nhầm tranh."
+    severity: NORMAL
+    counter_examples:
+      - "Hai bạn đang cúi xuống cát nhặt vỏ ốc, vỏ sò. Hai bạn có đang trả tiền mua đồ không con?"
+      - "'Souvenirs' là quà lưu niệm, thứ mình mua mang về. Vậy 'buy souvenirs' là làm gì?"
+
+generic_hints:
+  - {target: TASK, level: 1, text: "Con đọc lại câu hỏi giúp cô nhé: câu này hỏi về chuyện đã qua hay chuyện thường ngày?"}
+  - {target: CONCEPT, level: 2, text: "Chuyện đã qua thì động từ đổi sang quá khứ, ví dụ: We swam in the sea."}
+  - {target: STRATEGY, level: 3, text: "Con nhớ mẫu cô vừa giảng nhé: Did you swim? – Yes, I did. I swam with my mother."}
+  - {target: SELF_CHECK, level: 1, text: "Con đọc to câu trả lời của mình một lần nữa, nghe đã giống câu kể chuyện hôm qua chưa?"}
+  - {target: FORMAT, level: 1, text: "Con trả lời bằng một câu tiếng Anh trọn vẹn giúp cô nhé?"}
+
+default_verify_prompt: "Đúng rồi! Con nói cho cô biết vì sao con chọn cách nói đó được không?"
+
+items:
+  # ================================================================ ENG5-U11-VOCAB
+  # [SOẠN THÊM] Nhận biết nghĩa cụm (mức A).
+  - id: U11-VO-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: A
+    difficulty: 0.15
+    expected_time_s: 30
+    stem: "Bạn Lan kể: 'I collected seashells with my brother.' Bạn ấy đã làm gì cùng anh trai?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "nhặt vỏ sò", correct: true, aliases: ["nhặt vỏ sò", "nhặt sò", "nhặt vỏ ốc"]}
+        - {id: B, text: "mua quà lưu niệm", aliases: ["mua quà"], misconceptions: [ENG5-U11-M06]}
+        - {id: C, text: "ăn hải sản", aliases: ["ăn hải sản"], misconceptions: [ENG5-U11-M06]}
+    hints:
+      - {target: TASK, level: 1, text: "Con nghe lại câu của Lan: I collected seashells with my brother. Từ seashells nói về thứ gì ở bãi biển?"}
+      - {target: CONCEPT, level: 2, text: "Seashells là vỏ sò, vỏ ốc trên cát. Collect seashells là làm gì với chúng?"}
+    explanation: "Collect seashells nghĩa là nhặt vỏ sò. Câu 'I collected seashells with my brother.' nghĩa là Lan đã nhặt vỏ sò cùng anh trai."
+
+  # [SOẠN THÊM] Nói theo cô (cùng làm, DI-108).
+  - id: U11-VO-CP-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: A
+    difficulty: 0.1
+    expected_time_s: 30
+    stem: "Cô đọc trước, con nói theo cô cả câu nhé: We took a boat trip around the bay."
+    answer:
+      type: open
+      rubric: "Nhắc lại đủ cụm 'took a boat trip around the bay'."
+      sample_answer: "We took a boat trip around the bay."
+      facts:
+        phrases: [["took a boat trip"], ["around the bay"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con nghe cô đọc chậm lại nhé: We took a boat trip around the bay. Con nói theo được không?"}
+      - {target: CONCEPT, level: 2, text: "Cụm này có ba phần: took a boat trip (đi thuyền), around (quanh), the bay (vịnh). Con nói từng phần theo cô nhé?"}
+      - {target: STEP, level: 4, text: "Con nói nửa đầu trước: We took a boat trip. Rồi nói tiếp: around the bay."}
+    worked_solution:
+      - "Nói nửa đầu: We took a boat trip."
+      - "Nói nửa sau: around the bay."
+      - "Ghép lại: We took a boat trip around the bay."
+    explanation: "Câu 'We took a boat trip around the bay.' nghĩa là cả nhà đã đi thuyền quanh vịnh."
+
+  # [SGV tr.181, Ex4 câu 4 — chuyển thể audio script thành câu đọc; SGK tr.7] Nhận biết hoạt động qua câu kể.
+  - id: U11-VO-PR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: A
+    difficulty: 0.2
+    expected_time_s: 40
+    stem: "Bạn Ben kể: 'I walked on the beach at Co To Island with my family.' Ben đã làm gì cùng gia đình?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "đi dạo trên bãi biển", correct: true, aliases: ["đi dạo trên bãi biển", "đi dạo bãi biển", "đi bộ trên bãi biển"]}
+        - {id: B, text: "đi thuyền quanh đảo", aliases: ["đi thuyền"], misconceptions: [ENG5-U11-M06]}
+        - {id: C, text: "chụp ảnh", aliases: ["chụp ảnh"], misconceptions: [ENG5-U11-M06]}
+    hints:
+      - {target: TASK, level: 1, text: "Trong câu của Ben, con tìm cụm nói về việc làm nhé: I walked on the beach. Cụm đó là gì?"}
+      - {target: CONCEPT, level: 2, text: "Walk là đi bộ, on the beach là trên bãi biển. Ghép lại là làm gì nhỉ?"}
+      - {target: STEP, level: 4, text: "Walked on the beach là đã đi … trên bãi biển. Con điền tiếp việc làm đó bằng tiếng Việt nhé?"}
+    worked_solution:
+      - "Cụm chỉ việc làm trong câu là walked on the beach."
+      - "Walk on the beach nghĩa là đi dạo trên bãi biển; walked là đã đi."
+      - "Vậy Ben đã đi dạo trên bãi biển cùng gia đình."
+    explanation: "Walked on the beach là đã đi dạo trên bãi biển. Ben đã đi dạo trên bãi biển ở đảo Cô Tô cùng gia đình."
+
+  # [SGK tr.8 Ex2b; SGV tr.184 audio] Tranh được tả bằng lời. Nói cụm theo tranh (mức B).
+  - id: U11-VO-PR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 45
+    stem: "Trong tranh, cả nhà đang ngồi quanh bàn có tôm, cua, cá ở Nha Trang. Con nói câu kể việc cả nhà làm, bắt đầu bằng: We ate …"
+    answer:
+      type: open
+      rubric: "Dùng đúng cụm eat seafood (ở đây đã đổi thành ate seafood)."
+      sample_answer: "We ate seafood."
+      facts:
+        phrases: [["ate seafood", "ate some seafood"]]
+    hints:
+      - {target: TASK, level: 1, text: "Tôm, cua, cá gọi chung là gì trong tiếng Anh, con còn nhớ không?"}
+      - {target: CONCEPT, level: 2, text: "Đồ ăn từ biển như tôm, cua, cá gọi chung là seafood. Ăn hải sản là eat seafood."}
+      - {target: STEP, level: 4, text: "Câu bắt đầu là We ate … Con thêm từ chỉ tôm, cua, cá vào cuối câu nhé: We ate s…"}
+    worked_solution:
+      - "Tôm, cua, cá là hải sản, tiếng Anh là seafood."
+      - "Ăn hải sản là eat seafood; kể chuyện đã qua thì eat đổi thành ate."
+      - "Câu hoàn chỉnh: We ate seafood."
+    explanation: "Tôm, cua, cá là seafood. Cả nhà đã ăn hải sản thì nói: We ate seafood."
+
+  # [SOẠN THÊM] Mức C: vì sao chọn cụm này cho tranh.
+  - id: U11-VO-PR-03
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: C
+    difficulty: 0.45
+    expected_time_s: 60
+    stem: "Trong tranh, cả nhà đứng trước một quầy bán móc khóa, mũ và áo có in hình Singapore. Vì sao câu 'We bought souvenirs.' hợp với tranh hơn câu 'We saw some interesting places.'? Con trả lời bằng tiếng Việt nhé."
+    answer:
+      type: open
+      rubric: "Nói được buy/bought là mua và souvenirs là quà lưu niệm (đồ ở quầy); còn see some interesting places là đi xem nơi thú vị, không phải mua đồ."
+      sample_answer: "Vì cả nhà đang mua đồ ở quầy quà lưu niệm; bought souvenirs là đã mua quà lưu niệm, còn saw some interesting places là đi xem nơi thú vị."
+      facts:
+        phrases: [["mua"], ["quà", "lưu niệm", "đồ"]]
+    hints:
+      - {target: TASK, level: 1, text: "Trong tranh, cả nhà đang làm gì ở quầy hàng: đang ngắm cảnh hay đang mua đồ?"}
+      - {target: CONCEPT, level: 2, text: "Bought là đã mua, souvenirs là quà lưu niệm. Còn see some interesting places là đi xem những nơi thú vị."}
+      - {target: STEP, level: 4, text: "Con nói theo ý này nhé: cả nhà đang mua … ở quầy, nên dùng câu …"}
+    worked_solution:
+      - "Nhìn tranh: cả nhà đứng ở quầy bán đồ lưu niệm, tức là đang mua đồ."
+      - "We bought souvenirs nghĩa là cả nhà đã mua quà lưu niệm, đúng với tranh."
+      - "We saw some interesting places là đi xem nơi thú vị, không phải việc ở quầy hàng."
+    explanation: "Cả nhà đang mua đồ ở quầy quà lưu niệm, nên nói 'We bought souvenirs.' (đã mua quà lưu niệm). Câu 'We saw some interesting places.' là đi xem những nơi thú vị."
+
+  # [SOẠN THÊM] Tìm lỗi (DIAG).
+  - id: U11-VO-PR-04
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: DIAG
+    difficulty: 0.4
+    expected_time_s: 60
+    stem: "Bạn Nam nhìn tranh hai bạn đang cúi xuống cát nhặt vỏ sò, rồi nói: 'They bought souvenirs.' Bạn Nam nói đúng chưa? Nếu chưa, con sửa giúp bạn nhé?"
+    answer:
+      type: boolean
+      value: false
+      requires_explanation: true
+      wrong_answers: {"true": ENG5-U11-M06}
+    hints:
+      - {target: TASK, level: 1, text: "Hai bạn trong tranh đang làm gì trên cát?"}
+      - {target: CONCEPT, level: 2, text: "Bought souvenirs là đã mua quà lưu niệm. Nhặt vỏ sò thì dùng cụm collect seashells."}
+      - {target: STEP, level: 4, text: "Câu đúng bắt đầu là They collected … Con nói tiếp nhé?"}
+    worked_solution:
+      - "Tranh: hai bạn nhặt vỏ sò, tức là collect seashells."
+      - "Bạn Nam nói bought souvenirs (đã mua quà lưu niệm), không khớp với tranh."
+      - "Câu đúng: They collected seashells."
+    explanation: "Bạn Nam nói chưa đúng. Hai bạn đang nhặt vỏ sò, nên câu đúng là 'They collected seashells.'"
+
+  # ================================================================ ENG5-U11-PAST
+  # [SOẠN THÊM] Nhận biết dạng quá khứ riêng (mức A).
+  - id: U11-PA-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: A
+    difficulty: 0.2
+    expected_time_s: 30
+    stem: "Con chọn câu đúng khi kể chuyện cuối tuần trước: 'Last weekend, I … photos with my father.'"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "took", correct: true, aliases: ["took", "i took photos with my father"]}
+        - {id: B, text: "taked", aliases: ["taked"], misconceptions: [ENG5-U11-M05]}
+        - {id: C, text: "take", aliases: ["take"], misconceptions: [ENG5-U11-M04]}
+    hints:
+      - {target: TASK, level: 1, text: "Last weekend là cuối tuần trước. Chuyện này đã qua hay chưa tới?"}
+      - {target: CONCEPT, level: 2, text: "Take là động từ có dạng quá khứ riêng, không thêm -ed. Con nhớ dạng đó là gì không?"}
+    explanation: "Last weekend là chuyện đã qua nên dùng quá khứ. Take có dạng quá khứ riêng là took: Last weekend, I took photos with my father."
+
+  # [SOẠN THÊM] Cùng làm: cô nói nguyên mẫu, con nói quá khứ.
+  - id: U11-PA-CP-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: A
+    difficulty: 0.2
+    expected_time_s: 40
+    stem: "Cô nói câu hôm nay, con đổi sang câu hôm qua nhé. Cô làm mẫu: 'Today I swim.' thành 'Yesterday I swam.' Bây giờ đến con: 'Today we eat seafood.' thành 'Yesterday we … seafood.'"
+    answer:
+      type: open
+      rubric: "Đổi eat thành ate."
+      sample_answer: "Yesterday we ate seafood."
+      facts:
+        phrases: [["ate seafood", "ate some seafood"]]
+    hints:
+      - {target: TASK, level: 1, text: "Câu mới bắt đầu bằng yesterday (hôm qua). Động từ eat phải đổi sang dạng nào?"}
+      - {target: CONCEPT, level: 2, text: "Eat có dạng quá khứ riêng, giống swim thành swam. Dạng quá khứ của eat là a…"}
+      - {target: STEP, level: 4, text: "Eat thành ate. Con nói cả câu nhé: Yesterday we ate …"}
+    worked_solution:
+      - "Yesterday là hôm qua, chuyện đã qua nên động từ đổi sang quá khứ."
+      - "Eat có dạng quá khứ riêng là ate."
+      - "Câu hoàn chỉnh: Yesterday we ate seafood."
+    explanation: "Hôm qua là chuyện đã qua, eat đổi thành ate: Yesterday we ate seafood."
+
+  # [SGK tr.7 Ex5 câu 1; SGV tr.182 Key: swam]
+  - id: U11-PA-PR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 40
+    isomorphic_group: U11-PA-CIRCLE
+    stem: "A: Did you swim yesterday? B: Yes, I did. I (swim / swam) with my father. Con chọn từ đúng nhé?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "swam", correct: true, aliases: ["swam", "i swam with my father"]}
+        - {id: B, text: "swim", aliases: ["swim"], misconceptions: [ENG5-U11-M04]}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn A hỏi về yesterday (hôm qua). Bạn B đang kể chuyện đã qua hay chuyện thường ngày?"}
+      - {target: CONCEPT, level: 2, text: "Kể chuyện đã qua thì động từ đổi sang quá khứ. Swim có dạng quá khứ riêng."}
+      - {target: STEP, level: 4, text: "Swim thành sw…m: một trong hai từ trong ngoặc là dạng quá khứ đó. Con chọn nhé?"}
+    worked_solution:
+      - "Câu hỏi có yesterday, nên B đang kể chuyện hôm qua."
+      - "Chuyện đã qua thì dùng quá khứ: swim thành swam."
+      - "Chọn swam: I swam with my father."
+    explanation: "Yesterday là chuyện đã qua, nên dùng swam (quá khứ của swim): Yes, I did. I swam with my father."
+
+  # [SGK tr.7 Ex5 câu 4, chỗ trống thứ nhất; SGV tr.182 Key: were]
+  - id: U11-PA-PR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 40
+    isomorphic_group: U11-PA-CIRCLE
+    stem: "A: Where were your family last summer? B: We (are / were) at the Golden Pagoda in Thailand. Con chọn từ đúng nhé?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "were", correct: true, aliases: ["were", "we were at the golden pagoda"]}
+        - {id: B, text: "are", aliases: ["are"], misconceptions: [ENG5-U11-M04]}
+    hints:
+      - {target: TASK, level: 1, text: "Last summer là mùa hè năm ngoái. Chuyện đã qua hay đang diễn ra?"}
+      - {target: CONCEPT, level: 2, text: "Are là hiện tại; khi kể chuyện đã qua với we, are đổi thành were."}
+      - {target: STEP, level: 4, text: "Câu hỏi đã dùng were: Where were your family? Câu trả lời cũng dùng từ đó. Con chọn nhé?"}
+    worked_solution:
+      - "Last summer là mùa hè năm ngoái, chuyện đã qua."
+      - "Với we, are đổi sang quá khứ là were."
+      - "Chọn were: We were at the Golden Pagoda in Thailand."
+    explanation: "Mùa hè năm ngoái là chuyện đã qua, are đổi thành were: We were at the Golden Pagoda in Thailand."
+
+  # [SGK tr.7 Ex6 bài hát, chỗ trống (3); SGV tr.182 Key: took]
+  - id: U11-PA-PR-03
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 45
+    stem: "Trong bài hát 'Did you swim last Sunday?', bạn được hỏi: 'Did you walk?' và trả lời: 'No, I didn't. I … photos there.' Con điền động từ (take) ở dạng đúng nhé?"
+    answer:
+      type: open
+      rubric: "Điền took (quá khứ của take)."
+      sample_answer: "No, I didn't. I took photos there."
+      facts:
+        phrases: [["took"]]
+    hints:
+      - {target: TASK, level: 1, text: "Bạn trong bài hát đang kể chuyện Chủ nhật tuần trước. Đó là chuyện đã qua hay chưa?"}
+      - {target: CONCEPT, level: 2, text: "Take có dạng quá khứ riêng, không thêm -ed."}
+      - {target: STEP, level: 4, text: "Take thành t…k: con điền nốt nhé, I … photos there."}
+    worked_solution:
+      - "Bài hát kể chuyện Chủ nhật tuần trước, chuyện đã qua."
+      - "Take có dạng quá khứ riêng là took."
+      - "Câu hoàn chỉnh: No, I didn't. I took photos there."
+    explanation: "Chuyện đã qua nên take đổi thành took: No, I didn't. I took photos there."
+
+  # [SGK tr.9 Ex5 câu 2, chỗ trống thứ hai; SGV tr.187 Key: bought] Tranh được tả bằng lời.
+  - id: U11-PA-PR-04
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: B
+    difficulty: 0.4
+    expected_time_s: 45
+    stem: "Gia đình Ben đi chơi cuối tuần trước. Trong tranh, bố mẹ Ben đang chọn đồ ở một quầy quà lưu niệm. Con điền động từ: 'His parents … some souvenirs.'"
+    answer:
+      type: open
+      rubric: "Điền bought (quá khứ của buy)."
+      sample_answer: "His parents bought some souvenirs."
+      facts:
+        phrases: [["bought"]]
+    hints:
+      - {target: TASK, level: 1, text: "Bố mẹ Ben đang làm gì ở quầy quà lưu niệm: mua, bán hay ngắm?"}
+      - {target: CONCEPT, level: 2, text: "Mua là buy. Chuyện cuối tuần trước đã qua, nên buy phải đổi sang quá khứ; buy có dạng riêng."}
+      - {target: STEP, level: 4, text: "Buy thành b…ght. Con điền nốt nhé: His parents … some souvenirs."}
+    worked_solution:
+      - "Bố mẹ Ben đang mua quà lưu niệm: mua là buy."
+      - "Chuyện cuối tuần trước đã qua, buy có dạng quá khứ riêng là bought."
+      - "Câu hoàn chỉnh: His parents bought some souvenirs."
+    explanation: "Mua là buy, quá khứ của buy là bought: His parents bought some souvenirs."
+
+  # [SOẠN THÊM] Mức C: vì sao dùng quá khứ.
+  - id: U11-PA-PR-05
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: C
+    difficulty: 0.5
+    expected_time_s: 60
+    stem: "Bạn Mai kể về Chủ nhật tuần trước: 'We went to the beach.' Vì sao Mai nói went mà không nói go? Con trả lời bằng tiếng Việt nhé."
+    answer:
+      type: open
+      rubric: "Nêu được: Chủ nhật tuần trước là chuyện đã qua, nên go đổi sang quá khứ là went."
+      sample_answer: "Vì Chủ nhật tuần trước là chuyện đã qua rồi, nên go phải đổi sang quá khứ là went."
+      facts:
+        phrases: [["đã qua", "đã xảy ra", "quá khứ", "tuần trước", "rồi", "last sunday"], ["went", "đổi"]]
+    hints:
+      - {target: TASK, level: 1, text: "Mai đang kể chuyện hôm nào? Chuyện đó đã qua hay chưa tới?"}
+      - {target: CONCEPT, level: 2, text: "Kể chuyện đã qua thì động từ đổi sang quá khứ. Go có dạng quá khứ riêng."}
+      - {target: STEP, level: 4, text: "Con trả lời theo ý: Chủ nhật tuần trước là chuyện … rồi, nên go đổi thành …"}
+    worked_solution:
+      - "Mai kể về Chủ nhật tuần trước (last Sunday), chuyện đã qua."
+      - "Chuyện đã qua thì động từ dùng dạng quá khứ."
+      - "Go có dạng quá khứ riêng là went, nên Mai nói We went to the beach."
+    explanation: "Chủ nhật tuần trước là chuyện đã qua, nên go đổi sang dạng quá khứ went: We went to the beach."
+
+  # [SOẠN THÊM] Tìm lỗi (DIAG): -ed cho động từ bất quy tắc.
+  - id: U11-PA-PR-06
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-PAST]
+    cognitive_level: DIAG
+    difficulty: 0.45
+    expected_time_s: 60
+    stem: "Bạn Tom viết: 'Last summer, we eated seafood in Nha Trang.' Con tìm từ viết sai và sửa lại giúp bạn nhé?"
+    answer:
+      type: open
+      rubric: "Chỉ ra eated sai, sửa thành ate."
+      sample_answer: "Eated sai, phải là ate: Last summer, we ate seafood in Nha Trang."
+      facts:
+        phrases: [["ate"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con đọc từng từ trong câu của Tom. Từ nào là động từ?"}
+      - {target: CONCEPT, level: 2, text: "Eat là động từ có dạng quá khứ riêng, không thêm -ed."}
+      - {target: STEP, level: 4, text: "Từ sai là eated. Dạng quá khứ đúng của eat là a… Con sửa nhé?"}
+    worked_solution:
+      - "Động từ trong câu là eated."
+      - "Eat có dạng quá khứ riêng là ate, không thêm -ed."
+      - "Câu đúng: Last summer, we ate seafood in Nha Trang."
+    explanation: "Eat có dạng quá khứ riêng là ate, nên eated sai. Câu đúng: Last summer, we ate seafood in Nha Trang."
+
+  # ================================================================ ENG5-U11-DIDYOU
+  # [SGK tr.7 Ex5 câu 2; SGV tr.182 Key: walk]
+  - id: U11-DY-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 40
+    stem: "A: Did you (walk / walked) on the beach last Sunday? B: Yes, I did. I walked on the beach with my family. Con chọn từ đúng cho câu hỏi của A nhé?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "walk", correct: true, aliases: ["walk", "did you walk on the beach last sunday"]}
+        - {id: B, text: "walked", aliases: ["walked"], misconceptions: [ENG5-U11-M02]}
+    hints:
+      - {target: TASK, level: 1, text: "Câu của A bắt đầu bằng Did. Did đã cho biết đây là chuyện đã qua chưa?"}
+      - {target: CONCEPT, level: 2, text: "Sau did, động từ giữ nguyên, không đổi sang quá khứ nữa."}
+    explanation: "Did đã báo chuyện đã qua, nên động từ sau did giữ nguyên: Did you walk on the beach last Sunday?"
+
+  # [SGK tr.6 Ex1b; SGV tr.178–179] Nói theo cô (cùng làm, DI-108).
+  - id: U11-DY-CP-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: A
+    difficulty: 0.15
+    expected_time_s: 40
+    stem: "Cô đọc hội thoại trong sách, con nói theo phần trả lời nhé. Cô hỏi: 'Did you swim?' Con nói theo cô: 'Yes, I did. I swam with my mother.'"
+    answer:
+      type: open
+      rubric: "Nhắc lại đủ hai câu: Yes, I did. và I swam with my mother."
+      sample_answer: "Yes, I did. I swam with my mother."
+      facts:
+        phrases: [["yes, i did", "yes i did"], ["swam"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con nói câu ngắn trước nhé: Yes, I did."}
+      - {target: CONCEPT, level: 2, text: "Câu thứ hai kể thêm con đã làm gì: I swam with my mother."}
+      - {target: STEP, level: 4, text: "Con ghép hai câu lại: Yes, I did. I swam with …"}
+    worked_solution:
+      - "Trả lời ngắn: Yes, I did."
+      - "Kể thêm bằng động từ quá khứ: I swam with my mother."
+    explanation: "Câu hỏi Did you swim? được trả lời bằng Yes, I did., rồi kể thêm: I swam with my mother."
+
+  # [Review 3, SGK tr.37 Ex3 câu 1; SGV tr.253 Key: 1e] Phương án nhiễu lấy từ cùng bài.
+  - id: U11-DY-PR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: B
+    difficulty: 0.3
+    expected_time_s: 40
+    stem: "Bạn hỏi: 'Did you take photos?' Câu trả lời nào đúng?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "Yes, I did. I took photos with my mother.", correct: true, aliases: ["yes, i did. i took photos with my mother", "yes i did"]}
+        - {id: B, text: "Yes, I will.", aliases: ["yes, i will", "yes i will"], misconceptions: [ENG5-U11-M03]}
+        - {id: C, text: "Every day.", aliases: ["every day"]}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn hỏi bằng chữ nào ở đầu câu: Do, Did hay Will?"}
+      - {target: CONCEPT, level: 2, text: "Câu hỏi bắt đầu bằng Did thì câu trả lời ngắn cũng dùng did: Yes, I did. hoặc No, I didn't."}
+      - {target: STEP, level: 4, text: "Con tìm phương án có chữ did nhé."}
+    worked_solution:
+      - "Câu hỏi bắt đầu bằng Did, hỏi chuyện đã qua."
+      - "Trả lời ngắn phải dùng did: Yes, I did."
+      - "Chọn A: Yes, I did. I took photos with my mother."
+    explanation: "Câu hỏi bằng Did nên trả lời bằng did: Yes, I did. I took photos with my mother. 'Yes, I will.' là sẽ làm, còn 'Every day.' trả lời câu hỏi bao lâu một lần."
+
+  # [SGK tr.6 Ex3 Let's talk; SGV tr.180 Key] Tranh được tả bằng lời. Đặt câu hỏi (mức B).
+  - id: U11-DY-PR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: B
+    difficulty: 0.4
+    expected_time_s: 50
+    stem: "Trong tranh, bạn của con đang nhặt vỏ sò trên bãi biển cùng anh trai. Con hỏi bạn xem bạn đã nhặt vỏ sò chưa, bằng câu bắt đầu bằng 'Did you …?' nhé."
+    answer:
+      type: open
+      rubric: "Câu hỏi Did you + collect seashells (động từ giữ nguyên)."
+      sample_answer: "Did you collect seashells?"
+      facts:
+        phrases: [["did you collect seashells"]]
+    hints:
+      - {target: TASK, level: 1, text: "Nhặt vỏ sò tiếng Anh là cụm nào, con còn nhớ không?"}
+      - {target: CONCEPT, level: 2, text: "Câu hỏi về việc đã làm: Did you + động từ giữ nguyên? Nhặt vỏ sò là collect seashells."}
+      - {target: STEP, level: 4, text: "Con ghép lại nhé: Did you collect …?"}
+    worked_solution:
+      - "Nhặt vỏ sò là collect seashells."
+      - "Hỏi việc đã làm: Did you + động từ giữ nguyên."
+      - "Câu hỏi: Did you collect seashells?"
+    explanation: "Hỏi bạn đã nhặt vỏ sò chưa: Did you collect seashells? Bạn có thể trả lời: Yes, I did. I collected seashells with my brother."
+
+  # [SOẠN THÊM] Mức C: vì sao Yes, I did chứ không phải Yes, I do.
+  - id: U11-DY-PR-03
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: C
+    difficulty: 0.5
+    expected_time_s: 60
+    stem: "Bạn hỏi: 'Did you swim last Sunday?' Vì sao con trả lời 'Yes, I did.' mà không trả lời 'Yes, I do.'? Con trả lời bằng tiếng Việt nhé."
+    answer:
+      type: open
+      rubric: "Nêu được: câu hỏi dùng did (hỏi chuyện đã qua, Chủ nhật tuần trước) nên trả lời bằng did; do dùng cho việc thường làm, hiện tại."
+      sample_answer: "Vì bạn hỏi bằng did, hỏi chuyện Chủ nhật tuần trước đã qua rồi, nên con trả lời bằng did. Do là hỏi việc con hay làm."
+      facts:
+        phrases: [["did"], ["đã qua", "quá khứ", "rồi", "tuần trước", "đã xảy ra", "last sunday"]]
+    hints:
+      - {target: TASK, level: 1, text: "Câu hỏi của bạn bắt đầu bằng chữ gì, và hỏi về hôm nào?"}
+      - {target: CONCEPT, level: 2, text: "Did dùng cho chuyện đã qua; do dùng cho việc thường làm. Câu trả lời ngắn lặp lại đúng chữ của câu hỏi."}
+      - {target: STEP, level: 4, text: "Con trả lời theo ý: bạn hỏi bằng … về chuyện đã qua, nên con trả lời bằng …"}
+    worked_solution:
+      - "Câu hỏi bắt đầu bằng Did và có last Sunday: hỏi chuyện đã qua."
+      - "Câu trả lời ngắn dùng lại chữ của câu hỏi: did."
+      - "Yes, I do. là trả lời câu hỏi Do you …? về việc thường làm, nên không hợp."
+    explanation: "Bạn hỏi bằng did về chuyện đã qua, nên trả lời bằng did: Yes, I did. Câu Yes, I do. dùng khi bạn hỏi Do you …? về việc con thường làm."
+
+  # [SOẠN THÊM] Tìm lỗi (DIAG): thiếu did / did + quá khứ.
+  - id: U11-DY-PR-04
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: DIAG
+    difficulty: 0.5
+    expected_time_s: 60
+    stem: "Bạn Lan muốn hỏi chuyện Chủ nhật tuần trước nên nói: 'Do you swim with your mother last Sunday?' Câu nào là câu đúng để Lan hỏi?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "Did you swim with your mother last Sunday?", correct: true, aliases: ["did you swim with your mother last sunday"]}
+        - {id: B, text: "Did you swam with your mother last Sunday?", aliases: ["did you swam with your mother last sunday"], misconceptions: [ENG5-U11-M02]}
+        - {id: C, text: "Do you swam with your mother last Sunday?", aliases: ["do you swam with your mother last sunday"], misconceptions: [ENG5-U11-M01, ENG5-U11-M02]}
+    hints:
+      - {target: TASK, level: 1, text: "Lan hỏi về Chủ nhật tuần trước. Câu hỏi về chuyện đã qua mở đầu bằng Do hay Did?"}
+      - {target: CONCEPT, level: 2, text: "Câu hỏi về chuyện đã qua: Did + you + động từ giữ nguyên."}
+      - {target: STEP, level: 4, text: "Con tìm câu vừa mở đầu bằng Did, vừa giữ nguyên swim nhé."}
+    worked_solution:
+      - "Chuyện Chủ nhật tuần trước đã qua, nên câu hỏi mở đầu bằng Did."
+      - "Sau did, động từ giữ nguyên: swim, không phải swam."
+      - "Câu đúng: Did you swim with your mother last Sunday?"
+    explanation: "Hỏi chuyện đã qua thì dùng Did và giữ nguyên động từ: Did you swim with your mother last Sunday?"
+
+  # [SOẠN THÊM] Câu trả lời phủ định No, I didn't.
+  - id: U11-DY-PR-05
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 40
+    stem: "Bạn hỏi: 'Did you buy souvenirs in Ha Long?' Con không mua quà lưu niệm. Con trả lời thế nào?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "No, I didn't.", correct: true, aliases: ["no, i didn't", "no i didn't", "no, i did not", "no i did not"]}
+        - {id: B, text: "No, I don't.", aliases: ["no, i don't", "no i don't"], misconceptions: [ENG5-U11-M03]}
+        - {id: C, text: "No, I not buy.", aliases: ["no, i not buy", "no i not buy"]}
+    hints:
+      - {target: TASK, level: 1, text: "Bạn hỏi bằng Did. Con không mua, nên con trả lời Yes hay No?"}
+      - {target: CONCEPT, level: 2, text: "Câu hỏi bằng Did thì câu trả lời phủ định là No, I didn't."}
+      - {target: STEP, level: 4, text: "Con tìm phương án có chữ didn't nhé."}
+    worked_solution:
+      - "Câu hỏi bằng Did, hỏi chuyện đã qua; con không mua nên trả lời No."
+      - "Câu trả lời ngắn phủ định với did là No, I didn't."
+    explanation: "Câu hỏi bằng Did, con không làm việc đó thì trả lời: No, I didn't. ('No, I don't.' dùng cho câu hỏi Do you …?)"
+
+  # [SOẠN THÊM] Vận dụng (mức D) với cụm của unit trong tình huống mới.
+  - id: U11-DY-TR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-DIDYOU]
+    cognitive_level: D
+    difficulty: 0.55
+    transfer: near
+    expected_time_s: 60
+    stem: "Tuần trước con đi Vũng Tàu và đi dạo trên bãi biển cùng ông bà. Bạn hỏi: 'Did you walk on the beach last week?' Con trả lời bằng hai câu như mẫu trong sách nhé."
+    answer:
+      type: open
+      rubric: "Câu ngắn Yes, I did. và câu kể với walked on the beach (có thể thêm with my grandparents)."
+      sample_answer: "Yes, I did. I walked on the beach with my grandparents."
+      facts:
+        phrases: [["yes, i did", "yes i did"], ["walked on the beach"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con có đi dạo trên bãi biển không? Vậy câu trả lời ngắn là Yes hay No?"}
+      - {target: CONCEPT, level: 2, text: "Mẫu trả lời: Yes, I did. rồi kể thêm bằng động từ quá khứ: I walked …"}
+      - {target: STEP, level: 4, text: "Câu đầu là Yes, I did. Câu sau là I walked on the beach with my …"}
+    worked_solution:
+      - "Con đã đi dạo nên trả lời ngắn: Yes, I did."
+      - "Kể thêm bằng động từ quá khứ: walk thành walked."
+      - "Câu hoàn chỉnh: Yes, I did. I walked on the beach with my grandparents."
+    explanation: "Con đã đi dạo trên bãi biển, nên trả lời: Yes, I did. I walked on the beach with my grandparents."

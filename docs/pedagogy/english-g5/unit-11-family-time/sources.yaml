@@ -1,0 +1,118 @@
+# Nguồn gốc nội dung — Unit 11 "Family time" (ENG-3, 12/11/2026)
+# TRẠNG THÁI: DRAFT — chủ dự án duyệt mặc định ngày 12/11/2026.
+#
+# File này KHÔNG được loader nào đọc; nó ghi lại vì schema LessonPackage chưa có chỗ cho nguồn và trạng thái
+# đáp án của từng câu (../README.md, "Khoảng trống schema" G4). Khi schema có các trường đó, chuyển dữ liệu
+# ở mục `items` vào các file lesson và bỏ file này.
+#
+# Bản trích gần nguyên văn để đối chiếu nằm ngoài repo, chỉ có trên máy chủ dự án (var/ bị git bỏ qua):
+#   /Users/mac/Documents/Code Space/EduAISupport/var/storage/english-sources/unit-11/
+#   sgk-unit11.md, sgv-unit11.md, taphuan-notes.md.
+
+unit: eng-g5-u11-family-time
+read_on: 2026-11-12
+read_by: "phiên Claude Code ENG-3, đọc ảnh trang trên trình đọc của taphuan.nxbgd.vn (sách không có lớp chữ)"
+
+documents:
+  - id: SGK
+    title: "Tiếng Anh 5 Global Success, tập hai (SGK)"
+    publisher: "NXB Giáo dục Việt Nam"
+    url: "https://taphuan.nxbgd.vn/tap-huan/doc-sach/sgk-tieng-anh-5-global-success-tap-hai.4914843136"
+    pages_read: "4–5 (Book map), 6–11 (Unit 11), 36–37 (Review 3)"
+  - id: SGV
+    title: "Tiếng Anh 5 Global Success, sách giáo viên"
+    publisher: "NXB Giáo dục Việt Nam"
+    url: "https://taphuan.nxbgd.vn/tap-huan/doc-sach/sgv-tieng-anh-5-global-success.4915603256"
+    pages_read: "177–190 (Unit 11), 250–254 (Review 3)"
+  - id: TAPHUAN
+    title: "Tài liệu tập huấn, bồi dưỡng giáo viên Tiếng Anh 5 Global Success"
+    publisher: "NXB Giáo dục Việt Nam"
+    url: "https://taphuan.nxbgd.vn/tap-huan/doc-sach/tai-lieu-tap-huan-boi-duong-giao-vien-tieng-anh-5-global-success.4528446247"
+    pages_read: "2 (mục lục), 7 (kiểm tra đánh giá; yêu cầu nghe/đọc/viết cuối lớp 5), 27–28 (quy trình hoạt động)"
+
+# Trạng thái đáp án (theo ADR-024, rút gọn cho nội dung đọc tay):
+#   VERIFIED_SGV  đáp án có trong SGV (Key / audio script / Suggested answers), trang ghi ở answer_source
+#   FROM_TEXT     đáp án đọc thẳng từ chữ in trong SGK (câu mẫu, hội thoại), không cần suy luận
+#   AUTHORED      câu do phiên soạn thêm; đáp án do phiên viết, chờ chủ dự án duyệt
+#   NEEDS_AUDIO   SGV có đáp án nhưng bài phụ thuộc file nghe của sách; chưa dùng làm câu hỏi
+#   NO_ANSWER     bài mở hoặc trò chơi, sách không có đáp án cố định; không tạo câu chấm điểm
+
+exercises:
+  - {ref: "SGK tr.4 Book map", kind: overview, status: FROM_TEXT, used_in: [], note: "Danh sách cụm từ, mẫu câu, Rhythm của Unit 11; dùng cho nút VOCAB, DIDYOU, WHATDID, STRESS."}
+  - {ref: "SGK tr.6 L1 Ex1 Look, listen and repeat", sgv: "tr.178–179", kind: presentation, status: FROM_TEXT, used_in: [U11-DY-CP-01], note: "Hội thoại mẫu Did you swim? – Yes, I did. I swam with my mother."}
+  - {ref: "SGK tr.6 L1 Ex2 Listen, point and say", sgv: "tr.179–180 audio", kind: presentation, status: VERIFIED_SGV, used_in: [], note: "Bốn cụm swim / take photos / collect seashells / walk on the beach; nội dung vào lý thuyết nút VOCAB, DIDYOU."}
+  - {ref: "SGK tr.6 L1 Ex3 Let's talk", sgv: "tr.180 Key", kind: speaking, status: VERIFIED_SGV, used_in: [U11-DY-PR-02]}
+  - {ref: "SGK tr.7 L1 Ex4 Listen and match", sgv: "tr.181 audio, tr.182 Key 1c 2d 3b 4a", kind: listening, status: NEEDS_AUDIO, used_in: [U11-VO-PR-01], note: "Không dùng nguyên bài; câu 4 của audio script được chuyển thành câu đọc."}
+  - {ref: "SGK tr.7 L1 Ex5 Read and circle", sgv: "tr.182 Key swam; walk; did, went; were, buy", kind: grammar, status: VERIFIED_SGV, used_in: [U11-PA-PR-01, U11-DY-CC-01, U11-WD-PR-04, U11-PA-PR-02], note: "Hai chỗ chưa dùng: câu 3 'They go / went' (went) và câu 4 'Did you buy / bought' (buy) — dự phòng cho bản sau."}
+  - {ref: "SGK tr.7 L1 Ex6 Listen, complete and sing", sgv: "tr.182 Key beach, park, took", kind: song, status: NEEDS_AUDIO, used_in: [U11-PA-PR-03], note: "Chỉ dùng chỗ trống (3) took vì đoán được từ ngữ pháp; (1) beach, (2) park cần nghe bài hát."}
+  - {ref: "SGK tr.8 L2 Ex1 Look, listen and repeat", sgv: "tr.183–184", kind: presentation, status: FROM_TEXT, used_in: [U11-WD-CP-01]}
+  - {ref: "SGK tr.8 L2 Ex2 Listen, point and say", sgv: "tr.184 audio", kind: presentation, status: VERIFIED_SGV, used_in: [U11-VO-PR-02, U11-WD-PR-01, U11-WD-PR-02]}
+  - {ref: "SGK tr.8 L2 Ex3 Let's talk", sgv: "tr.185 Suggested answers", kind: speaking, status: VERIFIED_SGV, used_in: [U11-WD-PR-07]}
+  - {ref: "SGK tr.9 L2 Ex4 Listen and circle", sgv: "tr.186 Key 1 family, took a boat trip; 2 Sydney, saw some interesting places", kind: listening, status: NEEDS_AUDIO, used_in: []}
+  - {ref: "SGK tr.9 L2 Ex5 Read and complete", sgv: "tr.187 Key 1 Nha Trang; swam; seafood — 2 Sa Pa; bought; photos", kind: reading, status: VERIFIED_SGV, used_in: [U11-WD-PR-03, U11-PA-PR-04], note: "[cần kiểm tra] Tranh câu 2 có biển chỉ đường 'FANSIPAN MOUNTAIN' nhưng SGV ghi 'Sa Pa'. Chưa dùng chỗ trống tên nơi của câu 2; nếu dùng thì đáp án theo SGV là Sa Pa, còn 'Fansipan' là biến thể chờ chủ dự án duyệt (N4)."}
+  - {ref: "SGK tr.9 L2 Ex6 Let's play (When and What game)", sgv: "tr.187", kind: game, status: NO_ANSWER, used_in: [], note: "Trò chơi, câu trả lời tự do; SGV chỉ có câu ví dụ, dùng làm gợi ý cho lý thuyết."}
+  - {ref: "SGK tr.10 L3 Ex1 Listen and repeat (Rhythm)", sgv: "tr.188", kind: pronunciation, status: FROM_TEXT, used_in: [U11-ST-CC-01], note: "Dấu trọng âm in trong sách."}
+  - {ref: "SGK tr.10 L3 Ex2 Listen and underline one more stressed word", sgv: "tr.188 audio, tr.189 Key Sydney, Paris, When, do", kind: pronunciation, status: VERIFIED_SGV, used_in: [U11-ST-PR-01, U11-ST-PR-02, U11-ST-PR-03, U11-ST-PR-04]}
+  - {ref: "SGK tr.10 L3 Ex3 Let's chant", sgv: "tr.189", kind: chant, status: NO_ANSWER, used_in: [], note: "Bài chant, không có câu hỏi; ý dùng cho lý thuyết nút TRIP."}
+  - {ref: "SGK tr.11 L3 Ex4 Read and answer", sgv: "tr.190 Key", kind: reading, status: VERIFIED_SGV, used_in: [U11-TR-CC-01, U11-TR-PR-01, U11-TR-PR-02, U11-TR-PR-03], note: "Bài đọc không chép vào repo; câu hỏi dùng đoạn tóm tắt viết lại (lesson-3, concept C3)."}
+  - {ref: "SGK tr.11 L3 Ex5 Let's write", sgv: "tr.190", kind: writing, status: NO_ANSWER, used_in: [], note: "Khung viết mở; câu U11-TR-CP-01, U11-TR-TR-02 do phiên soạn theo khung này."}
+  - {ref: "SGK tr.11 L3 Ex6 Project (My photo journal)", sgv: "tr.180 (chuẩn bị)", kind: project, status: NO_ANSWER, used_in: [], note: "Dự án mở; ý dùng cho lý thuyết T2 của nút TRIP."}
+  - {ref: "SGK tr.36 Review 3 Ex1 câu 2", sgv: "tr.251 audio, tr.252 Key 2a", kind: listening, status: VERIFIED_SGV, used_in: [U11-WD-CC-01], note: "Câu hỏi trong audio script được viết ra, nên không cần file nghe."}
+  - {ref: "SGK tr.36 Review 3 Ex2 câu 2", sgv: "tr.252 Key We bought souvenirs.", kind: speaking, status: VERIFIED_SGV, used_in: [U11-WD-TR-01]}
+  - {ref: "SGK tr.37 Review 3 Ex3 câu 1", sgv: "tr.253 Key 1e", kind: reading, status: VERIFIED_SGV, used_in: [U11-DY-PR-01], note: "Phương án nhiễu 'Yes, I will.' và 'Every day.' lấy từ cột bên phải của cùng bài."}
+  - {ref: "SGK tr.37 Review 3 Ex5 Let's write", sgv: "tr.254 Suggested answer", kind: writing, status: NO_ANSWER, used_in: [], note: "Bài viết mở về Tết Trung thu (thì quá khứ); không thuộc Unit 11."}
+
+items:
+  # lesson-1 — ENG5-U11-VOCAB
+  - {id: U11-VO-CC-01, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-VO-CP-01, origin: AUTHORED, status: AUTHORED, note: "nói theo cô; câu đích lấy từ SGK tr.8"}
+  - {id: U11-VO-PR-01, origin: "SGV tr.181 audio Ex4 câu 4 (chuyển thành câu đọc)", status: VERIFIED_SGV, answer_source: "SGV tr.181 audio, tr.182 Key 4a"}
+  - {id: U11-VO-PR-02, origin: "SGK tr.8 Ex2b (tả tranh bằng lời)", status: VERIFIED_SGV, answer_source: "SGV tr.184 audio 'We ate seafood.'"}
+  - {id: U11-VO-PR-03, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-VO-PR-04, origin: AUTHORED, status: AUTHORED}
+  # lesson-1 — ENG5-U11-PAST
+  - {id: U11-PA-CC-01, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-PA-CP-01, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-PA-PR-01, origin: "SGK tr.7 Ex5 câu 1", status: VERIFIED_SGV, answer_source: "SGV tr.182 Key 1 swam"}
+  - {id: U11-PA-PR-02, origin: "SGK tr.7 Ex5 câu 4 (chỗ 1)", status: VERIFIED_SGV, answer_source: "SGV tr.182 Key 4 were"}
+  - {id: U11-PA-PR-03, origin: "SGK tr.7 Ex6 bài hát, chỗ (3)", status: VERIFIED_SGV, answer_source: "SGV tr.182 Key 3 took"}
+  - {id: U11-PA-PR-04, origin: "SGK tr.9 Ex5 câu 2 (chỗ 2, tả tranh bằng lời)", status: VERIFIED_SGV, answer_source: "SGV tr.187 Key 2 bought"}
+  - {id: U11-PA-PR-05, origin: AUTHORED, status: AUTHORED, note: "câu 'We went to the beach.' lấy từ SGK tr.6"}
+  - {id: U11-PA-PR-06, origin: AUTHORED, status: AUTHORED}
+  # lesson-1 — ENG5-U11-DIDYOU
+  - {id: U11-DY-CC-01, origin: "SGK tr.7 Ex5 câu 2", status: VERIFIED_SGV, answer_source: "SGV tr.182 Key 2 walk"}
+  - {id: U11-DY-CP-01, origin: "SGK tr.6 Ex1b (nói theo cô)", status: FROM_TEXT}
+  - {id: U11-DY-PR-01, origin: "SGK tr.37 Review 3 Ex3 câu 1", status: VERIFIED_SGV, answer_source: "SGV tr.253 Key 1e"}
+  - {id: U11-DY-PR-02, origin: "SGK tr.6 Ex3 (tả tranh bằng lời)", status: VERIFIED_SGV, answer_source: "SGV tr.180 Key 'Did you collect seashells?'"}
+  - {id: U11-DY-PR-03, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-DY-PR-04, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-DY-PR-05, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-DY-TR-01, origin: AUTHORED, status: AUTHORED}
+  # lesson-2 — ENG5-U11-WHATDID
+  - {id: U11-WD-CC-01, origin: "SGK tr.36 Review 3 Ex1 câu 2 (câu hỏi lấy từ audio script)", status: VERIFIED_SGV, answer_source: "SGV tr.251 audio, tr.252 Key 2a"}
+  - {id: U11-WD-CP-01, origin: "SGK tr.8 Ex1b (nói theo cô)", status: FROM_TEXT}
+  - {id: U11-WD-PR-01, origin: "SGK tr.8 Ex2b (tả tranh bằng lời)", status: VERIFIED_SGV, answer_source: "SGV tr.184 audio b"}
+  - {id: U11-WD-PR-02, origin: "SGK tr.8 Ex2c (tả tranh bằng lời)", status: VERIFIED_SGV, answer_source: "SGV tr.184 audio c"}
+  - {id: U11-WD-PR-03, origin: "SGK tr.9 Ex5 câu 1 (tả tranh bằng lời)", status: VERIFIED_SGV, answer_source: "SGV tr.187 Key 1"}
+  - {id: U11-WD-PR-04, origin: "SGK tr.7 Ex5 câu 3 (chỗ 1)", status: VERIFIED_SGV, answer_source: "SGV tr.182 Key 3 did"}
+  - {id: U11-WD-PR-05, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-WD-PR-06, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-WD-PR-07, origin: "SGK tr.8 Ex3 (tình huống tranh Thái Lan)", status: VERIFIED_SGV, answer_source: "SGV tr.185 Suggested answers"}
+  - {id: U11-WD-TR-01, origin: "SGK tr.36 Review 3 Ex2 câu 2 (tả tranh bằng lời)", status: VERIFIED_SGV, answer_source: "SGV tr.252 Key 2"}
+  # lesson-3 — ENG5-U11-STRESS
+  - {id: U11-ST-CC-01, origin: "SGK tr.10 Ex1", status: FROM_TEXT, answer_source: "dấu trọng âm in trong SGK tr.10; SGV tr.188"}
+  - {id: U11-ST-PR-01, origin: "SGK tr.10 Ex2 câu 1", status: VERIFIED_SGV, answer_source: "SGV tr.189 Key 1 Sydney"}
+  - {id: U11-ST-PR-02, origin: "SGK tr.10 Ex2 câu 2", status: VERIFIED_SGV, answer_source: "SGV tr.189 Key 2 Paris"}
+  - {id: U11-ST-PR-03, origin: "SGK tr.10 Ex2 câu 3", status: VERIFIED_SGV, answer_source: "SGV tr.189 Key 3 When"}
+  - {id: U11-ST-PR-04, origin: "SGK tr.10 Ex2 câu 4", status: VERIFIED_SGV, answer_source: "SGV tr.189 Key 4 do"}
+  - {id: U11-ST-PR-05, origin: "AUTHORED (theo ý SGV tr.189 Step 3)", status: AUTHORED}
+  # lesson-3 — ENG5-U11-TRIP
+  - {id: U11-TR-CC-01, origin: "SGK tr.11 Ex4 câu 1 (đoạn đọc viết lại)", status: VERIFIED_SGV, answer_source: "SGV tr.190 Key 1"}
+  - {id: U11-TR-CP-01, origin: "AUTHORED (khung SGK tr.11 Ex5; 'Sa Pa' theo ví dụ SGV tr.190)", status: AUTHORED}
+  - {id: U11-TR-PR-01, origin: "SGK tr.11 Ex4 câu 2 (đoạn đọc viết lại)", status: VERIFIED_SGV, answer_source: "SGV tr.190 Key 2"}
+  - {id: U11-TR-PR-02, origin: "SGK tr.11 Ex4 câu 3 (đoạn đọc viết lại; dạng chọn là chuyển thể)", status: VERIFIED_SGV, answer_source: "SGV tr.190 Key 3"}
+  - {id: U11-TR-PR-03, origin: "SGK tr.11 Ex4 câu 4 (đoạn đọc viết lại)", status: VERIFIED_SGV, answer_source: "SGV tr.190 Key 4"}
+  - {id: U11-TR-PR-04, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-TR-PR-05, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-TR-TR-01, origin: AUTHORED, status: AUTHORED}
+  - {id: U11-TR-TR-02, origin: "AUTHORED (khung SGK tr.11 Ex5 và Project)", status: AUTHORED, note: "bài mở; facts chỉ kiểm 'went to' và 'last'"}

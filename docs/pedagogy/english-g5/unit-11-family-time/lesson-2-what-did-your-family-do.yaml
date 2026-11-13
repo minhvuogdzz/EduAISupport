@@ -1,0 +1,312 @@
+# Lesson package — Tiếng Anh 5 (Global Success, tập hai), Unit 11 "Family time", Lesson 2
+# TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK/SGV ngày 12/11/2026; chủ dự án duyệt mặc định ngày 12/11/2026.
+# Nguồn gốc và trạng thái đáp án của từng câu: sources.yaml. Quy ước: như lesson-1 và ../README.md.
+#
+# Nội dung: "What did your family do in …? – We …" và câu đi kèm "When did you go to …? – We went there last …".
+# SGK tr.7–9 (Lesson 1 Ex5, Lesson 2), Review 3 tr.36. SGV tr.182–187, 251–252.
+
+lesson_id: eng-g5-u11-l2
+version: 0.1.0
+status: DRAFT
+subject: english
+grade: 5
+locale: vi-VN
+title: "Unit 11 Family time — Lesson 2: What did your family do …?"
+persona:
+  tutor_self: cô
+  student_address: con
+
+objectives:
+  - id: LO1
+    text: "Hỏi và trả lời về việc gia đình đã làm ở một nơi bằng 'What did your family do in …? – We …' (động từ sau We ở dạng quá khứ)."
+    kc_ids: [ENG5-U11-WHATDID]
+  - id: LO2
+    text: "Hỏi và trả lời về thời gian của chuyến đi bằng 'When did you go to …? – We went there last …'."
+    kc_ids: [ENG5-U11-WHATDID]
+
+kcs:
+  - id: ENG5-U11-WHATDID
+    name: "What did your family do in …? – We …"
+    description: "Hỏi gia đình đã làm gì ở một nơi và trả lời bằng We + động từ quá khứ; hỏi khi nào đi bằng When did you go to …?"
+    prerequisites: []  # tiên quyết ENG5-U11-PAST nằm ở lesson-1 (đồ thị ở unit.yaml là nguồn sự thật)
+
+concepts:
+  - id: C1
+    name: "Câu hỏi What did your family do …?"
+    explanation: "What did + your family + do + in/at + nơi chốn? Did đã báo chuyện đã qua nên do giữ nguyên. Trả lời: We + động từ quá khứ: We took a boat trip around the bay. / We ate seafood. / We saw some interesting places. / We bought souvenirs."
+    representations: [hội thoại xem ảnh gia đình, khung câu hỏi – câu trả lời]
+  - id: C2
+    name: "Câu hỏi When did you go to …?"
+    explanation: "When did you go to + nơi chốn? Trả lời: We went there + last summer / last weekend / last Sunday. Câu hỏi When hỏi thời gian, câu hỏi What hỏi việc làm."
+    representations: [hội thoại xem ảnh gia đình, dòng thời gian]
+
+misconceptions:
+  - id: ENG5-U11-M07
+    kc_id: ENG5-U11-WHATDID
+    name: "Sau We dùng động từ nguyên mẫu"
+    description: "Trả lời 'We eat seafood.', 'We buy souvenirs.' cho câu hỏi What did your family do …?. Câu trả lời kể chuyện đã qua nên động từ sau We đổi sang quá khứ."
+    severity: CRITICAL
+    counter_examples:
+      - "Bạn hỏi 'What did your family do in Nha Trang?' về chuyến đi đã qua. Nếu con nói 'We eat seafood', bạn có hiểu là cả nhà đã ăn hay hay ăn không?"
+      - "Câu hỏi có did, câu trả lời không có did. Vậy chữ nào trong câu trả lời phải báo là chuyện đã qua?"
+  - id: ENG5-U11-M08
+    kc_id: ENG5-U11-WHATDID
+    name: "Câu hỏi Wh- về quá khứ thiếu did hoặc dùng do"
+    description: "Hỏi 'When do they go there?' về chuyện tuần trước, 'What your family did?' hoặc 'What did your family did?'. Câu hỏi Wh- về quá khứ: từ để hỏi + did + chủ ngữ + động từ giữ nguyên."
+    severity: NORMAL
+    counter_examples:
+      - "Họ đi Quảng Ninh tuần trước rồi. Câu hỏi về chuyện đã qua thì sau When mình dùng do hay did?"
+      - "Trong câu 'What did your family do?', chữ did đã báo chuyện đã qua. Động từ do ở cuối có cần đổi nữa không?"
+  - id: ENG5-U11-M09
+    kc_id: ENG5-U11-WHATDID
+    name: "Trả lời lệch câu hỏi Wh-"
+    description: "Bạn hỏi What (làm gì) mà trả lời nơi chốn hoặc thời gian, hoặc hỏi When (khi nào) mà trả lời việc làm."
+    severity: NORMAL
+    counter_examples:
+      - "Câu hỏi bắt đầu bằng What … do? là hỏi làm gì. Câu 'We were at Ha Long Bay last month.' nói về việc làm hay nói về nơi chốn?"
+      - "When là hỏi khi nào. Câu trả lời cần có chữ chỉ thời gian như last summer, con thấy chưa?"
+
+generic_hints:
+  - {target: TASK, level: 1, text: "Con đọc lại câu hỏi giúp cô nhé: bạn hỏi làm gì, hỏi ở đâu hay hỏi khi nào?"}
+  - {target: CONCEPT, level: 2, text: "Trả lời câu hỏi What did your family do …? bằng We + động từ quá khứ, ví dụ: We ate seafood."}
+  - {target: STRATEGY, level: 3, text: "Con nhớ mẫu trong sách nhé: What did your family do in Ha Long? – We took a boat trip around the bay."}
+  - {target: SELF_CHECK, level: 1, text: "Con kiểm tra lại động từ sau We: đã ở dạng quá khứ chưa?"}
+  - {target: FORMAT, level: 1, text: "Con trả lời bằng một câu tiếng Anh trọn vẹn, bắt đầu bằng We, giúp cô nhé?"}
+
+default_verify_prompt: "Đúng rồi! Con nói cho cô biết vì sao động từ trong câu của con ở dạng đó được không?"
+
+items:
+  # [Review 3, SGK tr.36 Ex1 câu 2; SGV tr.251 audio script, tr.252 Key: 2a] Câu hỏi trong audio được viết ra.
+  - id: U11-WD-CC-01
+    purpose: CONCEPT_CHECK
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 40
+    stem: "Bạn hỏi: 'What did your family do in Ha Long?' Câu trả lời nào đúng với câu hỏi?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "We took a boat trip around the bay.", correct: true, aliases: ["we took a boat trip around the bay"]}
+        - {id: B, text: "It was a fantastic trip.", aliases: ["it was a fantastic trip"], misconceptions: [ENG5-U11-M09]}
+        - {id: C, text: "We were at Ha Long Bay last month.", aliases: ["we were at ha long bay last month"], misconceptions: [ENG5-U11-M09]}
+    hints:
+      - {target: TASK, level: 1, text: "What … do? là bạn hỏi cả nhà đã làm gì. Phương án nào kể một việc làm?"}
+      - {target: CONCEPT, level: 2, text: "Câu trả lời đúng bắt đầu bằng We và có động từ chỉ việc làm ở dạng quá khứ."}
+    explanation: "Bạn hỏi cả nhà đã làm gì ở Hạ Long, nên trả lời bằng việc làm: We took a boat trip around the bay. Hai câu kia nói chuyến đi thế nào và ở đâu."
+
+  # [SGK tr.8 Ex1b; SGV tr.183–184] Nói theo cô (cùng làm, DI-108).
+  - id: U11-WD-CP-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: A
+    difficulty: 0.15
+    expected_time_s: 40
+    stem: "Con nói theo cô cả câu hỏi và câu trả lời nhé: 'What did your family do in Ha Long?' – 'We took a boat trip around the bay.'"
+    answer:
+      type: open
+      rubric: "Nhắc lại được câu trả lời We took a boat trip around the bay."
+      sample_answer: "What did your family do in Ha Long? We took a boat trip around the bay."
+      facts:
+        phrases: [["we took a boat trip"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con nói câu hỏi trước theo cô: What did your family do in Ha Long?"}
+      - {target: CONCEPT, level: 2, text: "Câu trả lời bắt đầu bằng We, động từ took là quá khứ của take."}
+      - {target: STEP, level: 4, text: "Con nói tiếp câu trả lời nhé: We took a boat trip …"}
+    worked_solution:
+      - "Câu hỏi: What did your family do in Ha Long?"
+      - "Câu trả lời: We took a boat trip around the bay."
+    explanation: "Hỏi cả nhà đã làm gì ở Hạ Long, trả lời: We took a boat trip around the bay."
+
+  # [SGK tr.8 Ex2b; SGV tr.184 audio: We ate seafood.] Tranh được tả bằng lời.
+  - id: U11-WD-PR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 45
+    isomorphic_group: U11-WD-WE
+    stem: "Trong tranh, cả nhà đang ăn tôm, cua, cá ở Nha Trang. Bạn hỏi: 'What did your family do in Nha Trang?' Con trả lời bằng câu bắt đầu bằng We nhé."
+    answer:
+      type: open
+      rubric: "We + ate seafood (động từ quá khứ)."
+      sample_answer: "We ate seafood."
+      facts:
+        phrases: [["we ate"], ["seafood"]]
+    hints:
+      - {target: TASK, level: 1, text: "Trong tranh cả nhà đang làm gì? Ăn hải sản tiếng Anh là cụm nào?"}
+      - {target: CONCEPT, level: 2, text: "Câu trả lời kể chuyện đã qua: We + động từ quá khứ. Eat có dạng quá khứ riêng là ate."}
+      - {target: STEP, level: 4, text: "Con nói nhé: We ate s…"}
+    worked_solution:
+      - "Cả nhà ăn hải sản: eat seafood."
+      - "Kể chuyện đã qua sau We: eat thành ate."
+      - "Câu trả lời: We ate seafood."
+    explanation: "Cả nhà đã ăn hải sản ở Nha Trang: We ate seafood."
+
+  # [SGK tr.8 Ex2c; SGV tr.184 audio: We saw some interesting places.] Tranh được tả bằng lời.
+  - id: U11-WD-PR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: B
+    difficulty: 0.4
+    expected_time_s: 45
+    isomorphic_group: U11-WD-WE
+    stem: "Trong tranh, cả nhà đứng chụp ảnh trước nhà hát và cây cầu lớn ở Sydney. Bạn hỏi: 'What did your family do in Sydney?' Con trả lời bằng câu bắt đầu bằng We, dùng cụm see some interesting places nhé."
+    answer:
+      type: open
+      rubric: "We + saw some interesting places (see đổi thành saw)."
+      sample_answer: "We saw some interesting places."
+      facts:
+        phrases: [["we saw"], ["interesting places"]]
+    hints:
+      - {target: TASK, level: 1, text: "Cả nhà đi xem những nơi nổi tiếng ở Sydney. Cụm see some interesting places nghĩa là gì?"}
+      - {target: CONCEPT, level: 2, text: "Kể chuyện đã qua sau We thì see đổi sang quá khứ; see có dạng riêng."}
+      - {target: STEP, level: 4, text: "See thành saw. Con nói nhé: We saw some …"}
+    worked_solution:
+      - "Cả nhà đi xem những nơi thú vị: see some interesting places."
+      - "Kể chuyện đã qua sau We: see thành saw."
+      - "Câu trả lời: We saw some interesting places."
+    explanation: "Cả nhà đã đi xem những nơi thú vị ở Sydney: We saw some interesting places."
+
+  # [SGK tr.9 Ex5 câu 1; SGV tr.187 Key: Nha Trang; swam; seafood] Tranh được tả bằng lời.
+  - id: U11-WD-PR-03
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: B
+    difficulty: 0.45
+    expected_time_s: 90
+    stem: "Con điền ba chỗ trống nhé. Tranh: biển hiệu ghi 'WELCOME TO NHA TRANG', cả nhà đang bơi ở biển, trên bàn có hải sản. A: Where were your family yesterday? B: We were in (1) … . A: What did you do there? B: We (2) … in the sea. A: What else did you do? B: We ate some (3) … ."
+    answer:
+      type: open
+      rubric: "(1) Nha Trang, (2) swam, (3) seafood (theo SGV tr.187)."
+      sample_answer: "(1) Nha Trang (2) swam (3) seafood"
+      facts:
+        phrases: [["nha trang"], ["swam"], ["seafood"]]
+    hints:
+      - {target: TASK, level: 1, text: "Biển hiệu trong tranh ghi tên nơi nào? Cả nhà đang làm gì dưới biển?"}
+      - {target: CONCEPT, level: 2, text: "Chỗ (2) là động từ sau We kể chuyện hôm qua, nên ở dạng quá khứ: swim có dạng riêng."}
+      - {target: STEP, level: 4, text: "Chỗ (1) là Nha Trang. Chỗ (2): swim thành sw…m. Chỗ (3): tôm cua cá là s…food."}
+    worked_solution:
+      - "Biển hiệu ghi Nha Trang: (1) Nha Trang."
+      - "Cả nhà bơi ở biển hôm qua, swim đổi thành swam: (2) swam."
+      - "Trên bàn có hải sản: (3) seafood."
+    explanation: "Theo tranh: We were in Nha Trang. We swam in the sea. We ate some seafood."
+
+  # [SGK tr.7 Ex5 câu 3, chỗ trống thứ nhất; SGV tr.182 Key: did]
+  - id: U11-WD-PR-04
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: B
+    difficulty: 0.35
+    expected_time_s: 40
+    stem: "A: Look at Nga's family in Quang Ninh. B: It's a nice photo! When (did / do) they go there? A: They went there last weekend. Con chọn từ đúng cho câu hỏi của B nhé?"
+    answer:
+      type: choice
+      options:
+        - {id: A, text: "did", correct: true, aliases: ["did", "when did they go there"]}
+        - {id: B, text: "do", aliases: ["do"], misconceptions: [ENG5-U11-M08]}
+    hints:
+      - {target: TASK, level: 1, text: "Gia đình Nga đi Quảng Ninh từ cuối tuần trước. Chuyện đã qua hay đang diễn ra?"}
+      - {target: CONCEPT, level: 2, text: "Câu hỏi Wh- về chuyện đã qua: When + did + họ + động từ giữ nguyên?"}
+      - {target: STEP, level: 4, text: "Câu trả lời là They went there last weekend, chuyện đã qua. Con chọn từ hỏi về chuyện đã qua nhé."}
+    worked_solution:
+      - "Gia đình Nga đi Quảng Ninh cuối tuần trước: chuyện đã qua."
+      - "Câu hỏi về chuyện đã qua dùng did: When did they go there?"
+    explanation: "Chuyện đã qua nên hỏi bằng did: When did they go there? – They went there last weekend."
+
+  # [SOẠN THÊM] Mức C: vì sao do giữ nguyên còn took ở dạng quá khứ.
+  - id: U11-WD-PR-05
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: C
+    difficulty: 0.55
+    expected_time_s: 75
+    stem: "Trong câu hỏi 'What did your family do in Ha Long?', động từ do giữ nguyên. Nhưng trong câu trả lời 'We took a boat trip around the bay.', động từ lại là took. Vì sao vậy? Con trả lời bằng tiếng Việt nhé."
+    answer:
+      type: open
+      rubric: "Nêu được: câu hỏi đã có did báo chuyện đã qua nên do giữ nguyên; câu trả lời không có did nên động từ phải đổi sang quá khứ (take → took)."
+      sample_answer: "Vì câu hỏi có did rồi nên do giữ nguyên. Câu trả lời không có did nên took phải ở dạng quá khứ để báo chuyện đã qua."
+      facts:
+        phrases: [["did"], ["giữ nguyên", "không đổi", "nguyên mẫu", "để nguyên"], ["quá khứ", "đã qua", "took"]]
+    hints:
+      - {target: TASK, level: 1, text: "Con tìm xem trong câu hỏi có chữ nào báo chuyện đã qua, còn câu trả lời có chữ đó không?"}
+      - {target: CONCEPT, level: 2, text: "Có did thì động từ giữ nguyên. Không có did thì chính động từ phải đổi sang quá khứ."}
+      - {target: STEP, level: 4, text: "Con trả lời theo ý: câu hỏi có … nên do giữ nguyên; câu trả lời không có … nên took ở dạng …"}
+    worked_solution:
+      - "Câu hỏi có did: did đã báo chuyện đã qua, nên do giữ nguyên."
+      - "Câu trả lời không có did, nên động từ phải tự báo chuyện đã qua."
+      - "Take đổi sang quá khứ là took: We took a boat trip around the bay."
+    explanation: "Did báo chuyện đã qua nên trong câu hỏi do giữ nguyên. Câu trả lời không có did, nên động từ đổi sang quá khứ: take thành took."
+
+  # [SOẠN THÊM] Tìm lỗi (DIAG): nguyên mẫu sau We.
+  - id: U11-WD-PR-06
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: DIAG
+    difficulty: 0.5
+    expected_time_s: 60
+    stem: "Bạn hỏi Bin: 'What did your family do in Singapore last summer?' Bin trả lời: 'We buy souvenirs.' Bin trả lời sai ở đâu? Con sửa lại cả câu giúp bạn nhé."
+    answer:
+      type: open
+      rubric: "Chỉ ra buy chưa đổi sang quá khứ; sửa thành We bought souvenirs."
+      sample_answer: "Buy sai, phải là bought: We bought souvenirs."
+      facts:
+        phrases: [["bought"]]
+    hints:
+      - {target: TASK, level: 1, text: "Bạn hỏi về mùa hè năm ngoái. Câu trả lời của Bin đang kể chuyện đã qua chưa?"}
+      - {target: CONCEPT, level: 2, text: "Sau We, khi kể chuyện đã qua, động từ đổi sang quá khứ; buy có dạng riêng."}
+      - {target: STEP, level: 4, text: "Từ sai là buy. Dạng quá khứ của buy là b…ght. Con sửa cả câu nhé?"}
+    worked_solution:
+      - "Câu hỏi về mùa hè năm ngoái, chuyện đã qua."
+      - "Bin nói buy (nguyên mẫu) nên câu nghe như việc thường làm."
+      - "Sửa: buy thành bought: We bought souvenirs."
+    explanation: "Chuyện mùa hè năm ngoái đã qua, nên buy đổi thành bought: We bought souvenirs."
+
+  # [SGK tr.8 Ex3 Let's talk; SGV tr.185 Suggested answers] Tranh được tả bằng lời. Câu hỏi When.
+  - id: U11-WD-PR-07
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: C
+    difficulty: 0.45
+    expected_time_s: 60
+    stem: "Cả nhà con đi Thái Lan vào cuối tuần trước (last weekend). Bạn hỏi: 'When did you go to Thailand?' Con trả lời thế nào?"
+    answer:
+      type: open
+      rubric: "We went there last weekend: dùng went và trả lời đúng thời gian (When hỏi khi nào)."
+      sample_answer: "We went there last weekend."
+      facts:
+        phrases: [["went"], ["last weekend"]]
+    hints:
+      - {target: TASK, level: 1, text: "When là hỏi khi nào. Con đi Thái Lan khi nào?"}
+      - {target: CONCEPT, level: 2, text: "Trả lời câu hỏi When did you go to …? bằng We went there + thời gian."}
+      - {target: STEP, level: 4, text: "Con nói nhé: We went there last …"}
+    worked_solution:
+      - "When hỏi thời gian: cả nhà đi cuối tuần trước, last weekend."
+      - "Chuyện đã qua: go thành went; there thay cho Thailand."
+      - "Câu trả lời: We went there last weekend."
+    explanation: "Câu hỏi When hỏi khi nào, nên trả lời bằng thời gian: We went there last weekend."
+
+  # [Review 3, SGK tr.36 Ex2 câu 2; SGV tr.252 Key: We bought souvenirs.] Tranh được tả bằng lời. Vận dụng (mức D).
+  - id: U11-WD-TR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-WHATDID]
+    cognitive_level: D
+    difficulty: 0.55
+    transfer: near
+    expected_time_s: 60
+    stem: "Trong tranh, cả nhà bạn Linh đứng ở một quầy bán đồ thủ công và quà lưu niệm ở Sa Pa. Bạn hỏi Linh: 'What did your family do in Sa Pa?' Linh trả lời thế nào?"
+    answer:
+      type: open
+      rubric: "We bought souvenirs (theo SGV tr.252); chấp nhận thêm some."
+      sample_answer: "We bought souvenirs."
+      facts:
+        phrases: [["we bought"], ["souvenirs"]]
+    hints:
+      - {target: TASK, level: 1, text: "Cả nhà Linh đang làm gì ở quầy hàng?"}
+      - {target: CONCEPT, level: 2, text: "Mua quà lưu niệm là buy souvenirs. Kể chuyện đã qua sau We thì buy đổi sang quá khứ."}
+      - {target: STEP, level: 4, text: "Linh nói: We bought …"}
+    worked_solution:
+      - "Cả nhà đang mua quà lưu niệm: buy souvenirs."
+      - "Kể chuyện đã qua sau We: buy thành bought."
+      - "Câu trả lời: We bought souvenirs."
+    explanation: "Cả nhà Linh đã mua quà lưu niệm ở Sa Pa: We bought souvenirs."
