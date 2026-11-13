@@ -41,7 +41,7 @@ english-g5/
 
 **Cách trích:**
 1. Sách chỉ có ảnh trang, không có lớp chữ. Phiên ENG-3 đọc từng trang bằng trình duyệt trong app, phóng to từng vùng. Không tải file, không vượt chặn.
-2. Bản trích gần nguyên văn (để đối chiếu) nằm ngoài repo, ở `var/storage/english-sources/unit-11/` (git bỏ qua): `sgk-unit11.md`, `sgv-unit11.md`, `taphuan-notes.md`.
+2. Bản trích gần nguyên văn (để đối chiếu) nằm ngoài repo, ở `var/storage/english-sources/unit-11/` của checkout chính (trên máy chủ dự án: `/Users/mac/Documents/Code Space/EduAISupport/var/storage/english-sources/unit-11/`), gồm `sgk-unit11.md`, `sgv-unit11.md`, `taphuan-notes.md`. Thư mục `var/` bị git bỏ qua: bản trích **chỉ có trên máy chủ dự án**, không có trong repo, CI hay phiên cloud. Mỗi file ghi URL nguồn và cách quy đổi số ảnh trang sang số trang in (SGK: ảnh = trang + 2; SGV: ảnh = trang + 1).
 3. Đáp án lấy từ **Key, audio script và Suggested answers của SGV**, ghi số trang. Đáp án suy ra mà SGV không có thì không dùng; bài mở hoặc trò chơi ghi `NO_ANSWER` trong `sources.yaml`.
 4. **Bản quyền, repo công khai:** repo không chứa ảnh trang, PDF hay nguyên văn cả trang/cả bài. Chỉ có danh sách từ, mẫu câu ngắn, câu hỏi luyện tập kèm đáp án và trang nguồn; lời giảng và cách dạy viết lại bằng lời của phiên. Bài đọc tr.11 được thay bằng đoạn tóm tắt viết lại (lesson-3, concept C3).
 

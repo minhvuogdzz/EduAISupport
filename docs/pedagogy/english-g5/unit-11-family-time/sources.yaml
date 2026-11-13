@@ -5,7 +5,8 @@
 # đáp án của từng câu (../README.md, "Khoảng trống schema" G4). Khi schema có các trường đó, chuyển dữ liệu
 # ở mục `items` vào các file lesson và bỏ file này.
 #
-# Bản trích gần nguyên văn để đối chiếu nằm ngoài repo: var/storage/english-sources/unit-11/ (git bỏ qua):
+# Bản trích gần nguyên văn để đối chiếu nằm ngoài repo, chỉ có trên máy chủ dự án (var/ bị git bỏ qua):
+#   /Users/mac/Documents/Code Space/EduAISupport/var/storage/english-sources/unit-11/
 #   sgk-unit11.md, sgv-unit11.md, taphuan-notes.md.
 
 unit: eng-g5-u11-family-time
