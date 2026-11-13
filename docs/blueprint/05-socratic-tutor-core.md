@@ -65,7 +65,7 @@ Validator chặn thời gian thực; eval đo offline. Hai lớp này bổ sung 
 
 | Check | Cách làm | Khi fail |
 |---|---|---|
-| **Answer leak** | So chuỗi và giá trị: sinh mọi dạng tương đương của đáp án (0,75 / 3/4 / 75% / "ba phần tư") rồi tìm trong message; với English, kiểm tra câu trả lời mẫu của item | Reject → retry với directive sửa → fallback HintTemplate |
+| **Answer leak** | So chuỗi và giá trị: sinh mọi dạng tương đương của đáp án (0,75 / 3/4 / 75% / "ba phần tư") rồi tìm trong message; với Tiếng Anh, kiểm tra câu đích và các biến thể chấp nhận của item, trong lời lẫn Việt–Anh (ADR-060) | Reject → retry với directive sửa → fallback HintTemplate |
 | **Move fidelity** | Heuristic (có dấu hỏi? có bước giải?) + classifier nhỏ (LIGHTWEIGHT) khi cần | Retry |
 | **Một câu hỏi/lượt** | Đếm câu hỏi | Retry hoặc cắt |
 | **Độ dài và ngôn ngữ** | Số từ, từ vựng ngoài danh sách phù hợp lớp 5 (danh sách do pedagogy lead duyệt) | Retry |
@@ -83,7 +83,7 @@ Tối đa 1 lần retry (giữ độ trễ); sau đó fallback nội dung đã d
 
 ```text
 [L1] Tutor Constitution (tĩnh, dùng chung mọi môn)            — cache
-[L2] Subject Pedagogy Module (Math G5 | English G5 Reading | Speaking)  — cache
+[L2] Subject Pedagogy Module (Math G5 | English G5 Unit 11 "Family time", prompt riêng theo môn)  — cache
 [L3] Lesson Package (đã duyệt, bất biến theo contract)           — cache
 [L4] Student Snapshot (tất định, ≤ 400 token, đổi theo session) — cache theo session
 ──────────── cache breakpoint ────────────
@@ -162,7 +162,7 @@ Cách đặt L5 phụ thuộc capability của provider, do adapter xử lý. V�
 | H6 | Worked guidance | Cùng làm từng bước | 0.20 | = "gần như đưa lời giải" §11 |
 | H7 | Full explanation | Trình bày lời giải đầy đủ | 0.00 | = "xem lời giải" §11 |
 
-English dùng **Support Ladder S0–S5** của khung English (Independent, Repeat, Rephrase/slow, Hint, Choice, Model). Ladder được giữ nguyên vì là đặc tả chính thức. **Repeat không bị tính là sai** (khung English §5).
+Tiếng Anh dùng **chung thang H0–H7** và bảng độc lập ở trên; chỉ nội dung từng bậc đổi theo bài (DI-112, ADR-060). Support Ladder S0–S5 của khung English cũ đã bị bỏ (12/11/2026). Cô nhắc lại câu hỏi hoặc nói chậm lại không phải gợi ý (`CLARIFY_REQUEST`).
 
 ### 15.2. Adaptive Hint Policy (không hard-code chuỗi H1→H7)
 
@@ -193,7 +193,7 @@ contract.hintPolicy: max_level theo activity, escalation step tối đa, require
 | R-DEESCALATE | Học sinh làm đúng một bước sau hint | Bước sau quay lại level thấp hơn (fading) |
 | R-FRUSTRATION | ≥ 3 lượt không tiến triển hoặc > `stuck_s` trên một item. Lượt không tiến triển là trả lời sai, không đọc được hoặc im lặng; **lượt xin gợi ý không tính** (DI, chủ dự án duyệt 2026-10-01) | Chuyển `WORKED_GUIDANCE` (H6), sau đó **bắt buộc** item song sinh ở H0 |
 | R-FULL | H6 không hiệu quả (sau H6 học sinh vẫn sai, xin trợ giúp, hoặc **im lặng**: DI, chủ dự án duyệt 2026-10-01), hoặc hết thời gian mà item thuộc objective bắt buộc | H7 cho phép **chỉ** ở activity practice; sau đó teach-back + item song sinh. Không nói lại được sau H7 thì item ghi `UNRESOLVED` (DI, chủ dự án duyệt 2026-10-01) |
-| R-ASSESS-CAP | activity = EXIT_ASSESSMENT | Tối đa H1 (hoặc S1–S2 với English); mọi hint đánh dấu evidence là *supported* |
+| R-ASSESS-CAP | activity = EXIT_ASSESSMENT | Tối đa H1 (cả Toán và Tiếng Anh); mọi hint đánh dấu evidence là *supported* |
 | R-STRONG-PRIOR | mastery KC ≥ 0.75, confidence ≥ 0.6 | Tăng `wait_s`, ưu tiên `VERIFY` ("vì sao") thay vì hint |
 | R-WEAK-PRIOR | mastery KC < 0.4 hoặc hint_dependency cao | Giảm `wait_s`; cho phép H2 ngay từ lần sai đầu nếu có misconception |
 | R-TIME | time_left ≤ reserve + thời gian dự kiến của item | Rút ngắn: leo thang nhanh hơn, hoặc đóng item và chuyển sang assessment |
@@ -218,7 +218,7 @@ Riêng target `SELF_CHECK` và `FORMAT` là *loại* trợ giúp chứ không ph
 
 ### 15.4. Evidence từ hint
 
-Mỗi item RESOLVED sinh evidence với `support_max_level`, `independence_weight = weight(max level trước lần đúng đầu tiên)`, `hints_count` và `outcome ∈ {INDEPENDENT, SUPPORTED, WORKED, UNRESOLVED}`. Đúng sau H7 **không** được tính như đúng độc lập. Mastery chỉ tăng mạnh khi có bài song sinh làm đúng ở H0–H1 (khung Toán §11, khung English §9).
+Mỗi item RESOLVED sinh evidence với `support_max_level`, `independence_weight = weight(max level trước lần đúng đầu tiên)`, `hints_count` và `outcome ∈ {INDEPENDENT, SUPPORTED, WORKED, UNRESOLVED}`. Đúng sau H7 **không** được tính như đúng độc lập. Mastery chỉ tăng mạnh khi có bài song sinh làm đúng ở H0–H1 (khung Toán §11; với Tiếng Anh thêm DI-108 về đúng sau mẫu).
 
 ---
 
@@ -267,7 +267,7 @@ stateDiagram-v2
 - `ABANDONED` trong brief = INCOMPLETE với `reason=abandoned`.
 - Trạng thái kết thúc: COMPLETED, INCOMPLETE, MISSED, CANCELLED, FAILED. Mọi evidence đã ghi **vẫn giữ nguyên** ở mọi trạng thái kết thúc.
 
-**Tầng 2 — Activity Plan** (chỉ chạy khi Session = ACTIVE): chuỗi activity từ contract, mỗi activity có `mandatory`, `min/max_time`, `entry_condition`, `exit_criteria`, `skip_condition`, `loop_back_rules`. Math và English có plan khác nhau (PART 18, 19).
+**Tầng 2 — Activity Plan** (chỉ chạy khi Session = ACTIVE): chuỗi activity từ contract, mỗi activity có `mandatory`, `min/max_time`, `entry_condition`, `exit_criteria`, `skip_condition`, `loop_back_rules`. Toán và Tiếng Anh dùng cùng vòng dạy 6 bước (ADR-059); nội dung khác nhau (PART 18, 19).
 
 **Tầng 3 — Item Tutoring Loop:**
 

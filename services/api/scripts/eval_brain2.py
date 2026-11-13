@@ -30,7 +30,10 @@ def main() -> int:
     router = RecordingRouter(build_router(settings, for_eval=True))
     chapter = chapters()["math-g5-decimals"]
     index = RagIndex(
-        chapter_chunks(chapter), None, {n.id: chapter.prerequisites(n.id) for n in chapter.nodes}
+        chapter_chunks(chapter),
+        None,
+        {n.id: chapter.prerequisites(n.id) for n in chapter.nodes},
+        subject="math",
     )
     gap = RagIndex(
         [
@@ -43,10 +46,12 @@ def main() -> int:
                 "chapter",
                 "Phân số thập phân",
                 True,
+                subject="math",
             )
         ],
         None,
         {"frac": set()},
+        subject="math",
     )
     web = OfficialEducation(cache_dir=settings.storage_dir / "web")
     cases = [

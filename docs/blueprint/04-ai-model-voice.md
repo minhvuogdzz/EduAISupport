@@ -25,8 +25,8 @@
 | **Off-session chat** | Ngoài giờ (feature flag) | LIGHTWEIGHT | Có | Tin nhắn | Safety filter, topic guard, rate limit |
 | **Embedding** | Ingestion, query ngoài session | EMBEDDING | Không/Có | Vector | — |
 | **STT** | Voice input | STT | Có (streaming) | Transcript + confidence | Confidence gate; xác nhận lại với học sinh |
-| **Realtime voice** | English Speaking | REALTIME_VOICE | Có | Audio + transcript + tool calls | Xem PART 20 |
-| **Pronunciation** | English Speaking | PRONUNCIATION | Không/gần realtime | Điểm phát âm theo từ/âm vị | Data quality gate |
+| ~~**Realtime voice**~~ | ~~English Speaking~~ | REALTIME_VOICE | — | — | **Bỏ** (D-T9; module Tiếng Anh dùng cascade như Toán, ADR-060) |
+| ~~**Pronunciation**~~ | ~~English Speaking~~ | PRONUNCIATION | — | — | **Bỏ**: chưa chấm phát âm theo âm vị (ADR-060) |
 | **LLM-as-judge (eval)** | Offline, rải theo hạn mức | EVAL_JUDGE | Không | Điểm rubric | Hiệu chỉnh với nhãn giáo viên |
 
 ### 11.3. AI Gateway
@@ -83,11 +83,11 @@ Orchestrator **không tin** các trường tự khai như `reveals_final_answer`
 | TUTOR_REASONING | Dạy in-session, phân tích lập luận, cấu trúc hóa tài liệu | Tiếng Việt tự nhiên, tuân thủ instruction, structured output, cache, độ trễ thấp | **`gemini-3.8-flash`** (free tier; context caching miễn phí), chốt theo POC 1 | `gemini-3.5-flash`, `gemini-2.5-flash`; model mở chạy local qua Ollama (dev/offline) | `claude-opus-5-5`, `claude-sonnet-5-5` |
 | LIGHTWEIGHT | Chat ngoài giờ, tóm tắt, phân loại, chuẩn hóa voice | Nhanh, an toàn | `gemini-3.5-flash-lite` | `gemini-3.1-flash-lite`, `gemini-2.5-flash-lite` | `claude-haiku-4-5` |
 | EVAL_JUDGE | Chấm offline trong eval | Chất lượng cao, không cần nhanh | `gemini-2.5-pro` (free tier) hoặc `gemini-3.8-flash` với thinking cao | — | `claude-opus-5-5` |
-| REALTIME_VOICE | English Speaking | Audio 2 chiều, barge-in, tool calling | **`gemini-3.8-live`** (free tier), chốt theo POC 6 | Cascade: STT + `gemini-3.8-flash` + TTS | `gpt-realtime-2.1-mini` |
+| ~~REALTIME_VOICE~~ (bỏ, ADR-060) | ~~English Speaking~~ | Audio 2 chiều, barge-in, tool calling | **`gemini-3.8-live`** (free tier), chốt theo POC 6 | Cascade: STT + `gemini-3.8-flash` + TTS | `gpt-realtime-2.1-mini` |
 | STT | Toán (tiếng Việt), English (fallback) | vi-VN, streaming, confidence | Web Speech API của trình duyệt (prototype); `gemini-3.5-transcribe-live` (free tier) | PhoWhisper (VinAI) hoặc faster-whisper chạy local (cần kiểm tra license) | `gpt-4o-transcribe` |
 | TTS | Đọc câu hỏi, giọng mẫu English | Tự nhiên, vi-VN và en | `gemini-3.8-flash-tts` (free tier) | `SpeechSynthesis` của trình duyệt; Piper chạy local | — |
 | EMBEDDING | RAG | Đa ngôn ngữ (Việt/Anh) | Gemini Embedding 2 (free tier) | `bge-m3` hoặc `multilingual-e5` chạy local | `text-embedding-3-small` |
-| PRONUNCIATION | English Speaking | Điểm theo từ/âm vị | Azure Speech gói F0 (5 giờ/tháng; **cần xác minh** F0 có pronunciation assessment) | — | Azure trả phí |
+| ~~PRONUNCIATION~~ (bỏ, ADR-060) | ~~English Speaking~~ | Điểm theo từ/âm vị | Azure Speech gói F0 (5 giờ/tháng; **cần xác minh** F0 có pronunciation assessment) | — | Azure trả phí |
 
 ### 12.2. Bảng giá đã xác minh (dùng cho cost model, PART 32)
 
@@ -187,13 +187,15 @@ Request đến ai_gateway
 
 ### 20.1. Hai bài toán voice khác nhau
 
-| | Math Voice-to-Text | English Realtime Speaking |
+| | Toán: giọng nói là kênh trả lời | Tiếng Anh (ADR-060, 12/11/2026) |
 |---|---|---|
-| Mục đích | Kênh nhập liệu thay cho gõ phím | Chính là năng lực được dạy và đánh giá |
-| Ngôn ngữ | Tiếng Việt (có thuật ngữ toán) | Tiếng Anh của trẻ Việt (L2) |
-| Độ trễ cần | Thấp vừa phải (xác nhận được) | Rất thấp (hội thoại tự nhiên) |
-| Evidence | Nội dung câu trả lời (sau chuẩn hóa) | Semantic + pronunciation + fluency + interaction + support (khung English §6, §12) |
-| Kiến trúc | STT streaming → normalizer → xác nhận → tutor text | Speech-to-speech hoặc cascade (POC 6) |
+| Mục đích | Kênh nhập liệu thay cho gõ phím | Cũng chỉ là một cách trả lời, không phải kỹ năng riêng được chấm |
+| Ngôn ngữ | Tiếng Việt (có thuật ngữ toán) | Câu đích tiếng Anh của trẻ Việt; lời giải thích bằng tiếng Việt. Whisper chọn ngôn ngữ theo bước |
+| Độ trễ cần | Thấp vừa phải (xác nhận được) | Như Toán (cascade, không realtime speech-to-speech) |
+| Evidence | Nội dung câu trả lời (sau chuẩn hóa) | Nội dung câu trả lời chấm tất định (DI-110), có trọng số theo độ tin cậy ASR (DI-109); không chấm phát âm theo âm vị |
+| Kiến trúc | STT → normalizer → xác nhận → tutor text | Cùng pipeline với Toán |
+
+> Bản cũ của bảng này (English Realtime Speaking với semantic, pronunciation, fluency, interaction, support theo khung English §6, §12) đã bị bỏ cùng khung English cũ.
 
 ### 20.2. Math Voice-to-Text pipeline
 
@@ -211,65 +213,25 @@ Mic (Web Audio, 16kHz mono) ──► STT streaming (vi-VN, có phrase hints: "p
 
 **v0.2 (free-first):** prototype dùng Web Speech API của Chrome (vi-VN, miễn phí, không cần server); bản chính chọn giữa `gemini-3.5-transcribe-live` (free tier) và PhoWhisper/faster-whisper chạy local (miễn phí, không phụ thuộc hạn mức), theo kết quả spike STT (O3).
 
-Quy tắc evidence: câu trả lời qua voice **chỉ thành evidence sau khi được xác nhận**. Nếu ASR confidence thấp mà không xác nhận được thì evidence `validity = LOW` và không trừ mastery (theo tinh thần khung English §13 và quy tắc R7).
+Quy tắc evidence: câu trả lời qua voice **chỉ thành evidence sau khi được xác nhận**. Nếu ASR confidence thấp mà không xác nhận được thì evidence `validity = LOW` và không trừ mastery (quy tắc R7; với Tiếng Anh, công thức và ngưỡng cụ thể ở DI-109 của ADR-060).
 
-### 20.3. English Realtime Speaking: hai kiến trúc ứng viên
+### 20.3. Giọng nói trong module Tiếng Anh (viết lại 12/11/2026)
 
-**Kiến trúc A — Speech-to-speech có orchestrator điều khiển**
+> Các mục cũ 20.3 (English Realtime Speaking, hai kiến trúc speech-to-speech/cascade, POC 6), 20.4 (quy tắc sửa lỗi khi nói theo khung English §16, Support Ladder S0–S5) và phần English của 20.5 (ba lớp dữ liệu theo khung English §12.1, chấm Speaking theo nhiều chiều) **đã bị bỏ** cùng khung English cũ. Hướng hiện hành: `docs/plan/plan-english-g5-unit11-family-time.md` (quy tắc R-VOICE) và ADR-060 mục 7.
 
-```text
-Browser ◄──WebRTC/WebSocket──► Realtime model (Gemini Live / OpenAI Realtime)
-                                  ▲   │ tool calls: report_turn(skill, support_level, semantic_score_hint…)
-      Orchestrator ──instructions─┘   ▼
-      (session.update theo activity)  Voice Gateway (server) ← ghi audio + transcript + tool calls → Event ledger
-```
+Tóm tắt:
+- Cùng pipeline cascade với Toán: Groq Whisper → bộ chấm tất định → chính sách dạy → lời cô → VieNeu-TTS (ADR-030).
+- Whisper chọn ngôn ngữ theo bước: nói theo mẫu và hỏi đáp bằng tiếng Anh → `en`; giải nghĩa, "vì sao", câu lẫn Việt–Anh → `vi`; không bao giờ tự nhận dạng (POC `docs/poc/english-voice-decision.md`, PR #139).
+- Lời cô gửi TTS luôn đặt từ đích tiếng Anh trong một câu ("Con nói theo cô: seafood."), không gửi từ trần.
+- Mỗi lượt nói có độ tin cậy ASR (DI-109): thấp thì chỉ được làm tăng, không làm giảm mastery. Đúng sau khi cô đọc mẫu không bằng đúng độc lập (DI-108).
+- Gợi ý theo thang H0–H7 chung (DI-112); cô nhắc lại câu hỏi hay nói chậm không phải gợi ý.
+- Giáo viên nghe lại audio và thấy độ tin cậy ASR từng lượt. Chưa chấm phát âm theo âm vị; phát âm chưa chuẩn mà không cản nghĩa không phải lỗi (DI-107).
+- VieNeu-TTS v3 Turbo đọc mẫu câu tiếng Anh trọn câu rõ, từ đơn đứng một mình thì kém (POC PR #139).
 
-- Ưu: độ trễ thấp nhất, giọng tự nhiên, barge-in tốt.
-- Nhược: model realtime tự quyết lời nói từng lượt; orchestrator chỉ điều khiển gián tiếp (instructions + tool). Tuân thủ Socratic và support coding khó kiểm chứng hơn. Chất lượng suy luận sư phạm thường thấp hơn model reasoning.
-- Bảo mật: client kết nối trực tiếp với provider → cần **ephemeral token** do server cấp, gắn với session. Không bao giờ để lộ API key.
+### 20.4. Ràng buộc chung của giọng nói
 
-**Kiến trúc B — Cascade (STT → Orchestrator + LLM → TTS)**
-
-```text
-Browser ──audio──► Voice Gateway ──► STT streaming (en) ──► Orchestrator/Policy ──► TUTOR_REASONING ──► TTS streaming ──► Browser
-                                    └─► lưu audio → Pronunciation assessment (song song, không chặn lượt)
-```
-
-- Ưu: **cùng runtime Socratic với Toán** (policy, validator, evidence). Kiểm soát tuyệt đối từng lượt.
-- Nhược: độ trễ cao hơn (STT endpointing + LLM + TTS), cần tối ưu streaming. Barge-in phải tự xử lý.
-
-**Khuyến nghị [REC]:** POC 6 đo cả hai trên cùng 3 kịch bản speaking lớp 5 (mini interview, picture story, 2–3 sentence retell):
-
-| Metric | Ngưỡng chấp nhận ban đầu |
-|---|---|
-| Độ trễ end-of-speech → audio đầu tiên, p95 | ≤ 1.5s (A), ≤ 2.5s (B) |
-| Tuân thủ "không nói hộ, để học sinh nói hết" | ≥ 90% lượt |
-| Support level được ghi đúng (so với chấm tay) | ≥ 85% |
-| Transcript + audio lưu đủ cho assessment | 100% |
-| Mức dùng hạn mức/phút | Đo thực tế |
-
-Nếu A đạt tuân thủ, chọn A cho hội thoại và giữ B cho các activity cần kiểm soát chặt (assessment speaking). Hybrid là kết quả khả dĩ nhất.
-
-**v0.2 (free-first):** A dùng `gemini-3.8-live` (free tier); B dùng Web Speech API hoặc `gemini-3.5-transcribe-live` + `gemini-3.8-flash` + `gemini-3.8-flash-tts`. Cả hai đều miễn phí. POC 6 dùng giọng học sinh thật (D-T3).
-
-### 20.4. Quy tắc sửa lỗi khi nói (English, theo khung English §16)
-
-| Tình huống | Hành vi |
-|---|---|
-| Lỗi không cản trở nghĩa, không thuộc target skill | **Không ngắt**. Ghi nhận, có thể *recast* nhẹ ở lượt sau |
-| Lỗi thuộc target skill của lesson (ví dụ dùng "because") | Delayed feedback cuối lượt: recast → mời nói lại |
-| Lỗi cản trở nghĩa | Hỏi làm rõ ("Do you mean…?") → rephrase |
-| Học sinh im lặng > N giây | S1 repeat → S2 rephrase/slow → S3 hint… (Support Ladder) |
-| Học sinh đang nói | Không ngắt, trừ khi vượt thời lượng lượt tối đa của activity |
-| Pronunciation | Không sửa realtime (trừ activity phát âm chuyên biệt). Tổng hợp cuối activity, chọn 1–2 âm ưu tiên |
-
-### 20.5. Đánh giá voice và các ràng buộc
-
-- Mỗi lượt voice tạo 3 lớp dữ liệu: **audio**, **transcript** (+confidence, alignment), **pedagogical** (prompt, construct, support, semantic score, tutor action). **[FACT]** Theo khung English §12.1.
-- Không chấm Speaking chỉ từ transcript. Semantic adequacy và pronunciation/fluency là các chiều riêng.
-- Noise hoặc mic kém → `non_scorable`, yêu cầu nói lại, không trừ điểm.
+- Noise hoặc mic kém → không chấm, yêu cầu nói lại, không trừ điểm.
 - Trình duyệt: `getUserMedia` cần HTTPS và quyền mic. Kiểm tra mic trước buổi học (pre-flight). Fallback sang text nếu mic không dùng được (`VOICE_FALLBACK_TO_TEXT`).
-- Tích hợp voice **ở phase English Speaking** (sau khi runtime text đã ổn định), không phải trong vertical slice đầu (Q13).
 
 ---
 

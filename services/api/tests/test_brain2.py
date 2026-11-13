@@ -33,7 +33,10 @@ TOPIC = "số thập phân bằng nhau"
 
 def small_index(text=RULE, title="Số thập phân bằng nhau", node="eq"):
     return RagIndex(
-        [Chunk("c", text, "theory", "math-g5-decimals", node, "chapter", title, True)], None, {node: set()}
+        [Chunk("c", text, "theory", "math-g5-decimals", node, "chapter", title, True, subject="math")],
+        None,
+        {node: set()},
+        subject="math",
     )
 
 

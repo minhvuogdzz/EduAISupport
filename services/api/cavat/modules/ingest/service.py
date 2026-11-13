@@ -19,12 +19,16 @@ TITLES = {
     "math-g5-area-triangle-trapezoid": "Diện tích hình tam giác, hình thang",
 }
 STATUSES = ("VERIFIED", "REVIEW", "CONFLICT", "DISPUTED", "UNCHECKED", "NO_ANSWER")
+# ENG-2: this reader is the Mathematics one (its chapters are STP and DTTGHT); it reads Mathematics documents.
+SUBJECT = "math"
 
 
 async def rebuild(database: Any, school_id: str, chapter_id: str) -> ItemBank:
     """The bank of the chapter from its documents of now, replacing the one kept."""
     documents = [
-        d for d in await DocumentRepository(database, school_id).list_all() if d.chapter_id == chapter_id
+        d
+        for d in await DocumentRepository(database, school_id).list_all(SUBJECT)
+        if d.chapter_id == chapter_id
     ]
     items = build_bank(chapter_id, PREFIXES.get(chapter_id, "CH"), documents)
     counts = Counter(i.status for i in items)
@@ -54,7 +58,9 @@ async def rebuild_plan(database: Any, school_id: str, chapter_id: str, drafter: 
     decisions = bind_hint_decisions(before.decisions, before.lessons, before.drafts) if before else {}
     bank = await rebuild(database, school_id, chapter_id)
     documents = [
-        d for d in await DocumentRepository(database, school_id).list_all() if d.chapter_id == chapter_id
+        d
+        for d in await DocumentRepository(database, school_id).list_all(SUBJECT)
+        if d.chapter_id == chapter_id
     ]
     drafts_in = apply_item_overrides([ItemDraft(**item) for item in bank.items], decisions)
     plan = build_plan(

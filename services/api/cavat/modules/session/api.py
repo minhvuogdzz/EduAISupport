@@ -990,8 +990,10 @@ def _web_source() -> Any:
 
 async def _chapter_speaker(database, content, session, router):
     persona = content.package.persona
+    # ENG-2: the subject is the one of the chapter (or unit) package the session runs, which the backend
+    # loaded from the session's own lesson_id and version; no request field can name another one.
     return GroundedSpeaker(
-        await _rag_service.current(database),
+        await _rag_service.current(database, content.package.subject),
         router,
         tutor_self=persona.tutor_self,
         student_address=persona.student_address,

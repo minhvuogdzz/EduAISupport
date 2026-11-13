@@ -12,7 +12,7 @@
 |---|---|---|---|
 | **identity** | Tài khoản, xác thực, role, guardian link, consent | User, Credential, RoleAssignment, GuardianLink, Consent | Biết về lesson/session |
 | **org** | Trường, lớp, ghi danh, phân công giáo viên | School, Class, Enrollment, TeachingAssignment | — |
-| **curriculum** | Subject, Grade, KC graph, misconception catalog, skill taxonomy (English) | Subject, GradeLevel, KnowledgeComponent, KCPrerequisite, Misconception, Skill | Chứa dữ liệu học sinh |
+| **curriculum** | Subject, Grade, KC graph, misconception catalog | Subject, GradeLevel, KnowledgeComponent, KCPrerequisite, Misconception | Chứa dữ liệu học sinh |
 | **content** | Lesson, version, material, ingestion, item bank, lesson package, approval | Lesson, LessonVersion, Material, MaterialArtifact, Item, ItemVariant, HintTemplate, LessonPackage, RAGDocument, RAGChunk | Quyết định lịch |
 | **scheduling** | Lịch tuần, sinh session, cửa sổ thời gian | ScheduleRule, ScheduleOccurrence | Chạy tutor |
 | **session** | Vòng đời LearningSession, binding contract, state 3 tầng, timer, authorization context | LearningSession, TutorContract, SessionActivity, ItemAttempt, SessionStateSnapshot | Tính mastery |
@@ -67,7 +67,7 @@ Danh sách của brief là điểm bắt đầu. Các entity **còn thiếu** m�
 | MaterialArtifact | Kết quả từng bước ingestion (raw text, page image, extracted structure) để truy vết |
 | KnowledgeComponent, KCPrerequisite | Đơn vị đánh giá nhỏ nhất (theo khung Toán §3, §42) |
 | Misconception | Catalog có mã, thuộc KC, có "buggy rule" nếu tất định được |
-| Skill (English) | `reading.main_idea`, `speaking.interaction`… (theo khung English §3) |
+| ~~Skill (English)~~ | Bỏ (12/11/2026): Tiếng Anh dùng KnowledgeComponent/node như Toán, không có skill taxonomy riêng (ADR-060) |
 | Item, ItemVariant | Câu hỏi có metadata: KC, cognitive level A–E, difficulty, transfer, expected_time; variant là bài song sinh |
 | HintTemplate | Nội dung gợi ý do giáo viên viết hoặc AI sinh rồi được duyệt, theo item × target × level |
 | ActivityTemplate | Mẫu hoạt động (CONCEPT_CHECK, GUIDED_PRACTICE…) dùng cho contract |
@@ -76,7 +76,7 @@ Danh sách của brief là điểm bắt đầu. Các entity **còn thiếu** m�
 | TutorTurn | Một lượt tutor: directive, model output, validation result |
 | PolicyDecision | Quyết định của policy engine (luật nào, input gì) → phục vụ audit Socratic |
 | Evidence | Quan sát có cấu trúc, đã validate, gắn KC/skill (khác raw event) |
-| AssessmentResult | Kết quả chấm một item/activity (QuestionScore, rubric 0–4) |
+| AssessmentResult | Kết quả chấm một item/activity (QuestionScore); Tiếng Anh dùng cùng dạng (ADR-060) |
 | StudentKCState / StudentSkillState | Projection hồ sơ học sinh |
 | ReviewSchedule | Lịch kiểm tra retention (T1/T3/T7/T30) |
 | TeacherOverride | Ghi đè assessment/mastery, có lý do, có audit |
@@ -251,7 +251,7 @@ sequenceDiagram
 L0  Raw Event          SessionEvent (append-only, bất biến, có payload đầy đủ)
 L1  Learning Evidence  Evidence (đã validate: KC/skill, construct, support level, validity)
 L2  Derived Features   per-evidence features (independence_weight, difficulty_weight, error_class…)
-L3  Assessment         AssessmentResult (QuestionScore / rubric 0–4)
+L3  Assessment         AssessmentResult (QuestionScore)
 L4  Metric             StudentKCState / StudentSkillState (mastery, confidence, chiều)
 L5  Interpretation     Trạng thái (NOT_LEARNED… MASTERED_STABLE), nhận xét theo template
 L6  Recommendation     Hành động tutor tiếp theo / gợi ý cho giáo viên
@@ -313,4 +313,4 @@ JSON Schema của từng payload nằm ở `packages/schemas/events/`. CI kiểm
 | Student Memory | Snapshot Student Model cho các KC của lesson + top misconception + sở thích tương tác (ví dụ thích ví dụ về bóng đá) | learner | Khối "Student Snapshot" ngắn (≤ 400 token), sinh tất định |
 | Long-Term History | Mọi session cũ | Event ledger | **Không** đưa vào prompt. Chỉ truy xuất *có chủ đích* (ví dụ lỗi cũ trên cùng KC) qua query có cấu trúc, không qua vector search trên transcript |
 
-Nguyên tắc: **memory của AI ≠ evidence của học sinh.** Việc tutor "nhớ" không phải là bằng chứng học sinh biết (khung English §12.1).
+Nguyên tắc: **memory của AI ≠ evidence của học sinh.** Việc tutor "nhớ" không phải là bằng chứng học sinh biết (khung English §12.1 cũ; nguyên tắc vẫn giữ).

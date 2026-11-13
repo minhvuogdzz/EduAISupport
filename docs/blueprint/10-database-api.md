@@ -155,7 +155,7 @@ Chưa làm ở MVP (theo mô hình logic, thêm khi có task): credential, guard
 | `evidence` | id, school_id, student_id, session_id, source_event_ids[], kc_id / skill_id, dimension, score, weight, validity, construct, support_level, error_class, misconception_id, policy_version, supersedes_id |
 | `assessment_result` | id, item_attempt_id, question_score / rubric_level, breakdown(jsonb), policy_version |
 | `student_kc_state` | (student_id, kc_id, policy_version) PK; state(jsonb theo PART 25.1); updated_at |
-| `student_skill_state` | (student_id, skill_id, policy_version) PK; state(jsonb) |
+| ~~`student_skill_state`~~ | Bỏ (ADR-060): Tiếng Anh dùng cùng trạng thái node như Toán |
 | `review_schedule` | student_id, kc_id/skill_id, due_at, kind (T1/T3/T7/T30), status |
 | `teacher_override` | id, target_type, target_id, before(jsonb), after(jsonb), reason, teacher_id, created_at |
 | `ai_flag` | id, session_event_id, teacher_id, category, note, status |

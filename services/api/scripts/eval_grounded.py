@@ -137,7 +137,9 @@ def run(only: set[str]) -> tuple[list[Row], str, int]:
     order = chapter.topological_order()
     tutor_router = build_router(for_eval=True)
     judge_router = build_router(chains={ModelClass.EVAL_JUDGE: (JUDGE_MODEL,)}, for_eval=True)
-    index = asyncio.run(RagService(DEMO_SCHOOL_ID, chapter_service.chapters).current(InMemoryDatabase()))
+    index = asyncio.run(
+        RagService(DEMO_SCHOOL_ID, chapter_service.chapters).current(InMemoryDatabase(), "math")
+    )
     semantic = index.embedder.name if index.embedder else "off"
     cases = yaml.safe_load(DATASET.read_text(encoding="utf-8"))["cases"]
     cases = [c for c in cases if not only or c["id"] in only]
