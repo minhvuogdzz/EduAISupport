@@ -77,6 +77,7 @@ def upload(client, name: str, data: bytes, **form: str):
             "title": form.get("title", ""),
             "kind": form.get("kind", "KHAC"),
             "chapter_id": form.get("chapter", ""),
+            "subject": form.get("subject", ""),
         },
         headers=TEACHER,
     )
@@ -126,14 +127,31 @@ def test_the_teacher_uploads_reads_downloads_and_deletes_a_document(client, tmp_
 
 
 def test_photos_go_through_ocr_and_wrong_files_are_refused(client, monkeypatch):
-    photo = upload(client, "trang-sgk.jpg", b"\xff\xd8 jpeg bytes").json()
-    assert (photo["status"], photo["method"]) == ("READ", "ocr-gemini")
+    photo = upload(client, "trang-sgk.jpg", b"\xff\xd8 jpeg bytes", subject="math").json()
+    assert (photo["status"], photo["method"], photo["subject"]) == ("READ", "ocr-gemini", "math")
     assert upload(client, "virus.exe", b"MZ").status_code == 415
     assert upload(client, "trong.txt", b"").status_code == 422
     monkeypatch.setattr(library_api, "MAX_BYTES", 10)
     assert upload(client, "lon.txt", b"x" * 11).status_code == 413
     # Teachers only.
     assert client.get("/v1/teachers/documents").status_code == 401
+
+
+def test_every_new_document_has_a_subject_and_its_chapter_decides_it(client):
+    """ENG-2 (ADR-061): a document takes the subject of its chapter; without a chapter the teacher names
+    one; without either the upload is refused (never Mathematics by default)."""
+    text = "Muốn so sánh hai số thập phân, so sánh phần nguyên trước.".encode()
+    assert upload(client, "a.txt", text).status_code == 422  # neither a chapter nor a subject
+    assert upload(client, "a.txt", text, subject="history").status_code == 422
+    assert upload(client, "a.txt", text, chapter="math-g5-decimals", subject="english").status_code == 422
+    assert upload(client, "a.txt", text, chapter="no-such-chapter").status_code == 422
+    by_chapter = upload(client, "a.txt", text, chapter="math-g5-decimals").json()
+    english = upload(client, "b.txt", b"My family: father, mother, brother.", subject="english").json()
+    assert (by_chapter["subject"], english["subject"]) == ("math", "english")
+    listed = {
+        d["document_id"]: d["subject"] for d in client.get("/v1/teachers/documents", headers=TEACHER).json()
+    }
+    assert listed == {by_chapter["document_id"]: "math", english["document_id"]: "english"}
 
 
 def test_the_teacher_reads_the_chapter_with_its_answers(client):

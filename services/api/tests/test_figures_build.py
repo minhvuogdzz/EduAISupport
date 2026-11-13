@@ -67,6 +67,7 @@ def document(path_name: str = "baitap.pdf", text: str = TEXT) -> TeacherDocument
         title="Bài tập",
         kind="BAI_TAP",
         chapter_id=CHAPTER,
+        subject="math",
         filename=path_name,
         content_type="application/pdf",
         size=1,

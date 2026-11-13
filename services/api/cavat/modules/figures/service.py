@@ -46,7 +46,9 @@ async def plan(database: Any, school_id: str, chapter_id: str, storage_dir: Path
     if bank is None:
         raise FigureBuildError(f"{chapter_id}: the item bank is not built yet (make item-bank)")
     documents: list[TeacherDocument] = [
-        d for d in await DocumentRepository(database, school_id).list_all() if d.chapter_id == chapter_id
+        d
+        for d in await DocumentRepository(database, school_id).list_all("math")
+        if d.chapter_id == chapter_id
     ]
     return plan_chapter(chapter_id, documents, bank.items, storage_reader(storage_dir))
 

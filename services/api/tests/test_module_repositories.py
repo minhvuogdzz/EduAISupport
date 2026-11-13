@@ -312,6 +312,7 @@ async def test_every_stored_learner_document_has_school_id(db, package):
         TeacherDocument(
             school_id="sch-A",
             title="SGK",
+            subject="math",
             filename="sgk.pdf",
             content_type="application/pdf",
             size=1,

@@ -78,7 +78,7 @@ async def main() -> None:
     ocr = library_api._ocr()
     if ocr is None:
         print("Chưa có GEMINI_API_KEY: trang có ảnh hoặc hình vẽ được đánh dấu để giáo viên xem.")
-    known = {d.sha256: d for d in await repo.list_all()}
+    known = {d.sha256: d for d in await repo.list_all("math")}  # STP/DTTGHT files: Mathematics
     files = sorted(
         (p for p in folder.iterdir() if extension_of(p.name) in FILE_KINDS),
         key=lambda p: (p.stem.endswith("-dapan"), p.name),  # questions before their answer keys
@@ -105,6 +105,7 @@ async def main() -> None:
             title=title,
             kind=kind,
             chapter_id=chapter_id,
+            subject="math",
             answers_for=ids_by_stem.get(questions_of, ""),
             uploaded_by=uploaded_by,
             ocr=ocr,

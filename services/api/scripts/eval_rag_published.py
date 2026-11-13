@@ -112,7 +112,7 @@ async def main(live: bool, holdout_path=HOLDOUT, tag: str = "") -> int:
     database = db.get_db(settings)
     await chapter_service.load_published(database, DEMO_SCHOOL_ID)
     index = await RagService(DEMO_SCHOOL_ID, chapter_service.chapters, embedder=lambda: embedder).current(
-        database
+        database, "math"
     )
     await db.close_client()
     if index.semantic_error:
