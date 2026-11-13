@@ -24,6 +24,7 @@ from pydantic import BaseModel
 
 from cavat.config import REPO_ROOT, get_settings
 from cavat.core.repository import new_id
+from cavat.core.subjects import SUBJECTS
 from cavat.modules.ai_gateway.base import ModelUnavailable, QuotaExceeded
 from cavat.modules.assessment.math_checker import parse_literal
 from cavat.modules.content.chapter_package import Chapter
@@ -51,6 +52,7 @@ class DocumentView(BaseModel):
     title: str
     kind: DocumentKind
     chapter_id: str | None
+    subject: str  # ENG-2: "math" or "english"
     filename: str
     content_type: str
     size: int
@@ -76,6 +78,7 @@ def _view(doc: TeacherDocument, with_text: bool = False) -> dict[str, Any]:
         "title": doc.title,
         "kind": doc.kind,
         "chapter_id": doc.chapter_id,
+        "subject": doc.subject,
         "filename": doc.filename,
         "content_type": doc.content_type,
         "size": doc.size,
@@ -165,6 +168,7 @@ def read_document(
     title: str,
     kind: str,
     chapter_id: str,
+    subject: str,
     answers_for: str,
     uploaded_by: str,
     ocr: Ocr | None,
@@ -191,6 +195,7 @@ def read_document(
         title=title.strip() or filename,
         kind=kind,  # type: ignore[arg-type]
         chapter_id=chapter_id or None,
+        subject=subject,  # type: ignore[arg-type]
         filename=filename,
         content_type=KINDS[extension_of(filename)],
         size=len(data),
@@ -302,6 +307,23 @@ def chapter_content(chapter: Chapter, source: str) -> dict[str, Any]:
     }
 
 
+def document_subject(chapter_id: str, subject: str, chapters: dict[str, tuple[Chapter, Any]]) -> str:
+    """The subject of an uploaded document (ENG-2): the subject of its chapter when it names one (a subject
+    sent with it must agree), the one the teacher picked when it names none. Without either it is an error,
+    never Mathematics by default."""
+    if chapter_id:
+        found = chapters.get(chapter_id)
+        if found is None:
+            raise LibraryError(422, "VALIDATION_ERROR", f"no chapter {chapter_id!r}")
+        own = found[0].package.subject
+        if subject and subject != own:
+            raise LibraryError(422, "VALIDATION_ERROR", f"chapter {chapter_id!r} is {own}, not {subject}")
+        return own
+    if subject not in SUBJECTS:
+        raise LibraryError(422, "VALIDATION_ERROR", f"subject must be one of {', '.join(SUBJECTS)}")
+    return subject
+
+
 def build_router(
     database_dependency: Any, teacher_dependency: Any, school_id: str, chapters: Any
 ) -> APIRouter:
@@ -318,6 +340,7 @@ def build_router(
         title: Annotated[str, Form()] = "",
         kind: Annotated[DocumentKind, Form()] = "KHAC",
         chapter_id: Annotated[str, Form()] = "",
+        subject: Annotated[str, Form()] = "",
         answers_for: Annotated[str, Form()] = "",
         database: Any = database_dep,
         teacher: str = teacher_dep,
@@ -332,6 +355,7 @@ def build_router(
             raise LibraryError(413, "VALIDATION_ERROR", "the file is larger than 25 MB")
         if not data:
             raise LibraryError(422, "VALIDATION_ERROR", "the file is empty")
+        subject = document_subject(chapter_id, subject, chapters())
         document = await run_in_threadpool(
             read_document,
             data,
@@ -340,6 +364,7 @@ def build_router(
             title=title,
             kind=kind,
             chapter_id=chapter_id,
+            subject=subject,
             answers_for=answers_for,
             uploaded_by=teacher,
             ocr=_ocr(),

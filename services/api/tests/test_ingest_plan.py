@@ -117,6 +117,7 @@ def doc(kind: str, text: str, **fields) -> TeacherDocument:
         title=kind,
         kind=kind,
         chapter_id="math-g5-decimals",
+        subject="math",
         filename=f"{kind}.pdf",
         content_type="application/pdf",
         size=1,

@@ -809,11 +809,16 @@ export interface PageRead {
 }
 
 /** A document the teacher uploaded; its text feeds the Hybrid RAG, unless it is an answer key or a test. */
+/** ENG-2 (ADR-061): the subject of a chapter, a document or a RAG passage; the backend sets it. */
+export type Subject = "math" | "english";
+
 export interface TeacherDocument {
   document_id: string;
   title: string;
   kind: DocumentKind;
   chapter_id: string | null;
+  /** The subject of its chapter, or the one named at upload when it has no chapter (always sent by the API). */
+  subject?: Subject;
   filename: string;
   content_type: string;
   size: number;
@@ -981,6 +986,8 @@ export interface TeacherFigure extends FigureView {
 
 /** GET /v1/teachers/rag/status: where the RAG takes its passages from. */
 export interface RagStatus {
+  /** The subject whose index this is (one index per subject, ENG-2). */
+  subject?: Subject;
   chunks: number;
   /** "chapter" (approved or draft teaching content) and "document" (the teacher's uploads). */
   by_source: Record<string, number>;
@@ -1001,6 +1008,7 @@ export type RagMode = "question" | "teach" | "hint";
 
 export interface RagResult {
   chunk_id: string;
+  subject?: Subject;
   title: string;
   kind: string;
   source: string;
@@ -1027,6 +1035,8 @@ export interface RagResult {
 
 /** GET /v1/teachers/rag/search: the six steps of one retrieval, every signal shown. */
 export interface RagSearch {
+  /** The subject whose index was searched. */
+  subject?: Subject;
   query: string;
   node_id: string | null;
   /** "definition" when a free question asks what something is ("… là gì"). */

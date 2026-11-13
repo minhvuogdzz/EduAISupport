@@ -3,6 +3,9 @@ whenever that corpus changes (a document uploaded or deleted, a chapter version 
 
 A document passage is tied to the node it talks about when one node clearly stands out (``tag_passages``,
 DI-17); otherwise it stays a chapter-level passage, one step away from every node.
+
+ENG-2 (ADR-061): one index per subject of the school, built from that subject's chapters, documents and
+graph only (filtered when the index is built, not when it is read).
 """
 
 from __future__ import annotations
@@ -10,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from collections.abc import Callable
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -18,8 +21,10 @@ from fastapi.concurrency import run_in_threadpool
 
 from cavat.config import get_settings
 from cavat.core.repository import utc_now
+from cavat.core.subjects import check_subject
 from cavat.modules.content.chapter_package import ORDER_RELATIONS, Chapter
 from cavat.modules.library.repository import RAG_KINDS, DocumentRepository, TeacherDocument
+from cavat.modules.rag.analyzers import analyzer_for
 from cavat.modules.rag.bm25 import TwoFormBM25
 from cavat.modules.rag.chunks import Chunk, chapter_chunks, document_chunks
 from cavat.modules.rag.embed import Embedder, GatewayEmbedder
@@ -55,15 +60,27 @@ def tag_passages(passages: list[Chunk], reference: list[Chunk]) -> list[Chunk]:
     otherwise the passage stays chapter-level, one step from every node. Measured on 11 sample passages:
     7 tied right, 4 left at chapter level, none tied wrong (a node profile of name, description and rule
     tied 5).
+
+    ENG-2: a passage is only ever compared with the chunks of its own subject, read with that subject's
+    analyzer: an English passage is never tied to a node of Mathematics, nor the other way round, also when
+    it names no chapter.
     """
-    tied = [c for c in reference if c.node_id]
-    if not tied:
-        return passages
-    index = TwoFormBM25([c.text for c in tied])
+    by_subject: dict[str, list[Chunk]] = {}
+    for c in reference:
+        if c.node_id:
+            by_subject.setdefault(c.subject, []).append(c)
+    indexes = {
+        subject: TwoFormBM25([c.text for c in tied], analyzer_for(subject))
+        for subject, tied in by_subject.items()
+    }
     out = []
     for passage in passages:
+        tied = by_subject.get(passage.subject, [])
+        if not tied:
+            out.append(passage)
+            continue
         best: dict[str, float] = {}
-        for c, score in zip(tied, index.scores(passage.text), strict=True):
+        for c, score in zip(tied, indexes[passage.subject].scores(passage.text), strict=True):
             if passage.chapter_id and c.chapter_id != passage.chapter_id:
                 continue
             best[c.node_id or ""] = max(best.get(c.node_id or "", 0.0), score)
@@ -81,7 +98,21 @@ def tag_passages(passages: list[Chunk], reference: list[Chunk]) -> list[Chunk]:
     return out
 
 
+@dataclass
+class SubjectIndex:
+    """The index of one subject and what it was built from (ENG-2)."""
+
+    index: RagIndex | None = None
+    signature: str | None = None
+    built_at: datetime | None = None
+    documents: list[TeacherDocument] = field(default_factory=list)
+
+
 class RagService:
+    """The school's indexes, one per subject (ENG-2, ADR-061): the chapters, documents and graph of a
+    subject make its own ``RagIndex``; nothing of another subject is ever put in it. A caller always names
+    the subject: the one of the chapter or unit package the session runs, set by the backend."""
+
     def __init__(
         self,
         school_id: str,
@@ -93,25 +124,28 @@ class RagService:
         self._make_embedder = embedder
         self._embedder: Embedder | None = None  # made once: its cache of vectors lives as long as the service
         self._embedder_made = False
-        self._index: RagIndex | None = None
         self._lock = asyncio.Lock()  # one build at a time
-        self._signature: str | None = None
-        self.built_at: datetime | None = None
-        self.documents: list[TeacherDocument] = []
+        self._subjects: dict[str, SubjectIndex] = {}
 
-    def chapters(self) -> dict[str, Chapter]:
-        return self._chapters()
+    def chapters(self, subject: str) -> dict[str, Chapter]:
+        """The chapters (or units) of one subject."""
+        check_subject(subject)
+        return {cid: c for cid, c in self._chapters().items() if c.package.subject == subject}
 
-    def _signature_of(self, docs: list[TeacherDocument]) -> str:
-        parts = [f"{cid}:{c.package.version}" for cid, c in sorted(self._chapters().items())]
+    def state(self, subject: str) -> SubjectIndex:
+        """What the service keeps for one subject (its index, when it was built, from which documents)."""
+        return self._subjects.setdefault(check_subject(subject), SubjectIndex())
+
+    def _signature_of(self, chapters: dict[str, Chapter], docs: list[TeacherDocument]) -> str:
+        parts = [f"{cid}:{c.package.version}" for cid, c in sorted(chapters.items())]
         parts += [f"{d.id}:{d.sha256}:{d.status}:{len(d.text)}:{d.chapter_id}:{d.kind}" for d in docs]
         return hashlib.sha256("|".join(parts).encode()).hexdigest()
 
-    def _build(self, docs: list[TeacherDocument]) -> RagIndex:
-        chapters = self._chapters()
+    def _build(self, subject: str, chapters: dict[str, Chapter], docs: list[TeacherDocument]) -> RagIndex:
         chunks: list[Chunk] = []
         graph: dict[str, set[str]] = {}
         for chapter in chapters.values():
+            assert chapter.package.subject == subject  # filtered by ``chapters(subject)``
             chunks += chapter_chunks(chapter)
             for r in chapter.package.relations:
                 # Plan 5.5.3, step 1: a node reaches what it builds on (its prerequisites, the basic node it
@@ -123,26 +157,31 @@ class RagService:
                     graph.setdefault(r.target, set()).add(r.source)
         passages: list[Chunk] = []
         for doc in docs:
+            assert doc.subject == subject  # filtered by ``DocumentRepository.list_all(subject)``
             if doc.text and doc.kind in RAG_KINDS:  # never an answer key or a test (rule 2)
-                passages += document_chunks(doc.id, doc.title, doc.chapter_id, doc.text)
+                passages += document_chunks(doc.id, doc.title, doc.chapter_id, doc.text, subject=subject)
         chunks += tag_passages(passages, chunks)
         if not self._embedder_made:
             self._embedder, self._embedder_made = self._make_embedder(), True
-        return RagIndex(chunks, self._embedder, graph)
+        return RagIndex(chunks, self._embedder, graph, subject=subject)
 
-    def _stale(self, signature: str) -> bool:
-        if self._index is None or signature != self._signature:
+    def _stale(self, kept: SubjectIndex, signature: str) -> bool:
+        if kept.index is None or signature != kept.signature:
             return True
-        failed = self._index.semantic_error is not None
-        return failed and self.built_at is not None and utc_now() - self.built_at > SEMANTIC_RETRY
+        failed = kept.index.semantic_error is not None
+        return failed and kept.built_at is not None and utc_now() - kept.built_at > SEMANTIC_RETRY
 
-    async def current(self, database: Any, *, force: bool = False) -> RagIndex:
-        """The index of the corpus as it is now: rebuilt when a document or a chapter version changed."""
-        docs = await DocumentRepository(database, self.school_id).list_all()
-        signature = self._signature_of(docs)
+    async def current(self, database: Any, subject: str, *, force: bool = False) -> RagIndex:
+        """The index of one subject's corpus as it is now: rebuilt when one of its documents or chapter
+        versions changed. ``subject`` is required: there is no index of every subject."""
+        check_subject(subject)
+        docs = await DocumentRepository(database, self.school_id).list_all(subject)
+        chapters = self.chapters(subject)
+        signature = self._signature_of(chapters, docs)
         async with self._lock:
-            if force or self._stale(signature):
-                self._index = await run_in_threadpool(self._build, docs)
-                self._signature, self.built_at, self.documents = signature, utc_now(), docs
-            assert self._index is not None
-            return self._index
+            kept = self.state(subject)
+            if force or self._stale(kept, signature):
+                kept.index = await run_in_threadpool(self._build, subject, chapters, docs)
+                kept.signature, kept.built_at, kept.documents = signature, utc_now(), docs
+            assert kept.index is not None
+            return kept.index

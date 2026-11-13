@@ -16,6 +16,7 @@ from cavat.core.repository import (
     TenantScopedRepository,
     utc_now,
 )
+from cavat.core.subjects import Subject, check_subject, with_legacy_subject
 
 DocumentKind = Literal[
     "SGK", "BAI_GIANG", "GIAO_AN", "BAI_TAP", "PHIEU", "DE_KIEM_TRA", "DAP_AN", "LOI_SAI", "KHAC"
@@ -44,6 +45,9 @@ class PageReadRecord(BaseModel):
 class TeacherDocument(TenantDocument):
     title: str = Field(min_length=1, max_length=200)
     kind: DocumentKind = "KHAC"
+    # ENG-2: the subject the document serves; required, no default. A stored document without one (written
+    # before ENG-2) is read as Mathematics by ``DocumentRepository`` (DI-120), never here.
+    subject: Subject
     chapter_id: str | None = None  # the chapter it serves (math-g5-decimals, ...), None: not decided yet
     filename: str
     content_type: str
@@ -61,6 +65,11 @@ class TeacherDocument(TenantDocument):
     answers_for: str | None = None  # an answer key: the document of the questions it answers
 
 
+def _read(doc: dict) -> TeacherDocument:
+    """A stored document; one written before ENG-2 has no subject and is Mathematics (DI-120)."""
+    return TeacherDocument.from_doc(with_legacy_subject(doc))
+
+
 class DocumentRepository(TenantScopedRepository):
     collection_name = "documents"
     indexes = (IndexSpec((("school_id", ASCENDING), ("uploaded_at", DESCENDING)), "school_recent"),)
@@ -71,15 +80,22 @@ class DocumentRepository(TenantScopedRepository):
 
     async def get(self, document_id: str) -> TeacherDocument | None:
         doc = await self._find_one({"_id": document_id})
-        return TeacherDocument.from_doc(doc) if doc else None
+        return _read(doc) if doc else None
 
     async def list_recent(self, limit: int = 200) -> list[TeacherDocument]:
         docs = await self._find({}, sort=[("uploaded_at", DESCENDING)], limit=limit, projection={"text": 0})
-        return [TeacherDocument.from_doc({**d, "text": ""}) for d in docs]
+        return [_read({**d, "text": ""}) for d in docs]
 
-    async def list_all(self) -> list[TeacherDocument]:
-        """Every document with its text (the RAG index reads them)."""
-        return [TeacherDocument.from_doc(d) for d in await self._find({})]
+    async def list_all(self, subject: str) -> list[TeacherDocument]:
+        """Every document of one subject with its text (the RAG index of that subject reads them).
+
+        ``subject`` is required (ENG-2): there is no call that reads the documents of every subject. The
+        filter runs after the legacy rule (DI-120), since a document written before ENG-2 has no field to
+        match in the database; the collection is one school's library, a few hundred documents at most.
+        """
+        check_subject(subject)
+        docs = [_read(d) for d in await self._find({})]
+        return [d for d in docs if d.subject == subject]
 
     async def delete(self, document_id: str) -> bool:
         return await self._delete_one({"_id": document_id})

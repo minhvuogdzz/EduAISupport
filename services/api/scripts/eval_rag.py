@@ -74,7 +74,7 @@ async def main(live: bool) -> int:
         embedder = HashEmbedder()
     started = time.perf_counter()
     index = await RagService(DEMO_SCHOOL_ID, chapter_service.chapters, embedder=lambda: embedder).current(
-        InMemoryDatabase()
+        InMemoryDatabase(), "math"
     )
     if index.semantic_error:
         print(f"The embedding model failed: {index.semantic_error}")

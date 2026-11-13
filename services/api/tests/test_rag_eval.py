@@ -20,7 +20,7 @@ HOLDOUT = REPO_ROOT / "evals/datasets/rag-decimals-holdout-v1.yaml"
 @pytest.fixture(scope="module")
 async def index():
     rag = RagService(service.DEMO_SCHOOL_ID, chapter_service.chapters, embedder=lambda: HashEmbedder())
-    return await rag.current(InMemoryDatabase())
+    return await rag.current(InMemoryDatabase(), "math")
 
 
 async def test_every_label_names_a_passage_of_the_chapter(index):
