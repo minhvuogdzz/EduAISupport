@@ -58,7 +58,7 @@ Loop phải chạy trên **một lesson Toán lớp 5 thật**, với tài liệ
 
 ### 2.3. Hệ quả của scope đối với hai tài liệu đánh giá
 
-- **[FACT]** Khung đánh giá Tiếng Anh viết cho lớp 4–7 và bao gồm cả Listening/Writing. Ta chỉ trích phần lớp 5 và Reading/Speaking, vẫn giữ Support Ladder S0–S5 và rubric 0–4 cho mọi subskill.
+- ~~**[FACT]** Khung đánh giá Tiếng Anh viết cho lớp 4–7 và bao gồm cả Listening/Writing. Ta chỉ trích phần lớp 5 và Reading/Speaking, vẫn giữ Support Ladder S0–S5 và rubric 0–4 cho mọi subskill.~~ **Bỏ (12/11/2026):** Tiếng Anh dùng khung Toán ánh xạ lại cho một unit, xem ADR-060.
 - **[FACT]** Khung đánh giá Toán dùng ví dụ lớp 10–12 (đạo hàm, cực trị, tiệm cận) và misconception đại số (M01–M07). **Phần mô hình** (6 mức hiểu, 7 chiều, công thức, gate) dùng được cho lớp 5. **Phần nội dung** (KC, misconception, ví dụ transfer) phải viết lại cho lớp 5. Đây là một deliverable của Tuần 1 (xem PART 18).
 
 ### 2.4. Nguyên tắc mở rộng
@@ -126,14 +126,14 @@ Phần này audit brief và hai tài liệu đánh giá, chỉ ra chỗ mâu thu
 | C1 | Hàm Understanding có **6** chiều (Knowledge, Reasoning, Application, Transfer, Stability, Independence), nhưng công thức M có **7** trọng số (C, R, A, T, I, S, **D**). "Knowledge" bị thay bằng "Correctness" và thêm "Diagnostic" | §2 và §20 | **[REC]** Dùng 7 chiều của công thức M làm chuẩn tính toán; hiển thị radar 6 trục theo §24, trong đó Knowledge ≈ Correctness. Ghi rõ đây là *declared interpretation* |
 | C2 | Có **ba hệ thống dải điểm khác nhau**: 6 mức hiểu (0–19/20–39/40–59/60–74/75–89/90–100), màu heatmap (0–39/40–59/60–74/75–89/90–100) và Recommendation (0–30/30–50/50–65/65–80/80–90/90+) | §4–8, §25, §50 | **[REC]** Mức hiểu và màu heatmap tương thích nhau (mức 0 và 1 cùng màu đỏ). Recommendation bands **lệch** so với hai hệ còn lại → đề xuất căn theo ranh giới mức hiểu, đưa vào `mastery_policy` có version, pedagogy lead ký duyệt |
 | C3 | Gate MASTERED yêu cầu Retention ≥ 70%, nhưng retention chỉ đo được sau T1–T30 ngày. Trong một buổi học không có retention, vậy M tính thế nào? | §19, §53, §55 ("Retention: chưa đủ dữ liệu") | **[REC]** Chiều thiếu dữ liệu thì **loại khỏi mẫu số** (renormalize trọng số) và **giảm confidence**. Trạng thái cao nhất đạt được trong một buổi là `PROVISIONALLY_MASTERED` |
-| C4 | Bảng Independence có 6 mức hỗ trợ; brief có 8 mức hint (H0–H7); English có S0–S5 | §11, brief §6, English §9 | **[REC]** Ladder Toán H0–H7 và ladder English S0–S5 là **hai ladder riêng**, mỗi rung ánh xạ sang `independence_weight`. Các giá trị nội suy phải ghi là declared interpretation (PART 15) |
+| C4 | Bảng Independence có 6 mức hỗ trợ; brief có 8 mức hint (H0–H7); English có S0–S5 | §11, brief §6, English §9 | ~~**[REC]** Hai ladder riêng~~ **Thay (12/11/2026):** Tiếng Anh dùng chung ladder H0–H7 của Toán, nội dung bậc theo DI-112 (ADR-060) |
 | C5 | Trọng số M (0.20/0.20/0.15/0.15/0.10/0.10/0.10) và QuestionScore (0.35/0.30/0.15/0.10/0.10) là **đề xuất**, chưa được hiệu chỉnh | §20, §35 | **[ASSUME]** Dùng nguyên văn làm `mastery_policy v1`. Hiệu chỉnh bằng dữ liệu pilot và chấm song song với giáo viên |
 
 ### 4.2. Rủi ro và hạn chế trong khung đánh giá Tiếng Anh
 
 - **[FACT]** Tài liệu nêu rõ các ngưỡng mastery là "đề xuất vận hành của CAVAT, không được trình bày như điểm chuẩn chính thức của Bộ GD&ĐT". Mọi UI hay report không được gọi là "chuẩn Bộ".
 - **[FACT]** Tài liệu cảnh báo ASR trên giọng trẻ em có độ chính xác không đồng đều và không được chấm Speaking chỉ từ transcript. Hệ quả: đánh giá Speaking là **thành phần rủi ro AI cao nhất** của dự án, và là lý do chính để làm Math trước (PART 12, Q10).
-- **[FACT]** Rubric 0–4 **không phải phần trăm**. **[REC]** Không quy đổi English sang % để đặt cạnh Toán. Cả hai môn dùng chung một lớp "trạng thái hiển thị định tính" cho phụ huynh (PART 27).
+- ~~**[FACT]** Rubric 0–4 **không phải phần trăm**.~~ (Rubric 0–4 đã bỏ, ADR-060.) **[REC]** Không đưa cho phụ huynh một điểm số Tiếng Anh duy nhất. Cả hai môn dùng chung một lớp "trạng thái hiển thị định tính" cho phụ huynh (PART 27, DI-113).
 
 ### 4.3. Audit brief: những chỗ cần thiết kế lại
 
