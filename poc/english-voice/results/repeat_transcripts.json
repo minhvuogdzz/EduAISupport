@@ -1,0 +1,194 @@
+{
+ "Con_nói_word_brother_0.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, brother."
+ },
+ "Con_nói_word_brother_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, brother."
+ },
+ "Con_nói_word_brother_1.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, brother."
+ },
+ "Con_nói_word_brother_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, brother."
+ },
+ "Con_nói_word_father_0.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, father."
+ },
+ "Con_nói_word_father_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, father..."
+ },
+ "Con_nói_word_father_1.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, Father."
+ },
+ "Con_nói_word_father_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Father."
+ },
+ "Con_nói_word_grandfather_0.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, Grandfather."
+ },
+ "Con_nói_word_grandfather_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Randfolder."
+ },
+ "Con_nói_word_grandfather_1.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, Grandfather."
+ },
+ "Con_nói_word_grandfather_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Grandfather."
+ },
+ "Con_nói_word_grandmother_0.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, grandmother."
+ },
+ "Con_nói_word_grandmother_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, grandmother."
+ },
+ "Con_nói_word_grandmother_1.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, Grandmother."
+ },
+ "Con_nói_word_grandmother_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Grandmother."
+ },
+ "Con_nói_word_mother_0.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, Mother."
+ },
+ "Con_nói_word_mother_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Mother."
+ },
+ "Con_nói_word_mother_1.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, Mother. Mê sự điểm"
+ },
+ "Con_nói_word_mother_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Mother. Mê sự điểm."
+ },
+ "Con_nói_word_sister_0.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô sister."
+ },
+ "Con_nói_word_sister_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Sister."
+ },
+ "Con_nói_word_sister_1.wav/en": {
+  "language": "English",
+  "text": "Con nói theo cô, sister."
+ },
+ "Con_nói_word_sister_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô, Sister."
+ },
+ "Word_brother_0.wav/en": {
+  "language": "English",
+  "text": "Brother."
+ },
+ "Word_brother_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Brother"
+ },
+ "Word_brother_1.wav/en": {
+  "language": "English",
+  "text": "Brother. Brother Siu."
+ },
+ "Word_brother_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Brother Brother si"
+ },
+ "Word_father_0.wav/en": {
+  "language": "English",
+  "text": "Fado. Fado."
+ },
+ "Word_father_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Phá đồ Phá đồ"
+ },
+ "Word_father_1.wav/en": {
+  "language": "English",
+  "text": "Father"
+ },
+ "Word_father_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Father"
+ },
+ "Word_grandfather_0.wav/en": {
+  "language": "English",
+  "text": "Grandfather"
+ },
+ "Word_grandfather_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Grandfather"
+ },
+ "Word_grandfather_1.wav/en": {
+  "language": "English",
+  "text": "Grandfather"
+ },
+ "Word_grandfather_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Grandfather"
+ },
+ "Word_grandmother_0.wav/en": {
+  "language": "English",
+  "text": "Grandmother."
+ },
+ "Word_grandmother_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Grandmother"
+ },
+ "Word_grandmother_1.wav/en": {
+  "language": "English",
+  "text": "Grandmother, what happened there?"
+ },
+ "Word_grandmother_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Grandmother, when happened me?"
+ },
+ "Word_mother_0.wav/en": {
+  "language": "English",
+  "text": "Mother, father."
+ },
+ "Word_mother_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Mother, father"
+ },
+ "Word_mother_1.wav/en": {
+  "language": "English",
+  "text": "Mato. Mato."
+ },
+ "Word_mother_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Mà tôi, mà tôi"
+ },
+ "Word_sister_0.wav/en": {
+  "language": "English",
+  "text": "Sister."
+ },
+ "Word_sister_0.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Sister"
+ },
+ "Word_sister_1.wav/en": {
+  "language": "English",
+  "text": "Sister."
+ },
+ "Word_sister_1.wav/vi": {
+  "language": "Vietnamese",
+  "text": "Xích tố."
+ }
+}

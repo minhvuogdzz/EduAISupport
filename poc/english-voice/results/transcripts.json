@@ -1,0 +1,482 @@
+{
+ "ref/p1/auto": {
+  "language": "English",
+  "text": "This is my mother."
+ },
+ "ref/p1/en": {
+  "language": "English",
+  "text": "This is my mother."
+ },
+ "ref/p1/vi": {
+  "language": "Vietnamese",
+  "text": "This is my mother."
+ },
+ "ref/p2/auto": {
+  "language": "English",
+  "text": "She is my sister."
+ },
+ "ref/p2/en": {
+  "language": "English",
+  "text": "She is my sister."
+ },
+ "ref/p2/vi": {
+  "language": "Vietnamese",
+  "text": "She is my sister."
+ },
+ "ref/p3/auto": {
+  "language": "English",
+  "text": "He is my brother."
+ },
+ "ref/p3/en": {
+  "language": "English",
+  "text": "He is my brother."
+ },
+ "ref/p3/vi": {
+  "language": "Vietnamese",
+  "text": "He is my brother."
+ },
+ "ref/p4/auto": {
+  "language": "English",
+  "text": "Who is this?"
+ },
+ "ref/p4/en": {
+  "language": "English",
+  "text": "Who is this?"
+ },
+ "ref/p4/vi": {
+  "language": "Vietnamese",
+  "text": "Who is this?"
+ },
+ "ref/p5/auto": {
+  "language": "English",
+  "text": "How many people are there in your family?"
+ },
+ "ref/p5/en": {
+  "language": "English",
+  "text": "How many people are there in your family?"
+ },
+ "ref/p5/vi": {
+  "language": "Vietnamese",
+  "text": "How many people are there in your family?"
+ },
+ "ref/p6/auto": {
+  "language": "English",
+  "text": "There are four people in my family."
+ },
+ "ref/p6/en": {
+  "language": "English",
+  "text": "There are four people in my family."
+ },
+ "ref/p6/vi": {
+  "language": "Vietnamese",
+  "text": "There are four people in my family."
+ },
+ "ref/s1/auto": {
+  "language": "Vietnamese",
+  "text": "Con nghĩ là... Mother."
+ },
+ "ref/s1/en": {
+  "language": "English",
+  "text": "Con nghĩ là... Mother."
+ },
+ "ref/s1/vi": {
+  "language": "Vietnamese",
+  "text": "Con nghĩ là... Mother."
+ },
+ "ref/s2/auto": {
+  "language": "English",
+  "text": "Za. This is my grandmother."
+ },
+ "ref/s2/en": {
+  "language": "English",
+  "text": "Za. This is my grandmother."
+ },
+ "ref/s2/vi": {
+  "language": "Vietnamese",
+  "text": "Dạ This is my grandmother"
+ },
+ "ref/s3/auto": {
+  "language": "Vietnamese",
+  "text": "Brother. Là anh trai ạ."
+ },
+ "ref/s3/en": {
+  "language": "English",
+  "text": "Brother. Là anh trai ạ?"
+ },
+ "ref/s3/vi": {
+  "language": "Vietnamese",
+  "text": "Brother. Là anh trai ạ."
+ },
+ "ref/t1/auto": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô nhé. This is my father."
+ },
+ "ref/t1/en": {
+  "language": "English",
+  "text": "Con nói theo cô nhé. This is my father."
+ },
+ "ref/t1/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô nhé. This is my father."
+ },
+ "ref/t2/auto": {
+  "language": "Vietnamese",
+  "text": "Tu. Mother. Nghĩa là mẹ."
+ },
+ "ref/t2/en": {
+  "language": "English",
+  "text": "Tu. Mother. Nghĩa là mẹ."
+ },
+ "ref/t2/vi": {
+  "language": "Vietnamese",
+  "text": "Tu. Mother. Nghĩa là mẹ."
+ },
+ "ref/t3/auto": {
+  "language": "Vietnamese",
+  "text": "Từ grandfather nghĩa là ông."
+ },
+ "ref/t3/en": {
+  "language": "English",
+  "text": "Từ grandfather nghĩa là ông. Ông bố."
+ },
+ "ref/t3/vi": {
+  "language": "Vietnamese",
+  "text": "Từ grandfather nghĩa là ông."
+ },
+ "ref/t4/auto": {
+  "language": "Japanese",
+  "text": "後輩ね。Who is this?"
+ },
+ "ref/t4/en": {
+  "language": "English",
+  "text": "後輩ね。 Who is this?"
+ },
+ "ref/t4/vi": {
+  "language": "Vietnamese",
+  "text": "Cô hai nhé. Who is this?"
+ },
+ "ref/t5/auto": {
+  "language": "Vietnamese",
+  "text": "Giỏi lắm, con đọc lại nhé. She is my sister."
+ },
+ "ref/t5/en": {
+  "language": "English",
+  "text": "Giỏi lắm. Con đọc lại nhé. She is my sister."
+ },
+ "ref/t5/vi": {
+  "language": "Vietnamese",
+  "text": "Giỏi lắm, con đọc lại nhé. She is my sister."
+ },
+ "ref/w1/auto": {
+  "language": "English",
+  "text": "Mother."
+ },
+ "ref/w1/en": {
+  "language": "English",
+  "text": "Mother."
+ },
+ "ref/w1/vi": {
+  "language": "Vietnamese",
+  "text": "Mother"
+ },
+ "ref/w2/auto": {
+  "language": "English",
+  "text": "Father."
+ },
+ "ref/w2/en": {
+  "language": "English",
+  "text": "Father."
+ },
+ "ref/w2/vi": {
+  "language": "Vietnamese",
+  "text": "Cha"
+ },
+ "ref/w3/auto": {
+  "language": "English",
+  "text": "Sister"
+ },
+ "ref/w3/en": {
+  "language": "English",
+  "text": "Sister"
+ },
+ "ref/w3/vi": {
+  "language": "Vietnamese",
+  "text": "Sister"
+ },
+ "ref/w4/auto": {
+  "language": "English",
+  "text": "brother."
+ },
+ "ref/w4/en": {
+  "language": "English",
+  "text": "brother."
+ },
+ "ref/w4/vi": {
+  "language": "Vietnamese",
+  "text": "Brother."
+ },
+ "ref/w5/auto": {
+  "language": "English",
+  "text": "Grandmother."
+ },
+ "ref/w5/en": {
+  "language": "English",
+  "text": "Grandmother."
+ },
+ "ref/w5/vi": {
+  "language": "Vietnamese",
+  "text": "Grandmother"
+ },
+ "ref/w6/auto": {
+  "language": "English",
+  "text": "grandfather."
+ },
+ "ref/w6/en": {
+  "language": "English",
+  "text": "grandfather."
+ },
+ "ref/w6/vi": {
+  "language": "Vietnamese",
+  "text": "Grandfather"
+ },
+ "vieneu/p1/auto": {
+  "language": "Malay (macrolanguage)",
+  "text": "Ini ialah ibu saya"
+ },
+ "vieneu/p1/en": {
+  "language": "English",
+  "text": "This is my mother"
+ },
+ "vieneu/p1/vi": {
+  "language": "Vietnamese",
+  "text": "This is my mother."
+ },
+ "vieneu/p2/auto": {
+  "language": "English",
+  "text": "She is my sister."
+ },
+ "vieneu/p2/en": {
+  "language": "English",
+  "text": "She is my sister."
+ },
+ "vieneu/p2/vi": {
+  "language": "Vietnamese",
+  "text": "She is my sister."
+ },
+ "vieneu/p3/auto": {
+  "language": "Malay (macrolanguage)",
+  "text": "Dia adik saya."
+ },
+ "vieneu/p3/en": {
+  "language": "English",
+  "text": "He is my brother."
+ },
+ "vieneu/p3/vi": {
+  "language": "Vietnamese",
+  "text": "He is my brother."
+ },
+ "vieneu/p4/auto": {
+  "language": "English",
+  "text": "Who is this?"
+ },
+ "vieneu/p4/en": {
+  "language": "English",
+  "text": "Who is this?"
+ },
+ "vieneu/p4/vi": {
+  "language": "Vietnamese",
+  "text": "Who is this?"
+ },
+ "vieneu/p5/auto": {
+  "language": "Malay (macrolanguage)",
+  "text": "Berapa ramai orang ada di dalam keluarga anda?"
+ },
+ "vieneu/p5/en": {
+  "language": "English",
+  "text": "How many people are there in your family?"
+ },
+ "vieneu/p5/vi": {
+  "language": "Vietnamese",
+  "text": "How many people are there in your family?"
+ },
+ "vieneu/p6/auto": {
+  "language": "Malay (macrolanguage)",
+  "text": "Ada empat orang dalam keluarga saya."
+ },
+ "vieneu/p6/en": {
+  "language": "English",
+  "text": "There are four people in my family."
+ },
+ "vieneu/p6/vi": {
+  "language": "Vietnamese",
+  "text": "There are four people in my family."
+ },
+ "vieneu/s1/auto": {
+  "language": "Vietnamese",
+  "text": "Con nghĩ là Mother."
+ },
+ "vieneu/s1/en": {
+  "language": "English",
+  "text": "Con nghĩ là Mother."
+ },
+ "vieneu/s1/vi": {
+  "language": "Vietnamese",
+  "text": "Con nghĩ là Mother."
+ },
+ "vieneu/s2/auto": {
+  "language": "Vietnamese",
+  "text": "Dạ, this is my grandmother."
+ },
+ "vieneu/s2/en": {
+  "language": "English",
+  "text": "That this is my grandmother."
+ },
+ "vieneu/s2/vi": {
+  "language": "Vietnamese",
+  "text": "Dạ, this is my grandmother."
+ },
+ "vieneu/s3/auto": {
+  "language": "Vietnamese",
+  "text": "Bluto là anh trai ạ."
+ },
+ "vieneu/s3/en": {
+  "language": "English",
+  "text": "Bluto is my brother."
+ },
+ "vieneu/s3/vi": {
+  "language": "Vietnamese",
+  "text": "Bluto là anh trai ạ."
+ },
+ "vieneu/t1/auto": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô nhé. This is my father."
+ },
+ "vieneu/t1/en": {
+  "language": "English",
+  "text": "Con nói theo cô nhé. This is my father."
+ },
+ "vieneu/t1/vi": {
+  "language": "Vietnamese",
+  "text": "Con nói theo cô nhé. This is my father."
+ },
+ "vieneu/t2/auto": {
+  "language": "Vietnamese",
+  "text": "Từ mơ từ nghĩa là mẹ."
+ },
+ "vieneu/t2/en": {
+  "language": "English",
+  "text": "The mother nghĩa là mẹ."
+ },
+ "vieneu/t2/vi": {
+  "language": "Vietnamese",
+  "text": "Từ mơ từ nghĩa là mẹ."
+ },
+ "vieneu/t3/auto": {
+  "language": "Vietnamese",
+  "text": "Từ grandfather nghĩa là ông."
+ },
+ "vieneu/t3/en": {
+  "language": "English",
+  "text": "Thư grandfather nghĩa là ông."
+ },
+ "vieneu/t3/vi": {
+  "language": "Vietnamese",
+  "text": "Từ grandfather nghĩa là ông."
+ },
+ "vieneu/t4/auto": {
+  "language": "Vietnamese",
+  "text": "Cô hỏi nhé, who is this?"
+ },
+ "vieneu/t4/en": {
+  "language": "English",
+  "text": "Cô hỏi nhé, who is this?"
+ },
+ "vieneu/t4/vi": {
+  "language": "Vietnamese",
+  "text": "Cô hỏi nhé, who is this?"
+ },
+ "vieneu/t5/auto": {
+  "language": "Vietnamese",
+  "text": "Giỏi lắm. Con đọc lại nhé. She is my sister."
+ },
+ "vieneu/t5/en": {
+  "language": "English",
+  "text": "Giỏi lắm. Con đọc lại nhé. She is my sister."
+ },
+ "vieneu/t5/vi": {
+  "language": "Vietnamese",
+  "text": "Giỏi lắm. Con đọc lại nhé. She is my sister."
+ },
+ "vieneu/w1/auto": {
+  "language": "Vietnamese",
+  "text": "Mà tự... mà tự..."
+ },
+ "vieneu/w1/en": {
+  "language": "English",
+  "text": "Mother, mother..."
+ },
+ "vieneu/w1/vi": {
+  "language": "Vietnamese",
+  "text": "Mà tự... mà tự..."
+ },
+ "vieneu/w2/auto": {
+  "language": "German",
+  "text": "Vater"
+ },
+ "vieneu/w2/en": {
+  "language": "English",
+  "text": "Father"
+ },
+ "vieneu/w2/vi": {
+  "language": "Vietnamese",
+  "text": "Phá đơ"
+ },
+ "vieneu/w3/auto": {
+  "language": "Japanese",
+  "text": "シート"
+ },
+ "vieneu/w3/en": {
+  "language": "English",
+  "text": "See To."
+ },
+ "vieneu/w3/vi": {
+  "language": "Vietnamese",
+  "text": "Xí tự."
+ },
+ "vieneu/w4/auto": {
+  "language": "Korean",
+  "text": "브래더 브라더"
+ },
+ "vieneu/w4/en": {
+  "language": "English",
+  "text": "Brother Brother"
+ },
+ "vieneu/w4/vi": {
+  "language": "Vietnamese",
+  "text": "Brother, Brother"
+ },
+ "vieneu/w5/auto": {
+  "language": "English",
+  "text": "Grandmother, come and move."
+ },
+ "vieneu/w5/en": {
+  "language": "English",
+  "text": "Grandmother, come and move."
+ },
+ "vieneu/w5/vi": {
+  "language": "Vietnamese",
+  "text": "Grandmother Cơ bản mụn"
+ },
+ "vieneu/w6/auto": {
+  "language": "Vietnamese",
+  "text": "Grandfather"
+ },
+ "vieneu/w6/en": {
+  "language": "English",
+  "text": "grandfather"
+ },
+ "vieneu/w6/vi": {
+  "language": "Vietnamese",
+  "text": "Grandfather"
+ }
+}

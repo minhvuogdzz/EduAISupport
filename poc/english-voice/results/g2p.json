@@ -1,0 +1,102 @@
+[
+ {
+  "id": "w1",
+  "text": "Mother.",
+  "phonemes": "mˈʌðɚ."
+ },
+ {
+  "id": "w2",
+  "text": "Father.",
+  "phonemes": "fˈɑːðɚ."
+ },
+ {
+  "id": "w3",
+  "text": "Sister.",
+  "phonemes": "sˈɪstɚ."
+ },
+ {
+  "id": "w4",
+  "text": "Brother.",
+  "phonemes": "bɹˈʌðɚ."
+ },
+ {
+  "id": "w5",
+  "text": "Grandmother.",
+  "phonemes": "ɡɹˈændmʌðɚ."
+ },
+ {
+  "id": "w6",
+  "text": "Grandfather.",
+  "phonemes": "ɡɹˈændfɑːðɚ."
+ },
+ {
+  "id": "p1",
+  "text": "This is my mother.",
+  "phonemes": "ðˈɪs ɪz mˈaɪ mˈʌðɚ."
+ },
+ {
+  "id": "p2",
+  "text": "She is my sister.",
+  "phonemes": "ʃiː ɪz mˈaɪ sˈɪstɚ."
+ },
+ {
+  "id": "p3",
+  "text": "He is my brother.",
+  "phonemes": "hiː ɪz mˈaɪ bɹˈʌðɚ."
+ },
+ {
+  "id": "p4",
+  "text": "Who is this?",
+  "phonemes": "hˈuː ɪz ðˈɪs?"
+ },
+ {
+  "id": "p5",
+  "text": "How many people are there in your family?",
+  "phonemes": "hˈaʊ mˈɛni pˈiːpəl ɑːɹ ðˈɛɹ ˈɪn jʊɹ fˈæmɪli?"
+ },
+ {
+  "id": "p6",
+  "text": "There are four people in my family.",
+  "phonemes": "ðˈɛɹ ɑːɹ fˈɔːɹ pˈiːpəl ˈɪn mˈaɪ fˈæmɪli."
+ },
+ {
+  "id": "t1",
+  "text": "Con nói theo cô nhé: This is my father.",
+  "phonemes": "kˌɔn nˈɔɜj tˈɛw kˈo ɲˈɛɜ, ðˈɪs ɪz mˈaɪ fˈɑːðɚ."
+ },
+ {
+  "id": "t2",
+  "text": "Từ mother nghĩa là mẹ.",
+  "phonemes": "t̪ˌy2 mˈʌðɚ ŋˈiə5 lˌaː2 mˈɛ6."
+ },
+ {
+  "id": "t3",
+  "text": "Từ grandfather nghĩa là ông.",
+  "phonemes": "t̪ˌy2 ɡɹˈændfɑːðɚ ŋˈiə5 lˌaː2 ˈoŋ."
+ },
+ {
+  "id": "t4",
+  "text": "Cô hỏi nhé: Who is this?",
+  "phonemes": "kˈo hˈɔ4j ɲˈɛɜ, hˈuː ɪz ðˈɪs?"
+ },
+ {
+  "id": "t5",
+  "text": "Giỏi lắm! Con đọc lại nhé: She is my sister.",
+  "phonemes": "zˈɔ4j lˈaɜm! kˌɔn ɗˈɔ6k lˈaː6j ɲˈɛɜ, ʃiː ɪz mˈaɪ sˈɪstɚ."
+ },
+ {
+  "id": "s1",
+  "text": "Con nghĩ là mother.",
+  "phonemes": "kˌɔn ŋˈi5 lˌaː2 mˈʌðɚ."
+ },
+ {
+  "id": "s2",
+  "text": "Dạ, this is my grandmother.",
+  "phonemes": "zˈaː6, ðˈɪs ɪz mˈaɪ ɡɹˈændmʌðɚ."
+ },
+ {
+  "id": "s3",
+  "text": "Brother là anh trai ạ.",
+  "phonemes": "bɹˈʌðɚ lˌaː2 ˈe-ɲ tʃˈaːj ˈaː6."
+ }
+]
