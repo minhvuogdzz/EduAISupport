@@ -38,14 +38,31 @@ def offline_service() -> RagService:
 
 
 async def decimals_index() -> RagIndex:
-    return await offline_service().current(InMemoryDatabase())
+    return await offline_service().current(InMemoryDatabase(), "math")
 
 
 def chunk(
-    chunk_id, text, *, node=None, kind="theory", approved=True, misconception=None, chapter="c"
+    chunk_id,
+    text,
+    *,
+    node=None,
+    kind="theory",
+    approved=True,
+    misconception=None,
+    chapter="c",
+    subject="math",
 ) -> Chunk:
     return Chunk(
-        chunk_id, text, kind, chapter, node, "chapter", chunk_id, approved, misconception_id=misconception
+        chunk_id,
+        text,
+        kind,
+        chapter,
+        node,
+        "chapter",
+        chunk_id,
+        approved,
+        misconception_id=misconception,
+        subject=subject,
     )
 
 
@@ -86,7 +103,7 @@ def test_document_passages_keep_lines_pages_and_one_sentence_of_overlap():
             "Câu ngắn. " + paragraph("d", 400),
         ]
     )
-    passages = document_chunks("d1", "SGK", DECIMALS, text)
+    passages = document_chunks("d1", "SGK", DECIMALS, text, subject="math")
     assert [p.chunk_id for p in passages][:2] == ["doc:d1:1", "doc:d1:2"]
     assert passages[0].page == 1 and passages[1].page == 2
     assert all(p.kind == "source_passage" and p.document_id == "d1" and p.node_id is None for p in passages)
@@ -155,7 +172,7 @@ def graph_index(embedder=None) -> RagIndex:
         chunk("d", "so sánh hàng phần nghìn", node="D"),
         chunk("doc", "so sánh hai số đo", node=None, kind="source_passage"),
     ]
-    return RagIndex(chunks, embedder, {"A": ["B"], "B": ["A", "C"], "C": ["B"]})
+    return RagIndex(chunks, embedder, {"A": ["B"], "B": ["A", "C"], "C": ["B"]}, subject="math")
 
 
 def test_rrf_weighs_every_passage_by_its_distance_on_the_graph():
@@ -226,7 +243,7 @@ def test_a_calibrated_semantic_model_can_ground_a_paraphrase(monkeypatch):
             vectors[:, 0] = 1.0  # every text points the same way: cosine 1
             return vectors
 
-    index = RagIndex([chunk("a", "viết thêm chữ số 0 vào tận cùng bên phải")], Fixed(), {})
+    index = RagIndex([chunk("a", "viết thêm chữ số 0 vào tận cùng bên phải")], Fixed(), {}, subject="math")
     assert not index.retrieve("đằng sau mọc thêm số không").grounded  # no threshold for this model
     monkeypatch.setitem(retrieve_module.GROUNDED_COSINE, "fake-model", 0.9)
     assert index.retrieve("đằng sau mọc thêm số không").grounded
@@ -241,7 +258,7 @@ def test_keywords_do_not_overrule_a_calibrated_model(monkeypatch):
             vectors[:, 0 if task == "RETRIEVAL_DOCUMENT" else 1] = 1.0  # question and passages: cosine 0
             return vectors
 
-    index = RagIndex([chunk("a", "cộng hai phân số khác mẫu số")], Orthogonal(), {})
+    index = RagIndex([chunk("a", "cộng hai phân số khác mẫu số")], Orthogonal(), {}, subject="math")
     keywords = index.retrieve("cộng hai phân số khác mẫu số")
     # no threshold for this model: keywords decide
     assert keywords.grounded and keywords.grounding.startswith("độ phủ từ khóa 1.00")
@@ -252,7 +269,9 @@ def test_keywords_do_not_overrule_a_calibrated_model(monkeypatch):
 
 def test_the_size_budget_keeps_the_prompt_small():
     long = "so sánh " + "rất dài " * 400
-    index = RagIndex([chunk("long1", long), chunk("long2", long), chunk("short", "so sánh ngắn")], None, {})
+    index = RagIndex(
+        [chunk("long1", long), chunk("long2", long), chunk("short", "so sánh ngắn")], None, {}, subject="math"
+    )
     found = index.retrieve("so sánh", k=3, max_chars=1000)
     assert sum(len(s.chunk.text) for s in found.results[1:]) <= 1000
     assert "short" in [s.chunk.chunk_id for s in found.results]
@@ -290,7 +309,7 @@ def test_keywords_and_structure_keep_working_when_the_embedding_model_fails():
         def embed(self, texts, task):
             raise RuntimeError("429 quota")
 
-    index = RagIndex([chunk("a", "phần nguyên"), chunk("b", "phần mười")], Down(), {})
+    index = RagIndex([chunk("a", "phần nguyên"), chunk("b", "phần mười")], Down(), {}, subject="math")
     assert index.embedder is None and "quota" in (index.semantic_error or "")
     found = index.retrieve("phan nguyen")
     assert found.semantic == "off" and found.results[0].chunk.chunk_id == "a"
@@ -305,7 +324,7 @@ def test_a_failing_query_vector_falls_back_to_keywords():
                 raise RuntimeError("network")
             return HashEmbedder().embed(texts, task)
 
-    index = RagIndex([chunk("a", "phần nguyên"), chunk("b", "phần mười")], QueriesDown(), {})
+    index = RagIndex([chunk("a", "phần nguyên"), chunk("b", "phần mười")], QueriesDown(), {}, subject="math")
     found = index.retrieve("phan nguyen")
     assert found.semantic == "off" and found.results[0].chunk.chunk_id == "a"
 
@@ -319,6 +338,7 @@ def document(text: str, **fields) -> TeacherDocument:
         "title": "Phiếu so sánh",
         "kind": "BAI_TAP",
         "chapter_id": DECIMALS,
+        "subject": "math",
         "filename": "phieu.docx",
         "content_type": "application/octet-stream",
         "size": len(text),
@@ -334,16 +354,16 @@ async def test_the_service_rebuilds_only_when_the_corpus_changes():
     database = InMemoryDatabase()
     await ensure_indexes(database)
     rag = offline_service()
-    first = await rag.current(database)
-    assert await rag.current(database) is first
+    first = await rag.current(database, "math")
+    assert await rag.current(database, "math") is first
     await DocumentRepository(database, service.DEMO_SCHOOL_ID).create(
         document("[Trang 1]\nMuốn so sánh hai số thập phân, so sánh phần nguyên trước.")
     )
-    second = await rag.current(database)
+    second = await rag.current(database, "math")
     assert second is not first
     passage = next(c for c in second.chunks if c.source == "document")
     assert passage.title == "Phiếu so sánh, trang 1" and passage.node_id == "KC-DEC-CMP"
-    assert await rag.current(database, force=True) is not second
+    assert await rag.current(database, "math", force=True) is not second
 
 
 @pytest.mark.parametrize("kind", ["DAP_AN", "DE_KIEM_TRA"])
@@ -354,7 +374,7 @@ async def test_answer_keys_and_tests_never_reach_the_rag(kind):
     repo = DocumentRepository(database, service.DEMO_SCHOOL_ID)
     await repo.create(document("[Trang 1]\nCâu 5: 2 m 7 cm = 2,07 m. Đáp án B.", kind=kind, title="Đáp án"))
     await repo.create(document("[Trang 1]\nMuốn so sánh hai số thập phân, so sánh phần nguyên trước."))
-    index = await offline_service().current(database)
+    index = await offline_service().current(database, "math")
     titles = {c.title for c in index.chunks if c.source == "document"}
     assert titles == {"Phiếu so sánh, trang 1"}
 
@@ -371,11 +391,11 @@ async def test_the_service_tries_the_embedding_model_again_after_a_failure():
 
     rag = RagService(service.DEMO_SCHOOL_ID, chapter_service.chapters, embedder=Flaky)
     database = InMemoryDatabase()
-    failed = await rag.current(database)
-    assert failed.semantic_error and await rag.current(database) is failed  # not before the delay
+    failed = await rag.current(database, "math")
+    assert failed.semantic_error and await rag.current(database, "math") is failed  # not before the delay
     Flaky.down = False
-    rag.built_at -= SEMANTIC_RETRY + timedelta(seconds=1)
-    recovered = await rag.current(database)
+    rag.state("math").built_at -= SEMANTIC_RETRY + timedelta(seconds=1)
+    recovered = await rag.current(database, "math")
     assert recovered.semantic_error is None and recovered.embedder is not None
 
 
@@ -486,7 +506,7 @@ def test_a_definition_question_reaches_every_period_the_node_builds_on():
         chunk("A:theory", "Phần thập phân là các chữ số bên phải dấu phẩy.", node="A"),
         chunk("D:theory", "Sắp xếp các số thập phân từ bé đến lớn.", node="D"),
     ]
-    index = RagIndex(chunks, None, CHAIN)
+    index = RagIndex(chunks, None, CHAIN, subject="math")
     found = index.retrieve("phần thập phân là gì vậy cô", node_id="D", k=3)
     assert found.mode == "definition" and found.results[0].chunk.chunk_id == "A:theory"
     assert "định nghĩa «phan thap phan»" in found.results[0].reasons
@@ -499,7 +519,7 @@ def test_a_question_about_an_earlier_period_is_routed_to_it():
         chunk("A:theory", "Phần thập phân là các chữ số bên phải dấu phẩy.", node="A"),
         chunk("D:theory", "Sắp xếp các số thập phân từ bé đến lớn.", node="D"),
     ]
-    index = RagIndex(chunks, None, CHAIN)
+    index = RagIndex(chunks, None, CHAIN, subject="math")
     about_a = index.retrieve("phần thập phân có mấy chữ số", node_id="D", k=3)
     assert about_a.results[0].chunk.node_id == "A" and about_a.results[0].distance == 0
     about_d = index.retrieve("sắp xếp từ bé đến lớn thế nào", node_id="D", k=3)
@@ -511,7 +531,7 @@ def test_a_question_is_never_routed_to_a_later_period():
         chunk("A:theory", "Đọc số thập phân.", node="A"),
         chunk("E:theory", "Làm tròn số thập phân đến hàng phần mười.", node="E"),
     ]
-    index = RagIndex(chunks, None, CHAIN)
+    index = RagIndex(chunks, None, CHAIN, subject="math")
     found = index.retrieve("làm tròn số thập phân đến hàng phần mười", node_id="A", k=3)
     assert all(s.chunk.node_id != "E" for s in found.ranked)
 
@@ -522,7 +542,7 @@ def test_routing_has_its_own_flag_in_the_ablation():
         chunk("A:theory", "Phần thập phân là các chữ số bên phải dấu phẩy.", node="A"),
         chunk("D:theory", "Sắp xếp các số thập phân từ bé đến lớn.", node="D"),
     ]
-    index = RagIndex(chunks, None, CHAIN)
+    index = RagIndex(chunks, None, CHAIN, subject="math")
     q = "phần thập phân có mấy chữ số"
     plain = index.retrieve(q, node_id="D", k=3, rerank=False, route=False)
     assert all(s.chunk.node_id != "A" for s in plain.ranked)  # without routing: periods near only
@@ -538,7 +558,7 @@ def test_the_definition_boost_has_its_own_flag_in_the_ablation():
         chunk("A:theory", "Đường cao của tam giác là đoạn thẳng kẻ từ đỉnh vuông góc với đáy.", node="A"),
         chunk("B:note", "Con hay vẽ đường cao sai: đường cao đường cao phải vuông góc.", node="B"),
     ]
-    index = RagIndex(chunks, None, {"B": {"A"}})
+    index = RagIndex(chunks, None, {"B": {"A"}}, subject="math")
     q = "đường cao là gì"
     boosted = index.retrieve(q, node_id="B", k=2, rerank=False, route=False)
     plain = index.retrieve(q, node_id="B", k=2, rerank=False, route=False, define=False)
@@ -552,7 +572,7 @@ def test_a_passage_of_several_periods_never_reaches_an_earlier_one():
         chunk("doc:overview", "Diện tích hình thang bằng tổng hai đáy nhân chiều cao chia 2."),
         candidates=("A", "B"),
     )
-    index = RagIndex([overview], None, CHAIN)
+    index = RagIndex([overview], None, CHAIN, subject="math")
     early = [s.chunk.chunk_id for s in index.retrieve("diện tích hình thang", node_id="A", k=3).ranked]
     late = [s.chunk.chunk_id for s in index.retrieve("diện tích hình thang", node_id="B", k=3).ranked]
     assert early == [] and late == ["doc:overview"]  # at A it names B, a period still to come
@@ -561,7 +581,15 @@ def test_a_passage_of_several_periods_never_reaches_an_earlier_one():
 def test_passages_tied_to_several_nodes_stay_untied():
     reference = [chunk(f"{n}:t", f"tam giác hình thang diện tích {n}", node=n) for n in "ABC"]
     passage = Chunk(
-        "doc:1", "tam giác hình thang diện tích", "source_passage", "c", None, "document", "d", True
+        "doc:1",
+        "tam giác hình thang diện tích",
+        "source_passage",
+        "c",
+        None,
+        "document",
+        "d",
+        True,
+        subject="math",
     )
     (tagged,) = tag_passages([passage], reference)
     assert tagged.node_id is None and set(tagged.candidates) == {"A", "B", "C"}
@@ -575,6 +603,7 @@ def test_a_passage_longer_than_the_budget_does_not_crowd_out_the_others():
         ],
         None,
         {},
+        subject="math",
     )
     found = index.retrieve("đường cao là gì", k=3, max_chars=1200)
     assert [s.chunk.chunk_id for s in found.results] == ["def"]
@@ -649,7 +678,7 @@ def test_a_later_period_wins_only_when_it_is_clearly_closer():
         chunk("A:theory", "Diện tích tam giác bằng đáy nhân chiều cao chia 2.", node="A"),
         chunk("E:theory", "Làm tròn số thập phân đến hàng phần trăm.", node="E"),
     ]
-    index = RagIndex(chunks, None, CHAIN)
+    index = RagIndex(chunks, None, CHAIN, subject="math")
     order = ["A", "B", "C", "D", "E"]
     later, found = index.question("vì sao diện tích tam giác chia 2", "A", order)
     assert later is None and found.results[0].chunk.chunk_id == "A:theory"
@@ -666,7 +695,7 @@ def test_a_term_the_chapters_never_use_means_mathematics_outside_them():
             node="A",
         ),
     ]
-    index = RagIndex(chunks, None, {})
+    index = RagIndex(chunks, None, {}, subject="math")
     assert index.foreign_terms("dien tich hinh tron tinh the nao") == ["hinh tron"]
     assert index.foreign_terms("the tich hinh hop chu nhat tinh sao") == ["the tich", "hinh hop chu nhat"]
     assert index.foreign_terms("diện tích tam giác tính thế nào") == []
@@ -680,7 +709,9 @@ def test_an_earlier_period_a_little_closer_is_taken_when_its_keywords_agree():
     """DI-57, second rule (RAG-7): closer by less than the margin, with the same keywords or more."""
     from cavat.modules.rag.retrieve import RagIndex as Index
 
-    index = Index([chunk("A:t", "x", node="A"), chunk("B:t", "y", node="B")], None, {"B": {"A"}})
+    index = Index(
+        [chunk("A:t", "x", node="A"), chunk("B:t", "y", node="B")], None, {"B": {"A"}}, subject="math"
+    )
     cos = np.array([0.745, 0.735], dtype=np.float32)
     assert index._route("B", cos, [1.0, 1.0], True) == "A"  # 0.01 closer, keywords tie
     assert index._route("B", cos, [0.6, 0.7], True) is None  # 0.01 closer, but fewer keywords

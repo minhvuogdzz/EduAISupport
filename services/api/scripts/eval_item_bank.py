@@ -59,7 +59,9 @@ async def main() -> None:
     settings = get_settings()
     if settings.mongodb_uri is None:
         sys.exit("MONGODB_URI chưa có trong services/api/.env.")
-    documents = await DocumentRepository(db.get_db(settings), DEMO_SCHOOL_ID).list_all()
+    documents = await DocumentRepository(db.get_db(settings), DEMO_SCHOOL_ID).list_all(
+        "math"
+    )  # the Mathematics item bank (ENG-2)
     lines = [f"# Ngân hàng câu hỏi nháp và độ nhạy của bộ kiểm đáp án ({date.today().isoformat()})", ""]
     lines += ["Chạy bằng `make eval-items` (INGEST-2). Chỉ đọc database, không ghi.", ""]
     for chapter_id, prefix in PREFIXES.items():

@@ -24,6 +24,7 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
+from cavat.core.subjects import Subject
 from cavat.modules.content.lesson_package import Item, LessonPackage, Persona, load_lesson_package
 
 NodeLayer = Literal["BASIC", "IMPLEMENT"]
@@ -120,7 +121,7 @@ class ChapterPackage(_Model):
     chapter_id: str
     version: str
     status: Literal["DRAFT", "APPROVED", "PUBLISHED", "ARCHIVED"]
-    subject: Literal["math"]
+    subject: Subject  # ENG-2: required, no default (a package without one is rejected)
     grade: int
     locale: str = "vi-VN"
     title: str

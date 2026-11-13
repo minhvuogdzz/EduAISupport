@@ -97,12 +97,16 @@ def _result(kind: str, operation: str, result: Any, args: tuple, kwargs: dict) -
             "status": "success" if result.grounded else "miss",
             "purpose": result.mode,
             "details": {
+                "subject": getattr(result, "subject", ""),  # ENG-2: the index it read
                 "node_id": result.node_id,
                 "grounded": result.grounded,
                 "grounding": result.grounding,
                 "semantic": result.semantic,
                 "candidates": result.candidates,
-                "chunks": [{"id": s.chunk.chunk_id, "title": s.chunk.title} for s in result.results],
+                "chunks": [
+                    {"id": s.chunk.chunk_id, "title": s.chunk.title, "subject": s.chunk.subject}
+                    for s in result.results
+                ],
             },
         }
     if kind == "web":

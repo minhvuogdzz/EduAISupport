@@ -128,7 +128,7 @@ def test_gateway_and_empty_rag_are_observed_in_threadpool_without_logging_prompt
     @app.post("/v1/sessions/synthetic/observability-check")
     async def command():
         def work():
-            RagIndex([], None, {}).retrieve("private-student-question")
+            RagIndex([], None, {}, subject="math").retrieve("private-student-question")
             return gateway.chat(
                 model_class=ModelClass.LIGHTWEIGHT,
                 request=ChatRequest((ChatMessage("user", "private-student-words"),)),

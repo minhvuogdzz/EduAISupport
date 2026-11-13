@@ -1,0 +1,172 @@
+{
+ "vieneu_version": "3.8.3",
+ "model": "VieNeu-TTS v3 Turbo (SDK default), ONNX Runtime CPU, fp32",
+ "voice": "Ngọc Huyền",
+ "en_reference_voice": "macOS say -v Samantha",
+ "machine": "arm64 macOS-27.2.1-arm64-arm-64bit arm",
+ "load_s": 26.12,
+ "warmup_s": 1.13,
+ "sample_rate": 48000,
+ "rows": [
+  {
+   "id": "w1",
+   "kind": "word",
+   "text": "Mother.",
+   "synth_s": 1.158,
+   "audio_s": 1.44,
+   "rtf": 0.804
+  },
+  {
+   "id": "w2",
+   "kind": "word",
+   "text": "Father.",
+   "synth_s": 1.029,
+   "audio_s": 0.8,
+   "rtf": 1.287
+  },
+  {
+   "id": "w3",
+   "kind": "word",
+   "text": "Sister.",
+   "synth_s": 0.268,
+   "audio_s": 0.88,
+   "rtf": 0.304
+  },
+  {
+   "id": "w4",
+   "kind": "word",
+   "text": "Brother.",
+   "synth_s": 1.358,
+   "audio_s": 1.44,
+   "rtf": 0.943
+  },
+  {
+   "id": "w5",
+   "kind": "word",
+   "text": "Grandmother.",
+   "synth_s": 0.457,
+   "audio_s": 1.76,
+   "rtf": 0.26
+  },
+  {
+   "id": "w6",
+   "kind": "word",
+   "text": "Grandfather.",
+   "synth_s": 0.31,
+   "audio_s": 1.12,
+   "rtf": 0.277
+  },
+  {
+   "id": "p1",
+   "kind": "pattern",
+   "text": "This is my mother.",
+   "synth_s": 0.442,
+   "audio_s": 1.52,
+   "rtf": 0.291
+  },
+  {
+   "id": "p2",
+   "kind": "pattern",
+   "text": "She is my sister.",
+   "synth_s": 0.43,
+   "audio_s": 1.52,
+   "rtf": 0.283
+  },
+  {
+   "id": "p3",
+   "kind": "pattern",
+   "text": "He is my brother.",
+   "synth_s": 0.41,
+   "audio_s": 1.44,
+   "rtf": 0.285
+  },
+  {
+   "id": "p4",
+   "kind": "pattern",
+   "text": "Who is this?",
+   "synth_s": 0.3,
+   "audio_s": 1.04,
+   "rtf": 0.288
+  },
+  {
+   "id": "p5",
+   "kind": "pattern",
+   "text": "How many people are there in your family?",
+   "synth_s": 0.645,
+   "audio_s": 2.48,
+   "rtf": 0.26
+  },
+  {
+   "id": "p6",
+   "kind": "pattern",
+   "text": "There are four people in my family.",
+   "synth_s": 0.613,
+   "audio_s": 2.32,
+   "rtf": 0.264
+  },
+  {
+   "id": "t1",
+   "kind": "teacher",
+   "text": "Con nói theo cô nhé: This is my father.",
+   "synth_s": 0.708,
+   "audio_s": 2.72,
+   "rtf": 0.26
+  },
+  {
+   "id": "t2",
+   "kind": "teacher",
+   "text": "Từ mother nghĩa là mẹ.",
+   "synth_s": 0.391,
+   "audio_s": 1.44,
+   "rtf": 0.272
+  },
+  {
+   "id": "t3",
+   "kind": "teacher",
+   "text": "Từ grandfather nghĩa là ông.",
+   "synth_s": 0.494,
+   "audio_s": 1.84,
+   "rtf": 0.268
+  },
+  {
+   "id": "t4",
+   "kind": "teacher",
+   "text": "Cô hỏi nhé: Who is this?",
+   "synth_s": 0.616,
+   "audio_s": 1.92,
+   "rtf": 0.321
+  },
+  {
+   "id": "t5",
+   "kind": "teacher",
+   "text": "Giỏi lắm! Con đọc lại nhé: She is my sister.",
+   "synth_s": 0.881,
+   "audio_s": 3.44,
+   "rtf": 0.256
+  },
+  {
+   "id": "s1",
+   "kind": "child",
+   "text": "Con nghĩ là mother.",
+   "synth_s": 0.353,
+   "audio_s": 1.28,
+   "rtf": 0.276
+  },
+  {
+   "id": "s2",
+   "kind": "child",
+   "text": "Dạ, this is my grandmother.",
+   "synth_s": 0.582,
+   "audio_s": 2.24,
+   "rtf": 0.26
+  },
+  {
+   "id": "s3",
+   "kind": "child",
+   "text": "Brother là anh trai ạ.",
+   "synth_s": 0.408,
+   "audio_s": 1.44,
+   "rtf": 0.283
+  }
+ ]
+}

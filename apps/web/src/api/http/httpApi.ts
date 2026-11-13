@@ -391,6 +391,9 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
         form.append("title", meta.title);
         form.append("kind", meta.kind);
         form.append("chapter_id", meta.chapterId);
+        // ENG-2: a document takes its chapter's subject; one with no chapter yet must name a subject, and the
+        // teacher's library holds Mathematics documents only for now.
+        if (!meta.chapterId) form.append("subject", "math");
         const response = await send("POST", "/v1/teachers/documents", teacher(), form);
         return (await response.json()) as TeacherDocument;
       },

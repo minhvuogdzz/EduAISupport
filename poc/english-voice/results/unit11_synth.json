@@ -1,0 +1,52 @@
+[
+ {
+  "id": "u1",
+  "synth_s": 1.902,
+  "audio_s": 3.52
+ },
+ {
+  "id": "u2",
+  "synth_s": 2.77,
+  "audio_s": 4.56
+ },
+ {
+  "id": "u3",
+  "synth_s": 2.078,
+  "audio_s": 2.48
+ },
+ {
+  "id": "u4",
+  "synth_s": 0.799,
+  "audio_s": 1.28
+ },
+ {
+  "id": "u5",
+  "synth_s": 1.065,
+  "audio_s": 2.0
+ },
+ {
+  "id": "u6",
+  "synth_s": 1.209,
+  "audio_s": 2.64
+ },
+ {
+  "id": "u7",
+  "synth_s": 1.71,
+  "audio_s": 3.2
+ },
+ {
+  "id": "u8",
+  "synth_s": 1.902,
+  "audio_s": 3.52
+ },
+ {
+  "id": "u9",
+  "synth_s": 1.807,
+  "audio_s": 2.56
+ },
+ {
+  "id": "u10",
+  "synth_s": 1.55,
+  "audio_s": 2.24
+ }
+]

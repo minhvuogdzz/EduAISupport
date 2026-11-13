@@ -17,6 +17,11 @@ through ("cộng hai phân số khác mẫu số" shares five words with the cha
 model when it ran.
 
 Every threshold here that the plan does not fix is DI-17 (and listed in the plan, section 9).
+
+Subjects (ENG-2, ADR-061): an index holds the chunks of one subject, checked when it is made, and reads
+them with that subject's analyzer (DI-121). The rules that read Vietnamese mathematics (the definition
+question DI-50, the terms outside the chapters DI-79, both built on ``math_terms``) run in a Mathematics
+index only (DI-122): in another subject a question stays a question and names no foreign term.
 """
 
 from __future__ import annotations
@@ -29,9 +34,11 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from cavat.core.subjects import check_subject
 from cavat.core.vi_text import fold, normalize
 from cavat.modules.assessment.math_terms import MATH_TERMS
 from cavat.modules.observability.trace import traced
+from cavat.modules.rag.analyzers import analyzer_for
 from cavat.modules.rag.bm25 import TwoFormBM25
 from cavat.modules.rag.chunks import Chunk
 from cavat.modules.rag.embed import Embedder, cosine
@@ -192,20 +199,31 @@ class Retrieval:
     elapsed_ms: float
     ranked: list[Scored] = field(default_factory=list)  # every candidate in final order (evaluation)
     grounding: str = ""  # why it is grounded or not, for the teacher's trace
+    subject: str = ""  # ENG-2: the subject of the index it was retrieved from (every chunk's subject)
 
 
 class RagIndex:
-    """BM25 and vectors over a fixed list of chunks, and the node graph of the chapter(s)."""
+    """BM25 and vectors over a fixed list of chunks of one subject, and the node graph of its chapter(s).
+
+    ``subject`` is required (ENG-2): every chunk must carry it, or the index is not made (ValueError). The
+    other subject's chunks are not filtered out at retrieval time; they are never in the index."""
 
     def __init__(
         self,
         chunks: list[Chunk],
         embedder: Embedder | None,
         graph: Mapping[str, Iterable[str]],
+        *,
+        subject: str,
     ) -> None:
+        self.subject = check_subject(subject)
+        foreign = sorted({c.chunk_id for c in chunks if c.subject != subject})
+        if foreign:
+            raise ValueError(f"a {subject} index cannot hold chunks of another subject: {foreign[:5]}")
+        self.math = subject == "math"  # DI-122: the rules that read Vietnamese mathematics
         self.chunks = chunks
-        self.keyword = TwoFormBM25([c.text for c in chunks])
-        self._vocabulary = " " + " ".join(fold(normalize(c.text)) for c in chunks) + " "
+        self.keyword = TwoFormBM25([c.text for c in chunks], analyzer_for(subject))
+        self._vocabulary = " " + " ".join(fold(normalize(c.text)) for c in chunks) + " " if self.math else ""
         self.graph = {n: set(neighbours) for n, neighbours in graph.items()}
         self.embedder: Embedder | None = None
         self.vectors: np.ndarray | None = None
@@ -263,7 +281,10 @@ class RagIndex:
         return seen
 
     def foreign_terms(self, query: str) -> list[str]:
-        """DI-79: the mathematical terms of a question that no passage of the corpus uses (folded)."""
+        """DI-79: the mathematical terms of a question that no passage of the corpus uses (folded).
+        Mathematics only (DI-122): the list is grade-5 mathematics."""
+        if not self.math:
+            return []
         named = dict.fromkeys(_TERM_FOLDED_RE.findall(fold(normalize(query))))
         return [t for t in named if f" {t} " not in self._vocabulary]
 
@@ -334,7 +355,7 @@ class RagIndex:
         the term asked about, without fading on the graph). Until RAG-5 ``rerank`` also switched routing and
         the definition boost, so the "re-ranking" row of the first ablation measured the three together."""
         started = time.perf_counter()
-        if mode == "question" and _DEFINITION.search(fold(normalize(query))):
+        if self.math and mode == "question" and _DEFINITION.search(fold(normalize(query))):
             mode = "definition"
         near = self.distances(node_id)
         if mode == "definition" and node_id is not None:
@@ -342,7 +363,7 @@ class RagIndex:
             # ancestor is in scope, one step away (a definition does not fade with the distance on the graph).
             # Later periods stay out (the graph only leads back).
             near = {**{n: 1 for n in self.ancestors(node_id)}, **near}
-        found_term = term_and_shape(query) if mode == "definition" else None
+        found_term = term_and_shape(query) if self.math and mode == "definition" else None
         term, shape = found_term or (None, None)
 
         bm25_all = self.keyword.scores(query) if keyword else [0.0] * len(self.chunks)
@@ -365,6 +386,11 @@ class RagIndex:
                 near = {**{n: 1 for n in self.ancestors(node_id)}, **near, routed: 0}
         scope: list[tuple[int, int]] = []  # (chunk index, distance)
         for i, c in enumerate(self.chunks):
+            # ENG-2: never true (the index holds one subject, checked when it is made); kept so that no
+            # change to how an index is built can let another subject's chunk through, one with no chapter
+            # (chapter_id "") or no node (UNASSIGNED_DISTANCE) included.
+            if c.subject != self.subject:
+                continue
             if chapter_id and c.chapter_id not in (chapter_id, ""):
                 continue
             if node_id is None:
@@ -469,4 +495,5 @@ class RagIndex:
             elapsed_ms=round((time.perf_counter() - started) * 1000, 1),
             ranked=ranked,
             grounding=why,
+            subject=self.subject,
         )
