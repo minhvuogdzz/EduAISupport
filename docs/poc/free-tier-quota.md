@@ -89,6 +89,12 @@ Hạn mức tính theo **project**, nên tạo thêm khóa trong cùng project *
 - Bản turbo đọc sai "hai" thành "hay", nên mặc định dùng `whisper-large-v3`.
 - Chưa thử giọng trẻ em thật. Việc này thuộc spike STT ở T11.
 
+## Lượt Whisper của một buổi Tiếng Anh (ENG-6, ADR-064)
+
+- **[FACT]** Mỗi lượt con nói là một request Whisper, với đúng một ngôn ngữ do backend chọn (`vi` hoặc `en`); ENG-6 không nghe hai lần một lượt. Lượt cô xin nói lại (DI-134) là một request nữa.
+- **[ASSUME, cần kiểm tra]** Một buổi ôn Unit 11 khoảng 40–60 lượt con nói, mỗi lượt 2–5 giây, thêm khoảng 10–20% lượt nói lại: khoảng 45–70 request và 2–6 phút âm thanh một buổi. So với hạn mức Whisper (2.000 request/ngày, 28.800 giây/ngày, 20 request/phút) thì một ngày chịu được khoảng 25–40 buổi; giới hạn 20 request/phút không chạm với nhịp nói của một em.
+- **[OPEN]** Chưa đo trên buổi thật: unit chưa chạy được trong session (ENG-3b, ENG-5) và chưa có giọng trẻ. Đo lại ở ENG-9 rồi thay hai dòng trên bằng số đo.
+
 ## Điều khoản cần chủ dự án lưu ý (không chặn kỹ thuật)
 
 - **Gemini API** ([Terms](https://ai.google.dev/gemini-api/terms)):

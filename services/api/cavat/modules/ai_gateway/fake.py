@@ -71,7 +71,9 @@ class FakeChatModel:
 
 @dataclass
 class FakeSpeechToText:
-    script: list[str | Exception]
+    """Scripted words; a step may be ``(text, q)`` to give the DI-109 confidence of that turn."""
+
+    script: list[str | tuple[str, float | None] | Exception]
     calls: list[tuple[str, str]] = field(default_factory=list)
 
     def transcribe(
@@ -83,7 +85,8 @@ class FakeSpeechToText:
         step = self.script.pop(0)
         if isinstance(step, Exception):
             raise step
-        return Transcription(model=model, text=step, language=language)
+        text, confidence = step if isinstance(step, tuple) else (step, None)
+        return Transcription(model=model, text=text, language=language, confidence=confidence)
 
 
 @dataclass

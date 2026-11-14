@@ -17,6 +17,8 @@ function live(over: Partial<VoiceLive> = {}): VoiceLive {
     toggle: vi.fn(),
     listenNow: vi.fn(),
     bargeIn: false,
+    unclear: null,
+    sendUnclear: vi.fn(),
     ...over,
   };
 }

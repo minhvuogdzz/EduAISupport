@@ -70,6 +70,7 @@ export const ERROR_CLASSES = [
   "FORMAT",
   "REASONING",
   "UNKNOWN",
+  "L1", // ENG-4 (DI-107): English only; Mathematics never writes it
 ] as const;
 export type ErrorClass = (typeof ERROR_CLASSES)[number];
 
@@ -121,6 +122,38 @@ export interface VoiceStatus {
   listen: boolean;
   speak: boolean;
   speech_model: string | null;
+}
+
+export type VoiceLanguage = "vi" | "en";
+
+/**
+ * ENG-6 (DI-132): the language the backend chose for the session's next spoken turn; the web sends it back
+ * with the recording and cannot pick another. ``speech: "mixed"`` (English): the tutor's words are read by
+ * the plan of POST /v1/voice/speech-plan (DI-133). A Mathematics session is "vi" / "tutor", as ADR-030.
+ */
+export interface SessionVoice {
+  language: VoiceLanguage;
+  allowed: VoiceLanguage[];
+  speech: "tutor" | "mixed";
+}
+
+/** POST /v1/voice/transcribe. The fields after ``model`` come only in an English session (ENG-6). */
+export interface VoiceTranscript {
+  text: string;
+  model?: string;
+  language?: VoiceLanguage;
+  /** q of DI-109, 0-1. */
+  confidence?: number | null;
+  /** Sent back with the response command; the server reads the turn from its own record. */
+  voice_turn_id?: string;
+  /** DI-134: the tutor did not hear it clearly and asks the child to say it again. */
+  ask_again?: boolean;
+}
+
+/** One part of the tutor's message in an English session: the tutor's voice, or the browser's English one. */
+export interface SpeechPart {
+  text: string;
+  voice: "tutor" | "browser_en";
 }
 export type ActorType = "student" | "tutor" | "system" | "teacher";
 
@@ -206,6 +239,8 @@ export interface SessionState {
    * S1); the client never sends it. Absent: math (rule S4). ENG-7a; the server fills it in ENG-7b.
    */
   subject?: Subject;
+  /** ENG-6: how the next spoken turn is heard and the tutor is read (absent from older servers). */
+  voice?: SessionVoice | null;
   tutor_recovery?: {
     status: "retrying" | "stopped";
     attempts: number;
@@ -278,6 +313,8 @@ export interface ResponseCommand {
   content: { text: string };
   modality: Modality;
   expected_state_version: number;
+  /** ENG-6: the id /v1/voice/transcribe gave in an English session (never q or a language). */
+  voice_turn_id?: string;
 }
 
 export interface HintRequestCommand {

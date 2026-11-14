@@ -56,6 +56,7 @@ from cavat.modules.session.repository import (
     SafetyReviewRepository,
     StateVersionConflict,
 )
+from cavat.modules.session.voice_turns import session_voice, voice_view, with_voice_turn
 from cavat.modules.teaching.grounded import GroundedSpeaker
 from cavat.modules.tutor.bandit import BanditChooser
 from cavat.modules.tutor.bandit_store import BanditRepository
@@ -101,6 +102,9 @@ class ResponseCommand(_In):
     content: TextContent
     modality: Literal["TEXT", "VOICE"] = "TEXT"
     expected_state_version: int = Field(ge=0)
+    # ENG-6: the id ``/v1/voice/transcribe`` answered in an English session; the server reads the turn
+    # (recording, language, q) from its own record, never from the client.
+    voice_turn_id: str | None = Field(default=None, max_length=64)
 
 
 class HintRequestCommand(_In):
@@ -204,6 +208,14 @@ class TeachingView(BaseModel):
     total: int
 
 
+class VoiceView(BaseModel):
+    """ENG-6 (DI-132): the language the web sends with the next recording, and how the tutor is read."""
+
+    language: Literal["vi", "en"]
+    allowed: list[Literal["vi", "en"]]
+    speech: Literal["tutor", "mixed"]  # mixed: ask /v1/voice/speech-plan (English, DI-133)
+
+
 class SessionStateView(BaseModel):
     session_id: str
     state_version: int
@@ -219,6 +231,7 @@ class SessionStateView(BaseModel):
     transcript: list[ChatTurn]
     teaching: TeachingView | None = None
     tutor_recovery: dict[str, Any] | None = None
+    voice: VoiceView | None = None
 
 
 class SessionSummaryView(BaseModel):
@@ -926,7 +939,28 @@ async def _view(database: Any, session: LearningSession) -> dict[str, Any]:
     view["tutor_recovery"] = (
         {k: pending[k] for k in ("status", "attempts", "retry_after_ms", "reason")} if pending else None
     )
+    view["voice"] = voice_view(_session_voice(session))
     return view
+
+
+def _session_voice(session: LearningSession) -> voice_api.SessionVoice:
+    """ENG-6: the voice of a session, from the package it runs (rule S1) and what it waits for (DI-132)."""
+    content: Any = (
+        _chapter(session.lesson_id, session.lesson_version)
+        if chapter_service.is_chapter(session)
+        else _package(session.lesson_id)
+    )
+    return session_voice(session, content)
+
+
+def voice_sessions(database: Database, student: Student) -> voice_api.SessionVoiceResolver:
+    """ENG-6: the voice router's view of a session, owner checked as every student request."""
+
+    async def resolve(session_id: str) -> voice_api.SessionVoice:
+        await chapter_service.load_published(database, service.DEMO_SCHOOL_ID)
+        return _session_voice(await _load(database, session_id, student))
+
+    return resolve
 
 
 def _summaries(sessions: list[LearningSession]) -> list[dict[str, Any]]:
@@ -1167,6 +1201,8 @@ async def _command(
 ) -> CommandAck:
     if not key:
         raise ApiError(422, "VALIDATION_ERROR", "Idempotency-Key header is required")
+    # ENG-6: the spoken turn is the session's to record, not the loop's (it is kept for a recovery retry).
+    voice_turn_id = kwargs.pop("voice_turn_id", None)
     session = await _load(database, session_id, student)
     previous = _ack_for_key(session, key)
     if previous is not None:
@@ -1229,8 +1265,21 @@ async def _command(
         step = _hold_for_unavailable_models(
             session, step, router, kwargs.get("text", ""), kwargs.get("modality", "TEXT")
         )
-        step = _track_recovery(session, step, command, kwargs, recovery=recovery, recording=router)
+        held_kwargs = {**kwargs, "voice_turn_id": voice_turn_id} if voice_turn_id else kwargs
+        step = _track_recovery(session, step, command, held_kwargs, recovery=recovery, recording=router)
         step.events.extend(model_call_events(router.calls, current))
+    voice = _session_voice(session)
+    if voice.profile.record_turns:
+        step = with_voice_turn(
+            step,
+            session,
+            voice,
+            voice_turn_id=voice_turn_id,
+            text=kwargs.get("text", ""),
+            modality=kwargs.get("modality", "TEXT"),
+            student=student,
+            voice_dir=voice_api._storage(),
+        )
     repo = _repo(database)
     try:
         saved = await repo.commit(
@@ -1552,6 +1601,7 @@ async def submit_response(
         text=body.content.text,
         kind=body.kind,
         modality=body.modality,
+        **({"voice_turn_id": body.voice_turn_id} if body.voice_turn_id else {}),
     )
 
 
@@ -1744,7 +1794,7 @@ async def mark_safety_reviewed(body: MarkSafetyReviewed, database: Database, tea
 
 
 # The school's Hybrid RAG index (RAG-1), rebuilt when the chapter content or the documents change.
-_rag_service = RagService(service.DEMO_SCHOOL_ID, chapter_service.chapters)
+_rag_service = RagService(service.DEMO_SCHOOL_ID, chapter_service.all_chapters)
 
 
 def register(app: FastAPI) -> None:
@@ -1793,7 +1843,7 @@ def register(app: FastAPI) -> None:
             lambda: get_settings().storage_dir,
         )
     )
-    app.include_router(voice_api.build_router(student_identity, lambda: _shared_router()))
+    app.include_router(voice_api.build_router(student_identity, lambda: _shared_router(), voice_sessions))
     published = [Depends(published_chapters)]  # INGEST-4: the teacher's published plans
     app.include_router(router, dependencies=published)
     app.include_router(students, dependencies=published)

@@ -7,15 +7,9 @@
 # Đây là gia sư ÔN BÀI Ở NHÀ sau khi con đã học trên lớp: cô giảng bằng tiếng Việt, từ và câu đích nói bằng tiếng Anh,
 # luôn đặt trong một câu trọn vẹn ("Con nói theo cô: We swam in the sea.").
 #
-# TÊN FILE: đây là một ChapterPackage, nhưng cố ý KHÔNG đặt tên chapter.yaml (và lesson KHÔNG đặt tên lesson.yaml):
-# lúc chạy, chapter_service.chapter_sources() và session.service.lesson_packages() tự nạp mọi file mang hai tên
-# đó dưới docs/pedagogy, không lọc theo môn. Đặt tên như Toán sẽ đưa unit Tiếng Anh vào gia sư Toán (vi phạm
-# luật cô lập môn S1/F1, PR #138) và làm hỏng khởi động vì schema chương chưa nhận "english".
-# Khi module Tiếng Anh có bước nạp theo môn thì đổi tên (../README.md, "Khoảng trống schema" G0).
-#
-# LƯU Ý SCHEMA: ChapterPackage.subject hiện chỉ nhận "math", nên load_chapter() chưa đọc được file này.
-# File vẫn ghi subject: english theo luật N1 (docs/plan/english-module-rules.md, PR #138). Kiểm đồ thị bằng cách
-# thay tạm subject khi chạy validate_chapter (xem ../README.md, mục "Kiểm tra" và "Khoảng trống schema").
+# TÊN FILE VÀ MÔN (ENG-3b, ADR-062): tên chapter.yaml / lesson.yaml giống Toán. Bộ nạp đọc `subject` của từng file
+# và chỉ trả gói của môn được hỏi; mọi đường gọi không nêu môn là Toán (DI-124), nên unit này không bao giờ
+# vào buổi học, trang hay danh sách của Toán. Một chương không trộn môn: mọi lesson cũng là subject: english.
 #
 # Đồ thị (2T-KT):
 #   VOCAB ──PRE──▶ PAST ──PRE──▶ DIDYOU ──APP──┐
@@ -26,7 +20,7 @@
 # key_ideas: mỗi ý liệt kê các cách nói được tính là có ý đó (so khớp sau chuẩn hóa chữ thường; DI tạm như Toán).
 
 chapter_id: eng-g5-u11-family-time
-version: 0.1.0
+version: 0.2.0
 status: DRAFT
 subject: english
 grade: 5
@@ -37,9 +31,9 @@ persona:
   student_address: con
 
 lessons:
-  - lesson-1-did-you.yaml
-  - lesson-2-what-did-your-family-do.yaml
-  - lesson-3-family-trip.yaml
+  - lesson-1-did-you/lesson.yaml
+  - lesson-2-what-did-your-family-do/lesson.yaml
+  - lesson-3-family-trip/lesson.yaml
 
 nodes:
   # ---------------------------------------------------------------- BASIC

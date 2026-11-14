@@ -96,6 +96,9 @@ class Transcription:
     model: str
     text: str
     language: str
+    # DI-109 (ENG-6): q in [0, 1] from the segments of the provider, None when it gave no segment metadata
+    # (a provider returning text only). Read by the English voice turn; Mathematics ignores it.
+    confidence: float | None = None
 
 
 @dataclass(frozen=True)

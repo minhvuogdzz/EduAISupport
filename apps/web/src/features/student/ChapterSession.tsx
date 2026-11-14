@@ -28,7 +28,7 @@ interface ChapterSessionProps {
   notice: ReactNode;
   busy: boolean;
   scrollerRef: Ref<HTMLDivElement>;
-  onSubmit: (text: string, modality?: Modality) => Promise<boolean>;
+  onSubmit: (text: string, modality?: Modality, voiceTurnId?: string) => Promise<boolean>;
   onHint: () => void;
   onChoose: (choice: MicroChoice) => void;
 }
@@ -79,6 +79,7 @@ function ChapterSessionContent({
       !state.pending_choice &&
       (Boolean(state.item) || teaching.awaiting === "THEORY_REPLY" || teaching.awaiting === "RETELL"),
     submit: onSubmit,
+    session: { id: state.session_id, voice: state.voice ?? null },
   });
   const current = teaching.nodes.find((node) => node.node_id === teaching.current_node_id) ?? null;
   const active = state.lifecycle_state === "ACTIVE";

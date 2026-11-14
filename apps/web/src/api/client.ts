@@ -30,7 +30,10 @@ import type {
   TeacherDocumentDetail,
   TeacherStudentView,
   TeachingReport,
+  SpeechPart,
+  VoiceLanguage,
   VoiceStatus,
+  VoiceTranscript,
 } from "./contract";
 
 /**
@@ -165,8 +168,11 @@ export interface SessionApi {
    */
   voice?: {
     status(): Promise<VoiceStatus>;
-    transcribe(audio: Blob): Promise<{ text: string }>;
-    speech(text: string): Promise<Blob>;
+    /** ``turn`` (ENG-6): the session and the language its view named; Mathematics sends none, as before. */
+    transcribe(audio: Blob, turn?: { sessionId: string; language: VoiceLanguage }): Promise<VoiceTranscript>;
+    speech(text: string, sessionId?: string): Promise<Blob>;
+    /** ENG-6 (DI-133): who reads which part of the tutor's message in an English session. */
+    speechPlan?(text: string, sessionId: string): Promise<SpeechPart[]>;
   };
 
   /** Mock only: wipe the demo data kept in this browser and seed it again. */

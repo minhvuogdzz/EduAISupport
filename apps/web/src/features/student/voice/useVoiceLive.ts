@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useApi } from "../../../api/apiContext";
-import type { ChatTurn, Modality, VoiceStatus } from "../../../api/contract";
+import type { ChatTurn, Modality, SessionVoice, VoiceStatus } from "../../../api/contract";
 import { browserListen, browserSpeak, canBrowserListen, canBrowserSpeak } from "./browserVoice";
 import { canRecord, closeMic, openMic, recordTurn, waitForVoice } from "./recorder";
 
@@ -21,16 +21,35 @@ export interface VoiceLive {
   listenNow: () => void;
   /** The child can talk over the tutor (VOICE-2): the microphone was allowed once already. */
   bargeIn: boolean;
+  /**
+   * ENG-6 (DI-134), English sessions only: the tutor did not hear the child clearly and asked to say it
+   * again; these words were not sent. The child taps the microphone, or sends them as they are.
+   */
+  unclear: string | null;
+  sendUnclear: () => void;
 }
 
 interface Options {
   turns: ChatTurn[];
   /** The child may speak: the session waits for words and nothing is being sent. */
   canSpeak: boolean;
-  submit: (text: string, modality: Modality) => Promise<boolean>;
+  submit: (text: string, modality: Modality, voiceTurnId?: string) => Promise<boolean>;
+  /**
+   * ENG-6: the session and its voice (from the session view). With ``speech: "mixed"`` (English) the
+   * recording goes with the language the backend chose and the tutor is read by the speech plan; without
+   * it (Mathematics) voice is ADR-030 exactly as before.
+   */
+  session?: { id: string; voice: SessionVoice | null };
+}
+
+interface Heard {
+  text: string;
+  voiceTurnId?: string;
+  askAgain?: boolean;
 }
 
 const NOT_HEARD = "Cô chưa nghe rõ, con nói lại nhé.";
+const ASK_AGAIN = "Cô nghe chưa rõ lắm. Con bấm micro nói lại giúp cô, hoặc bấm Gửi nếu đúng là vậy nhé.";
 const LISTEN_AFTER_MS = 300;
 const SENTENCE_CHARS = 160;
 
@@ -55,7 +74,7 @@ export function sentences(text: string): string[] {
  * speaking; the words go through the same command as typing (modality VOICE). Typing keeps working. The
  * server's ear (Groq Whisper) and voice (VieNeu-TTS) first, the browser's own when the server has none.
  */
-export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
+export function useVoiceLive({ turns, canSpeak, submit, session }: Options): VoiceLive {
   const api = useApi();
   const [status, setStatus] = useState<VoiceStatus | null>(null);
   const [on, setOn] = useState(false);
@@ -70,6 +89,15 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
   const micAllowed = useRef(false); // VOICE-2: barge-in only once the child allowed the microphone
   const mayAnswer = useRef(canSpeak);
   const [bargeIn, setBargeIn] = useState(false);
+  const [unclear, setUnclear] = useState<Heard | null>(null);
+  // ENG-6: an English session (the backend says so); read through a ref so the live loop sees the latest.
+  const english = useRef<{ id: string; voice: SessionVoice } | null>(null);
+  const sessionId = session?.id;
+  const sessionVoice = session?.voice ?? null;
+  useEffect(() => {
+    english.current =
+      sessionId && sessionVoice?.speech === "mixed" ? { id: sessionId, voice: sessionVoice } : null;
+  }, [sessionId, sessionVoice]);
   useEffect(() => {
     mayAnswer.current = canSpeak;
   }, [canSpeak]);
@@ -107,18 +135,19 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
     });
   }, []);
 
-  const speak = useCallback(
-    async (text: string, signal: AbortSignal) => {
+  const speakTutor = useCallback(
+    async (text: string, signal: AbortSignal, sessionId?: string) => {
       if (serverVoice && api.voice) {
         // Sentence by sentence: the next one is made while this one plays, so the child hears the tutor
         // after one short sentence, not after the whole explanation (VieNeu on a CPU: about real time).
         const parts = sentences(text);
         const voiceApi = api.voice;
-        let next: Promise<Blob> | null = voiceApi.speech(parts[0]);
+        const say = (part: string) => (sessionId ? voiceApi.speech(part, sessionId) : voiceApi.speech(part));
+        let next: Promise<Blob> | null = say(parts[0]);
         try {
           for (let i = 0; i < parts.length && next; i++) {
             const blob = await next;
-            next = i + 1 < parts.length ? voiceApi.speech(parts[i + 1]) : null;
+            next = i + 1 < parts.length ? say(parts[i + 1]) : null;
             next?.catch(() => undefined);
             if (signal.aborted) return;
             await play(blob, signal);
@@ -133,18 +162,45 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
     [api, serverVoice, play],
   );
 
+  const speak = useCallback(
+    async (text: string, signal: AbortSignal) => {
+      const lesson = english.current;
+      if (lesson && api.voice?.speechPlan) {
+        // ENG-6 (DI-133): the English the tutor's voice reads wrong goes to the browser's English voice.
+        const plan = await api.voice.speechPlan(text, lesson.id).catch(() => null);
+        if (plan) {
+          for (const part of plan) {
+            if (signal.aborted) return;
+            if (part.voice === "browser_en") await browserSpeak(part.text, signal, "en-US");
+            else await speakTutor(part.text, signal, lesson.id);
+          }
+          return;
+        }
+      }
+      await speakTutor(text, signal);
+    },
+    [api, speakTutor],
+  );
+
   const listen = useCallback(
-    async (signal: AbortSignal, stream?: MediaStream): Promise<string> => {
+    async (signal: AbortSignal, stream?: MediaStream): Promise<Heard> => {
       if (serverEar && api.voice) {
         setPhase("listening");
         const blob = await recordTurn(signal, setLevel, { stream });
         micAllowed.current = true;
         setBargeIn(true);
         setLevel(0);
-        if (!blob || signal.aborted) return "";
+        if (!blob || signal.aborted) return { text: "" };
         setPhase("hearing");
         try {
-          return (await api.voice.transcribe(blob)).text.trim();
+          const lesson = english.current;
+          if (!lesson) return { text: (await api.voice.transcribe(blob)).text.trim() }; // ADR-030 as before
+          // ENG-6 (DI-132): the language the backend chose for this turn, sent back as it gave it.
+          const heard = await api.voice.transcribe(blob, {
+            sessionId: lesson.id,
+            language: lesson.voice.language,
+          });
+          return { text: heard.text.trim(), voiceTurnId: heard.voice_turn_id, askAgain: heard.ask_again };
         } catch {
           if (!canBrowserListen()) throw new Error("no ear");
         }
@@ -154,7 +210,7 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
       const words = await browserListen(setHeard, signal);
       micAllowed.current = true;
       setBargeIn(true);
-      return words;
+      return { text: words };
     },
     [api, serverEar],
   );
@@ -176,8 +232,10 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
       const controller = new AbortController();
       abort.current = controller;
       setProblem(null);
+      setUnclear(null);
       try {
-        const words = await listen(controller.signal, stream);
+        const heard = await listen(controller.signal, stream);
+        const words = heard.text;
         if (controller.signal.aborted) return;
         if (!words) {
           setHeard("");
@@ -187,7 +245,14 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
         }
         setHeard(words);
         setPhase("waiting");
-        await submit(words, "VOICE");
+        if (heard.askAgain) {
+          // DI-134 (English): low confidence; the child says it again, or sends these words knowingly.
+          setUnclear(heard);
+          setProblem(ASK_AGAIN);
+          return;
+        }
+        if (heard.voiceTurnId) await submit(words, "VOICE", heard.voiceTurnId);
+        else await submit(words, "VOICE");
       } catch (error) {
         setProblem(
           error instanceof DOMException && error.name === "NotAllowedError"
@@ -274,7 +339,16 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
     setPhase("waiting");
   }
 
+  function sendUnclear() {
+    const pending = unclear;
+    if (!pending) return;
+    setUnclear(null);
+    setProblem(null);
+    void submit(pending.text, "VOICE", pending.voiceTurnId);
+  }
+
   function listenNow() {
+    setUnclear(null);
     if (phase === "listening") {
       stop();
       setPhase("waiting");
@@ -286,5 +360,17 @@ export function useVoiceLive({ turns, canSpeak, submit }: Options): VoiceLive {
     void listenOnce();
   }
 
-  return { available, on, phase, heard, level, problem, toggle, listenNow, bargeIn };
+  return {
+    available,
+    on,
+    phase,
+    heard,
+    level,
+    problem,
+    toggle,
+    listenNow,
+    bargeIn,
+    unclear: unclear?.text ?? null,
+    sendUnclear,
+  };
 }

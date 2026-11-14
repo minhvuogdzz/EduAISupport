@@ -62,6 +62,7 @@ class EventType(StrEnum):
     # voice
     VOICE_UTTERANCE = "VOICE_UTTERANCE"
     VOICE_FALLBACK_TO_TEXT = "VOICE_FALLBACK_TO_TEXT"
+    VOICE_TURN_RECORDED = "VOICE_TURN_RECORDED"  # ENG-6: a spoken turn, its recording and its q (DI-109)
     # teaching on the chapter graph (plan v1)
     NODE_DECISION = "NODE_DECISION"
     TEACH_MESSAGE_SENT = "TEACH_MESSAGE_SENT"
@@ -452,6 +453,28 @@ class WebLooked(_Payload):
     search_engine: str = ""
 
 
+class VoiceTurnRecorded(_Payload):
+    """ENG-6 (ADR-064, rule E1): the child said this turn; what the server heard and how sure it was.
+
+    Written with the STUDENT_MESSAGE of the same command, in the sessions whose subject records voice turns
+    (English; Mathematics keeps ADR-030 as it was). ``audio_ref`` is a path under ``var/storage/voice`` (the
+    recording stays on disk, rule V3). ``asr_confidence`` is q of DI-109, None when the provider gave no
+    segment metadata. ``message_ref`` is the ``item_id`` of that STUDENT_MESSAGE; it is not named
+    ``item_id`` so that no item replay ever reads this event. ``edited`` is True when the words sent differ
+    from the words heard (then the answer was not graded on what Whisper heard, and q is not used).
+    """
+
+    school_id: str
+    voice_turn_id: str
+    message_ref: str | None = None
+    audio_ref: str
+    language: Literal["vi", "en"]
+    asr_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    model: str
+    heard: str
+    edited: bool = False
+
+
 class SafetyFlagged(_Payload):
     """The model judged the student's message worrying (constitution rule 8). For the teacher to review."""
 
@@ -486,4 +509,5 @@ PAYLOAD_MODELS: dict[EventType, type[BaseModel]] = {
     EventType.BANDIT_REWARD: BanditReward,
     EventType.ITEM_RESTARTED: ItemRestarted,
     EventType.QUESTION_PARKED: QuestionParked,
+    EventType.VOICE_TURN_RECORDED: VoiceTurnRecorded,
 }

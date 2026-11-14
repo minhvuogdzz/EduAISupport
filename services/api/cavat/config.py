@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     tts: Literal["vieneu", "off"] = "vieneu"
     vieneu_url: str = "http://127.0.0.1:8010"
     vieneu_voice: str = ""  # a preset voice of VieNeu (empty: its default)
+    # ENG-6 (ADR-064). English sessions only; Mathematics never reads these.
+    # DI-134: below this ASR confidence q (DI-109) the tutor asks the child to say it again before sending.
+    english_asr_min_confidence: float = 0.6
+    # DI-133: English the tutor's voice reads badly ("ate" heard as "are", the verb table "go, went"):
+    # "browser" reads that part with the browser's English voice; "vieneu" sends it to VieNeu anyway.
+    english_tts_risky: Literal["browser", "vieneu"] = "browser"
     gemini_api_key: SecretStr | None = None
     gemini_vision_model: str = "gemini-3.8-flash"
     # Free tier (docs/poc/free-tier-quota.md): 20 requests a day per model. When the first model is rate
