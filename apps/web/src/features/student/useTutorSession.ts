@@ -117,7 +117,7 @@ export function useTutorSession(sessionId: string) {
     }
   }
 
-  function submitAnswer(text: string, modality: Modality = "TEXT") {
+  function submitAnswer(text: string, modality: Modality = "TEXT", voiceTurnId?: string) {
     return send(text, (state, key) =>
       api.submitResponse(
         sessionId,
@@ -127,6 +127,7 @@ export function useTutorSession(sessionId: string) {
           content: { text },
           modality,
           expected_state_version: state.state_version,
+          ...(voiceTurnId ? { voice_turn_id: voiceTurnId } : {}),
         },
         key,
       ),

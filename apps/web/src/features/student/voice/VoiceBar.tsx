@@ -64,6 +64,23 @@ export function VoiceStatus({ voice }: { voice: VoiceLive }) {
     (voice.phase === "speaking" && voice.bargeIn
       ? SPEAKING_BARGE
       : PHASE_TEXT[voice.phase] || (voice.heard ? `Cô nghe con nói: «${voice.heard}»` : ""));
+  if (voice.unclear) {
+    // ENG-6 (DI-134): the tutor asks to hear it again; what it heard, and a way to send it as it is.
+    return (
+      <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 pt-2 text-sm" aria-live="polite">
+        <p className="min-w-0 flex-1 text-amber-800">
+          {text} <span className="text-slate-600">(cô nghe: «{voice.unclear}»)</span>
+        </p>
+        <button
+          type="button"
+          onClick={voice.sendUnclear}
+          className="shrink-0 rounded-lg bg-white px-3 py-1 font-medium text-brand-800 ring-1 ring-slate-200"
+        >
+          Gửi
+        </button>
+      </div>
+    );
+  }
   return (
     <p className="mx-auto max-w-3xl truncate px-4 pt-2 text-sm text-slate-600" aria-live="polite">
       {text}
