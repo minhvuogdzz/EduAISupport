@@ -1,6 +1,8 @@
 # Lesson package — Tiếng Anh 5 (Global Success, tập hai), Unit 11 "Family time", Lesson 1
 # TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK/SGV ngày 12/11/2026; chủ dự án duyệt mặc định ngày 12/11/2026
-# (sửa bất kỳ lúc nào). Nguồn gốc và trạng thái đáp án của từng câu: sources.yaml.
+# (sửa bất kỳ lúc nào); 20 câu soạn thêm được chủ dự án duyệt ngày 13/11/2026. ENG-3b (ADR-062): mỗi câu ghi
+# nguồn, nguồn gốc, trạng thái đáp án, trạng thái duyệt và ngôn ngữ trả lời ngay trong câu; sources.yaml giữ
+# bảng tổng hợp (một test kiểm hai nơi khớp nhau).
 #
 # Nội dung: cụm từ hoạt động kỳ nghỉ, dạng quá khứ của động từ, mẫu "Did you …? – Yes, I did. I … / No, I didn't."
 # SGK tr.6–7 (Lesson 1), một phần tr.8 (cụm từ Lesson 2), Review 3 tr.37. SGV tr.178–182, 253.
@@ -9,15 +11,17 @@
 # - Cô giảng bằng tiếng Việt; từ và câu đích bằng tiếng Anh, luôn nằm trong một câu trọn vẹn
 #   ("Con nói theo cô: We swam in the sea."), không đọc một từ tiếng Anh đứng riêng (POC giọng nói, PR #139).
 # - Mỗi câu ghi nguồn ở dòng chú thích ngay trên nó: [SGK tr.N …], [SGV tr.N …] là câu của sách;
-#   [SOẠN THÊM] là câu phiên soạn, chờ chủ dự án duyệt. Câu có tranh trong sách được tả tranh bằng lời.
-# - Câu trả lời dạng câu dùng answer.type "open" + facts.phrases: mỗi nhóm là các cách nói được chấp nhận cho
-#   một ý (so khớp sau chuẩn hóa chữ thường). Đây là cách tạm vì schema chưa có kiểu "phrase" (README, Khoảng trống schema).
+#   [SOẠN THÊM] là câu phiên soạn (origin AUTHORED, đã duyệt: trường review). Câu có tranh được tả tranh bằng lời.
+#   Các trường source / answer_source / origin / answer_status / review / response_language / kind: ADR-062.
+# - Câu trả lời tiếng Anh dùng answer.type "phrase" (ADR-062, DI-125): accept là câu mẫu đã duyệt, required là
+#   các ý phải có (mỗi nhóm là các cách nói được chấp nhận cho một ý), chuẩn hóa en-vi/1 (DI-110); wrong_answers
+#   là câu sai mà hiểu lầm tương ứng tự nêu. Câu mức C trả lời bằng tiếng Việt giữ "open" + facts.phrases.
 # - hint.level 1..7 theo thang gợi ý tiếng Anh DI-112 (ADR-060): H1 định hướng, H2 nhắc khái niệm, H3 chiến lược,
 #   H4 cho một phần, H5 cho lựa chọn, H6 cùng làm, H7 cô đọc nguyên câu mẫu.
 # - Item "nói theo cô" là item cùng làm (completion), không tính thành công (DI-108).
 
 lesson_id: eng-g5-u11-l1
-version: 0.1.0
+version: 0.2.0
 status: DRAFT
 subject: english
 grade: 5
@@ -72,6 +76,7 @@ misconceptions:
     name: "Hỏi chuyện đã qua mà dùng do hoặc bỏ did"
     description: "Hỏi về hôm qua, tuần trước mà nói 'Do you swim yesterday?' hoặc 'You swam yesterday?'. Câu hỏi về quá khứ cần did."
     severity: CRITICAL
+    error_class: EN_STRUCTURE
     counter_examples:
       - "Nếu bạn hỏi con 'Do you swim?' thì bạn đang hỏi con có hay bơi không, hay hỏi hôm qua con đã bơi chưa?"
       - "Câu hỏi có chữ 'yesterday' (hôm qua) thì mình mở đầu bằng Do hay bằng Did cho hợp nhỉ?"
@@ -80,6 +85,7 @@ misconceptions:
     name: "Sau did vẫn đổi động từ sang quá khứ"
     description: "Nói 'Did you swam?', 'Did you walked on the beach?'. Did đã cho biết chuyện đã qua, nên động từ sau did giữ nguyên."
     severity: CRITICAL
+    error_class: EN_STRUCTURE
     counter_examples:
       - "Trong câu 'Did you swim?', chữ nào đã cho mình biết đây là chuyện đã qua rồi?"
       - "Chữ did đã báo 'đã qua' rồi. Nếu đổi thêm swim thành swam thì câu báo 'đã qua' mấy lần?"
@@ -88,6 +94,7 @@ misconceptions:
     name: "Nhầm Yes, I did với Yes, I do (hoặc Yes, I will)"
     description: "Bạn hỏi 'Did you take photos?' mà trả lời 'Yes, I do.' hoặc 'Yes, I will.'. Câu hỏi bằng did thì trả lời bằng did."
     severity: CRITICAL
+    error_class: EN_SHORT_ANSWER
     counter_examples:
       - "Bạn hỏi bằng chữ did. Vậy con trả lời Yes, I … bằng chữ nào cho khớp với câu hỏi?"
       - "'Yes, I will.' là con sẽ làm. Bạn hỏi con đã làm hay sẽ làm?"
@@ -96,6 +103,7 @@ misconceptions:
     name: "Kể chuyện đã qua bằng động từ nguyên mẫu"
     description: "Kể 'I swim with my father yesterday', 'We are at the Golden Pagoda last summer'. Chuyện đã xảy ra thì động từ đổi sang quá khứ."
     severity: CRITICAL
+    error_class: EN_TENSE
     counter_examples:
       - "Câu có 'yesterday' (hôm qua). Hôm qua đã qua rồi hay chưa tới, con nhỉ?"
       - "Nếu con nói 'I swim with my father' thì bạn nghe sẽ hiểu con hay bơi, hay hôm qua con đã bơi?"
@@ -104,6 +112,7 @@ misconceptions:
     name: "Thêm -ed cho động từ có dạng quá khứ riêng"
     description: "Viết 'swimmed', 'taked', 'eated', 'buyed', 'goed'. Các động từ này có dạng quá khứ riêng: swam, took, ate, bought, went."
     severity: NORMAL
+    error_class: EN_VERB_FORM
     counter_examples:
       - "Walk thành walked là thêm -ed. Còn take có thêm -ed được không, hay nó có dạng riêng là took?"
   - id: ENG5-U11-M06
@@ -111,6 +120,7 @@ misconceptions:
     name: "Nhầm nghĩa giữa các cụm hoạt động"
     description: "Gọi việc nhặt vỏ sò là 'buy souvenirs', gọi việc tham quan là 'eat seafood'... Nhầm nghĩa cụm hoặc nhầm tranh."
     severity: NORMAL
+    error_class: EN_MEANING
     counter_examples:
       - "Hai bạn đang cúi xuống cát nhặt vỏ ốc, vỏ sò. Hai bạn có đang trả tiền mua đồ không con?"
       - "'Souvenirs' là quà lưu niệm, thứ mình mua mang về. Vậy 'buy souvenirs' là làm gì?"
@@ -134,6 +144,10 @@ items:
     difficulty: 0.15
     expected_time_s: 30
     stem: "Bạn Lan kể: 'I collected seashells with my brother.' Bạn ấy đã làm gì cùng anh trai?"
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: either
     answer:
       type: choice
       options:
@@ -153,12 +167,16 @@ items:
     difficulty: 0.1
     expected_time_s: 30
     stem: "Cô đọc trước, con nói theo cô cả câu nhé: We took a boat trip around the bay."
+    source: {doc: SGK, page: "8", ref: "L2 Ex1b, câu đích"}
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: en
+    kind: say_after_me
     answer:
-      type: open
-      rubric: "Nhắc lại đủ cụm 'took a boat trip around the bay'."
-      sample_answer: "We took a boat trip around the bay."
-      facts:
-        phrases: [["took a boat trip"], ["around the bay"]]
+      type: phrase
+      accept: ["We took a boat trip around the bay."]
+      required: [["took a boat trip"], ["around the bay"]]
     hints:
       - {target: TASK, level: 1, text: "Con nghe cô đọc chậm lại nhé: We took a boat trip around the bay. Con nói theo được không?"}
       - {target: CONCEPT, level: 2, text: "Cụm này có ba phần: took a boat trip (đi thuyền), around (quanh), the bay (vịnh). Con nói từng phần theo cô nhé?"}
@@ -177,6 +195,11 @@ items:
     difficulty: 0.2
     expected_time_s: 40
     stem: "Bạn Ben kể: 'I walked on the beach at Co To Island with my family.' Ben đã làm gì cùng gia đình?"
+    source: {doc: SGV, page: "181", ref: "L1 Ex4 audio script câu 4, chuyển thành câu đọc (SGK tr.7)"}
+    answer_source: {doc: SGV, page: "182", ref: "Key L1 Ex4: 4a"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: either
     answer:
       type: choice
       options:
@@ -201,12 +224,16 @@ items:
     difficulty: 0.3
     expected_time_s: 45
     stem: "Trong tranh, cả nhà đang ngồi quanh bàn có tôm, cua, cá ở Nha Trang. Con nói câu kể việc cả nhà làm, bắt đầu bằng: We ate …"
+    source: {doc: SGK, page: "8", ref: "L2 Ex2b, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "184", ref: "audio script L2 Ex2b"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "Dùng đúng cụm eat seafood (ở đây đã đổi thành ate seafood)."
-      sample_answer: "We ate seafood."
-      facts:
-        phrases: [["ate seafood", "ate some seafood"]]
+      type: phrase
+      accept: ["We ate seafood."]
+      required: [["ate seafood", "ate some seafood"]]
+      wrong_answers: {"we eat seafood": ENG5-U11-M04}
     hints:
       - {target: TASK, level: 1, text: "Tôm, cua, cá gọi chung là gì trong tiếng Anh, con còn nhớ không?"}
       - {target: CONCEPT, level: 2, text: "Đồ ăn từ biển như tôm, cua, cá gọi chung là seafood. Ăn hải sản là eat seafood."}
@@ -225,6 +252,10 @@ items:
     difficulty: 0.45
     expected_time_s: 60
     stem: "Trong tranh, cả nhà đứng trước một quầy bán móc khóa, mũ và áo có in hình Singapore. Vì sao câu 'We bought souvenirs.' hợp với tranh hơn câu 'We saw some interesting places.'? Con trả lời bằng tiếng Việt nhé."
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: vi
     answer:
       type: open
       rubric: "Nói được buy/bought là mua và souvenirs là quà lưu niệm (đồ ở quầy); còn see some interesting places là đi xem nơi thú vị, không phải mua đồ."
@@ -249,6 +280,10 @@ items:
     difficulty: 0.4
     expected_time_s: 60
     stem: "Bạn Nam nhìn tranh hai bạn đang cúi xuống cát nhặt vỏ sò, rồi nói: 'They bought souvenirs.' Bạn Nam nói đúng chưa? Nếu chưa, con sửa giúp bạn nhé?"
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: either
     answer:
       type: boolean
       value: false
@@ -273,6 +308,10 @@ items:
     difficulty: 0.2
     expected_time_s: 30
     stem: "Con chọn câu đúng khi kể chuyện cuối tuần trước: 'Last weekend, I … photos with my father.'"
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: en
     answer:
       type: choice
       options:
@@ -292,12 +331,15 @@ items:
     difficulty: 0.2
     expected_time_s: 40
     stem: "Cô nói câu hôm nay, con đổi sang câu hôm qua nhé. Cô làm mẫu: 'Today I swim.' thành 'Yesterday I swam.' Bây giờ đến con: 'Today we eat seafood.' thành 'Yesterday we … seafood.'"
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: en
     answer:
-      type: open
-      rubric: "Đổi eat thành ate."
-      sample_answer: "Yesterday we ate seafood."
-      facts:
-        phrases: [["ate seafood", "ate some seafood"]]
+      type: phrase
+      accept: ["Yesterday we ate seafood."]
+      required: [["ate seafood", "ate some seafood"]]
+      wrong_answers: {"yesterday we eat seafood": ENG5-U11-M04}
     hints:
       - {target: TASK, level: 1, text: "Câu mới bắt đầu bằng yesterday (hôm qua). Động từ eat phải đổi sang dạng nào?"}
       - {target: CONCEPT, level: 2, text: "Eat có dạng quá khứ riêng, giống swim thành swam. Dạng quá khứ của eat là a…"}
@@ -317,6 +359,11 @@ items:
     expected_time_s: 40
     isomorphic_group: U11-PA-CIRCLE
     stem: "A: Did you swim yesterday? B: Yes, I did. I (swim / swam) with my father. Con chọn từ đúng nhé?"
+    source: {doc: SGK, page: "7", ref: "L1 Ex5 câu 1"}
+    answer_source: {doc: SGV, page: "182", ref: "Key L1 Ex5 câu 1: swam"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
       type: choice
       options:
@@ -341,6 +388,11 @@ items:
     expected_time_s: 40
     isomorphic_group: U11-PA-CIRCLE
     stem: "A: Where were your family last summer? B: We (are / were) at the Golden Pagoda in Thailand. Con chọn từ đúng nhé?"
+    source: {doc: SGK, page: "7", ref: "L1 Ex5 câu 4, chỗ trống 1"}
+    answer_source: {doc: SGV, page: "182", ref: "Key L1 Ex5 câu 4: were"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
       type: choice
       options:
@@ -364,12 +416,16 @@ items:
     difficulty: 0.35
     expected_time_s: 45
     stem: "Trong bài hát 'Did you swim last Sunday?', bạn được hỏi: 'Did you walk?' và trả lời: 'No, I didn't. I … photos there.' Con điền động từ (take) ở dạng đúng nhé?"
+    source: {doc: SGK, page: "7", ref: "L1 Ex6 bài hát, chỗ trống (3)"}
+    answer_source: {doc: SGV, page: "182", ref: "Key L1 Ex6: (3) took"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "Điền took (quá khứ của take)."
-      sample_answer: "No, I didn't. I took photos there."
-      facts:
-        phrases: [["took"]]
+      type: phrase
+      accept: ["No, I didn't. I took photos there."]
+      required: [["took"]]
+      wrong_answers: {"taked": ENG5-U11-M05}
     hints:
       - {target: TASK, level: 1, text: "Bạn trong bài hát đang kể chuyện Chủ nhật tuần trước. Đó là chuyện đã qua hay chưa?"}
       - {target: CONCEPT, level: 2, text: "Take có dạng quá khứ riêng, không thêm -ed."}
@@ -388,12 +444,16 @@ items:
     difficulty: 0.4
     expected_time_s: 45
     stem: "Gia đình Ben đi chơi cuối tuần trước. Trong tranh, bố mẹ Ben đang chọn đồ ở một quầy quà lưu niệm. Con điền động từ: 'His parents … some souvenirs.'"
+    source: {doc: SGK, page: "9", ref: "L2 Ex5 câu 2, chỗ trống 2, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "187", ref: "Key L2 Ex5 câu 2: bought"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "Điền bought (quá khứ của buy)."
-      sample_answer: "His parents bought some souvenirs."
-      facts:
-        phrases: [["bought"]]
+      type: phrase
+      accept: ["His parents bought some souvenirs."]
+      required: [["bought"]]
+      wrong_answers: {"buyed": ENG5-U11-M05}
     hints:
       - {target: TASK, level: 1, text: "Bố mẹ Ben đang làm gì ở quầy quà lưu niệm: mua, bán hay ngắm?"}
       - {target: CONCEPT, level: 2, text: "Mua là buy. Chuyện cuối tuần trước đã qua, nên buy phải đổi sang quá khứ; buy có dạng riêng."}
@@ -412,6 +472,11 @@ items:
     difficulty: 0.5
     expected_time_s: 60
     stem: "Bạn Mai kể về Chủ nhật tuần trước: 'We went to the beach.' Vì sao Mai nói went mà không nói go? Con trả lời bằng tiếng Việt nhé."
+    source: {doc: SGK, page: "6", ref: "câu 'We went to the beach.'"}
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: vi
     answer:
       type: open
       rubric: "Nêu được: Chủ nhật tuần trước là chuyện đã qua, nên go đổi sang quá khứ là went."
@@ -436,12 +501,15 @@ items:
     difficulty: 0.45
     expected_time_s: 60
     stem: "Bạn Tom viết: 'Last summer, we eated seafood in Nha Trang.' Con tìm từ viết sai và sửa lại giúp bạn nhé?"
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: either
     answer:
-      type: open
-      rubric: "Chỉ ra eated sai, sửa thành ate."
-      sample_answer: "Eated sai, phải là ate: Last summer, we ate seafood in Nha Trang."
-      facts:
-        phrases: [["ate"]]
+      type: phrase
+      accept: ["Eated sai, phải là ate: Last summer, we ate seafood in Nha Trang."]
+      required: [["ate"]]
+      wrong_answers: {"eated": ENG5-U11-M05}
     hints:
       - {target: TASK, level: 1, text: "Con đọc từng từ trong câu của Tom. Từ nào là động từ?"}
       - {target: CONCEPT, level: 2, text: "Eat là động từ có dạng quá khứ riêng, không thêm -ed."}
@@ -461,6 +529,11 @@ items:
     difficulty: 0.35
     expected_time_s: 40
     stem: "A: Did you (walk / walked) on the beach last Sunday? B: Yes, I did. I walked on the beach with my family. Con chọn từ đúng cho câu hỏi của A nhé?"
+    source: {doc: SGK, page: "7", ref: "L1 Ex5 câu 2"}
+    answer_source: {doc: SGV, page: "182", ref: "Key L1 Ex5 câu 2: walk"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
       type: choice
       options:
@@ -479,12 +552,15 @@ items:
     difficulty: 0.15
     expected_time_s: 40
     stem: "Cô đọc hội thoại trong sách, con nói theo phần trả lời nhé. Cô hỏi: 'Did you swim?' Con nói theo cô: 'Yes, I did. I swam with my mother.'"
+    source: {doc: SGK, page: "6", ref: "L1 Ex1b"}
+    origin: BOOK
+    answer_status: FROM_TEXT
+    response_language: en
+    kind: say_after_me
     answer:
-      type: open
-      rubric: "Nhắc lại đủ hai câu: Yes, I did. và I swam with my mother."
-      sample_answer: "Yes, I did. I swam with my mother."
-      facts:
-        phrases: [["yes, i did", "yes i did"], ["swam"]]
+      type: phrase
+      accept: ["Yes, I did. I swam with my mother."]
+      required: [["yes, i did", "yes i did"], ["swam"]]
     hints:
       - {target: TASK, level: 1, text: "Con nói câu ngắn trước nhé: Yes, I did."}
       - {target: CONCEPT, level: 2, text: "Câu thứ hai kể thêm con đã làm gì: I swam with my mother."}
@@ -502,6 +578,11 @@ items:
     difficulty: 0.3
     expected_time_s: 40
     stem: "Bạn hỏi: 'Did you take photos?' Câu trả lời nào đúng?"
+    source: {doc: SGK, page: "37", ref: "Review 3 Ex3 câu 1"}
+    answer_source: {doc: SGV, page: "253", ref: "Key Review 3 Ex3: 1e"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
       type: choice
       options:
@@ -526,12 +607,16 @@ items:
     difficulty: 0.4
     expected_time_s: 50
     stem: "Trong tranh, bạn của con đang nhặt vỏ sò trên bãi biển cùng anh trai. Con hỏi bạn xem bạn đã nhặt vỏ sò chưa, bằng câu bắt đầu bằng 'Did you …?' nhé."
+    source: {doc: SGK, page: "6", ref: "L1 Ex3 Let's talk, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "180", ref: "Key L1 Ex3: Did you collect seashells?"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "Câu hỏi Did you + collect seashells (động từ giữ nguyên)."
-      sample_answer: "Did you collect seashells?"
-      facts:
-        phrases: [["did you collect seashells"]]
+      type: phrase
+      accept: ["Did you collect seashells?"]
+      required: [["did you collect seashells"]]
+      wrong_answers: {"did you collected seashells": ENG5-U11-M02, "do you collect seashells": ENG5-U11-M01}
     hints:
       - {target: TASK, level: 1, text: "Nhặt vỏ sò tiếng Anh là cụm nào, con còn nhớ không?"}
       - {target: CONCEPT, level: 2, text: "Câu hỏi về việc đã làm: Did you + động từ giữ nguyên? Nhặt vỏ sò là collect seashells."}
@@ -550,6 +635,10 @@ items:
     difficulty: 0.5
     expected_time_s: 60
     stem: "Bạn hỏi: 'Did you swim last Sunday?' Vì sao con trả lời 'Yes, I did.' mà không trả lời 'Yes, I do.'? Con trả lời bằng tiếng Việt nhé."
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: vi
     answer:
       type: open
       rubric: "Nêu được: câu hỏi dùng did (hỏi chuyện đã qua, Chủ nhật tuần trước) nên trả lời bằng did; do dùng cho việc thường làm, hiện tại."
@@ -574,6 +663,10 @@ items:
     difficulty: 0.5
     expected_time_s: 60
     stem: "Bạn Lan muốn hỏi chuyện Chủ nhật tuần trước nên nói: 'Do you swim with your mother last Sunday?' Câu nào là câu đúng để Lan hỏi?"
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: en
     answer:
       type: choice
       options:
@@ -598,6 +691,10 @@ items:
     difficulty: 0.35
     expected_time_s: 40
     stem: "Bạn hỏi: 'Did you buy souvenirs in Ha Long?' Con không mua quà lưu niệm. Con trả lời thế nào?"
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: en
     answer:
       type: choice
       options:
@@ -622,12 +719,15 @@ items:
     transfer: near
     expected_time_s: 60
     stem: "Tuần trước con đi Vũng Tàu và đi dạo trên bãi biển cùng ông bà. Bạn hỏi: 'Did you walk on the beach last week?' Con trả lời bằng hai câu như mẫu trong sách nhé."
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: en
     answer:
-      type: open
-      rubric: "Câu ngắn Yes, I did. và câu kể với walked on the beach (có thể thêm with my grandparents)."
-      sample_answer: "Yes, I did. I walked on the beach with my grandparents."
-      facts:
-        phrases: [["yes, i did", "yes i did"], ["walked on the beach"]]
+      type: phrase
+      accept: ["Yes, I did. I walked on the beach with my grandparents."]
+      required: [["yes, i did", "yes i did"], ["walked on the beach"]]
+      wrong_answers: {"yes, i do": ENG5-U11-M03}
     hints:
       - {target: TASK, level: 1, text: "Con có đi dạo trên bãi biển không? Vậy câu trả lời ngắn là Yes hay No?"}
       - {target: CONCEPT, level: 2, text: "Mẫu trả lời: Yes, I did. rồi kể thêm bằng động từ quá khứ: I walked …"}

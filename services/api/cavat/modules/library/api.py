@@ -232,7 +232,16 @@ def answer_text(item: Item) -> str:
         return f"{right.id}. {right.text}"
     if ans.type == "boolean":
         return "Đúng" if ans.value else "Sai"
+    if ans.type == "phrase":  # ENG-3b: the first accepted sentence, else every idea it must say
+        return ans.accept[0] if ans.accept else " … ".join(" / ".join(group) for group in ans.required)
+    if ans.type == "word_order":
+        return " ".join(ans.accept[0])
     return ans.sample_answer
+
+
+# ENG-3b (ADR-062): where an English item comes from, shown to the teacher only when the item says it, so
+# a Mathematics item reads exactly as before.
+_PROVENANCE = ("origin", "answer_status", "response_language", "kind")
 
 
 def chapter_content(chapter: Chapter, source: str) -> dict[str, Any]:
@@ -255,6 +264,12 @@ def chapter_content(chapter: Chapter, source: str) -> dict[str, Any]:
             "explanation": item.explanation,
             "wrong_answers": dict(getattr(item.answer, "wrong_answers", {}) or {}),
             "lesson_id": lesson.lesson_id,
+            **{name: getattr(item, name) for name in _PROVENANCE if getattr(item, name) is not None},
+            **{
+                name: getattr(item, name).model_dump(mode="json")
+                for name in ("source", "answer_source", "review")
+                if getattr(item, name) is not None
+            },
         }
 
     nodes = []
@@ -290,6 +305,7 @@ def chapter_content(chapter: Chapter, source: str) -> dict[str, Any]:
             "description": m.description,
             "severity": m.severity,
             "counter_examples": m.counter_examples,
+            **({"error_class": m.error_class} if m.error_class else {}),  # ENG-3b: English only (DI-107)
         }
         for lesson in chapter.lessons.values()
         for m in lesson.misconceptions
@@ -300,6 +316,7 @@ def chapter_content(chapter: Chapter, source: str) -> dict[str, Any]:
         "title": package.title,
         "version": package.version,
         "status": package.status,
+        "subject": package.subject,
         "source": source,
         "nodes": nodes,
         "relations": [{"source": r.source, "target": r.target, "type": r.type} for r in package.relations],
@@ -327,7 +344,15 @@ def document_subject(chapter_id: str, subject: str, chapters: dict[str, tuple[Ch
 def build_router(
     database_dependency: Any, teacher_dependency: Any, school_id: str, chapters: Any
 ) -> APIRouter:
-    """``chapters()``: the chapter packages by id with their source file (``chapter_service``)."""
+    """``chapters(subject)``: the chapter packages of one subject by id with their source file
+    (``chapter_service.chapter_sources``)."""
+
+    def every_chapter() -> dict[str, tuple[Chapter, Any]]:
+        out: dict[str, tuple[Chapter, Any]] = {}
+        for one in SUBJECTS:
+            out.update(chapters(one))
+        return out
+
     router = APIRouter(prefix="/v1/teachers", tags=["teacher-library"])
     database_dep, teacher_dep = Depends(database_dependency), Depends(teacher_dependency)
 
@@ -355,7 +380,7 @@ def build_router(
             raise LibraryError(413, "VALIDATION_ERROR", "the file is larger than 25 MB")
         if not data:
             raise LibraryError(422, "VALIDATION_ERROR", "the file is empty")
-        subject = document_subject(chapter_id, subject, chapters())
+        subject = document_subject(chapter_id, subject, every_chapter())
         document = await run_in_threadpool(
             read_document,
             data,
@@ -407,11 +432,16 @@ def build_router(
         return Response(status_code=204)
 
     @router.get("/chapters")
-    async def chapter_list(teacher: str = teacher_dep):
+    async def chapter_list(teacher: str = teacher_dep, subject: str = "math"):
+        """The chapters (units) of one subject the tutor teaches; Mathematics without ``?subject=``
+        (DI-124)."""
+        if subject not in SUBJECTS:
+            raise LibraryError(422, "VALIDATION_ERROR", f"subject must be one of {', '.join(SUBJECTS)}")
         return [
             {
                 "chapter_id": cid,
                 "title": ch.package.title,
+                "subject": ch.package.subject,
                 "status": ch.package.status,
                 "nodes": len(ch.package.nodes),
                 "items": sum(
@@ -419,12 +449,12 @@ def build_router(
                     for n in ch.package.nodes
                 ),
             }
-            for cid, (ch, _) in chapters().items()
+            for cid, (ch, _) in chapters(subject).items()
         ]
 
     @router.get("/chapters/{chapter_id}")
     async def chapter_detail(chapter_id: str, teacher: str = teacher_dep):
-        found = chapters().get(chapter_id)
+        found = every_chapter().get(chapter_id)  # a chapter id names one chapter of one subject
         if found is None:
             raise LibraryError(404, "NOT_FOUND", "no chapter with this id")
         chapter, path = found

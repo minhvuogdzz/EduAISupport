@@ -1,9 +1,11 @@
 # Nguồn gốc nội dung — Unit 11 "Family time" (ENG-3, 12/11/2026)
-# TRẠNG THÁI: DRAFT — chủ dự án duyệt mặc định ngày 12/11/2026.
+# TRẠNG THÁI: DRAFT — chủ dự án duyệt mặc định ngày 12/11/2026; 20 câu AUTHORED được chủ dự án duyệt ngày 13/11/2026.
 #
-# File này KHÔNG được loader nào đọc; nó ghi lại vì schema LessonPackage chưa có chỗ cho nguồn và trạng thái
-# đáp án của từng câu (../README.md, "Khoảng trống schema" G4). Khi schema có các trường đó, chuyển dữ liệu
-# ở mục `items` vào các file lesson và bỏ file này.
+# File này KHÔNG được loader nào đọc. Từ ENG-3b (ADR-062) nguồn, nguồn gốc, trạng thái đáp án và trạng thái duyệt
+# của từng câu nằm ngay trong câu (lesson-N-*/lesson.yaml: source, answer_source, origin, answer_status, review).
+# File này giữ (a) mục `exercises`: mọi bài của sách, kể cả bài không thành câu (NO_ANSWER, NEEDS_AUDIO), và
+# (b) mục `items`: bảng tổng hợp để đọc nhanh. Test `test_sources_yaml_agrees_with_the_lesson_files`
+# (services/api/tests/test_subject_content.py) kiểm `items` khớp với các file lesson.
 #
 # Bản trích gần nguyên văn để đối chiếu nằm ngoài repo, chỉ có trên máy chủ dự án (var/ bị git bỏ qua):
 #   /Users/mac/Documents/Code Space/EduAISupport/var/storage/english-sources/unit-11/
@@ -33,7 +35,8 @@ documents:
 # Trạng thái đáp án (theo ADR-024, rút gọn cho nội dung đọc tay):
 #   VERIFIED_SGV  đáp án có trong SGV (Key / audio script / Suggested answers), trang ghi ở answer_source
 #   FROM_TEXT     đáp án đọc thẳng từ chữ in trong SGK (câu mẫu, hội thoại), không cần suy luận
-#   AUTHORED      câu do phiên soạn thêm; đáp án do phiên viết, chờ chủ dự án duyệt
+#   AUTHORED      câu do phiên soạn thêm; đáp án do phiên viết; chỉ được dạy khi chủ dự án đã duyệt
+#                 (trường review của câu; cả 20 câu được duyệt ngày 13/11/2026)
 #   NEEDS_AUDIO   SGV có đáp án nhưng bài phụ thuộc file nghe của sách; chưa dùng làm câu hỏi
 #   NO_ANSWER     bài mở hoặc trò chơi, sách không có đáp án cố định; không tạo câu chấm điểm
 

@@ -70,6 +70,7 @@ export const ERROR_CLASSES = [
   "FORMAT",
   "REASONING",
   "UNKNOWN",
+  "L1", // ENG-4 (DI-107): English only; Mathematics never writes it
 ] as const;
 export type ErrorClass = (typeof ERROR_CLASSES)[number];
 
