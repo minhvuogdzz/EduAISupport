@@ -277,6 +277,25 @@ def allowed_commands(session: LearningSession) -> list[CommandType]:
     return ["ANSWER", "HINT_REQUEST"]
 
 
+def awaited_input(chapter: Chapter, session: LearningSession) -> tuple[str | None, str | None, str | None]:
+    """ENG-6 (DI-132): what the session waits for, for the language Whisper hears: the loop's ``awaiting``,
+    the item's ``expecting`` ("ANSWER" or "EXPLANATION") and the item's ``response_language`` (ENG-3b;
+    None for an item without one, as every Mathematics item)."""
+    st = session.state
+    if st.lifecycle != LifecycleState.ACTIVE:
+        return None, None, None
+    awaiting = (st.activity or {}).get("awaiting")
+    item = st.item or {}
+    if awaiting != Awaiting.ANSWER or not item.get("item_id"):
+        return str(awaiting) if awaiting else None, None, None
+    expecting = "EXPLANATION" if Phase(item["phase"]) in _EXPECTS_WORDS else "ANSWER"
+    try:
+        language = getattr(chapter.item(item["item_id"]), "response_language", None)
+    except KeyError:
+        language = None
+    return str(Awaiting.ANSWER), expecting, language
+
+
 def apply_command(
     chapter: Chapter,
     session: LearningSession,

@@ -6,6 +6,7 @@ Chat: Qwen (tutor brain) and gpt-oss fallbacks. Speech-to-text: Whisper.
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
@@ -32,6 +33,41 @@ from .base import (
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 DEFAULT_STT_MODEL = "whisper-large-v3"
+# DI-109: a segment above this no-speech probability is silence; q = 0 when every segment is.
+NO_SPEECH_THRESHOLD = 0.6
+
+
+def asr_confidence(segments: Any) -> float | None:
+    """DI-109 (ENG-6, DI-132): q = exp(mean avg_logprob of the segments, weighted by their length), in [0, 1].
+
+    - q = 0 when every segment has ``no_speech_prob > 0.6`` (the recording is silence or noise).
+    - The length of a segment is ``end - start`` in seconds; when no segment has a positive length (a
+      provider without times), every segment weighs the same.
+    - All segments count, also those the VOICE-3 filter drops from the text: q says how sure Whisper was
+      of the whole turn.
+    - None when there is no segment with an ``avg_logprob``: the provider gave text only, and no confidence
+      is invented.
+    Deterministic, rounded to 4 decimals so an event stores the same number on every machine.
+    """
+    if not isinstance(segments, list):
+        return None
+    usable = [s for s in segments if isinstance(s, dict) and _number(s.get("avg_logprob")) is not None]
+    if not usable:
+        return None
+    no_speech = [_number(s.get("no_speech_prob")) for s in usable]
+    if all(p is not None and p > NO_SPEECH_THRESHOLD for p in no_speech):
+        return 0.0
+    lengths = [max((_number(s.get("end")) or 0.0) - (_number(s.get("start")) or 0.0), 0.0) for s in usable]
+    if sum(lengths) <= 0:
+        lengths = [1.0] * len(usable)
+    mean = sum(w * float(s["avg_logprob"]) for w, s in zip(lengths, usable, strict=True)) / sum(lengths)
+    return round(min(max(math.exp(mean), 0.0), 1.0), 4)
+
+
+def _number(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return None
+    return float(value)
 
 
 def reasoning_effort_for(model: str) -> str | None:
@@ -156,7 +192,9 @@ class GroqClient:
                 kept.append(segment["text"].strip())
             if len(kept) != len(segments) or not segments:
                 text = " ".join(kept)
-        return Transcription(model=model, text=text.strip(), language=language)
+        return Transcription(
+            model=model, text=text.strip(), language=language, confidence=asr_confidence(segments)
+        )
 
     def _send(self, model: str, path: str, **kwargs: Any) -> dict[str, Any]:
         now = datetime.now(UTC)

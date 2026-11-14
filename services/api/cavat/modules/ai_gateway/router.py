@@ -44,6 +44,7 @@ from .base import (
 )
 
 DEFAULT_MAX_LLM_CALLS_PER_SESSION = 15
+STT_LANGUAGES = ("vi", "en")  # the languages Whisper is told to hear; never empty (ENG-6, rule V2)
 # The model of the lightweight and judge chains is named in the settings (GROQ_MODEL, Qwen).
 DEFAULT_TUTOR_MODEL: str = Settings.model_fields["groq_model"].default
 # Owner priority (2026-10-29): Gemini, then GPT-OSS 120B, Qwen, GPT-OSS 20B.
@@ -302,7 +303,13 @@ class AIRouter:
     def transcribe(
         self, audio: bytes, *, language: str = "vi", filename: str = "audio.webm"
     ) -> Transcription:
-        """STT_VI. On error the caller falls back to the browser Web Speech API."""
+        """STT_VI. On error the caller falls back to the browser Web Speech API.
+
+        ``language`` is always named, "vi" or "en" (ENG-6, rule V2): Whisper's own language detection hears
+        Vietnamese-accented English as Malay and translates it (PR #139), so it is never left to guess.
+        """
+        if language not in STT_LANGUAGES:
+            raise ValueError(f"speech-to-text language must be one of {STT_LANGUAGES}, not {language!r}")
         if self._stt is None:
             raise ModelUnavailable("no speech-to-text provider configured")
         return self._stt.transcribe(audio, model=self._stt_model, language=language, filename=filename)
