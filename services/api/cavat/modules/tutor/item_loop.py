@@ -44,9 +44,9 @@ from cavat.core.pedagogy import (
     Outcome,
     resolution_for,
 )
+from cavat.modules.assessment.answer_check import check_answer  # ENG-4: English types, Math unchanged
 from cavat.modules.assessment.math_checker import (
     CheckResult,
-    check_answer,
     classify_intent,
     no_is_an_answer,
     parse_relation,

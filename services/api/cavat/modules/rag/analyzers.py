@@ -23,6 +23,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Protocol
 
+from cavat.core.en_text import IRREGULAR_PAST
 from cavat.core.subjects import check_subject
 from cavat.core.vi_text import fold, normalize
 
@@ -114,19 +115,8 @@ _CONTRACTIONS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
 _ENGLISH_HOMOGRAPHS = frozenset({"a", "the", "may"})
 
 
-# The irregular past forms of the verbs a primary class meets (Global Success 5, a unit about what a family
-# did: "Did you go…? We went…"). Not exhaustive: a form not listed is a word of its own.
-_IRREGULAR_PAST = {
-    "did": "do", "went": "go", "had": "have", "was": "be", "were": "be", "made": "make", "saw": "see",
-    "ate": "eat", "came": "come", "took": "take", "got": "get", "gave": "give", "bought": "buy",
-    "swam": "swim", "ran": "run", "flew": "fly", "wrote": "write", "built": "build", "caught": "catch",
-    "drank": "drink", "found": "find", "left": "leave", "met": "meet", "sang": "sing", "sat": "sit",
-    "slept": "sleep", "spent": "spend", "taught": "teach", "told": "tell", "thought": "think",
-    "won": "win", "wore": "wear", "rode": "ride", "drew": "draw", "grew": "grow", "knew": "know",
-    "sent": "send", "stood": "stand", "brought": "bring", "began": "begin", "drove": "drive",
-    "felt": "feel", "heard": "hear", "kept": "keep", "lost": "lose", "paid": "pay", "said": "say",
-    "sold": "sell", "spoke": "speak", "threw": "throw", "understood": "understand", "woke": "wake",
-}  # fmt: skip
+# The irregular past forms a primary class meets: ``core/en_text`` (ENG-4 moved the table there, unchanged).
+_IRREGULAR_PAST = IRREGULAR_PAST
 _DOUBLED = re.compile(r"([bgmnprt])\1$")  # "stopped" -> "stopp" -> "stop"; not "called", "added"
 
 
