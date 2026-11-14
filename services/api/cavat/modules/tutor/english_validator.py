@@ -24,8 +24,16 @@ from collections.abc import Callable, Iterable
 from enum import StrEnum
 from functools import partial
 
+from cavat.core.en_text import contains_words, normalize_answer
 from cavat.core.subjects import check_subject
-from cavat.modules.content.lesson_package import ChoiceAnswer, Item, LessonPackage, OpenAnswer
+from cavat.modules.content.lesson_package import (
+    ChoiceAnswer,
+    Item,
+    LessonPackage,
+    OpenAnswer,
+    PhraseAnswer,
+    WordOrderAnswer,
+)
 from cavat.modules.tutor.contracts import RenderContext, ValidationCode, ValidationIssue, ValidationResult
 from cavat.modules.tutor.validator import (
     MOVES_SKIPPING_LEAK_CHECK,
@@ -183,6 +191,10 @@ def _package_texts(packages: Iterable[LessonPackage]) -> list[str]:
 
 def _answer_texts(item: Item) -> list[str]:
     ans = item.answer
+    if isinstance(ans, PhraseAnswer):
+        return [*ans.accept, *(p for g in ans.required for p in g), *ans.wrong_answers]
+    if isinstance(ans, WordOrderAnswer):
+        return [" ".join(ans.tokens)]
     if isinstance(ans, OpenAnswer):
         groups = ans.facts.phrases if ans.facts else []
         return [ans.sample_answer, *(p for g in groups for p in g)]
@@ -297,30 +309,27 @@ def math_terms_in(text: str) -> list[str]:
 # ---------------------------------------------------------------------------------------------- leak
 
 
-def normalize_en(text: str) -> str:
-    """DI-110: lower case, contractions expanded, punctuation and extra spaces removed (whole words)."""
-    t = unicodedata.normalize("NFC", text).lower().replace("’", "'")
-    t = re.sub(r"[^\w\s']", " ", t)
-    t = " ".join(_CONTRACTIONS.get(w, w) for w in t.split())
-    return " ".join(t.replace("'", " ").split())
-
-
-def _contains(haystack: str, needle: str) -> bool:
-    return bool(needle) and f" {needle} " in f" {haystack} "
+# DI-110 is one function for the checker and for the leak check: ``core/en_text`` (ENG-4, ADR-063).
+normalize_en = normalize_answer
+_contains = contains_words
 
 
 def _target_groups(item: Item) -> tuple[list[str], list[list[str]]]:
     """(whole target sentences, groups of accepted phrasings) when the item's answer is an English target.
 
-    An item answered in Vietnamese (a "vì sao" item, level C) is not an English target: its key phrases are
-    ordinary Vietnamese words and its leak is guarded by ``leak_patterns`` (Math validator, unchanged).
-    Reads the ``open`` + ``facts.phrases`` form of ENG-3 and, duck-typed, a later ``accept``/``required``."""
-    sentences: list[str] = list(getattr(item.answer, "accept", None) or [])
-    groups: list[list[str]] = [list(g) for g in getattr(item.answer, "required", None) or []]
-    if isinstance(item.answer, OpenAnswer):
-        sentences.append(item.answer.sample_answer)
-        if item.answer.facts:
-            groups += [list(g) for g in item.answer.facts.phrases]
+    ``phrase`` (ADR-062, DI-125): ``accept`` and ``required``; ``word_order``: each accepted order as a
+    sentence. An item answered in Vietnamese (``open``, a "vì sao" item of level C) is not an English target:
+    its key phrases are ordinary Vietnamese words and its leak is guarded by ``leak_patterns``."""
+    ans = item.answer
+    sentences: list[str] = []
+    groups: list[list[str]] = []
+    if isinstance(ans, PhraseAnswer):
+        sentences, groups = list(ans.accept), [list(g) for g in ans.required]
+    elif isinstance(ans, WordOrderAnswer):
+        sentences = [" ".join(order) for order in ans.accept]
+    elif isinstance(ans, OpenAnswer):
+        sentences = [ans.sample_answer]
+        groups = [list(g) for g in ans.facts.phrases] if ans.facts else []
     sentences = [s for s in sentences if is_english_text(s)]
     if not all(g and all(p.isascii() for p in g) for g in groups):
         groups = []  # one group is a Vietnamese idea: the answer is a reason, not an English target
@@ -359,8 +368,7 @@ def english_leak(text: str, item: Item) -> str | None:
 
 
 def is_say_after_me(item: Item, say_after_me: bool | None = None) -> bool:
-    """A "con nói theo cô" item (DI-108): the caller says so (the node's ``completion`` list) or the item's
-    ``kind`` does (ENG-3b G10)."""
+    """A "con nói theo cô" item (DI-108): the caller says so, or the item's ``kind`` does (ADR-062)."""
     return bool(say_after_me) if say_after_me is not None else getattr(item, "kind", None) == SAY_AFTER_ME
 
 

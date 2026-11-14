@@ -15,7 +15,7 @@ import pytest
 from cavat.core.pedagogy import HintLevel, Move
 from cavat.modules.ai_gateway.base import MAX_PROMPT_TOKENS, ChatRequest, estimate_prompt_tokens
 from cavat.modules.ai_gateway.groq import reasoning_effort_for
-from cavat.modules.content.lesson_package import load_lesson_package
+from cavat.modules.session.service import lesson_packages
 from cavat.modules.tutor import brain, prompt_builder
 from cavat.modules.tutor.brain import BrainPack
 from cavat.modules.tutor.english import (
@@ -45,8 +45,7 @@ from cavat.modules.tutor.prompt_builder import (
 
 ROOT = Path(__file__).resolve().parents[3]
 GOLDEN = Path(__file__).parent / "golden" / "math-prompts-before-eng5a.json"
-UNIT = ROOT / "docs/pedagogy/english-g5/unit-11-family-time"
-PACKAGES = [load_lesson_package(p) for p in sorted(UNIT.glob("lesson-*.yaml"))]
+PACKAGES = [pkg for _, pkg in sorted(lesson_packages("english").items())]  # the subject loader (ADR-062)
 WORDS = unit_targets(PACKAGES)
 ENGLISH_FILES = [PROMPT_SETS["english"].__dict__[k] for k in ("constitution", "subject_module", "listener")]
 ENGLISH_FILES.append(PROMPT_SETS["english"].curriculum_check)

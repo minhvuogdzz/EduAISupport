@@ -10,6 +10,7 @@ from types import SimpleNamespace
 import pytest
 from cavat.core.pedagogy import ActivityType, Move
 from cavat.modules.content.lesson_package import load_lesson_package
+from cavat.modules.session.service import lesson_packages
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, RenderContext
 from cavat.modules.tutor.english_validator import (
     display_text,
@@ -28,8 +29,7 @@ from cavat.modules.tutor.english_validator import (
 )
 from cavat.modules.tutor.validator import validate_message
 
-UNIT = Path(__file__).resolve().parents[3] / "docs/pedagogy/english-g5/unit-11-family-time"
-PACKAGES = [load_lesson_package(p) for p in sorted(UNIT.glob("lesson-*.yaml"))]
+PACKAGES = [pkg for _, pkg in sorted(lesson_packages("english").items())]  # the subject loader (ADR-062)
 ITEMS = {item.id: (item, pkg) for pkg in PACKAGES for item in pkg.items}
 LEXICON = unit_lexicon(PACKAGES)
 MATH_LESSON = Path(__file__).resolve().parents[3] / "docs/pedagogy/math-g5/so-sanh-so-thap-phan/lesson.yaml"
@@ -112,7 +112,7 @@ def test_lexicon_holds_the_unit_words_and_not_others():
 
 def test_normalize_en_follows_di110():
     assert normalize_en("No, I didn't!  I TOOK photos.") == "no i did not i took photos"
-    assert normalize_en("It's Mai’s book.") == "it is mai s book"
+    assert normalize_en("It's Mai’s book.") == "it is mais book"  # other apostrophes join the word (DI-128)
 
 
 # ---------------------------------------------------------------------------------------------- leak
@@ -170,10 +170,13 @@ def test_say_after_me_may_read_the_model_sentence_first():
 
 def test_say_after_me_from_the_item_kind():
     assert is_say_after_me(SimpleNamespace(kind="say_after_me"))
-    assert not is_say_after_me(SimpleNamespace(kind="practice"))
-    item, _ = ITEMS["U11-DY-CP-01"]
-    assert not is_say_after_me(item)  # no ``kind`` until ENG-3b: the session passes the completion list
-    assert is_say_after_me(item, True)
+    assert not is_say_after_me(SimpleNamespace(kind=None))
+    say_after_me, _ = ITEMS["U11-DY-CP-01"]  # kind: say_after_me (ADR-062)
+    practice, _ = ITEMS["U11-WD-PR-01"]
+    assert is_say_after_me(say_after_me) and not is_say_after_me(practice)
+    assert not is_say_after_me(say_after_me, False)  # the caller's word wins
+    reading = "Con nói theo cô: [[en: Yes, I did. I swam with my mother.]] Con nói theo nhé?"
+    assert "ANSWER_LEAK" not in codes(reading, "U11-DY-CP-01")
 
 
 def test_choice_item_singling_out_the_right_option():
@@ -329,3 +332,19 @@ def test_validator_for_picks_by_subject():
     for bad in (None, "", "Math", "history"):
         with pytest.raises(ValueError):
             validator_for(bad, lexicon=LEXICON)
+
+
+PHRASE_ITEMS = [i for i, _ in ITEMS.values() if i.answer.type == "phrase" and i.kind != "say_after_me"]
+
+
+@pytest.mark.parametrize("item", PHRASE_ITEMS, ids=lambda i: i.id)
+def test_every_accepted_sentence_of_the_unit_is_caught(item):
+    """Every ``accept`` sentence of every ``phrase`` item of Unit 11, said by the tutor before the child
+    answers, is a leak, unless the question itself already quotes it."""
+    stem = normalize_en(item.stem)
+    for sentence in item.answer.accept:
+        if f" {normalize_en(sentence)} " in f" {stem} ":
+            continue
+        assert "ANSWER_LEAK" in codes(
+            f"Con nói thế này nhé: [[en: {sentence}]] Con nói lại được không?", item.id
+        )

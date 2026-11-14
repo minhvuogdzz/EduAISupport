@@ -20,7 +20,7 @@ from collections.abc import Iterable, Sequence
 
 from cavat.core.pedagogy import Move
 from cavat.modules.ai_gateway.base import ChatMessage, ChatRequest, estimate_prompt_tokens
-from cavat.modules.content.lesson_package import LessonPackage
+from cavat.modules.content.lesson_package import LessonPackage, PhraseAnswer
 from cavat.modules.tutor.brain import (
     BRAIN_TEMPERATURE,
     MAX_GROUND_CHARS,
@@ -35,7 +35,6 @@ from cavat.modules.tutor.english_validator import (
     CODE_NOTES_EN,
     display_text,
     english_spans,
-    is_english_text,
     mark_english,
     normalize_en,
 )
@@ -150,11 +149,8 @@ def unit_targets(packages: Iterable[LessonPackage], limit: int = 40) -> tuple[st
     wrong = " ".join(normalize_en(f"{m.name} {m.description}") for p in packages for m in p.misconceptions)
     for pkg in packages:
         texts = [c.explanation for c in pkg.concepts]
-        texts += [
-            i.answer.sample_answer
-            for i in pkg.items
-            if getattr(i.answer, "type", "") == "open" and is_english_text(i.answer.sample_answer)
-        ]
+        texts += [s for i in pkg.items if isinstance(i.answer, PhraseAnswer) for s in i.answer.accept]
+        texts = [t for t in texts if t]
         for text in texts:
             for span in english_spans(mark_english(text)):
                 for part in re.split(r"[,;→]", span):
