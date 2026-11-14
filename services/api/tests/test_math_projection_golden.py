@@ -10,7 +10,9 @@ again with the code of today and the canonical JSON of the projection must hash 
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -59,3 +61,27 @@ def test_a_stored_mathematics_log_projects_byte_for_byte_as_before(log):
     assert summary == log["summary"]
     assert projection.policy_version == "node-mastery/0.3.0"
     assert digest(projection) == log["sha256"]
+
+
+def _generator():
+    """The script that wrote the golden, imported to replay its scripted learners (it writes nothing here)."""
+    spec = importlib.util.spec_from_file_location(
+        "golden_maker", Path(__file__).parent / "golden/make_math_projection_golden.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("golden_maker", module)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize(
+    "log",
+    [log for log in GOLDEN["logs"] if log["kind"] == "teaching-loop"],
+    ids=lambda log: f"seed-{log['seed']}",
+)
+def test_the_mathematics_teaching_loop_writes_the_same_events_as_before(log):
+    """The scripted learners of the golden study the chapter again with the code of today (the checker
+    dispatch of ENG-4 included): every event, in order, is the one written before ENG-4."""
+    maker = _generator()
+    loop = maker.converse(maker.Learner(log["seed"], log["skill"]), f"golden-{log['seed']}")
+    assert [maker.event_json(e) for e in loop.events] == log["events"]

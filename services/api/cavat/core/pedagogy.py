@@ -126,6 +126,9 @@ class ErrorClass(StrEnum):
     FORMAT = "FORMAT"
     REASONING = "REASONING"
     UNKNOWN = "UNKNOWN"
+    # ENG-4 (ADR-060 DI-107): a right meaning said in Vietnamese where the item asks for English. Only the
+    # English mastery policy scores it (0.3); Mathematics never writes it, so its projection is unchanged.
+    L1 = "L1"
 
 
 class ActivityType(StrEnum):
