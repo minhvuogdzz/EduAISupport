@@ -81,5 +81,5 @@ Ngày: 14/11/2026 · Task ENG-4 · DI-128 đến DI-131 · Trạng thái: **ch�
 - **Nối với schema ENG-3b** (sau khi cả hai merge): thêm `PhraseAnswer`/`WordOrderAnswer` vào `AnswerSpec` là đủ cho dispatch (`answer_check.is_english_answer` đọc `answer.type`); `Misconception.error_class` mang mã DI-107 (`EN_TENSE`…) để bật DI-129 điểm 2–3; đổi các câu đích `open` của Unit 11 sang `phrase` để DI-109 điểm 7 có hiệu lực.
 - **Vòng dạy (ENG-5):** `item_loop` đã gọi `answer_check.check_answer`, nhưng phần quanh nó (`no_is_an_answer`, `classify_intent` lúc xác nhận, bảng `_TARGET_FOR_ERROR` của `tutor/policy.py` chưa có `L1`) vẫn của Toán; đặt `final_error_class = L1` khi item đóng bằng tiếng Việt; đếm lặp ≥ 2 lần cho M04/M05.
 - **Giọng nói (ENG-6):** điền `ItemResolved.asr_confidence`; trước đó mọi câu nói tiếng Anh tính là nghe chưa chắc (DI-130 điểm 1).
-- **Web (ENG-7):** `apps/web/src/api/contract.ts` liệt kê `ErrorClass` chưa có `L1`.
+- **Web:** `apps/web/src/api/contract.ts` đã thêm `L1` vào danh sách gương `ERROR_CLASSES` (ENG-4); hiển thị nhãn lỗi tiếng Anh là việc của ENG-7.
 - Ngưỡng 0,6, hệ số 0,3, danh sách âm tiết tiếng Việt và các mẫu lỗi chờ tập vàng ENG-9 (DI-115, DI-116).
