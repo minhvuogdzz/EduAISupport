@@ -9,14 +9,14 @@ Ngày: 14/11/2026 · Task ENG-4 · DI-128 đến DI-131 · Trạng thái: **ch�
 
 **[FACT]** ADR-060 định nghĩa bảng lỗi (DI-107), chuẩn hóa (DI-110), đúng sau mẫu (DI-108), độ tin cậy ASR (DI-109), gate và luật qua nút (DI-111) cho Unit 11 "Family time", nhưng chưa có code: chưa có bộ chấm câu tiếng Anh, projector chưa đọc `asr_confidence`, `ErrorClass` chưa có `L1`, và mọi phép chiếu đều dùng `node-mastery/0.3.0`.
 
-**[FACT]** Nội dung Unit 11 (PR #141) hiện ghi câu đích dạng `open` + `facts.phrases`. Kiểu đáp án `phrase` và `word_order` do ENG-3b thêm vào schema song song với task này.
+**[FACT]** ENG-3b (PR #142, ADR-062) thêm vào schema `PhraseAnswer` (`phrase`), `WordOrderAnswer` (`word_order`) và `Misconception.error_class` (mã DI-107, DI-127); Unit 11 có 23 câu `phrase`, 12 hiểu lầm có `error_class`. Tên trường khớp đúng hợp đồng mà bộ chấm này viết theo.
 
 ## 2. Quyết định
 
 ### 2.1. Bộ chấm (`assessment/english_checker.py`)
 
 - Tách khỏi `MathChecker` (luật M1), trả cùng `CheckResult` mà tutor policy đọc. Mã lỗi tiếng Anh nằm ở `detail["en_code"]` (và `en_codes`: mọi mã thấy trong câu); lớp chung ở `error_class`.
-- Đầu vào là spec của chính module (`PhraseSpec`, `WordOrderSpec`); `english_spec()` đọc theo **tên trường** từ model schema, dict hay spec, nên nối với schema của ENG-3b không cần sửa bộ chấm.
+- Đầu vào là spec của chính module (`PhraseSpec`, `WordOrderSpec`); `english_spec()` đọc theo **tên trường** từ model schema, dict hay spec, nên nối với schema của ENG-3b (PR #142) không phải sửa bộ chấm; test chấm thẳng các câu Unit 11 đã nạp, qua `answer_check.check_answer`.
 - `phrase`: thứ tự quyết định là (1) khớp nguyên một câu `accept` → CORRECT; (2) khớp mẫu trong `wrong_answers` → WRONG kèm mã hiểu lầm (độ tin 0,9); (3) mẫu lỗi chung (bảng mục 2.2) → WRONG với lỗi nặng nhất; (4) đủ mọi nhóm `required` (hoặc chứa nguyên một câu `accept`, DI-128) → CORRECT; (5) sửa một ký tự ở từ ≥ 5 chữ cái thì đúng → `EN_SLIP`; (6) đủ một phần các nhóm → PARTIAL; (7) câu tiếng Việt → `EN_L1`; (8) còn lại WRONG không mã.
 - `word_order`: đúng một thứ tự `accept` → CORRECT; đủ đúng các từ nhưng sai thứ tự → `EN_STRUCTURE`; còn lại như `phrase` (mẫu lỗi, slip, L1).
 - Mọi so khớp trên chuỗi đã chuẩn hóa và **theo ranh giới từ** ("ate seafood" không khớp "late seafood" hay "ate seafoods").
@@ -54,6 +54,7 @@ Ngày: 14/11/2026 · Task ENG-4 · DI-128 đến DI-131 · Trạng thái: **ch�
 4. Câu chứa nguyên một đáp án chấp nhận (theo ranh giới từ) kèm từ khác ("We ate seafood in Nha Trang") là đúng khi item không có `required`; khi có `required` thì đủ mọi nhóm là đúng. Lỗi chung trong câu vẫn được xét trước.
 5. `allow_name`: một dãy từ viết hoa nằm giữa câu của đáp án (không phải từ đầu câu, không phải "I") là chỗ trống tên, nhận 1–3 từ không thuộc danh sách từ ngữ pháp/thời gian ("in the summer" không là tên).
 6. Tên bộ chuẩn hóa trong spec (`normalize`) phải là `en-vi/1`; tên khác báo lỗi. Bộ đọc RAG cùng họ `en-vi/1` mở rộng nhiều dạng hơn vì truy xuất cần độ phủ; chấm thì không.
+7. **Đáp án trích lỗi nó sửa** (câu DIAG: "Eated sai, phải là ate: …"): một mẫu `wrong_answers` hay một mẫu lỗi chung mà chính đáp án chấp nhận cũng chứa là trích dẫn, không phải lỗi, khi câu trả lời đã đủ ý đúng. "eated" một mình vẫn là lỗi M05.
 
 **DI-129 (mẫu lỗi chung và lớp lỗi theo nút):**
 1. Các mẫu ở bảng 2.2 áp cho mọi item; mẫu do giáo viên ghi trong `wrong_answers` thắng mẫu chung và mang mã hiểu lầm của nó.
@@ -78,7 +79,7 @@ Ngày: 14/11/2026 · Task ENG-4 · DI-128 đến DI-131 · Trạng thái: **ch�
 
 ## 5. Hệ quả và việc còn mở
 
-- **Nối với schema ENG-3b** (sau khi cả hai merge): thêm `PhraseAnswer`/`WordOrderAnswer` vào `AnswerSpec` là đủ cho dispatch (`answer_check.is_english_answer` đọc `answer.type`); `Misconception.error_class` mang mã DI-107 (`EN_TENSE`…) để bật DI-129 điểm 2–3; đổi các câu đích `open` của Unit 11 sang `phrase` để DI-109 điểm 7 có hiệu lực.
+- **Schema ENG-3b đã nối** (PR #142 merge trước PR này): dispatch đọc `answer.type` của `PhraseAnswer`/`WordOrderAnswer`; `Misconception.error_class` bật DI-129 điểm 2–3; 23 câu `phrase` của Unit 11 làm DI-109 điểm 7 có hiệu lực (câu nói luôn tính là nghe chưa chắc). Chưa có câu `word_order` trong Unit 11; bộ chấm được test trên spec tự dựng.
 - **Vòng dạy (ENG-5):** `item_loop` đã gọi `answer_check.check_answer`, nhưng phần quanh nó (`no_is_an_answer`, `classify_intent` lúc xác nhận, bảng `_TARGET_FOR_ERROR` của `tutor/policy.py` chưa có `L1`) vẫn của Toán; đặt `final_error_class = L1` khi item đóng bằng tiếng Việt; đếm lặp ≥ 2 lần cho M04/M05.
 - **Giọng nói (ENG-6):** điền `ItemResolved.asr_confidence`; trước đó mọi câu nói tiếng Anh tính là nghe chưa chắc (DI-130 điểm 1).
 - **Web:** `apps/web/src/api/contract.ts` đã thêm `L1` vào danh sách gương `ERROR_CLASSES` (ENG-4); hiển thị nhãn lỗi tiếng Anh là việc của ENG-7.

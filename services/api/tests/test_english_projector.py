@@ -24,7 +24,7 @@ from cavat.modules.assessment.projector import (
 from cavat.modules.content.chapter_package import load_chapter
 
 ROOT = Path(__file__).resolve().parents[3]
-UNIT = load_chapter(ROOT / "docs/pedagogy/english-g5/unit-11-family-time/unit.yaml")
+UNIT = load_chapter(ROOT / "docs/pedagogy/english-g5/unit-11-family-time/chapter.yaml")
 MATH = load_chapter(ROOT / "docs/pedagogy/math-g5/chuong-so-thap-phan/chapter.yaml")
 T0 = datetime(2026, 11, 13, 8, 0, tzinfo=UTC)
 VOCAB, DIDYOU, WHATDID = "ENG5-U11-VOCAB", "ENG5-U11-DIDYOU", "ENG5-U11-WHATDID"
@@ -169,7 +169,8 @@ def test_a_child_who_only_repeats_after_the_tutor_passes_no_node():
 
 
 def test_a_clear_voice_answer_is_ordinary_evidence():
-    text, voice = project([item("U11-WD-PR-01")]), project([item("U11-WD-PR-01", voice=True, q=0.92)])
+    """A choice said clearly (q >= 0.6) is the same evidence as typed; a choice is not a target sentence."""
+    text, voice = project([item("U11-WD-CC-01")]), project([item("U11-WD-CC-01", voice=True, q=0.92)])
     assert text.evidence == voice.evidence and voice.nodes[WHATDID].successes == 1
 
 
@@ -210,15 +211,19 @@ def test_a_typed_answer_is_never_read_for_asr():
 
 
 def test_voice_answers_to_target_sentences_count_as_uncertain_until_measured():
-    """DI-109 point 7: the types of ``voice_low_forms`` (``phrase``, ``word_order``) are uncertain by voice
-    whatever q. Unit 11 still writes its sentences as ``open`` (until ENG-3b), so the rule is shown with the
-    policy set on ``open``."""
+    """DI-109 point 7: a ``phrase`` or ``word_order`` said by voice is uncertain whatever q, until the false
+    accepts of Whisper are measured (ENG-9); the same sentence typed is ordinary evidence."""
     assert ENGLISH_POLICY.voice_low_forms == {"phrase", "word_order"}
-    strict = replace(ENGLISH_POLICY, voice_low_forms=frozenset({"open"}))
-    p = project([item("U11-WD-PR-01", voice=True, q=0.95)], strict)
-    assert p.nodes[WHATDID].successes == 0
-    choice = project([item("U11-WD-CC-01", voice=True, q=0.95)], strict)  # a choice item: not a sentence
-    assert choice.nodes[WHATDID].successes == 1
+    assert UNIT.item("U11-WD-PR-01").answer.type == "phrase"
+    said = project([item("U11-WD-PR-01", voice=True, q=0.95)])
+    typed = project([item("U11-WD-PR-01")])
+    assert said.nodes[WHATDID].successes == 0 and typed.nodes[WHATDID].successes == 1
+    said_ev = {e.reason: e.weight for e in said.evidence}
+    typed_ev = {e.reason: e.weight for e in typed.evidence}
+    assert said_ev["ANSWER"] == round(typed_ev["ANSWER"] * 0.3, 4)
+    assert [e.reason for e in project([failed("U11-WD-PR-01", voice=True, q=0.95)]).evidence] == [
+        "ASR_UNCERTAIN"
+    ]
 
 
 def test_mathematics_ignores_the_asr_confidence():
@@ -236,9 +241,11 @@ def test_mathematics_ignores_the_asr_confidence():
 
 
 def test_the_form_of_the_gate_is_the_answer_type_not_the_modality():
-    p = project([item("U11-WD-PR-01"), item("U11-WD-PR-01", voice=True, q=0.9), item("U11-WD-PR-02")])
-    n = p.nodes[WHATDID]
-    assert n.successes == 3 and n.forms == ["open"] and not n.understood  # one form only
+    events = [item("U11-WD-CC-01"), item("U11-WD-CC-01", voice=True, q=0.9), item("U11-WD-PR-04")]
+    n = project(events).nodes[WHATDID]
+    assert n.successes == 3 and n.forms == ["choice"] and not n.understood  # one form only
+    n = project([*events, item("U11-WD-PR-01")]).nodes[WHATDID]
+    assert n.forms == ["choice", "phrase"]  # DI-125: phrase is a form of its own
 
 
 def test_the_vocabulary_node_gets_reasoning_from_its_why_item_and_the_retell():

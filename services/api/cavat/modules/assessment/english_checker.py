@@ -535,8 +535,16 @@ def check_phrase(spec: PhraseSpec, text: str, ctx: EnglishContext = NO_CONTEXT) 
     if any(f.matches(answer) for f in forms):
         return CheckResult(Outcome.CORRECT, normalized=answer, correct_answer=correct)
 
+    # DI-128: an accepted answer may quote the error it corrects (a DIAG item: "Eated sai, phải là ate: …").
+    # A wrong phrase or an error pattern that an accepted answer itself holds is then a quote, not an error,
+    # when the answer is right otherwise.
+    quoted_codes = {c for a in spec.accept for c in _detect(normalize_answer(a), a, expect)}
+    quoting = right(answer)
+
     for pattern, mis in spec.wrong_answers.items():
         wrong = _answer_of(pattern, yes_no)
+        if quoting and any(contains_words(f.text, wrong) for f in forms):
+            continue
         if wrong and (answer == wrong or contains_words(answer, wrong)):
             codes = _detect(answer, text, expect)
             code = ctx.misconception_codes.get(mis) or (str(_worst(codes, ctx)) if codes else None)
@@ -548,7 +556,7 @@ def check_phrase(spec: PhraseSpec, text: str, ctx: EnglishContext = NO_CONTEXT) 
     }
     repaired = _repair(answer, vocabulary)
     codes = _detect(repaired, text, expect)
-    if codes:
+    if codes and not (quoting and set(codes) <= quoted_codes):
         return _diagnosed(codes, ctx, answer, correct)
     if right(answer):
         return CheckResult(Outcome.CORRECT, normalized=answer, correct_answer=correct)

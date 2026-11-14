@@ -7,7 +7,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-import yaml
 from cavat.core.en_text import ANSWER_CONTRACTIONS, normalize_answer
 from cavat.core.pedagogy import ErrorClass, Outcome
 from cavat.modules.assessment import answer_check, math_checker
@@ -27,7 +26,7 @@ from cavat.modules.assessment.english_checker import (
 from cavat.modules.content.chapter_package import load_chapter
 
 ROOT = Path(__file__).resolve().parents[3]
-UNIT = ROOT / "docs/pedagogy/english-g5/unit-11-family-time"
+UNIT = load_chapter(ROOT / "docs/pedagogy/english-g5/unit-11-family-time/chapter.yaml")
 MATH = load_chapter(ROOT / "docs/pedagogy/math-g5/chuong-so-thap-phan/chapter.yaml")
 
 
@@ -265,71 +264,84 @@ def test_an_empty_answer_is_no_response():
 
 
 def unit_items():
-    """Items of Unit 11 whose answer is an English sentence (open + facts.phrases until ENG-3b adds the type
-    ``phrase``): the spec is built from the sample answer and the phrases, as the content will say."""
-    out = []
-    for path in sorted(UNIT.glob("lesson-*.yaml")):
-        lesson = yaml.safe_load(path.read_text("utf-8"))
-        for item in lesson["items"]:
-            ans = item["answer"]
-            sample = ans.get("sample_answer", "")
-            if ans["type"] != "open" or item["cognitive_level"] == "C" or not sample.isascii():
-                continue
-            if sample.startswith("("):  # several blanks: the phrases only
-                continue
-            phrases = (ans.get("facts") or {}).get("phrases", [])
-            out.append((item["id"], PhraseSpec(accept=(sample,), required=tuple(tuple(g) for g in phrases))))
-    return out
+    """Items of Unit 11 whose answer is English (``phrase``, ``word_order``; ENG-3b, ADR-062)."""
+    return [
+        item_id
+        for item_id in sorted(UNIT._items)
+        if answer_check.is_english_answer(UNIT.item(item_id).answer)
+    ]
 
 
 UNIT_ITEMS = unit_items()
 
 
+def grade(item_id, text):
+    """The real path: the item and its lesson package as loaded, through the dispatch of the item loop."""
+    return answer_check.check_answer(UNIT.item(item_id), text, UNIT.lesson_of(item_id))
+
+
 def test_unit_11_has_english_sentences_to_check():
-    assert len(UNIT_ITEMS) >= 15
+    assert len(UNIT_ITEMS) == 23 and UNIT.package.subject == "english"
 
 
-@pytest.mark.parametrize(("item_id", "spec"), UNIT_ITEMS, ids=[i for i, _ in UNIT_ITEMS])
-def test_the_sample_answer_of_a_unit_11_item_is_correct(item_id, spec):
-    for text in (spec.accept[0], spec.accept[0].lower().rstrip(".?!"), f"Dạ, {spec.accept[0]}"):
-        assert check(spec, text).outcome == Outcome.CORRECT, (item_id, text)
+@pytest.mark.parametrize("item_id", UNIT_ITEMS)
+def test_the_accepted_answer_of_a_unit_11_item_is_correct(item_id):
+    accepted = UNIT.item(item_id).answer.accept[0]
+    for text in (accepted, accepted.lower().rstrip(".?!"), f"Dạ, {accepted}"):
+        assert grade(item_id, text).outcome == Outcome.CORRECT, (item_id, text)
 
 
-def spec_of(item_id):
-    return dict(UNIT_ITEMS)[item_id]
+def test_the_teachers_wrong_answers_of_unit_11_give_their_misconception():
+    seen = 0
+    for item_id in UNIT_ITEMS:
+        for wrong, mis in UNIT.item(item_id).answer.wrong_answers.items():
+            r = grade(item_id, wrong)
+            assert r.outcome == Outcome.WRONG and r.misconception_id == mis, (item_id, wrong, r)
+            code_of = UNIT.lesson_of(item_id).misconception(mis).error_class
+            assert code(r) == code_of, (item_id, wrong)
+            seen += 1
+    assert seen >= 14
+
+
+def test_a_diag_answer_that_quotes_the_error_it_corrects_is_correct():
+    """DI-128: "Eated sai, phải là ate" names the wrong form; it is the answer, not the error."""
+    assert grade("U11-PA-PR-06", "Eated sai, phải là ate").outcome == Outcome.CORRECT
+    assert grade("U11-PA-PR-06", "phải là ate ạ").outcome == Outcome.CORRECT
+    r = grade("U11-PA-PR-06", "eated")
+    assert r.outcome == Outcome.WRONG and r.misconception_id == "ENG5-U11-M05"
+    assert grade("U11-WD-PR-06", "Buy sai, phải là bought").outcome == Outcome.CORRECT
 
 
 def test_typical_errors_on_unit_11_items():
     cases = [
-        ("U11-VO-PR-02", "We eat seafood.", "EN_TENSE"),
-        ("U11-WD-PR-01", "We eat seafood.", "EN_TENSE"),
-        ("U11-WD-TR-01", "We buy souvenirs.", "EN_TENSE"),
-        ("U11-WD-TR-01", "We buyed souvenirs.", "EN_VERB_FORM"),
-        ("U11-DY-TR-01", "Yes, I do. I walk on the beach with my grandparents.", "EN_SHORT_ANSWER"),
-        ("U11-DY-PR-02", "Did you collected seashells?", "EN_STRUCTURE"),
-        ("U11-DY-PR-02", "You collect seashells?", "EN_STRUCTURE"),
-        ("U11-TR-PR-05", "Last summer, my family goed to Hue.", "EN_VERB_FORM"),
-        ("U11-PA-PR-04", "His parents buyed some souvenirs.", "EN_VERB_FORM"),
-        ("U11-WD-PR-02", "We saw some intresting places.", "EN_SLIP"),
+        ("U11-VO-PR-02", "We eat seafood.", "EN_TENSE", ErrorClass.CONCEPTUAL),
+        ("U11-WD-PR-01", "We eats seafood.", "EN_TENSE", ErrorClass.CONCEPTUAL),
+        ("U11-WD-TR-01", "We buyed souvenirs.", "EN_VERB_FORM", ErrorClass.FORMAT),  # taught by PAST
+        ("U11-PA-PR-04", "His parents buyed some souvenirs.", "EN_VERB_FORM", ErrorClass.PROCEDURAL),
+        ("U11-DY-TR-01", "Yes, I will. I walked on the beach.", "EN_SHORT_ANSWER", ErrorClass.CONCEPTUAL),
+        ("U11-DY-PR-02", "You collect seashells?", "EN_STRUCTURE", ErrorClass.PROCEDURAL),
+        ("U11-DY-PR-02", "Did you collected seashells?", "EN_STRUCTURE", ErrorClass.PROCEDURAL),
+        ("U11-TR-PR-05", "Last summer, my family goed to Hue.", "EN_VERB_FORM", ErrorClass.FORMAT),
+        ("U11-WD-PR-02", "We saw some intresting places.", "EN_SLIP", ErrorClass.FORMAT),
     ]
-    for item_id, text, expected in cases:
-        r = check(spec_of(item_id), text)
-        assert r.outcome == Outcome.WRONG and code(r) == expected, (item_id, text, r)
+    for item_id, text, expected, cls in cases:
+        r = grade(item_id, text)
+        assert (r.outcome, code(r), r.error_class) == (Outcome.WRONG, expected, cls), (item_id, text, r)
+    r = grade("U11-WD-PR-01", "We eats seafood.")  # the node's own misconception of the code
+    assert r.misconception_id == "ENG5-U11-M07" and r.misconception_confidence == 0.7
+    assert grade("U11-WD-PR-01", "nhà con ăn hải sản").error_class == ErrorClass.L1
+    assert grade("U11-WD-PR-01", "con không biết").outcome == Outcome.HELP_REQUEST
 
 
 def test_the_context_reads_the_error_class_of_the_misconceptions_of_the_item():
-    mis = [
-        SimpleNamespace(id="ENG5-U11-M07", kc_id="ENG5-U11-WHATDID", error_class="EN_TENSE"),
-        SimpleNamespace(id="ENG5-U11-M05", kc_id="ENG5-U11-PAST", error_class="EN_VERB_FORM"),
-        SimpleNamespace(id="ENG5-U11-M09", kc_id="ENG5-U11-WHATDID", error_class=None),
-    ]
-    ctx = context_for(["ENG5-U11-WHATDID"], mis)
-    assert ctx.node_codes == {"EN_TENSE": "ENG5-U11-M07"} and ctx.known_targets
-    r = check(spec_of("U11-WD-PR-01"), "We eat seafood.", ctx)
-    assert r.misconception_id == "ENG5-U11-M07" and r.misconception_confidence == 0.7
-    # EN_VERB_FORM is taught by PAST, not by WHATDID: a format error there
-    assert check(spec_of("U11-WD-TR-01"), "We buyed souvenirs.", ctx).error_class == ErrorClass.FORMAT
-    assert not context_for(["ENG5-U11-WHATDID"], [SimpleNamespace(id="X", kc_id="K")]).known_targets
+    lesson = UNIT.lesson_of("U11-WD-PR-01")
+    ctx = context_for(["ENG5-U11-WHATDID"], lesson.misconceptions)
+    assert ctx.node_codes == {"EN_TENSE": "ENG5-U11-M07", "EN_STRUCTURE": "ENG5-U11-M08",
+                              "EN_MEANING": "ENG5-U11-M09"} and ctx.known_targets  # fmt: skip
+    assert error_class_of("EN_VERB_FORM", ctx) == ErrorClass.FORMAT  # taught by PAST, not WHATDID
+    assert error_class_of("EN_STRUCTURE", ctx) == ErrorClass.PROCEDURAL
+    plain = [SimpleNamespace(id="X", kc_id="K")]
+    assert not context_for(["K"], plain).known_targets
 
 
 # --------------------------------------------------------------------------- dispatch
