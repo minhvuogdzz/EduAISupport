@@ -26,6 +26,7 @@ from importlib.resources import files
 from typing import Any, Literal
 
 from cavat.core.pedagogy import MOVES_ALLOWED_TO_REVEAL, MOVES_REQUIRING_QUESTION
+from cavat.core.subjects import check_subject
 from cavat.modules.ai_gateway.base import (
     MAX_PROMPT_TOKENS,
     ChatMessage,
@@ -38,6 +39,49 @@ from cavat.modules.tutor.contracts import RenderContext, ValidationCode
 PROMPT_VERSION = "tutor-prompt.v5"
 CONSTITUTION = "constitution.v5.md"
 SUBJECT_MODULES = {("math", 5): "math_g5.v1.md"}
+
+
+@dataclass(frozen=True)
+class PromptSet:
+    """The versioned prompt files of one subject (ENG-5a, ADR-065, DI-136; english-module-rules.md P1).
+
+    The Math names are the ones the Math code reads today (``brain.CONSTITUTION``, ``brain.SUBJECT_MODULE``,
+    ``conversation.listen``, ``teaching.curriculum.verification``): listed here, not moved, so the Math path
+    does not change; ``test_english_prompts.py`` fails if the two ever differ.
+    """
+
+    subject: str
+    constitution: str
+    subject_module: str
+    listener: str
+    curriculum_check: str
+
+
+PROMPT_SETS: dict[str, PromptSet] = {
+    "math": PromptSet(
+        "math", "constitution.v18.md", "math_g5.v2.md", "listener.v6.md", "curriculum-check.v12.md"
+    ),
+    "english": PromptSet(
+        "english",
+        "constitution-en.v1.md",
+        "english_g5.v1.md",
+        "listener-en.v1.md",
+        "curriculum-check-en.v1.md",
+    ),
+}
+
+
+def prompt_set(subject: str) -> PromptSet:
+    """The prompts of ``subject``, which the backend takes from the session's package (rule S1; a client
+    never chooses it). A missing or unknown subject is an error, never a silent fallback to Mathematics."""
+    return PROMPT_SETS[check_subject(subject)]
+
+
+def tutor_system_prompt(subject: str) -> str:
+    """L1 + L2 of the tutor brain for ``subject``. For Mathematics it equals ``brain.system_prompt()``."""
+    chosen = prompt_set(subject)
+    return "\n\n".join((_prompt_file(chosen.constitution), _prompt_file(chosen.subject_module)))
+
 
 RECENT_TURNS = 6  # blueprint: the 4-6 latest turns of the current item
 LEAD_WORDS = 15  # DI-81: a sentence before approved text, said word for word after it
@@ -104,6 +148,8 @@ def _prompt_file(name: str) -> str:
 
 def system_prompt(package: LessonPackage) -> str:
     """L1 + L2: identical for every turn of a subject, so the provider can cache it."""
+    if package.subject != "math":
+        return tutor_system_prompt(package.subject)  # ENG-5a: never the Math constitution for English
     parts = [_prompt_file(CONSTITUTION)]
     module = SUBJECT_MODULES.get((package.subject, package.grade))
     if module:
