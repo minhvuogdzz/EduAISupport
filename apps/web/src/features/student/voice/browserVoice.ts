@@ -79,14 +79,22 @@ export function browserListen(onHeard: (partial: string) => void, signal: AbortS
   });
 }
 
-/** Reads ``text`` with a Vietnamese voice of the browser; resolves when it is done. */
-export function browserSpeak(text: string, signal: AbortSignal): Promise<void> {
+/**
+ * Reads ``text`` with a Vietnamese voice of the browser; resolves when it is done. ENG-6 (DI-133): with
+ * ``lang`` "en-US" an English voice reads the English the tutor's voice reads wrong ("ate", "go, went").
+ */
+export function browserSpeak(
+  text: string,
+  signal: AbortSignal,
+  lang: "vi-VN" | "en-US" = "vi-VN",
+): Promise<void> {
   if (!canBrowserSpeak()) return Promise.resolve();
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "vi-VN";
-    const vi = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith("vi"));
-    if (vi) utterance.voice = vi;
+    utterance.lang = lang;
+    const prefix = lang.slice(0, 2);
+    const voice = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(prefix));
+    if (voice) utterance.voice = voice;
     utterance.rate = 0.95;
     utterance.onend = () => resolve();
     utterance.onerror = () => resolve();

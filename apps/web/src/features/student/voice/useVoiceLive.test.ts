@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { useApi } from "../../../api/apiContext";
 import type { SessionApi } from "../../../api/client";
-import type { ChatTurn } from "../../../api/contract";
+import type { ChatTurn, SessionVoice } from "../../../api/contract";
 import { browserSpeak } from "./browserVoice";
 import { recordTurn } from "./recorder";
 import { useVoiceLive } from "./useVoiceLive";
@@ -134,4 +134,89 @@ it("does not repeat an old entry greeting once the student has replied", async (
   act(() => hook.result.current.toggle());
   await act(async () => {});
   expect(vi.mocked(browserSpeak).mock.calls.map((c) => c[0])).toEqual([conversation[2].text]);
+});
+
+// ---------------------------------------------------------------- ENG-6: an English session
+
+const ENGLISH: SessionVoice = { language: "en", allowed: ["en"], speech: "mixed" };
+const MATH: SessionVoice = { language: "vi", allowed: ["vi"], speech: "tutor" };
+
+async function enableVoiceIn(voice: SessionVoice) {
+  const hook = renderHook(() =>
+    useVoiceLive({ turns, canSpeak: true, submit, session: { id: "s1", voice } }),
+  );
+  await act(async () => {});
+  act(() => hook.result.current.toggle());
+  await act(async () => vi.advanceTimersByTimeAsync(350));
+  return hook;
+}
+
+it("a Mathematics session transcribes and submits exactly as before", async () => {
+  vi.mocked(recordTurn).mockResolvedValue(new Blob(["audio"]));
+  transcribe.mockResolvedValue({ text: "ba phẩy năm", model: "whisper-large-v3" });
+  await enableVoiceIn(MATH);
+  expect(transcribe).toHaveBeenCalledExactlyOnceWith(expect.any(Blob));
+  expect(submit).toHaveBeenCalledExactlyOnceWith("ba phẩy năm", "VOICE");
+});
+
+it("an English session sends the backend's language and the voice turn back", async () => {
+  vi.mocked(recordTurn).mockResolvedValue(new Blob(["audio"]));
+  transcribe.mockResolvedValue({
+    text: "We ate seafood.",
+    language: "en",
+    confidence: 0.91,
+    voice_turn_id: "2026-11-14/abc",
+    ask_again: false,
+  });
+  await enableVoiceIn(ENGLISH);
+  expect(transcribe).toHaveBeenCalledExactlyOnceWith(expect.any(Blob), { sessionId: "s1", language: "en" });
+  expect(submit).toHaveBeenCalledExactlyOnceWith("We ate seafood.", "VOICE", "2026-11-14/abc");
+});
+
+it("asks to say it again when the tutor did not hear clearly, and can send it as it is", async () => {
+  vi.mocked(recordTurn).mockResolvedValue(new Blob(["audio"]));
+  transcribe.mockResolvedValue({ text: "we are seafood", voice_turn_id: "2026-11-14/low", ask_again: true });
+  const hook = await enableVoiceIn(ENGLISH);
+  expect(submit).not.toHaveBeenCalled();
+  expect(hook.result.current.unclear).toBe("we are seafood");
+  expect(hook.result.current.problem).toMatch(/nghe chưa rõ/);
+  act(() => hook.result.current.sendUnclear());
+  expect(submit).toHaveBeenCalledExactlyOnceWith("we are seafood", "VOICE", "2026-11-14/low");
+  expect(hook.result.current.unclear).toBeNull();
+});
+
+it("reads an English message by the speech plan: the browser's English voice for the risky part", async () => {
+  const speechPlan = vi.fn().mockResolvedValue([
+    { text: "Con nói theo cô nhé:", voice: "tutor" },
+    { text: "We ate seafood.", voice: "browser_en" },
+  ]);
+  vi.mocked(useApi).mockReturnValue({
+    voice: {
+      status: () => Promise.resolve({ listen: true, speak: false, speech_model: null }),
+      transcribe,
+      speechPlan,
+    },
+  } as unknown as SessionApi);
+  const line: ChatTurn = {
+    turn_id: "t1",
+    sequence_no: 1,
+    actor: "tutor",
+    text: "Con nói theo cô nhé: We ate seafood.",
+    item_attempt_id: null,
+    occurred_at: "",
+    move: null,
+    hint_level: null,
+    entry_greeting: true,
+  };
+  const hook = renderHook(() =>
+    useVoiceLive({ turns: [line], canSpeak: false, submit, session: { id: "s1", voice: ENGLISH } }),
+  );
+  await act(async () => {});
+  act(() => hook.result.current.toggle());
+  await act(async () => {});
+  expect(speechPlan).toHaveBeenCalledWith(line.text, "s1");
+  expect(vi.mocked(browserSpeak).mock.calls.map((c) => [c[0], c[2]])).toEqual([
+    ["Con nói theo cô nhé:", undefined],
+    ["We ate seafood.", "en-US"],
+  ]);
 });
