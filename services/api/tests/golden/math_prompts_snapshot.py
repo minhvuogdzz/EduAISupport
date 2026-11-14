@@ -119,7 +119,12 @@ def snapshot() -> dict:
     router = _Router()
     model = SimpleNamespace(router=router, calls_used=0, calls_made=0)
     conversation.listen(
-        model, stem=pack.question, last_tutor="Con điền dấu nào?", said="ok cô", recent=pack.recent, phase="ANSWER"
+        model,
+        stem=pack.question,
+        last_tutor="Con điền dấu nào?",
+        said="ok cô",
+        recent=pack.recent,
+        phase="ANSWER",
     )
     out["requests"]["listener"] = _request(router.requests[0])
     live["listener"] = router.requests[0]
@@ -151,4 +156,5 @@ def snapshot() -> dict:
 if __name__ == "__main__":
     data = snapshot()
     GOLDEN.write_text(json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    sys.stdout.write(f"{GOLDEN} ({len(data['requests'])} requests, {len(data['validator'])} validator cases)\n")
+    counts = f"{len(data['requests'])} requests, {len(data['validator'])} validator cases"
+    sys.stdout.write(f"{GOLDEN} ({counts})\n")
