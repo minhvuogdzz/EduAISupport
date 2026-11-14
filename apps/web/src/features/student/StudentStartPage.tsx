@@ -23,6 +23,8 @@ import { SubjectSwitch } from "../english/SubjectSwitch";
 import { ChapterPicker } from "../teaching/ChapterPicker";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
 import { readLastSessionId, rememberSession } from "./lastSession";
+import { EnglishDoodles, EnglishLoop, UnitCards } from "../english/EnglishHome";
+import { useSubject } from "../subjects/subjectContext";
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
@@ -34,10 +36,11 @@ const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
  */
 export function StudentStartPage() {
   const api = useApi();
+  const subject = useSubject();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const asked = params.get("chapter") ?? undefined;
-  const [lastSessionId] = useState(readLastSessionId);
+  const [lastSessionId] = useState(() => readLastSessionId(subject.lastSessionKey));
 
   const last = useQuery({
     queryKey: ["session-state", lastSessionId],
@@ -47,9 +50,13 @@ export function StudentStartPage() {
   });
   const resumable = last.data && last.data.lifecycle_state !== "COMPLETED" ? last.data : null;
   // Every session of this student is kept with its whole conversation (the real API stores them).
-  const history = useQuery({ queryKey: ["my-sessions"], queryFn: () => api.listMySessions(), retry: false });
+  const history = useQuery({
+    queryKey: ["my-sessions", subject.id],
+    queryFn: () => api.listMySessions(),
+    retry: false,
+  });
   const overview = useQuery({
-    queryKey: ["my-overview", asked],
+    queryKey: ["my-overview", subject.id, asked],
     queryFn: () => api.getMyOverview!(asked),
     enabled: api.getMyOverview !== undefined,
     placeholderData: keepPreviousData, // the page stays while another chapter loads
@@ -65,38 +72,47 @@ export function StudentStartPage() {
     mutationFn: (studentName: string) =>
       api.createDemoSession({ student_display_name: studentName, chapter_id: chapter }),
     onSuccess: ({ session_id }) => {
-      rememberSession(session_id);
-      void navigate(`/student/sessions/${session_id}`);
+      rememberSession(session_id, subject.lastSessionKey);
+      void navigate(subject.paths.session(session_id));
     },
   });
 
   return (
     <AppShell>
-      <title>Học sinh · Monkey Edu</title>
+      <title>{subject.id === "math" ? "Học sinh · Monkey Edu" : `${subject.name} · Monkey Edu`}</title>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8">
-        <SubjectSwitch current="math" />
-        <section className="student-welcome">
+        <SubjectSwitch current={subject.id} />
+        <section className={subject.id === "math" ? "student-welcome" : "student-welcome en-welcome"}>
+          {subject.id === "english" && <EnglishDoodles />}
           <div className="grid items-center gap-6 md:grid-cols-[1fr_auto]">
             <div>
               <div className="eyebrow">
                 <span>GÓC HỌC CỦA CON · MONKEY EDU</span>
               </div>
               <h1 className="text-2xl font-black md:text-4xl text-slate-900">
-                {`Chào ${name}, hôm nay mình học gì nhé?`}
+                {subject.id === "math" ? (
+                  `Chào ${name}, hôm nay mình học gì nhé?`
+                ) : (
+                  <>
+                    <span lang="en">Hello</span>
+                    {`, ${name}! Hôm nay mình ôn bài tiếng Anh nhé?`}
+                  </>
+                )}
               </h1>
               <p className="mt-2 text-base text-slate-700">
                 {overview.data
-                  ? `Chương ${overview.data.chapter.title}: con đã qua ${overview.data.passed}/${overview.data.total} bài.`
+                  ? `${subject.ChapterName(overview.data.chapter.title)}: con đã qua ${overview.data.passed}/${overview.data.total} bài.`
                   : "Cô sẵn sàng học cùng con rồi!"}
               </p>
+              {subject.id === "english" && overview.data && <UnitCards overview={overview.data} />}
               {overview.data && (
                 <ChapterPicker chapters={chapters} current={overview.data.chapter.chapter_id} />
               )}
               {overview.isError && asked && (
                 <p role="alert" className="mt-4 text-lg text-red-700">
-                  Chưa có chương này.{" "}
-                  <Link to="/student" className="font-semibold underline">
-                    Về chương đầu
+                  Chưa có {subject.unit} này.{" "}
+                  <Link to={subject.paths.student} className="font-semibold underline">
+                    Về {subject.unit} đầu
                   </Link>
                 </p>
               )}
@@ -111,7 +127,7 @@ export function StudentStartPage() {
                     <p className="text-base text-slate-600">{resumable.lesson.title}</p>
                   )}
                   <Link
-                    to={`/student/sessions/${resumable.session_id}`}
+                    to={subject.paths.session(resumable.session_id)}
                     className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-6 py-3 text-base font-black text-white hover:bg-teal-800 shadow-md"
                   >
                     <span>Học tiếp</span>
@@ -132,6 +148,7 @@ export function StudentStartPage() {
           </div>
         </section>
 
+        {subject.id === "english" && overview.data && <EnglishLoop overview={overview.data} />}
         {overview.data && <Dashboard overview={overview.data} />}
         {history.data && history.data.length > 0 && <SessionHistory sessions={history.data} />}
       </div>
@@ -171,6 +188,7 @@ function StartForm({
 }
 
 function Dashboard({ overview }: { overview: StudentOverview }) {
+  const subject = useSubject();
   const nodes = overview.nodes.map((n) => ({ ...n }));
   return (
     <>
@@ -200,19 +218,26 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
         <section aria-labelledby="map-title" className="card p-6">
           <h2 id="map-title" className="text-xl font-bold">
-            Bản đồ chương {overview.chapter.title}
+            Bản đồ {subject.chapterName(overview.chapter.title)}
           </h2>
           <p className="mb-4 text-slate-600">Học từ trên xuống: bài trên là nền của bài dưới.</p>
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,26rem)_1fr]">
             <KnowledgeMap
               nodes={nodes}
               relations={overview.relations}
-              title={`Bản đồ chương ${overview.chapter.title}`}
+              title={`Bản đồ ${subject.chapterName(overview.chapter.title)}`}
             />
             <ul className="flex flex-col gap-2">
               {overview.nodes.map((node) => (
                 <li key={node.node_id} className="progress-row flex items-center justify-between gap-3 py-3">
-                  <span className="font-medium">{node.name}</span>
+                  <span className="font-medium">
+                    {node.name}
+                    {node.pattern && !node.name.includes(node.pattern) && (
+                      <span lang="en" className="block text-sm font-normal text-slate-600">
+                        {node.pattern}
+                      </span>
+                    )}
+                  </span>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-0.5 text-sm font-semibold ring-1 ${
                       node.quality === "NOT_STARTED" && node.status === "CURRENT"
@@ -231,7 +256,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
         <div className="flex flex-col gap-6">
           <section aria-labelledby="practise-title" className="student-notes">
             <h2 id="practise-title" className="text-lg font-bold text-amber-900">
-              Cần luyện thêm
+              {subject.words.studentToPractise}
             </h2>
             {overview.to_practise.length === 0 ? (
               <p className="mt-2 text-amber-950/80">Chưa có gì cần ôn. Con cứ học tiếp nhé!</p>
@@ -248,7 +273,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
           </section>
           <section aria-labelledby="well-title" className="student-good">
             <h2 id="well-title" className="text-lg font-bold text-emerald-900">
-              Con đã làm tốt
+              {subject.words.studentGoingWell}
             </h2>
             {overview.going_well.length === 0 ? (
               <p className="mt-2 text-emerald-950/80">Học xong bài đầu tiên là có ngay mục này!</p>
@@ -267,7 +292,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
             )}
           </section>
           <WeekCard overview={overview} />
-          <ParentCode code={overview.parent_code} />
+          <ParentCode code={overview.parent_code} parentPath={subject.paths.parent} />
         </div>
       </div>
     </>
@@ -328,7 +353,7 @@ function WeekCard({ overview }: { overview: StudentOverview }) {
   );
 }
 
-function ParentCode({ code }: { code: string }) {
+function ParentCode({ code, parentPath }: { code: string; parentPath: string }) {
   return (
     <section aria-labelledby="code-title" className="card p-6">
       <h2 id="code-title" className="flex items-center gap-2 text-lg font-bold">
@@ -336,7 +361,7 @@ function ParentCode({ code }: { code: string }) {
       </h2>
       <p className="mt-1 text-slate-600">Đưa mã này cho bố mẹ để xem con học thế nào.</p>
       <p className="mt-3 font-mono text-3xl font-bold tracking-[0.3em] text-brand-900">{code}</p>
-      <Link to={`/parent/${code}`} className="mt-2 inline-block text-brand-800 underline">
+      <Link to={`${parentPath}/${code}`} className="mt-2 inline-block text-brand-800 underline">
         Mở trang phụ huynh
       </Link>
     </section>
@@ -345,6 +370,7 @@ function ParentCode({ code }: { code: string }) {
 
 /** "Lịch sử học": every session of this student, newest first; each opens with its whole conversation. */
 function SessionHistory({ sessions }: { sessions: SessionSummary[] }) {
+  const subject = useSubject();
   return (
     <section aria-labelledby="history-title" className="card flex flex-col gap-3 p-6">
       <h2 id="history-title" className="text-2xl font-bold">
@@ -365,7 +391,7 @@ function SessionHistory({ sessions }: { sessions: SessionSummary[] }) {
                 </span>
               </div>
               <Link
-                to={`/student/sessions/${session.session_id}`}
+                to={subject.paths.session(session.session_id)}
                 aria-label={`${done ? "Xem lại" : "Học tiếp"} buổi ${session.lesson_title} lúc ${when}`}
                 className={`rounded-full px-5 py-2 text-lg font-semibold ${
                   done ? "bg-white text-brand-800 ring-2 ring-brand-700" : "bg-brand-700 text-white"

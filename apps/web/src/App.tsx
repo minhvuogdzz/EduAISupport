@@ -4,10 +4,6 @@ import { Route, Routes, useLocation } from "react-router";
 import type { AccountKind } from "./api/contract";
 import { AdminPage } from "./features/admin/AdminPage";
 import { AuthGate, RequireKind } from "./features/auth/AuthGate";
-import { EnglishHomePage } from "./features/english/EnglishHomePage";
-import { EnglishLessonPage } from "./features/english/EnglishLessonPage";
-import { ParentEnglishPage } from "./features/english/ParentEnglishPage";
-import { TeacherEnglishPage } from "./features/english/TeacherEnglishPage";
 import { ParentChildPage, ParentPage } from "./features/parent/ParentPages";
 import { SessionPage } from "./features/student/SessionPage";
 import { StudentStartPage } from "./features/student/StudentStartPage";
@@ -17,12 +13,18 @@ import { ChapterContentPage, LessonsPage } from "./features/teacher/LessonsPage"
 import { PlanReviewPage } from "./features/teacher/PlanReviewPage";
 import { RagPage } from "./features/teacher/RagPage";
 import { StudentReportPage } from "./features/teacher/StudentReportPage";
+import { SubjectScope } from "./features/subjects/SubjectScope";
 import { TeacherPage } from "./features/teacher/TeacherPage";
 import { HomePage } from "./pages/HomePage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 function only(kind: AccountKind, page: ReactNode) {
   return <RequireKind kind={kind}>{page}</RequireKind>;
+}
+
+/** An English page: the shared page of math, with the words and the data of English (ENG-7a). */
+function english(kind: AccountKind, page: ReactNode) {
+  return only(kind, <SubjectScope subject="english">{page}</SubjectScope>);
 }
 
 /** The introduction stays public; each account area keeps its protected route. */
@@ -43,14 +45,19 @@ export function App() {
         <Route path="/login" element={<Home />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/student" element={only("STUDENT", <StudentStartPage />)} />
-        <Route path="/student/english" element={only("STUDENT", <EnglishHomePage />)} />
-        <Route path="/student/english/:unitId" element={only("STUDENT", <EnglishLessonPage />)} />
+        <Route path="/student/english" element={english("STUDENT", <StudentStartPage />)} />
+        <Route path="/student/english/sessions/:sessionId" element={english("STUDENT", <SessionPage />)} />
         <Route path="/student/sessions/:sessionId" element={only("STUDENT", <SessionPage />)} />
         <Route path="/parent" element={only("PARENT", <ParentPage />)} />
-        <Route path="/parent/english" element={only("PARENT", <ParentEnglishPage />)} />
+        <Route path="/parent/english" element={english("PARENT", <ParentPage />)} />
+        <Route path="/parent/english/:code" element={english("PARENT", <ParentChildPage />)} />
         <Route path="/parent/:code" element={only("PARENT", <ParentChildPage />)} />
         <Route path="/teacher" element={only("TEACHER", <ClassPage />)} />
-        <Route path="/teacher/english" element={only("TEACHER", <TeacherEnglishPage />)} />
+        <Route path="/teacher/english" element={english("TEACHER", <ClassPage />)} />
+        <Route
+          path="/teacher/english/students/:studentId"
+          element={english("TEACHER", <StudentReportPage />)}
+        />
         <Route path="/teacher/students/:studentId" element={only("TEACHER", <StudentReportPage />)} />
         <Route path="/teacher/sessions" element={only("TEACHER", <TeacherPage />)} />
         <Route path="/teacher/sessions/:sessionId" element={only("TEACHER", <TeacherPage />)} />

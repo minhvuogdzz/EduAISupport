@@ -36,17 +36,17 @@ const EXAMPLES: Record<Subject, { question: string; answer: string; lang?: strin
     { question: "Vì sao 0,3 bằng ba phần mười?", answer: "Vì 3 ở hàng phần mười!" },
   ],
   english: [
-    { question: "Hai bạn gặp nhau lần đầu và vẫy tay.", answer: "Hello!", lang: "en" },
-    { question: "Bạn hỏi “What's your name?”. Con đáp thế nào?", answer: "My name is Buddy.", lang: "en" },
-    { question: "Khi nào mình nói “Nice to meet you”?", answer: "Khi lần đầu gặp bạn!" },
+    { question: "Bạn hỏi “Did you swim?” và con đã bơi.", answer: "Yes, I did.", lang: "en" },
+    { question: "“What did your family do in Nha Trang?”", answer: "We ate seafood.", lang: "en" },
+    { question: "Vì sao trả lời bằng “did”?", answer: "Vì bạn hỏi bằng “did”!" },
   ],
 };
 
 const WORDS = [
-  { word: "hello", meaning: "xin chào" },
-  { word: "friend", meaning: "bạn bè" },
-  { word: "school", meaning: "trường học" },
-  { word: "family", meaning: "gia đình" },
+  { word: "collect seashells", meaning: "nhặt vỏ sò" },
+  { word: "eat seafood", meaning: "ăn hải sản" },
+  { word: "buy souvenirs", meaning: "mua quà lưu niệm" },
+  { word: "take photos", meaning: "chụp ảnh" },
 ];
 
 const LOOP = [

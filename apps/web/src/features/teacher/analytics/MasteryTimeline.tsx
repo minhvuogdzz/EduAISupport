@@ -1,6 +1,7 @@
 import type { TeacherStudentView } from "../../../api/contract";
 import { useElementWidth } from "../../../lib/useElementWidth";
 import { formatViDecimal } from "../../../lib/viNumber";
+import { useSubject } from "../../subjects/subjectContext";
 import { ZONES } from "./zones";
 
 type Point = TeacherStudentView["timeline"][number];
@@ -25,6 +26,7 @@ function dayMonth(iso: string): string {
  * the chart repeats the values for screen readers.
  */
 export function MasteryTimeline({ points }: { points: Point[] }) {
+  const { unit } = useSubject();
   const [frame, W] = useElementWidth(560);
   const H = 220;
   const left = 34;
@@ -46,7 +48,7 @@ export function MasteryTimeline({ points }: { points: Point[] }) {
         height={H}
         className="max-w-full"
         role="img"
-        aria-label="Điểm hiểu bài tổng của chương theo từng ngày học"
+        aria-label={`Điểm hiểu bài tổng của ${unit} theo từng ngày học`}
       >
         {bands.map((zone, i) => {
           const to = bands[i + 1]?.from ?? 100;

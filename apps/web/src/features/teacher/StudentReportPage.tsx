@@ -8,7 +8,6 @@ import type { Dimension, KcGroup, TeacherNodeDetail, TeacherStudentView } from "
 import { AppShell } from "../../components/AppShell";
 import {
   attentionText,
-  DIMENSION_LABEL,
   KC_GROUP_LABEL,
   KC_GROUP_MARK,
   LIFECYCLE_LABEL,
@@ -28,17 +27,21 @@ import { zoneOf } from "./analytics/zones";
 import { ChapterTabs } from "./ChapterTabs";
 import { TeacherHeader } from "./TeacherHeader";
 import { Method } from "./analytics/Method";
+import { VoiceTurns } from "./analytics/VoiceTurns";
+import type { SubjectProfile } from "../subjects/profile";
+import { useSubject } from "../subjects/subjectContext";
 
 const GROUP_ORDER: KcGroup[] = ["PASSED", "UNSTABLE", "WEAK", "INSUFFICIENT", "NOT_STARTED"];
 
 /** One student on the chapter for the teacher (blueprint PART 27.1; khung Toán §23, §24, §27, §43, §56, §57). */
 export function StudentReportPage() {
   const api = useApi();
+  const subject = useSubject();
   const { studentId = "" } = useParams();
   const [params, setParams] = useSearchParams();
   const chapter = params.get("chapter") ?? undefined;
   const report = useQuery({
-    queryKey: ["student-report", studentId, chapter],
+    queryKey: ["student-report", subject.id, studentId, chapter],
     queryFn: () => api.getStudentReport!(studentId, chapter),
     enabled: api.getStudentReport !== undefined,
     refetchInterval: 10_000,
@@ -54,9 +57,15 @@ export function StudentReportPage() {
     const missing = report.error instanceof ApiError && report.error.code === "NOT_FOUND";
     body = (
       <Notice>
-        {missing ? "Em này chưa học buổi nào của chương." : "Chưa tải được báo cáo, cô thử lại sau nhé."}{" "}
+        {missing
+          ? `Em này chưa học buổi nào của ${subject.unit}.`
+          : "Chưa tải được báo cáo, cô thử lại sau nhé."}{" "}
         <Link
-          to={chapter ? `/teacher?chapter=${encodeURIComponent(chapter)}` : "/teacher"}
+          to={
+            chapter
+              ? `${subject.paths.teacher}?chapter=${encodeURIComponent(chapter)}`
+              : subject.paths.teacher
+          }
           className="text-brand-800 underline"
         >
           Về bảng theo dõi lớp
@@ -109,9 +118,9 @@ function pick(nodes: TeacherNodeDetail[], selected: string | null): TeacherNodeD
   );
 }
 
-function dimensionList(dims: Dimension[], view: TeacherStudentView): string {
+function dimensionList(dims: Dimension[], view: TeacherStudentView, subject: SubjectProfile): string {
   return dims
-    .map((d) => `${DIMENSION_LABEL[d]} (${formatViDecimal(view.dimensions[d].value ?? 0)})`)
+    .map((d) => `${subject.dimensionLabel[d]} (${formatViDecimal(view.dimensions[d].value ?? 0)})`)
     .join(", ");
 }
 
@@ -124,6 +133,11 @@ function StudentReport({
   selected: string | null;
   onSelect: (nodeId: string) => void;
 }) {
+  const subject = useSubject();
+  const api = useApi();
+  // The English demo of the mock has no full transcript yet; with the real API every session has one.
+  const transcripts = subject.id === "math" || api.engine !== "mock";
+  const DIMENSION_LABEL = subject.dimensionLabel;
   const node = pick(view.nodes, selected);
   const nodeName = (id: string) => view.nodes.find((n) => n.node_id === id)?.name ?? id;
   const misName = (id: string) =>
@@ -141,8 +155,9 @@ function StudentReport({
       <section className="card brand-gradient flex flex-wrap items-start justify-between gap-4 p-5">
         <div>
           <p className="text-lg">
-            Chương {view.chapter.title} · {view.sessions.total} buổi ({view.sessions.completed} xong,{" "}
-            {view.sessions.unfinished} dở dang) · {minutesText(view.sessions.minutes, view.sessions.total)}
+            {subject.ChapterName(view.chapter.title)} · {view.sessions.total} buổi ({view.sessions.completed}{" "}
+            xong, {view.sessions.unfinished} dở dang) ·{" "}
+            {minutesText(view.sessions.minutes, view.sessions.total)}
           </p>
           {view.last_active_at && (
             <p className="text-slate-700">Lần học gần nhất: {formatViDateTime(view.last_active_at)}</p>
@@ -211,9 +226,15 @@ function StudentReport({
             </span>
           </div>
           <Method>
-            Sáu trục theo khung Toán §24; trục Kiến thức đọc từ chiều C (làm đúng), D nằm ngoài radar. Mỗi
-            chiều là trung bình các bài có đủ bằng chứng, theo lượng bằng chứng (DI-22). Vòng đứt nét là các
-            mốc 40, 60, 75, 90 của §25.
+            {subject.id === "math"
+              ? "Sáu trục theo khung Toán §24; trục Kiến thức đọc từ chiều C (làm đúng), D nằm ngoài radar."
+              : `Sáu trục theo ${subject.framework} §24, mỗi trục đọc theo nghĩa của ${subject.name}; D nằm ngoài radar.`}{" "}
+            Mỗi chiều là trung bình các bài có đủ bằng chứng, theo lượng bằng chứng (DI-22). Vòng đứt nét là
+            các mốc 40, 60, 75, 90 của §25.
+            {subject.dimensionHelp &&
+              ` Nghĩa từng chiều: ${(["C", "R", "A", "T", "I", "S", "D"] as Dimension[])
+                .map((d) => `${d} ${DIMENSION_LABEL[d]}: ${subject.dimensionHelp?.[d]}`)
+                .join(" ")}`}
           </Method>
         </section>
 
@@ -222,10 +243,14 @@ function StudentReport({
             Nhận định
           </h2>
           <Line label="Điểm mạnh">
-            {view.strengths.length ? dimensionList(view.strengths, view) : "Chưa có chiều nào từ 75 trở lên"}
+            {view.strengths.length
+              ? dimensionList(view.strengths, view, subject)
+              : "Chưa có chiều nào từ 75 trở lên"}
           </Line>
           <Line label="Điểm yếu">
-            {view.weaknesses.length ? dimensionList(view.weaknesses, view) : "Không có chiều nào dưới 60"}
+            {view.weaknesses.length
+              ? dimensionList(view.weaknesses, view, subject)
+              : "Không có chiều nào dưới 60"}
           </Line>
           <Line label="Rủi ro">
             {risks.length ? risks.map((n) => n.name).join(", ") : "Chưa thấy bài nào đáng lo"}
@@ -271,7 +296,7 @@ function StudentReport({
           <KnowledgeMap
             nodes={view.nodes.map((n) => ({ ...n, level: n.mastery === null ? null : n.level }))}
             relations={view.relations}
-            title={`Cây tri thức chương ${view.chapter.title} của ${view.display_name}`}
+            title={`Cây tri thức ${subject.chapterName(view.chapter.title)} của ${view.display_name}`}
             showMastery
             zoneFill={(n) => (n.mastery === null || n.mastery === undefined ? null : zoneOf(n.mastery).fill)}
             selectedId={node.node_id}
@@ -287,7 +312,7 @@ function StudentReport({
             Tiến bộ theo ngày
           </h2>
           <Method>
-            Điểm tổng cuối mỗi ngày có bằng chứng mới (khung Toán §27, DI-26), trên nền 5 vùng màu.
+            Điểm tổng cuối mỗi ngày có bằng chứng mới ({subject.framework} §27, DI-26), trên nền 5 vùng màu.
           </Method>
           <MasteryTimeline points={view.timeline} />
         </section>
@@ -296,7 +321,9 @@ function StudentReport({
             Hoạt động học
           </h2>
           <Method>
-            Số câu mỗi ngày theo cách con hoàn thành, số gợi ý và ngày qua bài (khung Toán §56).
+            Số câu mỗi ngày theo cách con hoàn thành, số gợi ý và ngày qua bài ({subject.framework} §56).
+            {subject.id === "english" &&
+              " Bốn nhóm không gộp lại thành “đúng”: tự làm (H0), nhờ gợi ý (H1–H5), sau khi cô đọc mẫu (H6–H7, gồm câu nói theo cô), chưa xong (DI-114, DI-108)."}
           </Method>
           <ActivityChart days={view.activity} />
         </section>
@@ -308,8 +335,8 @@ function StudentReport({
             Từ chưa hiểu đến hiểu
           </h2>
           <Method>
-            Điểm hiểu bài của cả chương sau từng bằng chứng, qua các buổi (bài chưa học tính 0); chấm xanh là
-            lúc qua một bài. Đường nét đứt: ngưỡng qua bài 75.
+            Điểm hiểu bài của cả {subject.unit} sau từng bằng chứng, qua các buổi (bài chưa học tính 0); chấm
+            xanh là lúc qua một bài. Đường nét đứt: ngưỡng qua bài 75.
           </Method>
           <MasteryCurve points={view.curve} nodes={view.nodes} />
         </section>
@@ -341,6 +368,20 @@ function StudentReport({
         </section>
       )}
 
+      {view.voice_turns && (
+        <section aria-labelledby="voice-title" className="card flex flex-col gap-2 p-5">
+          <h2 id="voice-title" className="text-lg font-bold">
+            Lượt nói của con
+          </h2>
+          <Method>
+            Bản chép lời đúng nguyên văn của bộ nghe (Whisper), ngôn ngữ cô đặt cho lượt đó, và độ tin cậy q
+            của DI-109 ở ba mức: từ 0,8 nghe rõ, 0,6–0,8 nghe tạm, dưới 0,6 nghe chưa rõ (không trừ điểm,
+            DI-114). Bản chép lời không phải điểm phát âm. Chỉ giáo viên nghe lại được ghi âm.
+          </Method>
+          <VoiceTurns turns={view.voice_turns} nodes={view.nodes} />
+        </section>
+      )}
+
       <section aria-labelledby="sessions-title" className="card p-5">
         <h2 id="sessions-title" className="text-lg font-bold">
           Các buổi học
@@ -366,12 +407,16 @@ function StudentReport({
                   <td className="py-2 pr-4">{LIFECYCLE_LABEL[s.lifecycle_state]}</td>
                   <td className="py-2 pr-4">{s.passed_names.join(", ") || "—"}</td>
                   <td className="py-2">
-                    <Link
-                      to={`/teacher/sessions/${encodeURIComponent(s.session_id)}`}
-                      className="whitespace-nowrap text-brand-800 underline"
-                    >
-                      Bộ não gia sư và hội thoại
-                    </Link>
+                    {transcripts ? (
+                      <Link
+                        to={`/teacher/sessions/${encodeURIComponent(s.session_id)}`}
+                        className="whitespace-nowrap text-brand-800 underline"
+                      >
+                        Bộ não gia sư và hội thoại
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-slate-500">Bản mock chưa có hội thoại đầy đủ</span>
+                    )}
                   </td>
                 </tr>
               ))}

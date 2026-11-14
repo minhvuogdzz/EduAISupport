@@ -15,6 +15,7 @@ import { zoneOf } from "./analytics/zones";
 import { ChapterTabs } from "./ChapterTabs";
 import { TeacherHeader } from "./TeacherHeader";
 import { Method } from "./analytics/Method";
+import { useSubject } from "../subjects/subjectContext";
 
 /**
  * The teacher's class dashboard (blueprint PART 27.1 "Class", khung Toán §45, §46, §28): who is where on
@@ -22,10 +23,11 @@ import { Method } from "./analytics/Method";
  */
 export function ClassPage() {
   const api = useApi();
+  const subject = useSubject();
   const [params] = useSearchParams();
   const chapter = params.get("chapter") ?? undefined;
   const overview = useQuery({
-    queryKey: ["class-overview", chapter],
+    queryKey: ["class-overview", subject.id, chapter],
     queryFn: () => api.getClassOverview!(chapter),
     enabled: api.getClassOverview !== undefined,
     refetchInterval: 10_000,
@@ -47,14 +49,22 @@ export function ClassPage() {
   } else if (overview.isError) {
     body = <Notice>Chưa tải được bảng theo dõi lớp, cô thử lại sau nhé.</Notice>;
   } else if (overview.data.students.length === 0) {
-    body = <Notice>Chưa có học sinh nào học chương {overview.data.chapter.title}.</Notice>;
+    body = <Notice>Chưa có học sinh nào học {subject.chapterName(overview.data.chapter.title)}.</Notice>;
   } else {
     body = <ClassDashboard overview={overview.data} />;
   }
   return (
     <AppShell>
-      <title>Lớp học · Monkey Edu</title>
-      <TeacherHeader title={overview.data ? `Lớp học · ${overview.data.chapter.title}` : "Lớp học"} />
+      <title>
+        {subject.id === "math" ? "Lớp học · Monkey Edu" : `Lớp học · ${subject.name} · Monkey Edu`}
+      </title>
+      <TeacherHeader
+        title={
+          overview.data
+            ? `Lớp học · ${subject.id === "math" ? "" : `${subject.name} · `}${overview.data.chapter.title}`
+            : "Lớp học"
+        }
+      />
       <div className="mx-auto max-w-7xl px-4 pb-10">
         <ChapterTabs current={chapter ?? overview.data?.chapter.chapter_id} />
         {body}
@@ -97,6 +107,7 @@ function Notice({ children }: { children: ReactNode }) {
 }
 
 function ClassDashboard({ overview }: { overview: ClassOverview }) {
+  const subject = useSubject();
   const k = overview.kpis;
   const nodeName = (id: string) => overview.nodes.find((n) => n.node_id === id)?.name ?? id;
   const misName = (id: string) => overview.misconceptions.find((m) => m.id === id)?.name ?? id;
@@ -110,6 +121,9 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
         </Kpi>
         <Kpi icon={<BookIcon className="size-5 text-brand-700" />} label="Buổi học" value={`${k.sessions}`}>
           {k.minutes} phút học
+          {k.voice_share !== undefined && k.voice_share !== null && (
+            <> · {formatViDecimal(k.voice_share)}% câu trả lời bằng giọng nói</>
+          )}
         </Kpi>
         <Kpi
           icon={<CheckIcon className="size-5 text-emerald-600" />}
@@ -140,8 +154,8 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
             Điểm hiểu bài M (0–100) của từng em ở từng bài. Bấm vào một ô để xem chi tiết.
           </p>
           <Method>
-            Ma trận học sinh × kiến thức của khung Toán §46, tô theo 5 vùng màu của §25; hàng cuối là cả lớp
-            (§45).
+            Ma trận học sinh × kiến thức của {subject.framework} §46, tô theo 5 vùng màu của §25; hàng cuối là
+            cả lớp (§45).
           </Method>
         </div>
         <Heatmap overview={overview} />
@@ -176,8 +190,8 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
             }))}
           />
           <Method>
-            Tỉ lệ là phần trăm trên tổng số lần phát hiện lỗi của cả lớp (khung Toán §28). Mức độ: "Cần can
-            thiệp" khi lỗi nghiêm trọng hoặc gặp từ 3 lần trong 14 ngày mà vẫn còn em mắc (DI-28).
+            Tỉ lệ là phần trăm trên tổng số lần phát hiện lỗi của cả lớp ({subject.framework} §28). Mức độ:
+            "Cần can thiệp" khi lỗi nghiêm trọng hoặc gặp từ 3 lần trong 14 ngày mà vẫn còn em mắc (DI-28).
           </Method>
         </section>
 
@@ -192,7 +206,12 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
               {flagged.map((s) => (
                 <li key={s.student_id} className="rounded-2xl bg-rose-50/60 p-3 ring-1 ring-rose-200">
                   <Link
-                    to={studentReportPath(s.student_id, overview.chapter.chapter_id)}
+                    to={studentReportPath(
+                      s.student_id,
+                      overview.chapter.chapter_id,
+                      undefined,
+                      subject.paths.teacherStudent,
+                    )}
                     className="font-semibold text-brand-900 hover:underline"
                   >
                     {s.display_name}
@@ -223,6 +242,8 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
             (DI-41) cho tới khi cô bấm "Cô đã xem", và hiện lại nếu con nói điều đáng lo mới; lỗi nghiêm trọng
             hoặc lặp lại từ 2 lần mà còn mắc; gia sư đã dừng một bài; bài ở vùng đỏ khi đã đủ dữ liệu; buổi
             học dở dang mà 7 ngày chưa quay lại (DI-20).
+            {subject.id === "english" &&
+              " Với Tiếng Anh còn có: trong 7 ngày, từ 40% lượt nói của em nghe chưa rõ (độ tin cậy dưới 0,6) và có ít nhất 5 lượt nói (ASR_LOW, DI-114); lượt nghe chưa rõ không bao giờ làm giảm điểm (DI-109)."}
           </Method>
         </section>
       </div>
@@ -232,7 +253,7 @@ function ClassDashboard({ overview }: { overview: ClassOverview }) {
           Cả lớp theo từng bài
         </h2>
         <p className="text-sm text-slate-600">Bài nào cả lớp đang gặp khó.</p>
-        <Method>Trung bình điểm M của các em đã có điểm ở bài đó (khung Toán §45).</Method>
+        <Method>Trung bình điểm M của các em đã có điểm ở bài đó ({subject.framework} §45).</Method>
         <ul className="flex flex-col gap-2">
           {columns(overview.nodes).map((n) => {
             const b = overview.by_node.find((x) => x.node_id === n.node_id);

@@ -234,6 +234,11 @@ export interface SessionState {
   progress: { items_done: number; items_total: number };
   /** Chapter sessions only (M1-7): the node map and the step of the teaching cycle. */
   teaching?: TeachingView | null;
+  /**
+   * The subject of the session, set by the server from the chapter or unit it runs (english-module-rules
+   * S1); the client never sends it. Absent: math (rule S4). ENG-7a; the server fills it in ENG-7b.
+   */
+  subject?: Subject;
   /** ENG-6: how the next spoken turn is heard and the tutor is read (absent from older servers). */
   voice?: SessionVoice | null;
   tutor_recovery?: {
@@ -345,6 +350,8 @@ export interface SessionSummary {
   engine: EngineKind;
   /** CHAPTER sessions have a teaching report (GET /v1/sessions/{id}/report). Absent: LESSON. */
   mode?: "LESSON" | "CHAPTER";
+  /** The subject of the session (rule S1). Absent: math. ENG-7a, waiting for ENG-7b. */
+  subject?: Subject;
 }
 
 /** Who worded a tutor message. The move itself always comes from the policy. */
@@ -564,6 +571,8 @@ export interface ProgressNode {
   quality: Quality;
   order: number;
   passed: boolean;
+  /** English (ADR-060 §8): the target pattern of the node, said beside its Vietnamese name ("We …"). */
+  pattern?: string | null;
 }
 
 export interface ProgressTopic {
@@ -571,12 +580,16 @@ export interface ProgressTopic {
   name: string;
   quality: Quality;
   reason?: string | null;
+  /** English (ADR-060 §9.3): the target pattern, shown with the name ("Did you …?"). */
+  pattern?: string | null;
 }
 
 /** A chapter the tutor teaches, by the id the API takes in `?chapter=`. */
 export interface ChapterRef {
   chapter_id: string;
   title: string;
+  /** Absent: math. An English unit is a chapter of subject "english" (ENG-7a, waiting for ENG-7b). */
+  subject?: Subject;
 }
 
 /** GET /v1/students/me/overview: a chapter so far, across the student's sessions. */
@@ -601,12 +614,15 @@ export interface StudentOverview {
   to_practise: ProgressTopic[];
   current_session_id: string | null;
   last_session_at: string | null;
+  /** Step 1–6 of the teaching cycle (ADR-059) on the current node, for the student's step bar. ENG-7a. */
+  current_step?: number | null;
 }
 
 /** GET /v1/parents/children/{code}: the student's overview, four weeks of trend, help at home. */
 export interface ParentChildView extends StudentOverview {
   trend: { date: string; studied: boolean; passed: number; started: number }[];
-  home_tips: { node_id: string; name: string; tip: string }[];
+  /** English: `example` is a sentence to say at home (ADR-060 §9.3, ENG-7a). */
+  home_tips: { node_id: string; name: string; tip: string; example?: string | null }[];
   session_list: {
     session_id: string;
     started_at: string;
@@ -642,7 +658,8 @@ export interface MasteryCell {
 
 /** Why the teacher should look at a student (PART 27.1, DI-20). SAFETY comes first (SAFE-1). */
 export interface AttentionReason {
-  kind: "SAFETY" | "STOPPED" | "MISCONCEPTION" | "WEAK" | "INACTIVE";
+  /** ASR_LOW: English only (DI-114), many spoken answers the listener did not hear clearly. */
+  kind: "SAFETY" | "STOPPED" | "MISCONCEPTION" | "WEAK" | "INACTIVE" | "ASR_LOW";
   node_id?: string | null;
   misconception_id?: string | null;
   count?: number | null;
@@ -651,6 +668,9 @@ export interface AttentionReason {
   /** SAFETY: the session where the child said something worrying, and when. */
   session_id?: string | null;
   at?: string | null;
+  /** ASR_LOW (DI-114): spoken turns in the last 7 days, and the share with q < 0,6 (0–1). */
+  voice_turns?: number | null;
+  share?: number | null;
 }
 
 /** SAFE-1: the teacher has read a session's worrying words, up to one event of its ledger. */
@@ -711,6 +731,8 @@ export interface ClassOverview {
     cells: number;
     mean_mastery: number | null;
     attention: number;
+    /** English (ADR-060 §9.2): share of answers given by voice, 0–100; describes, never graded. */
+    voice_share?: number | null;
   };
 }
 
@@ -761,6 +783,9 @@ export interface TeacherStudentView {
     unresolved: number;
     hints: number;
     passed: number;
+    /** English (ADR-060 §9.1): spoken turns that day, and how many had q < 0,6 (DI-109). */
+    voice_turns?: number;
+    asr_low?: number;
   }[];
   attention: AttentionReason[];
   /** Every item met, in order, with how it ended: the rows of the learning heatmap. */
@@ -769,11 +794,39 @@ export interface TeacherStudentView {
   curve?: CurvePoint[];
   /** What the child's messages were and how the tutor met them (conductor, ADR-019, RAG). */
   conversation?: ConversationStats;
+  /** English (ADR-060 §9.1, DI-114): the spoken turns, newest first, verbatim with their audio. */
+  voice_turns?: VoiceTurn[];
+}
+
+/**
+ * One spoken answer of the child (English, ADR-060 §7 and §9.1). `transcript` is what the listener wrote,
+ * shown verbatim; `audio_ref` opens the recording through the teacher-only endpoint (rule F5). Never sent
+ * to a parent (rule F4). ENG-7a: shape proposed here, filled by the server in ENG-7b.
+ */
+export interface VoiceTurn {
+  turn_id: string;
+  session_id: string;
+  at: string;
+  node_id: string | null;
+  item_id: string | null;
+  /** The question the child answered. */
+  prompt: string;
+  transcript: string;
+  /** q of DI-109 on 0–1; null when the listener gave none. */
+  asr_confidence: number | null;
+  /** The language the listener was told to hear (rule V2): "en" for target sentences, "vi" otherwise. */
+  language: "en" | "vi";
+  audio_ref: string | null;
+  outcome: Outcome | null;
+  /** The teacher listened and corrected this turn (ADR-060 §8, teacher override). */
+  teacher_override?: boolean;
 }
 
 export interface JourneyStep {
   node_id: string;
   item_id: string;
+  /** English (ADR-060 §9.1): how the answer was given. Absent: text. */
+  modality?: Modality;
   resolution: ItemResolution;
   attempts: number;
   hints: number;

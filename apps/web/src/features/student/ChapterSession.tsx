@@ -11,6 +11,7 @@ import { Mascot } from "../../components/Mascot";
 import { MockBanner } from "../../components/MockBanner";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
 import { StepBar } from "../teaching/StepBar";
+import { useSubject } from "../subjects/subjectContext";
 import { AnswerPanel } from "./AnswerPanel";
 import { Conversation } from "./Conversation";
 import { QuestionCard } from "./QuestionCard";
@@ -68,6 +69,7 @@ function ChapterSessionContent({
   onChoose,
 }: ChapterSessionProps) {
   const tutorName = capitalize(state.persona.tutor_self);
+  const subject = useSubject();
   const voice = useVoiceLive({
     turns,
     canSpeak:
@@ -85,7 +87,7 @@ function ChapterSessionContent({
     <KnowledgeMap
       nodes={teaching.nodes}
       relations={teaching.relations}
-      title={`Bản đồ bài học chương ${teaching.chapter.title}`}
+      title={`Bản đồ bài học ${subject.chapterName(teaching.chapter.title)}`}
     />
   );
   // Desktop: in the side column, always in view. Tablet and phone: at the top of the conversation.
@@ -236,6 +238,7 @@ function ChapterHeader({
   teaching: TeachingView;
   nodeName: string | null;
 }) {
+  const { unit } = useSubject();
   const percent = teaching.total ? Math.round((teaching.passed / teaching.total) * 100) : 0;
   const step = teaching.step ? TEACHING_STEPS[teaching.step - 1] : null;
   return (
@@ -264,7 +267,7 @@ function ChapterHeader({
       </div>
       <div
         role="progressbar"
-        aria-label="Tiến độ chương"
+        aria-label={`Tiến độ ${unit}`}
         aria-valuemin={0}
         aria-valuemax={teaching.total}
         aria-valuenow={teaching.passed}
@@ -298,15 +301,16 @@ function PromptCard({ prompt, retell }: { prompt: string; retell: boolean }) {
 }
 
 function ChapterComplete({ teaching }: { teaching: TeachingView }) {
+  const subject = useSubject();
   return (
     <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 px-4 py-5 text-center">
       <StarIcon className="size-10 text-amber-500" />
       <p className="text-xl font-semibold">Con đã hoàn thành buổi học!</p>
       <p className="text-base text-slate-700">
-        Con đã qua {teaching.passed}/{teaching.total} bài của chương {teaching.chapter.title}.
+        Con đã qua {teaching.passed}/{teaching.total} bài của {subject.chapterName(teaching.chapter.title)}.
       </p>
       <Link
-        to="/student"
+        to={subject.paths.student}
         className="mt-2 rounded-xl bg-brand-700 px-5 py-2.5 text-base font-semibold text-white"
       >
         Về trang học sinh

@@ -1,5 +1,5 @@
 import type { JourneyStep, TeacherNodeDetail } from "../../../api/contract";
-import { RESOLUTION_LABEL } from "../../../components/labels";
+import { useSubject } from "../../subjects/subjectContext";
 
 const TONE: Record<JourneyStep["resolution"], string> = {
   INDEPENDENT: "bg-emerald-600",
@@ -15,9 +15,14 @@ const MARK: Record<JourneyStep["resolution"], string> = {
   UNRESOLVED: "✗",
 };
 
-function cellTitle(step: JourneyStep, index: number): string {
+function cellTitle(
+  step: JourneyStep,
+  index: number,
+  RESOLUTION_LABEL: Record<JourneyStep["resolution"], string>,
+): string {
   const hints = step.hints ? `, ${step.hints} gợi ý` : "";
-  return `Câu ${index + 1} (${step.item_id}): ${RESOLUTION_LABEL[step.resolution]}, ${step.attempts} lần trả lời${hints}`;
+  const voice = step.modality === "VOICE" ? ", trả lời bằng giọng nói" : "";
+  return `Câu ${index + 1} (${step.item_id}): ${RESOLUTION_LABEL[step.resolution]}, ${step.attempts} lần trả lời${hints}${voice}`;
 }
 
 /**
@@ -27,6 +32,7 @@ function cellTitle(step: JourneyStep, index: number): string {
  * colour is never the only cue.
  */
 export function JourneyHeatmap({ steps, nodes }: { steps: JourneyStep[]; nodes: TeacherNodeDetail[] }) {
+  const RESOLUTION_LABEL = useSubject().resolutionLabel;
   if (steps.length === 0) return <p className="text-slate-600">Chưa có câu nào.</p>;
   const rows = nodes
     .map((n) => ({ node: n, cells: steps.filter((s) => s.node_id === n.node_id) }))
@@ -46,8 +52,8 @@ export function JourneyHeatmap({ steps, nodes }: { steps: JourneyStep[]; nodes: 
                 {cells.map((step, i) => (
                   <td key={`${step.item_id}-${i}`} className="p-0">
                     <span
-                      title={cellTitle(step, i)}
-                      aria-label={cellTitle(step, i)}
+                      title={cellTitle(step, i, RESOLUTION_LABEL)}
+                      aria-label={cellTitle(step, i, RESOLUTION_LABEL)}
                       className={`flex size-6 items-center justify-center rounded text-[11px] font-bold text-white ${TONE[step.resolution]}`}
                     >
                       {MARK[step.resolution]}

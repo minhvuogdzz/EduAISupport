@@ -23,8 +23,13 @@ export function urgency(m: { severity: string; recent: number; active_students: 
  * The report of one student, on the chapter the class view is about (`?chapter=`) and, if given, on one
  * KC (`?node=`): without the chapter the report would open on the first one, whatever the teacher was looking at.
  */
-export function studentReportPath(studentId: string, chapterId: string, nodeId?: string): string {
+export function studentReportPath(
+  studentId: string,
+  chapterId: string,
+  nodeId?: string,
+  base = "/teacher/students",
+): string {
   const query = new URLSearchParams({ chapter: chapterId });
   if (nodeId) query.set("node", nodeId);
-  return `/teacher/students/${encodeURIComponent(studentId)}?${query.toString()}`;
+  return `${base}/${encodeURIComponent(studentId)}?${query.toString()}`;
 }

@@ -35,7 +35,8 @@ describe("the notebook landing page", () => {
     expect(await screen.findByText("Có 3 trong 10 phần được tô màu.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Tiếng Anh" }));
     expect(screen.getByRole("button", { name: "Tiếng Anh" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("Hai bạn gặp nhau lần đầu và vẫy tay.")).toBeVisible();
+    // English is Unit 11 "Family time" (D-T13, ENG-7a): the example is the unit's "Did you …?".
+    expect(screen.getByText("Bạn hỏi “Did you swim?” và con đã bơi.")).toBeVisible();
   });
 
   it("changes the teaching step as the page scrolls through the sticky section, and a tab scrolls to its step", async () => {
