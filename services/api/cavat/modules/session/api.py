@@ -1744,7 +1744,7 @@ async def mark_safety_reviewed(body: MarkSafetyReviewed, database: Database, tea
 
 
 # The school's Hybrid RAG index (RAG-1), rebuilt when the chapter content or the documents change.
-_rag_service = RagService(service.DEMO_SCHOOL_ID, chapter_service.chapters)
+_rag_service = RagService(service.DEMO_SCHOOL_ID, chapter_service.all_chapters)
 
 
 def register(app: FastAPI) -> None:
