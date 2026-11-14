@@ -1,12 +1,13 @@
 # Lesson package — Tiếng Anh 5 (Global Success, tập hai), Unit 11 "Family time", Lesson 2
-# TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK/SGV ngày 12/11/2026; chủ dự án duyệt mặc định ngày 12/11/2026.
-# Nguồn gốc và trạng thái đáp án của từng câu: sources.yaml. Quy ước: như lesson-1 và ../README.md.
+# TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK/SGV ngày 12/11/2026; chủ dự án duyệt mặc định ngày 12/11/2026;
+# câu soạn thêm được chủ dự án duyệt ngày 13/11/2026. Nguồn và trạng thái đáp án ghi trong từng câu (ADR-062).
+# Quy ước: như lesson-1 và ../../README.md.
 #
 # Nội dung: "What did your family do in …? – We …" và câu đi kèm "When did you go to …? – We went there last …".
 # SGK tr.7–9 (Lesson 1 Ex5, Lesson 2), Review 3 tr.36. SGV tr.182–187, 251–252.
 
 lesson_id: eng-g5-u11-l2
-version: 0.1.0
+version: 0.2.0
 status: DRAFT
 subject: english
 grade: 5
@@ -28,7 +29,7 @@ kcs:
   - id: ENG5-U11-WHATDID
     name: "What did your family do in …? – We …"
     description: "Hỏi gia đình đã làm gì ở một nơi và trả lời bằng We + động từ quá khứ; hỏi khi nào đi bằng When did you go to …?"
-    prerequisites: []  # tiên quyết ENG5-U11-PAST nằm ở lesson-1 (đồ thị ở unit.yaml là nguồn sự thật)
+    prerequisites: []  # tiên quyết ENG5-U11-PAST nằm ở lesson-1 (đồ thị ở chapter.yaml là nguồn sự thật)
 
 concepts:
   - id: C1
@@ -46,6 +47,7 @@ misconceptions:
     name: "Sau We dùng động từ nguyên mẫu"
     description: "Trả lời 'We eat seafood.', 'We buy souvenirs.' cho câu hỏi What did your family do …?. Câu trả lời kể chuyện đã qua nên động từ sau We đổi sang quá khứ."
     severity: CRITICAL
+    error_class: EN_TENSE
     counter_examples:
       - "Bạn hỏi 'What did your family do in Nha Trang?' về chuyến đi đã qua. Nếu con nói 'We eat seafood', bạn có hiểu là cả nhà đã ăn hay hay ăn không?"
       - "Câu hỏi có did, câu trả lời không có did. Vậy chữ nào trong câu trả lời phải báo là chuyện đã qua?"
@@ -54,6 +56,7 @@ misconceptions:
     name: "Câu hỏi Wh- về quá khứ thiếu did hoặc dùng do"
     description: "Hỏi 'When do they go there?' về chuyện tuần trước, 'What your family did?' hoặc 'What did your family did?'. Câu hỏi Wh- về quá khứ: từ để hỏi + did + chủ ngữ + động từ giữ nguyên."
     severity: NORMAL
+    error_class: EN_STRUCTURE
     counter_examples:
       - "Họ đi Quảng Ninh tuần trước rồi. Câu hỏi về chuyện đã qua thì sau When mình dùng do hay did?"
       - "Trong câu 'What did your family do?', chữ did đã báo chuyện đã qua. Động từ do ở cuối có cần đổi nữa không?"
@@ -62,6 +65,7 @@ misconceptions:
     name: "Trả lời lệch câu hỏi Wh-"
     description: "Bạn hỏi What (làm gì) mà trả lời nơi chốn hoặc thời gian, hoặc hỏi When (khi nào) mà trả lời việc làm."
     severity: NORMAL
+    error_class: EN_MEANING
     counter_examples:
       - "Câu hỏi bắt đầu bằng What … do? là hỏi làm gì. Câu 'We were at Ha Long Bay last month.' nói về việc làm hay nói về nơi chốn?"
       - "When là hỏi khi nào. Câu trả lời cần có chữ chỉ thời gian như last summer, con thấy chưa?"
@@ -84,6 +88,11 @@ items:
     difficulty: 0.35
     expected_time_s: 40
     stem: "Bạn hỏi: 'What did your family do in Ha Long?' Câu trả lời nào đúng với câu hỏi?"
+    source: {doc: SGK, page: "36", ref: "Review 3 Ex1 câu 2, câu hỏi lấy từ audio script SGV tr.251"}
+    answer_source: {doc: SGV, page: "252", ref: "Key Review 3 Ex1: 2a"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
       type: choice
       options:
@@ -103,12 +112,15 @@ items:
     difficulty: 0.15
     expected_time_s: 40
     stem: "Con nói theo cô cả câu hỏi và câu trả lời nhé: 'What did your family do in Ha Long?' – 'We took a boat trip around the bay.'"
+    source: {doc: SGK, page: "8", ref: "L2 Ex1b"}
+    origin: BOOK
+    answer_status: FROM_TEXT
+    response_language: en
+    kind: say_after_me
     answer:
-      type: open
-      rubric: "Nhắc lại được câu trả lời We took a boat trip around the bay."
-      sample_answer: "What did your family do in Ha Long? We took a boat trip around the bay."
-      facts:
-        phrases: [["we took a boat trip"]]
+      type: phrase
+      accept: ["What did your family do in Ha Long? We took a boat trip around the bay."]
+      required: [["we took a boat trip"]]
     hints:
       - {target: TASK, level: 1, text: "Con nói câu hỏi trước theo cô: What did your family do in Ha Long?"}
       - {target: CONCEPT, level: 2, text: "Câu trả lời bắt đầu bằng We, động từ took là quá khứ của take."}
@@ -127,12 +139,16 @@ items:
     expected_time_s: 45
     isomorphic_group: U11-WD-WE
     stem: "Trong tranh, cả nhà đang ăn tôm, cua, cá ở Nha Trang. Bạn hỏi: 'What did your family do in Nha Trang?' Con trả lời bằng câu bắt đầu bằng We nhé."
+    source: {doc: SGK, page: "8", ref: "L2 Ex2b, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "184", ref: "audio script L2 Ex2b"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "We + ate seafood (động từ quá khứ)."
-      sample_answer: "We ate seafood."
-      facts:
-        phrases: [["we ate"], ["seafood"]]
+      type: phrase
+      accept: ["We ate seafood."]
+      required: [["we ate"], ["seafood"]]
+      wrong_answers: {"we eat seafood": ENG5-U11-M07}
     hints:
       - {target: TASK, level: 1, text: "Trong tranh cả nhà đang làm gì? Ăn hải sản tiếng Anh là cụm nào?"}
       - {target: CONCEPT, level: 2, text: "Câu trả lời kể chuyện đã qua: We + động từ quá khứ. Eat có dạng quá khứ riêng là ate."}
@@ -152,12 +168,16 @@ items:
     expected_time_s: 45
     isomorphic_group: U11-WD-WE
     stem: "Trong tranh, cả nhà đứng chụp ảnh trước nhà hát và cây cầu lớn ở Sydney. Bạn hỏi: 'What did your family do in Sydney?' Con trả lời bằng câu bắt đầu bằng We, dùng cụm see some interesting places nhé."
+    source: {doc: SGK, page: "8", ref: "L2 Ex2c, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "184", ref: "audio script L2 Ex2c"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "We + saw some interesting places (see đổi thành saw)."
-      sample_answer: "We saw some interesting places."
-      facts:
-        phrases: [["we saw"], ["interesting places"]]
+      type: phrase
+      accept: ["We saw some interesting places."]
+      required: [["we saw"], ["interesting places"]]
+      wrong_answers: {"we see some interesting places": ENG5-U11-M07}
     hints:
       - {target: TASK, level: 1, text: "Cả nhà đi xem những nơi nổi tiếng ở Sydney. Cụm see some interesting places nghĩa là gì?"}
       - {target: CONCEPT, level: 2, text: "Kể chuyện đã qua sau We thì see đổi sang quá khứ; see có dạng riêng."}
@@ -176,12 +196,15 @@ items:
     difficulty: 0.45
     expected_time_s: 90
     stem: "Con điền ba chỗ trống nhé. Tranh: biển hiệu ghi 'WELCOME TO NHA TRANG', cả nhà đang bơi ở biển, trên bàn có hải sản. A: Where were your family yesterday? B: We were in (1) … . A: What did you do there? B: We (2) … in the sea. A: What else did you do? B: We ate some (3) … ."
+    source: {doc: SGK, page: "9", ref: "L2 Ex5 câu 1, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "187", ref: "Key L2 Ex5 câu 1"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "(1) Nha Trang, (2) swam, (3) seafood (theo SGV tr.187)."
-      sample_answer: "(1) Nha Trang (2) swam (3) seafood"
-      facts:
-        phrases: [["nha trang"], ["swam"], ["seafood"]]
+      type: phrase
+      accept: ["(1) Nha Trang (2) swam (3) seafood"]
+      required: [["nha trang"], ["swam"], ["seafood"]]
     hints:
       - {target: TASK, level: 1, text: "Biển hiệu trong tranh ghi tên nơi nào? Cả nhà đang làm gì dưới biển?"}
       - {target: CONCEPT, level: 2, text: "Chỗ (2) là động từ sau We kể chuyện hôm qua, nên ở dạng quá khứ: swim có dạng riêng."}
@@ -200,6 +223,11 @@ items:
     difficulty: 0.35
     expected_time_s: 40
     stem: "A: Look at Nga's family in Quang Ninh. B: It's a nice photo! When (did / do) they go there? A: They went there last weekend. Con chọn từ đúng cho câu hỏi của B nhé?"
+    source: {doc: SGK, page: "7", ref: "L1 Ex5 câu 3, chỗ trống 1"}
+    answer_source: {doc: SGV, page: "182", ref: "Key L1 Ex5 câu 3: did"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
       type: choice
       options:
@@ -222,6 +250,10 @@ items:
     difficulty: 0.55
     expected_time_s: 75
     stem: "Trong câu hỏi 'What did your family do in Ha Long?', động từ do giữ nguyên. Nhưng trong câu trả lời 'We took a boat trip around the bay.', động từ lại là took. Vì sao vậy? Con trả lời bằng tiếng Việt nhé."
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: vi
     answer:
       type: open
       rubric: "Nêu được: câu hỏi đã có did báo chuyện đã qua nên do giữ nguyên; câu trả lời không có did nên động từ phải đổi sang quá khứ (take → took)."
@@ -246,12 +278,15 @@ items:
     difficulty: 0.5
     expected_time_s: 60
     stem: "Bạn hỏi Bin: 'What did your family do in Singapore last summer?' Bin trả lời: 'We buy souvenirs.' Bin trả lời sai ở đâu? Con sửa lại cả câu giúp bạn nhé."
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án", reviewed_on: 2026-11-13}
+    response_language: either
     answer:
-      type: open
-      rubric: "Chỉ ra buy chưa đổi sang quá khứ; sửa thành We bought souvenirs."
-      sample_answer: "Buy sai, phải là bought: We bought souvenirs."
-      facts:
-        phrases: [["bought"]]
+      type: phrase
+      accept: ["Buy sai, phải là bought: We bought souvenirs."]
+      required: [["bought"]]
+      wrong_answers: {"we buy souvenirs": ENG5-U11-M07}
     hints:
       - {target: TASK, level: 1, text: "Bạn hỏi về mùa hè năm ngoái. Câu trả lời của Bin đang kể chuyện đã qua chưa?"}
       - {target: CONCEPT, level: 2, text: "Sau We, khi kể chuyện đã qua, động từ đổi sang quá khứ; buy có dạng riêng."}
@@ -270,12 +305,16 @@ items:
     difficulty: 0.45
     expected_time_s: 60
     stem: "Cả nhà con đi Thái Lan vào cuối tuần trước (last weekend). Bạn hỏi: 'When did you go to Thailand?' Con trả lời thế nào?"
+    source: {doc: SGK, page: "8", ref: "L2 Ex3 Let's talk, tình huống tranh Thái Lan"}
+    answer_source: {doc: SGV, page: "185", ref: "Suggested answers L2 Ex3"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "We went there last weekend: dùng went và trả lời đúng thời gian (When hỏi khi nào)."
-      sample_answer: "We went there last weekend."
-      facts:
-        phrases: [["went"], ["last weekend"]]
+      type: phrase
+      accept: ["We went there last weekend."]
+      required: [["went"], ["last weekend"]]
+      wrong_answers: {"we go there last weekend": ENG5-U11-M07}
     hints:
       - {target: TASK, level: 1, text: "When là hỏi khi nào. Con đi Thái Lan khi nào?"}
       - {target: CONCEPT, level: 2, text: "Trả lời câu hỏi When did you go to …? bằng We went there + thời gian."}
@@ -295,12 +334,16 @@ items:
     transfer: near
     expected_time_s: 60
     stem: "Trong tranh, cả nhà bạn Linh đứng ở một quầy bán đồ thủ công và quà lưu niệm ở Sa Pa. Bạn hỏi Linh: 'What did your family do in Sa Pa?' Linh trả lời thế nào?"
+    source: {doc: SGK, page: "36", ref: "Review 3 Ex2 câu 2, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "252", ref: "Key Review 3 Ex2 câu 2: We bought souvenirs."}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
     answer:
-      type: open
-      rubric: "We bought souvenirs (theo SGV tr.252); chấp nhận thêm some."
-      sample_answer: "We bought souvenirs."
-      facts:
-        phrases: [["we bought"], ["souvenirs"]]
+      type: phrase
+      accept: ["We bought souvenirs."]
+      required: [["we bought"], ["souvenirs"]]
+      wrong_answers: {"we buy souvenirs": ENG5-U11-M07}
     hints:
       - {target: TASK, level: 1, text: "Cả nhà Linh đang làm gì ở quầy hàng?"}
       - {target: CONCEPT, level: 2, text: "Mua quà lưu niệm là buy souvenirs. Kể chuyện đã qua sau We thì buy đổi sang quá khứ."}

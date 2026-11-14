@@ -16,6 +16,12 @@ it. Evidence comes from three events:
 - RETELL_JUDGED: the node retell judged against its key ideas (R).
 
 Retention S only comes from delayed probes (milestone 2), so it stays empty here.
+
+One projector for both subjects (english-module-rules M2): the policy is chosen by the ``subject`` of the
+chapter (``policy_for``). Mathematics keeps ``node-mastery/0.3.0`` byte for byte; English is
+``node-mastery-en/0.1.0`` (ADR-060 §6-§7, ADR-063): the class L1 (DI-107), a "nói theo cô" item at most as
+independent as H6 (DI-108), and the ASR confidence of a voice answer (DI-109). The fields that only English
+sets default to "off", so the Mathematics fold runs the same arithmetic as before.
 """
 
 from __future__ import annotations
@@ -31,9 +37,11 @@ from pydantic import BaseModel, ConfigDict
 
 from cavat.core.events import EventType, ExplanationSubmitted, ItemResolved, QuestionShown, RetellJudged
 from cavat.core.pedagogy import ErrorClass, ItemResolution
+from cavat.core.subjects import check_subject
 from cavat.modules.content.chapter_package import Chapter
 
 MASTERY_POLICY_VERSION = "node-mastery/0.3.0"  # 0.3.0: provisional mastery from M >= 85 (§53, DI-59)
+ENGLISH_MASTERY_POLICY_VERSION = "node-mastery-en/0.1.0"  # ENG-4: ADR-060 §6-§7 on the same projector
 
 DIMENSIONS = ("C", "R", "A", "T", "I", "S", "D")
 APPLICATION_DIMENSIONS = frozenset({"A", "T"})  # DI-6 "application evidence": level D/E or transfer items
@@ -87,9 +95,39 @@ class MasteryPolicy:
     # §53 without S: M, confidence, mu_A. It decides level 5 on its own: the 90 band of §4-§8 colours the
     # teacher view, it is not a gate (before 0.3.0 the band hid the 85 of §53).
     provisional: tuple[float, float, float] = (85, 75, 0.8)
+    # The subject the policy is for; projecting a chapter of another subject is an error (ENG-4).
+    subject: str = "math"
+    # DI-108: the independence of a "cùng làm" item is at most this (H6, 0.20). None: the hint decides.
+    completion_max_independence: float | None = None
+    # DI-109: a voice answer below this ASR confidence counts as uncertain. None: modality is not read
+    # (Mathematics, english-module-rules M4).
+    asr_threshold: float | None = None
+    asr_low_factor: float = 0.3  # DI-109: weight of an uncertain voice answer that is right
+    # DI-109 point 7: answer types whose voice answers count as uncertain whatever the ASR confidence, until
+    # the false accepts of Whisper in English are measured on children's audio (ENG-9).
+    voice_low_forms: frozenset[str] = frozenset()
 
 
 DEFAULT_POLICY = MasteryPolicy()
+
+# ADR-060 §6: every number of Mathematics, plus L1 (DI-107), DI-108 and DI-109. DI-111 needs no number of
+# its own: a "nói theo cô" item, a success after H4 and an uncertain voice answer are not successes.
+ENGLISH_POLICY = MasteryPolicy(
+    version=ENGLISH_MASTERY_POLICY_VERSION,
+    error_scores={ErrorClass.FORMAT: 0.7, ErrorClass.L1: 0.3},
+    subject="english",
+    completion_max_independence=0.20,
+    asr_threshold=0.6,
+    asr_low_factor=0.3,
+    voice_low_forms=frozenset({"phrase", "word_order"}),
+)
+
+POLICIES: Mapping[str, MasteryPolicy] = {"math": DEFAULT_POLICY, "english": ENGLISH_POLICY}
+
+
+def policy_for(chapter: Chapter) -> MasteryPolicy:
+    """The mastery policy of a chapter, by its subject; an unknown subject is an error (no fallback)."""
+    return POLICIES[check_subject(chapter.package.subject)]
 
 
 class _Out(BaseModel):
@@ -175,9 +213,18 @@ def answer_dimension(cognitive_level: str, transfer: str) -> str:
 
 
 def project_chapter(
-    events: Iterable[EventLike], chapter: Chapter, policy: MasteryPolicy = DEFAULT_POLICY
+    events: Iterable[EventLike], chapter: Chapter, policy: MasteryPolicy | None = None
 ) -> ChapterProjection:
-    """Fold the events, in order, into the state of every node. Invalid payloads raise."""
+    """Fold the events, in order, into the state of every node. Invalid payloads raise.
+
+    Without ``policy``, the policy of the chapter's subject (``policy_for``). A policy of another subject
+    is refused: English evidence never goes through the Mathematics numbers, nor the other way round.
+    """
+    policy = policy_for(chapter) if policy is None else policy
+    if policy.subject != chapter.package.subject:
+        raise ValueError(
+            f"policy {policy.version} is for {policy.subject}, the chapter is {chapter.package.subject}"
+        )
     projector = _Projector(chapter, policy)
     for seq, event in enumerate(events):
         projector.add(seq, event)
@@ -255,8 +302,22 @@ class _Projector:
         dimension = answer_dimension(p.cognitive_level, p.transfer)
         scaffolded = any(p.item_id in self.chapter.node(k).completion for k in kcs)
         scaffold = pol.completion_factor if scaffolded else 1.0
-        success = resolved and p.max_hint_level <= pol.success_max_hint and not p.guessed and not scaffolded
         form = self._form(p.item_id)
+        uncertain = self._uncertain_voice(p, form)
+        if uncertain and not resolved:
+            # DI-109: an uncertain voice answer that is wrong or not graded is no evidence at all.
+            self._note(seq, kcs, dimension, "ASR_UNCERTAIN", p.item_id)
+            return []
+        if scaffolded and pol.completion_max_independence is not None:  # DI-108
+            support = min(support, pol.completion_max_independence)
+        asr = pol.asr_low_factor if uncertain else 1.0
+        success = (
+            resolved
+            and p.max_hint_level <= pol.success_max_hint
+            and not p.guessed
+            and not scaffolded
+            and not uncertain
+        )
         for node_id in kcs:
             acc = self.nodes[node_id]
             acc.items += 1
@@ -265,8 +326,10 @@ class _Projector:
                 weight = (0.5 + p.difficulty) * max(support, pol.min_support) * scaffold
                 if p.guessed:
                     weight *= pol.guess_factor
+                if uncertain:  # DI-109: right but heard with doubt, a small weight (Mathematics: never)
+                    weight *= asr
                 self._record(seq, node_id, dimension, 1.0, weight, "ANSWER", p.item_id)
-                self._record(seq, node_id, "I", support, scaffold, "INDEPENDENCE", p.item_id)
+                self._record(seq, node_id, "I", support, scaffold * asr, "INDEPENDENCE", p.item_id)
             else:
                 score = pol.error_scores.get(p.final_error_class, 0.0) if p.final_error_class else 0.0
                 weight = (1.5 - p.difficulty) * scaffold
@@ -281,6 +344,31 @@ class _Projector:
                 acc.successes.append((p.cognitive_level, form))
                 acc.application = acc.application or dimension in APPLICATION_DIMENSIONS
         return kcs + self._misconceptions(seq, p, kcs, success)
+
+    def _uncertain_voice(self, p: ItemResolved, form: str) -> bool:
+        """DI-109 (with DI-130): a voice answer under the policy's ASR threshold, without a confidence, or of
+        a type the policy does not trust by voice yet. Never under a policy without a threshold (Math)."""
+        pol = self.policy
+        if pol.asr_threshold is None or p.modality != "VOICE":
+            return False
+        if p.asr_confidence is None or p.asr_confidence < pol.asr_threshold:
+            return True
+        return form in pol.voice_low_forms
+
+    def _note(self, seq: int, kcs: list[str], dimension: str, reason: str, item_id: str) -> None:
+        """A reason kept in the evidence list with weight 0: it moves no score, no confidence, no counter."""
+        for node_id in kcs:
+            self.evidence.append(
+                Evidence(
+                    seq=seq,
+                    node_id=node_id,
+                    dimension=dimension,
+                    score=0.0,
+                    weight=0.0,
+                    reason=reason,
+                    item_id=item_id,
+                )
+            )
 
     def _misconceptions(self, seq: int, p: ItemResolved, kcs: list[str], success: bool) -> list[str]:
         """Detections make a misconception ACTIVE; later successes where it could show resolve it."""

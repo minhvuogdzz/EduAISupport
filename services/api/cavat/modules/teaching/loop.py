@@ -47,7 +47,7 @@ from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, ItemResolution, Move
 from cavat.core.vi_text import contains_phrase
 from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
 from cavat.modules.assessment.math_checker import classify_intent
-from cavat.modules.assessment.projector import DEFAULT_POLICY, MasteryPolicy, project_chapter
+from cavat.modules.assessment.projector import MasteryPolicy, policy_for, project_chapter
 from cavat.modules.assessment.retell import judge_retell, with_meaning
 from cavat.modules.assessment.student_intent import (
     asks_question,
@@ -322,7 +322,7 @@ class TeachingLoop:
         item_renderer: MessageRenderer | None = None,
         validator: MessageValidator = validate_message,
         config: NodePolicyConfig = DEFAULT_CONFIG,
-        mastery: MasteryPolicy = DEFAULT_POLICY,
+        mastery: MasteryPolicy | None = None,  # ENG-4: None is the policy of the chapter's subject
         speaker: GroundedSpeaker | None = None,
         item_reader: ContextReader | None = None,
         item_chooser: MoveChooser | None = None,
@@ -335,7 +335,8 @@ class TeachingLoop:
         self.history = list(history)  # events of earlier sessions: the projection reads them too
         self.events: list[Any] = []  # events of this session
         self.item_renderer = item_renderer or TemplateRenderer()
-        self.validator, self.config, self.mastery = validator, config, mastery
+        self.validator, self.config = validator, config
+        self.mastery = policy_for(chapter) if mastery is None else mastery
         self.tutor: ItemTutor | None = None
         self.awaiting: Awaiting | None = None
         self._node: str | None = None  # node of the theory or retell being waited for

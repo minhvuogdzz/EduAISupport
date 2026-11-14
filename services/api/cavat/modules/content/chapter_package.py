@@ -191,6 +191,11 @@ def load_chapter(path: str | Path) -> Chapter:
         lesson = load_lesson_package(path.parent / rel)
         if lesson.lesson_id in lessons:
             raise ValueError(f"lesson {lesson.lesson_id} is listed twice in {path.name}")
+        if lesson.subject != package.subject:  # ADR-062: a chapter never mixes subjects
+            raise ValueError(
+                f"lesson {lesson.lesson_id} is {lesson.subject}, "
+                f"chapter {package.chapter_id} is {package.subject}"
+            )
         lessons[lesson.lesson_id] = lesson
     items = {it.id: (it, lesson) for lesson in lessons.values() for it in lesson.items}
     return Chapter(package=package, lessons=lessons, _items=items)
@@ -226,6 +231,10 @@ def validate_chapter(chapter: Chapter) -> list[str]:
         chapter.topological_order()
     except ValueError as exc:
         problems.append(str(exc))
+
+    for lesson in chapter.lessons.values():
+        if lesson.subject != pkg.subject:
+            problems.append(f"lesson {lesson.lesson_id} is {lesson.subject}, the chapter is {pkg.subject}")
 
     owner: dict[str, str] = {}  # item ids are chapter-wide: Chapter.item() looks them up without a lesson
     for lesson in chapter.lessons.values():
@@ -302,6 +311,9 @@ def _node_item_problems(chapter: Chapter, node: Node) -> list[str]:
                 problems.append(f"{node.id}: {name} item {item_id} does not practise this node")
             if name == "transfer" and item.transfer == "none" and item.cognitive_level not in ("D", "E"):
                 problems.append(f"{node.id}: transfer item {item_id} is neither a transfer nor level D/E")
+            if item.kind == "say_after_me" and name != "completion":
+                # DI-108: repeating the tutor's sentence is support, never a success of the node.
+                problems.append(f"{node.id}: say_after_me item {item_id} belongs in completion, not {name}")
     return problems
 
 
@@ -309,8 +321,9 @@ def _pass_rule_problems(chapter: Chapter, node: Node) -> list[str]:
     """The node's items must make its pass rule reachable (§52 UNDERSTOOD, DI-15).
 
     A cognitive level is A-E (DIAG items diagnose, they are not a level); a question form is the answer
-    type (DI: choice, numeric, compare, order, boolean, open). "Cùng làm" items give part of the solution,
-    so they are not counted (DI): the student must reach the rule with the items done alone.
+    type (DI: choice, numeric, compare, order, boolean, open; English adds phrase and word_order,
+    DI-125). "Cùng làm" items give part of the solution, so they are not counted (DI): the student must
+    reach the rule with the items done alone.
     """
     lesson = chapter.lessons.get(node.lesson_id)
     if lesson is None:

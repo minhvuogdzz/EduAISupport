@@ -20,6 +20,7 @@ from cavat.config import REPO_ROOT, get_settings
 from cavat.core.events import ChoiceMade, EventType, HintRequested, SafetyFlagged, StudentMessage
 from cavat.core.pedagogy import HINT_MOVES, ActivityType
 from cavat.core.repository import new_id
+from cavat.core.subjects import Subject, check_subject
 from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE, MODEL_WAIT_MESSAGES
 from cavat.modules.ai_gateway.router import AIRouter
 from cavat.modules.content.lesson_package import ChoiceAnswer, LessonPackage, load_lesson_package
@@ -93,10 +94,23 @@ class CommandNotAllowed(Exception):
 
 
 @lru_cache
-def lesson_packages() -> dict[str, LessonPackage]:
-    """Every lesson.yaml under docs/pedagogy, by lesson_id. Content is a versioned repo artifact."""
-    found = sorted((REPO_ROOT / "docs" / "pedagogy").glob("**/lesson.yaml"))
-    return {pkg.lesson_id: pkg for pkg in map(load_lesson_package, found)}
+def all_lesson_packages() -> dict[str, LessonPackage]:
+    """Every lesson.yaml under docs/pedagogy, of every subject, by lesson_id. Content is a versioned repo
+    artifact. Two files with the same lesson id are an error (ADR-062)."""
+    out: dict[str, LessonPackage] = {}
+    for path in sorted((REPO_ROOT / "docs" / "pedagogy").glob("**/lesson.yaml")):
+        pkg = load_lesson_package(path)
+        if pkg.lesson_id in out:
+            raise ValueError(f"lesson {pkg.lesson_id} is in two lesson.yaml files ({path})")
+        out[pkg.lesson_id] = pkg
+    return out
+
+
+def lesson_packages(subject: Subject = "math") -> dict[str, LessonPackage]:
+    """The lesson packages of one subject; Mathematics when none is named (DI-124, ADR-062): the fixed plan
+    of lesson 1 and every caller from before English only ever get Mathematics lessons."""
+    check_subject(subject)
+    return {lid: pkg for lid, pkg in all_lesson_packages().items() if pkg.subject == subject}
 
 
 def plan_for(pkg: LessonPackage) -> list[list[str]]:
