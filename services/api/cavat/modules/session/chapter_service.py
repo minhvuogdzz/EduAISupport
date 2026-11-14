@@ -29,6 +29,7 @@ from cavat.config import REPO_ROOT
 from cavat.core.events import ContextRouted, EventType, NodeDecisionMade, SafetyFlagged
 from cavat.core.pedagogy import ITEM_ACTIONS, ActivityType, TeachAction
 from cavat.core.repository import new_id
+from cavat.core.subjects import SUBJECTS, Subject, check_subject
 from cavat.modules.assessment.projector import (
     MASTERY_POLICY_VERSION,
     ChapterProjection,
@@ -69,6 +70,9 @@ from cavat.modules.tutor.reader import ContextReader
 
 MODE = "CHAPTER"
 DEFAULT_CHAPTER_ID = "math-g5-decimals"
+# DI-124: the subject of a caller that names none. Every session, view and list from before English is
+# Mathematics; English is reached only by naming it (ENG-3b, ADR-062).
+DEFAULT_SUBJECT: Subject = "math"
 
 # Step of the teaching cycle (plan v1, 5.2; six steps since ADR-059) that each decision carries out:
 # 1 revise and teach the base, 2 check the understanding, 3 learn the method, 4 practise, 5 apply, 6 decide.
@@ -124,11 +128,25 @@ _ITEM_EVENTS = frozenset(
 
 
 @lru_cache
-def chapter_sources() -> dict[str, tuple[Chapter, Path]]:
-    """Every chapter.yaml under docs/pedagogy, by chapter_id, with its file. Content is a versioned repo
-    artifact; the teacher reads it on the web (DOC-1)."""
-    found = sorted((REPO_ROOT / "docs" / "pedagogy").glob("**/chapter.yaml"))
-    return {chapter.package.chapter_id: (chapter, path) for path in found for chapter in [load_chapter(path)]}
+def all_chapter_sources() -> dict[str, tuple[Chapter, Path]]:
+    """Every chapter.yaml under docs/pedagogy, of every subject, by chapter_id, with its file. Content is a
+    versioned repo artifact; the teacher reads it on the web (DOC-1). A chapter id names one chapter of one
+    subject: two files with the same id are an error, never one hiding the other (ADR-062)."""
+    out: dict[str, tuple[Chapter, Path]] = {}
+    for path in sorted((REPO_ROOT / "docs" / "pedagogy").glob("**/chapter.yaml")):
+        chapter = load_chapter(path)
+        cid = chapter.package.chapter_id
+        if cid in out:
+            raise ValueError(f"chapter {cid} is in {out[cid][1]} and {path}")
+        out[cid] = (chapter, path)
+    return out
+
+
+def chapter_sources(subject: Subject = DEFAULT_SUBJECT) -> dict[str, tuple[Chapter, Path]]:
+    """The chapter files of one subject (ENG-3b, ADR-062). Mathematics when no subject is named (DI-124):
+    every caller from before English is a Mathematics caller, and keeps exactly the chapters it had."""
+    check_subject(subject)
+    return {cid: src for cid, src in all_chapter_sources().items() if src[0].package.subject == subject}
 
 
 # INGEST-4: the teaching plans the teacher published, built from their documents. Every version is kept: a
@@ -198,22 +216,37 @@ def _database_key(database: Any) -> tuple[int, str] | int:
     return (id(client), name) if client is not None and isinstance(name, str) else id(database)
 
 
-def chapters() -> dict[str, Chapter]:
-    """The chapters new sessions use: a published plan of the teacher's documents, else the chapter file."""
-    out = {cid: chapter for cid, (chapter, _) in chapter_sources().items()}
+def chapters(subject: Subject = DEFAULT_SUBJECT) -> dict[str, Chapter]:
+    """The chapters of one subject new sessions use: a published plan of the teacher's documents, else the
+    chapter file. Mathematics when no subject is named (DI-124): a Mathematics session, view or list never
+    sees an English unit, and the other way round."""
+    out = {cid: chapter for cid, (chapter, _) in chapter_sources(subject).items()}
     for cid, version in _current.items():
-        out[cid] = _published[cid][version]
+        published = _published[cid][version]
+        if published.package.subject == subject:
+            out[cid] = published
     return out
 
 
-def chapter_for(chapter_id: str, version: str | None) -> Chapter | None:
-    """The chapter a session started with (its ``lesson_version``), so a replay never changes."""
-    if version and version in _published.get(chapter_id, {}):
-        return _published[chapter_id][version]
-    source = chapter_sources().get(chapter_id)
+def all_chapters() -> dict[str, Chapter]:
+    """The chapters of every subject, for what keeps the subjects apart itself (the RAG builds one index per
+    subject from them, ADR-061)."""
+    out: dict[str, Chapter] = {}
+    for subject in SUBJECTS:
+        out.update(chapters(subject))
+    return out
+
+
+def chapter_for(chapter_id: str, version: str | None, subject: Subject = DEFAULT_SUBJECT) -> Chapter | None:
+    """The chapter a session started with (its ``lesson_version``), so a replay never changes. Only a
+    chapter of ``subject`` (DI-124): a stored session without a subject is a Mathematics one."""
+    published = _published.get(chapter_id, {})
+    if version and version in published and published[version].package.subject == subject:
+        return published[version]
+    source = chapter_sources(subject).get(chapter_id)
     if source is not None and (version is None or source[0].package.version == version):
         return source[0]
-    return chapters().get(chapter_id)
+    return chapters(subject).get(chapter_id)
 
 
 def is_chapter(session: LearningSession) -> bool:
