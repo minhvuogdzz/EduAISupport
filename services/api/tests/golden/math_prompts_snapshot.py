@@ -40,6 +40,39 @@ MESSAGES = (
 MOVES = (Move.HINT, Move.PROBE, Move.VERIFY, Move.EXPLAIN, Move.FULL_EXPLANATION, Move.CONFIRM_ADVANCE)
 
 
+class _Transport:
+    """Captures the exact JSON body the Groq adapter sends, per model (``reasoning_effort`` included)."""
+
+    def __init__(self):
+        self.bodies = []
+
+    def __call__(self, request):
+        import httpx
+
+        self.bodies.append(json.loads(request.content))
+        return httpx.Response(500, json={"error": {"message": "snapshot"}})
+
+
+def _wire(requests: dict) -> dict:
+    """What leaves the machine for each model of the default tutor chain (ADR-034, ADR-057)."""
+    import httpx
+    from cavat.modules.ai_gateway.groq import GroqClient
+    from cavat.modules.ai_gateway.router import DEFAULT_TUTOR_CHAIN
+
+    capture = _Transport()
+    client = GroqClient("snapshot-key", transport=httpx.MockTransport(capture), max_prompt_tokens=10**6)
+    out = {}
+    for name, request in requests.items():
+        for model in DEFAULT_TUTOR_CHAIN:
+            capture.bodies.clear()
+            try:
+                client.chat(request, model)
+            except Exception:  # noqa: BLE001 - the mock answers 500 on purpose, the body is what counts
+                pass
+            out[f"{name}@{model}"] = capture.bodies[0] if capture.bodies else None
+    return out
+
+
 class _Router:
     def __init__(self):
         self.requests = []
@@ -78,7 +111,8 @@ def snapshot() -> dict:
         name="An",
         lesson="So sánh hai số thập phân",
     )
-    out["requests"]["brain"] = _request(brain.build_request(pack))
+    live = {"brain": brain.build_request(pack)}
+    out["requests"]["brain"] = _request(live["brain"])
     out["requests"]["brain_correction"] = _request(
         brain.build_request(brain.BrainPack(**{**pack.__dict__, "correction_required": True}))
     )
@@ -88,11 +122,14 @@ def snapshot() -> dict:
         model, stem=pack.question, last_tutor="Con điền dấu nào?", said="ok cô", recent=pack.recent, phase="ANSWER"
     )
     out["requests"]["listener"] = _request(router.requests[0])
+    live["listener"] = router.requests[0]
     from cavat.modules.teaching.curriculum import verification
 
-    out["requests"]["curriculum_check"] = _request(
-        verification("Hàng phần mười của 0,25 là 2.", question=pack.question, scope="So sánh số thập phân")
+    live["curriculum_check"] = verification(
+        "Hàng phần mười của 0,25 là 2.", question=pack.question, scope="So sánh số thập phân"
     )
+    out["requests"]["curriculum_check"] = _request(live["curriculum_check"])
+    out["wire"] = _wire(live)
     for path in LESSONS:
         pkg = load_lesson_package(path)
         out["requests"][f"system:{pkg.lesson_id}"] = prompt_builder.system_prompt(pkg)
