@@ -12,6 +12,7 @@ import { Conversation } from "./Conversation";
 import { QuestionCard } from "./QuestionCard";
 import { useStickToBottom } from "./useStickToBottom";
 import { useTutorSession } from "./useTutorSession";
+import { useSubject } from "../subjects/subjectContext";
 
 /** The student's tutor session: question, conversation, answer box, hint button (T09). */
 export function SessionPage() {
@@ -190,6 +191,7 @@ function SessionComplete({ state }: { state: SessionState }) {
 }
 
 function Message({ children, link = false }: { children: ReactNode; link?: boolean }) {
+  const subject = useSubject();
   return (
     <div className="min-h-dvh bg-amber-50">
       <MockBanner />
@@ -199,7 +201,7 @@ function Message({ children, link = false }: { children: ReactNode; link?: boole
         </p>
         {link && (
           <Link
-            to="/student"
+            to={subject.paths.student}
             className="rounded-xl bg-brand-700 px-5 py-2.5 text-base font-semibold text-white"
           >
             Trang học sinh

@@ -25,6 +25,7 @@ import type {
   SessionTranscript,
   StreamEvent,
   StudentOverview,
+  Subject,
   TeacherDocument,
   TeacherDocumentDetail,
   TeacherStudentView,
@@ -139,8 +140,13 @@ export interface SessionApi {
   getClassOverview?: (chapterId?: string) => Promise<ClassOverview>;
   /** Teacher: "cô đã xem" the worrying words of a session (SAFE-1); a later flag shows again (real API only). */
   markSafetyReviewed?: (sessionId: string) => Promise<SafetyReview>;
-  /** Teacher: the chapters the tutor teaches now (real API only). */
-  getTaughtChapters?: () => Promise<{ chapter_id: string; title: string }[]>;
+  /** Teacher: the chapters the tutor teaches now (real API only). `subject` absent: math. */
+  getTaughtChapters?: () => Promise<{ chapter_id: string; title: string; subject?: Subject }[]>;
+  /**
+   * Teacher only: the recording of one spoken turn (`VoiceTurn.audio_ref`), filtered by school (rule F5).
+   * ENG-7a: proposed `GET /v1/teachers/voice/{audio_ref}`, built in ENG-7b; the mock answers a short tone.
+   */
+  getTurnAudio?: (audioRef: string) => Promise<Blob>;
   /** Teacher: one student on the chapter, every KC in detail (real API only). */
   getStudentReport?: (studentId: string, chapterId?: string) => Promise<TeacherStudentView>;
   /** Teacher: sessions to review. Not in PART 29 yet; proposal: GET /v1/sessions?class_id=… */
@@ -165,7 +171,17 @@ export interface SessionApi {
 
   /** Mock only: wipe the demo data kept in this browser and seed it again. */
   resetDemoData?: () => Promise<void>;
+
+  /**
+   * Mock only (ENG-7a): the English unit on fixed demo data, a tutor session included. Inside the English
+   * pages these methods stand in for the ones above (`features/subjects/SubjectScope.tsx`). With the real
+   * API the English pages call the same endpoints as math with the unit's `?chapter=` (ENG-7b).
+   */
+  englishDemo?: SubjectOverrides;
 }
+
+/** The methods a subject may answer for itself; everything else stays the shared API's. */
+export type SubjectOverrides = Partial<Omit<SessionApi, "engine" | "englishDemo">>;
 
 /** An error response of the session API (`{ error: { code, message, details } }`). */
 export class ApiError extends Error {

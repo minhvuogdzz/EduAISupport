@@ -6,6 +6,7 @@ import { AlertIcon } from "../../../components/icons";
 import { formatViDecimal } from "../../../lib/viNumber";
 import { columns, studentReportPath } from "./helpers";
 import { cellNumber, ZONES, zoneOf } from "./zones";
+import { useSubject } from "../../subjects/subjectContext";
 
 type Order = "name" | "low" | "attention";
 
@@ -42,6 +43,7 @@ function cellText(student: string, node: string, cell: MasteryCell): string {
  */
 export function Heatmap({ overview }: { overview: ClassOverview }) {
   const [order, setOrder] = useState<Order>("name");
+  const { framework, paths } = useSubject();
   const cols = columns(overview.nodes);
   const basic = cols.filter((n) => n.layer === "BASIC").length;
   const byNode = new Map(overview.by_node.map((b) => [b.node_id, b]));
@@ -68,7 +70,7 @@ export function Heatmap({ overview }: { overview: ClassOverview }) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[44rem] border-separate border-spacing-1 text-sm">
           <caption className="sr-only">
-            Bản đồ nhiệt học sinh và bài: điểm M từng bài, tô màu theo vùng của khung Toán mục 25
+            {`Bản đồ nhiệt học sinh và bài: điểm M từng bài, tô màu theo vùng của ${framework} mục 25`}
           </caption>
           <thead>
             <tr className="text-xs tracking-wide text-slate-500 uppercase">
@@ -112,7 +114,12 @@ export function Heatmap({ overview }: { overview: ClassOverview }) {
                 <tr key={s.student_id}>
                   <th scope="row" className="px-2 text-left font-normal">
                     <Link
-                      to={studentReportPath(s.student_id, overview.chapter.chapter_id)}
+                      to={studentReportPath(
+                        s.student_id,
+                        overview.chapter.chapter_id,
+                        undefined,
+                        paths.teacherStudent,
+                      )}
                       className="inline-flex items-center gap-1.5 font-semibold text-brand-900 hover:underline"
                     >
                       {s.display_name}
@@ -196,11 +203,12 @@ function Cell({
   cell: MasteryCell;
   chapterId: string;
 }) {
+  const { paths } = useSubject();
   const text = cellText(student.display_name, node.name, cell);
   const tone = cell.mastery === null ? "bg-slate-100 text-slate-400" : zoneOf(cell.mastery).cell;
   return (
     <Link
-      to={studentReportPath(student.student_id, chapterId, node.node_id)}
+      to={studentReportPath(student.student_id, chapterId, node.node_id, paths.teacherStudent)}
       aria-label={text}
       title={text}
       className={`relative flex h-12 min-w-12 items-center justify-center rounded-lg text-base font-bold tabular-nums hover:ring-2 hover:ring-sky-500 ${tone} ${

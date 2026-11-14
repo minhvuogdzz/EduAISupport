@@ -19,6 +19,7 @@ import {
 } from "./engine";
 import { LESSON } from "./lesson";
 import type { LessonPackage } from "./lessonTypes";
+import { createEnglishDemo } from "./english";
 import { HINT_CHOICES } from "./phrases";
 import { seedSessions } from "./seed";
 import { browserStorage, createStore, type MockDb } from "./store";
@@ -139,8 +140,17 @@ export function createMockApi(options: MockApiOptions = {}): SessionApi {
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
   }
 
+  const englishDemo = createEnglishDemo({
+    storage: options.storage === undefined ? browserStorage() : options.storage,
+    now: ctx.now,
+    newId: ctx.newId,
+    latencyMs,
+    typingDelayMs,
+  });
+
   return {
     engine: "mock",
+    englishDemo,
 
     async createDemoSession({ student_display_name }) {
       const name = student_display_name.trim();

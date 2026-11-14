@@ -1,6 +1,6 @@
 import type { Dimension } from "../../../api/contract";
-import { DIMENSION_LABEL } from "../../../components/labels";
 import { formatViDecimal } from "../../../lib/viNumber";
+import { useSubject } from "../../subjects/subjectContext";
 import { RADAR_AXES } from "./helpers";
 
 const S = 360;
@@ -32,6 +32,7 @@ function ring(value: number): string {
  * enough evidence (DI-1) has no point and says so, as Retention does in the example of §55.
  */
 export function RadarChart({ values }: { values: Record<Dimension, number | null> }) {
+  const DIMENSION_LABEL = useSubject().dimensionLabel;
   const known = RADAR_AXES.map((d, i) => ({ d, i, v: values[d] })).filter(
     (a): a is { d: Dimension; i: number; v: number } => a.v !== null,
   );

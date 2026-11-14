@@ -1,20 +1,17 @@
 import type { TeacherStudentView } from "../../../api/contract";
-import { RESOLUTION_LABEL } from "../../../components/labels";
 import { useElementWidth } from "../../../lib/useElementWidth";
+import { useSubject } from "../../subjects/subjectContext";
 
 type Day = TeacherStudentView["activity"][number];
 
-const PARTS = [
-  {
-    key: "independent",
-    label: RESOLUTION_LABEL.INDEPENDENT,
-    fill: "fill-emerald-500",
-    swatch: "bg-emerald-500",
-  },
-  { key: "supported", label: RESOLUTION_LABEL.SUPPORTED, fill: "fill-sky-400", swatch: "bg-sky-400" },
-  { key: "worked", label: RESOLUTION_LABEL.WORKED, fill: "fill-amber-400", swatch: "bg-amber-400" },
-  { key: "unresolved", label: RESOLUTION_LABEL.UNRESOLVED, fill: "fill-rose-400", swatch: "bg-rose-400" },
+const PART_STYLE = [
+  { key: "independent", resolution: "INDEPENDENT", fill: "fill-emerald-500", swatch: "bg-emerald-500" },
+  { key: "supported", resolution: "SUPPORTED", fill: "fill-sky-400", swatch: "bg-sky-400" },
+  { key: "worked", resolution: "WORKED", fill: "fill-amber-400", swatch: "bg-amber-400" },
+  { key: "unresolved", resolution: "UNRESOLVED", fill: "fill-rose-400", swatch: "bg-rose-400" },
 ] as const;
+
+type Part = (typeof PART_STYLE)[number] & { label: string };
 
 const SHOWN = 14;
 
@@ -23,11 +20,12 @@ function dayMonth(iso: string): string {
   return `${day}/${month}`;
 }
 
-function describe(d: Day): string {
+function describe(d: Day, PARTS: Part[]): string {
   const parts = PARTS.filter((p) => d[p.key] > 0).map((p) => `${d[p.key]} ${p.label.toLowerCase()}`);
+  const voice = d.voice_turns ? `; ${d.voice_turns} lượt nói, ${d.asr_low ?? 0} lượt nghe chưa rõ` : "";
   return `${dayMonth(d.date)}: ${parts.join(", ") || "không có câu nào"}; ${d.hints} gợi ý${
     d.passed ? `; qua ${d.passed} bài` : ""
-  }`;
+  }${voice}`;
 }
 
 /**
@@ -36,6 +34,8 @@ function describe(d: Day): string {
  * the list after the chart.
  */
 export function ActivityChart({ days }: { days: Day[] }) {
+  const labels = useSubject().resolutionLabel;
+  const PARTS: Part[] = PART_STYLE.map((p) => ({ ...p, label: labels[p.resolution] }));
   const [frame, W] = useElementWidth(560);
   const shown = days.slice(-SHOWN);
   const H = 200;
@@ -70,7 +70,7 @@ export function ActivityChart({ days }: { days: Day[] }) {
           const total = PARTS.reduce((n, p) => n + d[p.key], 0);
           return (
             <g key={d.date}>
-              <title>{describe(d)}</title>
+              <title>{describe(d, PARTS)}</title>
               {PARTS.map((p) => {
                 const h = d[p.key] * unit;
                 base -= h;
@@ -123,11 +123,26 @@ export function ActivityChart({ days }: { days: Day[] }) {
         ))}
         <li>★ ngày qua bài</li>
       </ul>
+      <VoiceLine days={shown} />
       <ol className="sr-only">
         {shown.map((d) => (
-          <li key={d.date}>{describe(d)}</li>
+          <li key={d.date}>{describe(d, PARTS)}</li>
         ))}
       </ol>
     </figure>
+  );
+}
+
+/** English (ADR-060 §9.1): how many answers were spoken and how many the listener heard poorly. */
+function VoiceLine({ days }: { days: Day[] }) {
+  const turns = days.reduce((n, d) => n + (d.voice_turns ?? 0), 0);
+  if (!days.some((d) => d.voice_turns !== undefined)) return null;
+  const low = days.reduce((n, d) => n + (d.asr_low ?? 0), 0);
+  return (
+    <p className="text-xs text-slate-700">
+      Lượt nói: <strong className="tabular-nums">{turns}</strong>, trong đó{" "}
+      <strong className="tabular-nums">{low}</strong> lượt nghe chưa rõ (độ tin cậy dưới 0,6, không trừ điểm
+      con).
+    </p>
   );
 }

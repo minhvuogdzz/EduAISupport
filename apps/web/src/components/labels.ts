@@ -363,7 +363,7 @@ export const DIRECTION_LABEL: Record<"UP" | "FLAT" | "DOWN", string> = {
   DOWN: "↘ Suy giảm",
 };
 
-/** One sentence per reason the teacher should look at a student (DI-20). */
+/** One sentence per reason the teacher should look at a student (DI-20; ASR_LOW: DI-114, English). */
 export function attentionText(
   reason: AttentionReason,
   nodeName: (id: string) => string,
@@ -379,6 +379,10 @@ export function attentionText(
       return `Lặp lại lỗi “${misconceptionName(reason.misconception_id ?? "")}” (${reason.count ?? 0} lần)`;
     case "WEAK":
       return `Bài “${node}” còn yếu: M ${formatViDecimal(reason.mastery ?? 0)}`;
+    case "ASR_LOW":
+      return `Nhiều lượt nói nghe chưa rõ (${formatViDecimal(Math.round((reason.share ?? 0) * 100))}% của ${
+        reason.voice_turns ?? 0
+      } lượt trong 7 ngày): cô nghe lại vài lượt, không trừ điểm con`;
     default:
       return `Buổi học còn dở, ${reason.days ?? 0} ngày chưa quay lại`;
   }

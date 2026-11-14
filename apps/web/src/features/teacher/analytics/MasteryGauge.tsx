@@ -1,5 +1,5 @@
-import { LEVEL_NAME } from "../../../components/labels";
 import { formatViDecimal } from "../../../lib/viNumber";
+import { useSubject } from "../../subjects/subjectContext";
 import { CONFIDENCE_FLOOR, ZONES, zoneOf } from "./zones";
 
 const W = 260;
@@ -36,6 +36,7 @@ export function MasteryGauge({
   level: number | null;
   caption: string;
 }) {
+  const LEVEL_NAME = useSubject().levelName;
   const bands = [...ZONES].reverse();
   const needle = mastery === null ? null : point(mastery, R - 26);
   const label =

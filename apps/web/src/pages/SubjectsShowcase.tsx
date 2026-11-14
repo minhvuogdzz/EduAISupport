@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router";
 
-import { ArrowRightIcon, CalculatorIcon, GlobeIcon } from "../components/icons";
-import { ENGLISH_UNITS } from "../features/english/content";
+import {
+  ArrowRightIcon,
+  BookIcon,
+  CalculatorIcon,
+  ChatBubbleIcon,
+  GlobeIcon,
+  MapPinIcon,
+  StarIcon,
+  UsersIcon,
+  UtensilsIcon,
+} from "../components/icons";
 import "../features/english/subjects.css";
 import "./home.css";
 import { Wave } from "./Wave";
@@ -27,6 +36,24 @@ const MATH_LESSONS = [
     name: "Diện tích hình thang",
     note: "Từ điều đã biết, tìm cách giải một thử thách mới.",
     sample: "Hai đáy và chiều cao giúp mình tìm diện tích như thế nào?",
+  },
+];
+
+/**
+ * The parts of the one English unit (D-T13): Unit 11 "Family time", Tiếng Anh 5 Global Success, as ENG-3
+ * drew its knowledge graph. Names only: the content and the answers stay with the tutor.
+ */
+const ENGLISH_PARTS = [
+  { name: "Cụm từ hoạt động kỳ nghỉ", sample: "collect seashells", icon: StarIcon, tone: "tone-sun" },
+  { name: "Dạng quá khứ của động từ", sample: "swim → swam", icon: BookIcon, tone: "tone-sky" },
+  { name: "Hỏi và trả lời “Did you …?”", sample: "Yes, I did.", icon: ChatBubbleIcon, tone: "tone-coral" },
+  { name: "Kể việc gia đình đã làm", sample: "We ate seafood.", icon: UtensilsIcon, tone: "tone-leaf" },
+  { name: "Trọng âm trong câu hỏi Wh-", sample: "When did you go…?", icon: UsersIcon, tone: "tone-grape" },
+  {
+    name: "Kể về chuyến đi của gia đình",
+    sample: "We went to Ha Long.",
+    icon: MapPinIcon,
+    tone: "tone-rose",
   },
 ];
 
@@ -67,10 +94,13 @@ export function SubjectsShowcase() {
             <span className="hm-tag">Bản xem trước</span>
           </header>
           <h3>Tiếng Anh lớp 5</h3>
-          <p>Sáu chủ đề gần gũi với bốn kỹ năng nghe, nói, đọc, viết. Cô Buddy đang soạn bài.</p>
+          <p>
+            Ôn bài ở nhà Unit 11 “Family time” theo cùng vòng 6 bước như Toán: cô giảng bằng tiếng Việt, con
+            nói câu tiếng Anh.
+          </p>
           <ul className="hm-subject-chips" lang="en">
-            {ENGLISH_UNITS.map((unit) => (
-              <li key={unit.id}>{unit.title}</li>
+            {["Did you …?", "What did your family do …?", "We went to …"].map((chip) => (
+              <li key={chip}>{chip}</li>
             ))}
           </ul>
           <Link to="/student/english" className="hm-subject-go">
@@ -82,7 +112,7 @@ export function SubjectsShowcase() {
   );
 }
 
-/** What each subject covers: the maths lessons open one at a time; the English topics link to their previews. */
+/** What each subject covers: the maths lessons open one at a time; the parts of the English unit link to it. */
 export function Curriculum({ onOpenStudent }: { onOpenStudent: () => void }) {
   const [lesson, setLesson] = useState(0);
   return (
@@ -126,16 +156,16 @@ export function Curriculum({ onOpenStudent }: { onOpenStudent: () => void }) {
             <h3 className="hm-column-title">
               Tiếng Anh <small>Bản xem trước</small>
             </h3>
-            <ol className="hm-topics">
-              {ENGLISH_UNITS.map((unit) => (
-                <li key={unit.id} className={unit.tone}>
-                  <Link to={`/student/english/${unit.id}`}>
+            <ol className="hm-topics" aria-label="Unit 11: Family time">
+              {ENGLISH_PARTS.map((part) => (
+                <li key={part.name} className={part.tone}>
+                  <Link to="/student/english">
                     <span className="en-badge">
-                      <unit.icon />
+                      <part.icon />
                     </span>
                     <span>
-                      <strong lang="en">{unit.title}</strong>
-                      <small>{unit.subtitle}</small>
+                      <strong>{part.name}</strong>
+                      <small lang="en">{part.sample}</small>
                     </span>
                   </Link>
                 </li>

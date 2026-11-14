@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
@@ -29,6 +29,8 @@ import { useAuth } from "../auth/authContext";
 import { formatViDateTime } from "../../lib/viNumber";
 import { ChapterPicker } from "../teaching/ChapterPicker";
 import { ProgressTrend } from "./ProgressTrend";
+import { ParentStatus } from "../english/EnglishHome";
+import { useSubject } from "../subjects/subjectContext";
 
 const QUALITY_ORDER: Quality[] = [
   "SOLID",
@@ -43,6 +45,11 @@ const QUALITY_ORDER: Quality[] = [
 export function ParentPage() {
   const { user } = useAuth();
   const api = useApi();
+  const subject = useSubject();
+  const [params] = useSearchParams();
+  const code = params.get("code");
+  // The math pages link English as `/parent/english?code=…`: open that child's English page.
+  if (subject.id !== "math" && code) return <Navigate to={`${subject.paths.parent}/${code}`} replace />;
   if (user?.kind === "PARENT" && api.getMyChild) return <MyChildPage />;
   return <CodePage />;
 }
@@ -50,10 +57,11 @@ export function ParentPage() {
 /** The parent account (ACC-1): the linked child at once, no code to type. */
 function MyChildPage() {
   const api = useApi();
+  const subject = useSubject();
   const [params] = useSearchParams();
   const chapter = params.get("chapter") ?? undefined;
   const child = useQuery({
-    queryKey: ["my-child", chapter],
+    queryKey: ["my-child", subject.id, chapter],
     queryFn: () => api.getMyChild!(chapter),
     placeholderData: keepPreviousData, // the page stays while another chapter loads
     retry: false,
@@ -77,7 +85,7 @@ function MyChildPage() {
     <AppShell>
       <title>Tình hình học của con · Monkey Edu</title>
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <SubjectSwitch current="math" mathTo="/parent" englishTo="/parent/english" />
+        <SubjectSwitch current={subject.id} mathTo="/parent" englishTo="/parent/english" />
         {body}
       </div>
     </AppShell>
@@ -86,13 +94,14 @@ function MyChildPage() {
 
 /** Without accounts (demo mode): the child's code, shown on the child's page, opens the progress. */
 function CodePage() {
+  const subject = useSubject();
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   return (
     <AppShell>
       <title>Phụ huynh · Monkey Edu</title>
       <div className="mx-auto max-w-4xl px-4 py-10">
-        <SubjectSwitch current="math" mathTo="/parent" englishTo="/parent/english" />
+        <SubjectSwitch current={subject.id} mathTo="/parent" englishTo="/parent/english" />
         <section className="card brand-gradient grid items-center gap-6 p-6 md:grid-cols-[1fr_auto] md:p-8">
           <div>
             <h1 className="text-2xl font-extrabold md:text-3xl">Theo dõi việc học của con</h1>
@@ -103,7 +112,7 @@ function CodePage() {
               className="mt-5 flex flex-wrap items-end gap-3"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (code.trim()) void navigate(`/parent/${code.trim().toUpperCase()}`);
+                if (code.trim()) void navigate(`${subject.paths.parent}/${code.trim().toUpperCase()}`);
               }}
             >
               <label className="flex flex-col gap-1.5">
@@ -139,11 +148,12 @@ function CodePage() {
 /** The child's progress for the parent: plain words, no score, no transcript (PART 27.1, 27.4). */
 export function ParentChildPage() {
   const api = useApi();
+  const subject = useSubject();
   const { code = "" } = useParams();
   const [params] = useSearchParams();
   const chapter = params.get("chapter") ?? undefined;
   const child = useQuery({
-    queryKey: ["child", code, chapter],
+    queryKey: ["child", subject.id, code, chapter],
     queryFn: () => api.getChildOverview!(code, chapter),
     enabled: api.getChildOverview !== undefined,
     placeholderData: keepPreviousData, // the page stays while another chapter loads
@@ -160,7 +170,7 @@ export function ParentChildPage() {
     body = (
       <Notice>
         {missing ? `Không tìm thấy học sinh có mã ${code}.` : "Chưa tải được, bố mẹ thử lại sau nhé."}{" "}
-        <Link to="/parent" className="text-brand-800 underline">
+        <Link to={subject.paths.parent} className="text-brand-800 underline">
           Nhập lại mã
         </Link>
       </Notice>
@@ -172,7 +182,11 @@ export function ParentChildPage() {
     <AppShell>
       <title>Tình hình học của con · Monkey Edu</title>
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <SubjectSwitch current="math" mathTo={`/parent/${code}`} englishTo={`/parent/english?code=${code}`} />
+        <SubjectSwitch
+          current={subject.id}
+          mathTo={`/parent/${code}`}
+          englishTo={subject.id === "math" ? `/parent/english?code=${code}` : `/parent/english/${code}`}
+        />
         {body}
       </div>
     </AppShell>
@@ -188,6 +202,7 @@ function Notice({ children }: { children: ReactNode }) {
 }
 
 function ChildView({ view }: { view: ParentChildView }) {
+  const subject = useSubject();
   const name = view.student_display_name || "con";
   return (
     <div className="flex flex-col gap-6">
@@ -195,13 +210,17 @@ function ChildView({ view }: { view: ParentChildView }) {
         <div>
           <h1 className="text-2xl font-extrabold">Tình hình học của {name}</h1>
           <p className="mt-1 text-base text-slate-700">
-            Chương {view.chapter.title}
+            {subject.id === "math"
+              ? subject.ChapterName(view.chapter.title)
+              : `${subject.name} · ${view.chapter.title}`}
             {view.last_session_at ? ` · buổi gần nhất ${formatViDateTime(view.last_session_at)}` : ""}
           </p>
           <ChapterPicker chapters={view.chapters} current={view.chapter.chapter_id} />
         </div>
         <Mascot mood={view.passed > 0 ? "celebrating" : "happy"} size={96} />
       </header>
+
+      {subject.id === "english" && <ParentStatus overview={view} />}
 
       <div className="stat-strip grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
@@ -240,7 +259,8 @@ function ChildView({ view }: { view: ParentChildView }) {
             Con hiểu bài thế nào
           </h2>
           <p className="mb-4 text-slate-600">
-            Theo thứ tự học của chương. Cô nhận xét dựa trên cách con làm bài, không chỉ dựa vào đúng hay sai.
+            Theo thứ tự học của {subject.unit}. Cô nhận xét dựa trên cách con làm bài, không chỉ dựa vào đúng
+            hay sai.
           </p>
           <ol className="flex flex-col gap-2">
             {view.nodes.map((node) => {
@@ -252,6 +272,11 @@ function ChildView({ view }: { view: ParentChildView }) {
                 >
                   <span>
                     <span className="block font-semibold">{node.name}</span>
+                    {node.pattern && !node.name.includes(node.pattern) && (
+                      <span lang="en" className="block text-sm text-slate-700">
+                        {node.pattern}
+                      </span>
+                    )}
                     <span className="text-sm text-slate-600">{state.meaning}</span>
                   </span>
                   <span
@@ -295,6 +320,11 @@ function ChildView({ view }: { view: ParentChildView }) {
                   <li key={t.node_id} className="flex items-center gap-2 font-semibold text-emerald-950">
                     <SparklesIcon className="size-5 text-emerald-600" />
                     {t.name}
+                    {t.pattern && !t.name.includes(t.pattern) && (
+                      <span lang="en" className="text-sm font-normal">
+                        ({t.pattern})
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -326,6 +356,11 @@ function ChildView({ view }: { view: ParentChildView }) {
                 <li key={tip.node_id} className="rounded-2xl bg-sky-soft p-3">
                   <p className="text-sm font-semibold text-sky-900">{tip.name}</p>
                   <p className="text-slate-800">{tip.tip}</p>
+                  {tip.example && (
+                    <p className="en-example" lang="en">
+                      “{tip.example}”
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>

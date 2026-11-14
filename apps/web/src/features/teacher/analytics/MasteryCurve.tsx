@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CurvePoint, TeacherNodeDetail } from "../../../api/contract";
 import { useElementWidth } from "../../../lib/useElementWidth";
 import { formatViDecimal } from "../../../lib/viNumber";
+import { useSubject } from "../../subjects/subjectContext";
 
 /**
  * How the student went from not understanding to understanding: the chapter's overall mastery (periods not
@@ -9,6 +10,7 @@ import { formatViDecimal } from "../../../lib/viNumber";
  * passed. Features a dynamic rising stroke animation, a quiet filled area, and interactive milestone tooltips.
  */
 export function MasteryCurve({ points, nodes }: { points: CurvePoint[]; nodes: TeacherNodeDetail[] }) {
+  const { unit } = useSubject();
   const [frame, W] = useElementWidth(560);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -61,7 +63,7 @@ export function MasteryCurve({ points, nodes }: { points: CurvePoint[]; nodes: T
           height={H}
           className="max-w-full overflow-visible"
           role="img"
-          aria-label="Điểm hiểu bài của cả chương sau từng bằng chứng"
+          aria-label={`Điểm hiểu bài của cả ${unit} sau từng bằng chứng`}
         >
           {/* Grid lines */}
           {[0, 25, 50, 75, 100].map((v) => (
@@ -145,7 +147,7 @@ export function MasteryCurve({ points, nodes }: { points: CurvePoint[]; nodes: T
                   strokeWidth={2}
                 >
                   <title>
-                    Qua bài {names.get(p.passed ?? "") ?? p.passed}: điểm chương {formatViDecimal(p.mastery)}
+                    Qua bài {names.get(p.passed ?? "") ?? p.passed}: điểm {unit} {formatViDecimal(p.mastery)}
                   </title>
                 </circle>
               </g>

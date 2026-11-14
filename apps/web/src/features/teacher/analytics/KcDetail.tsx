@@ -1,14 +1,13 @@
 import { DIMENSIONS, type TeacherNodeDetail } from "../../../api/contract";
 import {
-  DIMENSION_LABEL,
   DIRECTION_LABEL,
   KC_GROUP_LABEL,
   KC_GROUP_MARK,
-  LEVEL_NAME,
   NODE_STATUS_LABEL,
   RECOMMENDATION_LABEL,
 } from "../../../components/labels";
 import { formatViDecimal } from "../../../lib/viNumber";
+import { useSubject } from "../../subjects/subjectContext";
 import { ConfidenceBar } from "./MasteryGauge";
 import { zoneOf } from "./zones";
 import { Method } from "./Method";
@@ -32,6 +31,7 @@ const MIS_STATUS: Record<string, string> = {
  * counts of items, attempts, hints and time, the misconceptions, the trend (§27) and the next move (DI-8).
  */
 export function KcDetail({ node }: { node: TeacherNodeDetail }) {
+  const { dimensionLabel: DIMENSION_LABEL, dimensionHelp, levelName: LEVEL_NAME } = useSubject();
   const titleId = `kc-${node.node_id}`;
   const last = node.trend.slice(-6).map((p) => formatViDecimal(p.mastery));
   return (
@@ -101,7 +101,11 @@ export function KcDetail({ node }: { node: TeacherNodeDetail }) {
           {DIMENSIONS.map((d) => {
             const dim = node.dimensions[d];
             return (
-              <li key={d} className="grid grid-cols-[8.5rem_1fr_7.5rem] items-center gap-3 text-sm">
+              <li
+                key={d}
+                title={dimensionHelp?.[d]}
+                className="grid grid-cols-[8.5rem_1fr_7.5rem] items-center gap-3 text-sm"
+              >
                 <span>
                   <span className="font-mono text-slate-500">{d}</span> · {DIMENSION_LABEL[d]}
                 </span>
