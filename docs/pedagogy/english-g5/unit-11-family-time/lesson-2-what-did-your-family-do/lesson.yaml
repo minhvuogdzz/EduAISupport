@@ -7,7 +7,7 @@
 # SGK tr.7–9 (Lesson 1 Ex5, Lesson 2), Review 3 tr.36. SGV tr.182–187, 251–252.
 
 lesson_id: eng-g5-u11-l2
-version: 0.2.0
+version: 0.2.1
 status: DRAFT
 subject: english
 grade: 5
@@ -205,6 +205,8 @@ items:
       type: phrase
       accept: ["(1) Nha Trang (2) swam (3) seafood"]
       required: [["nha trang"], ["swam"], ["seafood"]]
+      # ENG-3c: chỗ (2) điền nguyên mẫu "swim" là "We swim in the sea", đúng lỗi mà M07 mô tả.
+      wrong_answers: {"swim": ENG5-U11-M07}
     hints:
       - {target: TASK, level: 1, text: "Biển hiệu trong tranh ghi tên nơi nào? Cả nhà đang làm gì dưới biển?"}
       - {target: CONCEPT, level: 2, text: "Chỗ (2) là động từ sau We kể chuyện hôm qua, nên ở dạng quá khứ: swim có dạng riêng."}

@@ -218,7 +218,7 @@ def test_the_teacher_review_page_lists_unit_11_when_english_is_picked(client):
     assert [(c["chapter_id"], c["subject"]) for c in default] == [(MATH, "math")]
     english = client.get("/v1/teachers/chapters?subject=english", headers=TEACHER).json()
     assert [(c["chapter_id"], c["subject"], c["nodes"]) for c in english] == [(FAMILY, "english", 6)]
-    assert english[0]["items"] == 47
+    assert english[0]["items"] == 51  # ENG-3c: 47 + 4 VOCAB items
     assert client.get("/v1/teachers/chapters?subject=history", headers=TEACHER).status_code == 422
 
     content = client.get(f"/v1/teachers/chapters/{FAMILY}", headers=TEACHER).json()
@@ -357,25 +357,26 @@ def test_unit_11_loads_and_is_clean():
         "ENG5-U11-TRIP",
     ]
     items = [it for lesson in unit.lessons.values() for it in lesson.items]
-    assert len(items) == 47
+    assert len(items) == 51
     used = {i for n in unit.nodes for i in (*n.checks, *n.completion, *n.practice, *n.transfer)}
     assert used == {it.id for it in items}
-    assert sum(isinstance(it.answer, PhraseAnswer) for it in items) == 23
+    assert sum(isinstance(it.answer, PhraseAnswer) for it in items) == 27
     # Level C items answered in Vietnamese stay open (README §3); every other open answer became a phrase.
     assert all(it.response_language == "vi" for it in items if it.answer.type == "open")
 
 
-def test_the_20_authored_items_carry_the_owners_approval_of_13_november():
+def test_the_authored_items_carry_the_owners_approval():
+    """20 items approved on 13 November; ENG-3c added U11-VO-TR-03, approved by default on 15 November."""
     items = [
         it for lesson in chapter_service.chapters("english")[FAMILY].lessons.values() for it in lesson.items
     ]
     authored = [it for it in items if it.answer_status == "AUTHORED"]
-    assert len(authored) == 20
-    assert {(it.origin, it.review.status, it.review.reviewed_on) for it in authored} == {
-        ("AUTHORED", "APPROVED", date(2026, 11, 13))
-    }
+    assert len(authored) == 21
+    assert {it.id for it in authored if it.review.reviewed_on == date(2026, 11, 15)} == {"U11-VO-TR-03"}
+    assert {(it.origin, it.review.status) for it in authored} == {("AUTHORED", "APPROVED")}
+    assert {it.review.reviewed_on for it in authored} == {date(2026, 11, 13), date(2026, 11, 15)}
     statuses = sorted(it.answer_status for it in items)
-    assert statuses.count("VERIFIED_SGV") == 24 and statuses.count("FROM_TEXT") == 3
+    assert statuses.count("VERIFIED_SGV") == 26 and statuses.count("FROM_TEXT") == 4
 
 
 def test_sources_yaml_agrees_with_the_lesson_files():

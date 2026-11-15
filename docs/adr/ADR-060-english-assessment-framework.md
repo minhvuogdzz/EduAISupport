@@ -6,6 +6,18 @@ Ngày: 12/11/2026 · Quyết định D-T13 (blueprint 00) · DI-106 đến DI-11
 - Thay thế: khung English cũ trong blueprint (09 mục 26.2; 06 PART 19; Support Ladder S0–S5, rubric 0–4, DI-9, DI-10). Chủ dự án yêu cầu xóa khung đó ngày 12/11/2026.
 - Dựa trên: khung Toán (blueprint 09 PART 25, 26.1, 26.3–26.6, PART 27), `services/api/cavat/modules/assessment/projector.py` (`node-mastery/0.3.0`), ADR-018 (đồ thị tri thức), ADR-059 (vòng dạy 6 bước), ADR-024/025 (nội dung từ tài liệu giáo viên).
 
+## Revision
+
+**15/11/2026 · ENG-3c (chủ dự án duyệt mặc định).** Mã hiểu lầm `ENG5-U11-Mxx` trong bản 12/11 là mã đề xuất, viết trước khi ENG-3 soạn nội dung; nội dung Unit 11 (ENG-3, ENG-3b, DI-127) đánh số khác. Học sinh mô phỏng (ENG-9a, `docs/poc/english-simulated-students.md` lỗi L-8) cho thấy câu "Yes, I do" được gắn **M03** chứ không phải M01 như §10 ghi. Từ nay **mã của nội dung là chuẩn**; §5, §8 và §10 đã sửa tại chỗ theo bảng dưới (không đổi lớp lỗi, điểm phạt, ngưỡng hay công thức nào).
+
+| Lỗi (§5) | Mã ghi ở bản 12/11 | Mã của nội dung (`docs/pedagogy/english-g5/`, DI-127) |
+|---|---|---|
+| `EN_SHORT_ANSWER` "Yes, I do" cho câu hỏi Did | M01 | **M03** (DIDYOU, CRITICAL) |
+| `EN_TENSE` nguyên mẫu khi kể chuyện đã qua | M02 | **M04** (PAST), **M07** (sau We, WHATDID), **M11** (TRIP); đều CRITICAL |
+| `EN_MEANING` nhầm nghĩa cụm | M03 | **M06** (VOCAB, NORMAL); M09, M12 là trả lời lệch câu hỏi |
+| `EN_STRUCTURE` quên did / did + quá khứ | M04 | **M01** (bỏ did, dùng do), **M02** (did + quá khứ), **M08** (câu Wh-); M10 là mẫu nhịp (STRESS) |
+| `EN_VERB_FORM` -ed cho động từ bất quy tắc | M05 | **M05** (không đổi) |
+
 ---
 
 ## 1. Bối cảnh
@@ -91,10 +103,10 @@ Bảng tương ứng §34 + DI-3 của Toán. Cột "Lớp chung" là `ErrorClas
 
 | Mã tiếng Anh | Ví dụ | Lớp chung | Ảnh hưởng C/A/T (điểm s) | Ảnh hưởng R | Hiểu lầm ghi nhận |
 |---|---|---|---|---|---|
-| `EN_SHORT_ANSWER` trả lời ngắn không khớp trợ động từ của câu hỏi | "Did you walk on the beach?" – "Yes, I do." | CONCEPTUAL | s = 0 | s = 0 | `ENG5-U11-M01`, **CRITICAL** ở node DIDYOU |
-| `EN_TENSE` dùng động từ nguyên mẫu khi kể việc đã qua | "What did your family do …?" – "We eat seafood." | CONCEPTUAL | s = 0 | s = 0 | `ENG5-U11-M02`, **CRITICAL** ở node WHATDID |
-| `EN_MEANING` nhầm nghĩa cụm từ | "collect seashells" cho tranh ăn hải sản; nhầm "seashells"/"seafood" | CONCEPTUAL | s = 0 | s = 0 | `ENG5-U11-M03` (theo cặp), NORMAL |
-| `EN_STRUCTURE` sai mẫu đích của node | quên "did" ("What your family do …?", "You buy souvenirs?"), chia quá khứ sau "did" ("Did you bought …?"), sai trật tự | PROCEDURAL ở node mà mẫu đó là mục tiêu; FORMAT ở node khác | s = 0 (node mục tiêu) / s = 0,7 (node khác) | s = 0,5 nếu giải thích một phần đúng | `ENG5-U11-M04` khi lặp ≥ 2 lần |
+| `EN_SHORT_ANSWER` trả lời ngắn không khớp trợ động từ của câu hỏi | "Did you walk on the beach?" – "Yes, I do." | CONCEPTUAL | s = 0 | s = 0 | `ENG5-U11-M03`, **CRITICAL** ở node DIDYOU (Revision 15/11) |
+| `EN_TENSE` dùng động từ nguyên mẫu khi kể việc đã qua | "What did your family do …?" – "We eat seafood." | CONCEPTUAL | s = 0 | s = 0 | `ENG5-U11-M07` ở node WHATDID (M04 ở PAST, M11 ở TRIP), **CRITICAL** (Revision 15/11) |
+| `EN_MEANING` nhầm nghĩa cụm từ | "collect seashells" cho tranh ăn hải sản; nhầm "seashells"/"seafood" | CONCEPTUAL | s = 0 | s = 0 | `ENG5-U11-M06` (theo cặp), NORMAL (Revision 15/11) |
+| `EN_STRUCTURE` sai mẫu đích của node | quên "did" ("What your family do …?", "You buy souvenirs?"), chia quá khứ sau "did" ("Did you bought …?"), sai trật tự | PROCEDURAL ở node mà mẫu đó là mục tiêu; FORMAT ở node khác | s = 0 (node mục tiêu) / s = 0,7 (node khác) | s = 0,5 nếu giải thích một phần đúng | `ENG5-U11-M01` (bỏ did), `M02` (did + quá khứ), `M08` (câu Wh-) (Revision 15/11) |
 | `EN_VERB_FORM` biết phải dùng quá khứ nhưng chia sai động từ bất quy tắc | "We buyed souvenirs", "We eated seafood" | PROCEDURAL ở node WHATDID; FORMAT ở node khác | s = 0 / s = 0,7 | không trừ | `ENG5-U11-M05` khi lặp ≥ 2 lần |
 | `EN_SLIP` lỗi nhỏ, nghĩa và mẫu đúng | gõ "mothr", "grandmoter" (sai 1 ký tự, từ ≥ 5 chữ cái) | FORMAT | s = 0,7 | không trừ | — |
 | `EN_PRONUNCIATION` phát âm chưa chuẩn, không cản nghĩa | Whisper ghi "seafood" từ giọng "xi-phút" | không phải lỗi | s = 1 (chấm theo bản chép lời đã xác nhận) | không trừ | — |
@@ -108,7 +120,7 @@ Quy tắc kèm theo:
 - Một câu có nhiều lỗi lấy lỗi nặng nhất theo thứ tự: CONCEPTUAL > PROCEDURAL > L1 > FORMAT.
 - `ErrorClass` có thêm thành viên `L1` (điểm 0,3 trong `MasteryPolicy` của tiếng Anh); Toán không dùng nó nên phép chiếu Toán không đổi.
 
-**Phản ví dụ cho hiểu lầm** (dùng ở `COGNITIVE_CONFLICT`, như bảng misconception của Toán): M01 "Bạn hỏi 'Did you…?' tức là hỏi chuyện đã qua; con trả lời 'Yes, I do' thì bạn nghe như con đang nói chuyện bây giờ, đúng không?"; M02 "Hôm qua nhà con ăn hải sản, hay ngày nào nhà con cũng ăn? Câu 'We eat seafood' nghe như ngày nào cũng thế"; M03 dùng hai tranh vỏ sò và đĩa hải sản cạnh nhau; M04 "Câu hỏi về chuyện đã qua cần từ nào đứng đầu con nhỉ?". Lời thật lấy từ tài liệu hoặc do chủ dự án duyệt.
+**Phản ví dụ cho hiểu lầm** (dùng ở `COGNITIVE_CONFLICT`, như bảng misconception của Toán; mã ở câu này là mã đề xuất của bản 12/11, mã dùng thật xem mục Revision: M01→M03, M02→M07, M03→M06, M04→M01; lời thật nằm ở `counter_examples` của nội dung): M01 "Bạn hỏi 'Did you…?' tức là hỏi chuyện đã qua; con trả lời 'Yes, I do' thì bạn nghe như con đang nói chuyện bây giờ, đúng không?"; M02 "Hôm qua nhà con ăn hải sản, hay ngày nào nhà con cũng ăn? Câu 'We eat seafood' nghe như ngày nào cũng thế"; M03 dùng hai tranh vỏ sò và đĩa hải sản cạnh nhau; M04 "Câu hỏi về chuyện đã qua cần từ nào đứng đầu con nhỉ?". Lời thật lấy từ tài liệu hoặc do chủ dự án duyệt.
 
 ## 6. Trọng số, gate, pass rule, mastery, confidence
 
@@ -194,7 +206,7 @@ Cô nhắc lại câu hỏi hoặc nói chậm lại (con xin "cô nói lại") 
 
 **Điểm mạnh, điểm yếu, rủi ro** (giữ DI-23, DI-20, DI-27): điểm mạnh là chiều ở vùng xanh (≥ 75), điểm yếu là chiều < 60, hiển thị bằng tên chiều theo nghĩa tiếng Anh (bảng mục 4). Rủi ro theo DI-20 (hiểu lầm lặp ≥ 2 lần, điểm yếu, không học 7 ngày, cờ an toàn), cộng `ASR_LOW` (DI-114).
 
-**Khuyến nghị** (§50, `recommendation` của `teacher_view.py`): giữ ánh xạ DI-8 theo dải; với hiểu lầm `ENG5-U11-M01` hoặc `M02` đang mở, khuyến nghị đầu tiên luôn là "Ôn lại cách trả lời câu hỏi *Did you…?*" hoặc "Ôn lại động từ quá khứ khi kể chuyện đã qua" (mã DIAGNOSE).
+**Khuyến nghị** (§50, `recommendation` của `teacher_view.py`): giữ ánh xạ DI-8 theo dải; với hiểu lầm về câu hỏi Did (`ENG5-U11-M01`, `M02`, `M03`) hoặc về thì quá khứ (`M04`, `M07`, `M11`) đang mở (mã theo Revision 15/11), khuyến nghị đầu tiên luôn là "Ôn lại cách trả lời câu hỏi *Did you…?*" hoặc "Ôn lại động từ quá khứ khi kể chuyện đã qua" (mã DIAGNOSE).
 
 **DI-113 (trạng thái định tính cho học sinh và phụ huynh, viết lại cột English của DI-14):** vì tiếng Anh dùng cùng projector, ánh xạ là **một bảng chung cho cả hai môn**, đọc từ `NodeState`:
 
@@ -268,7 +280,7 @@ Phụ huynh **không** có bản chép lời, audio hay điểm M (PART 27.4).
 | **Tập vàng chấm tay** | Chủ dự án chấm tay ≥ 200 câu trả lời của unit (≥ 60 lượt nói, có giọng thật của học sinh, đủ mọi mã lỗi ở mục 5), lưu `evals/english/gold-*.yaml` (không chứa tên học sinh) | **DI-116:** độ khớp đúng/sai của bộ chấm với giáo viên ≥ 95% và Cohen κ ≥ 0,8; độ khớp mã lỗi ≥ 80%; lượt ASR thấp mà giáo viên nghe là đúng: không lượt nào bị ghi điểm 0 |
 | **Hiệu chỉnh ASR** | Trên các lượt nói của tập vàng, so `q` với việc giáo viên nghe đúng/sai bản chép lời | Chọn lại ngưỡng DI-109 nếu ở 0,6 tỉ lệ bản chép lời sai mà vẫn q ≥ 0,6 vượt 10% |
 | **Replay** | Test golden: cùng event log → `ChapterProjection` giống byte-for-byte; đổi `MasteryPolicy` tiếng Anh thì chiếu lại toàn bộ, lưu song song | 100% |
-| **Học sinh mô phỏng** | Tám hồ sơ: trả lời "Yes, I do", dùng nguyên mẫu sau "We", quên "did", nhầm nghĩa cụm từ, trả lời tiếng Việt, chỉ nói theo cô, nói không rõ (q thấp), học tốt | Chỉ-nói-theo-cô không qua node nào; q thấp sai không bao giờ làm M giảm; hồ sơ "Yes, I do" không qua DIDYOU khi M01 còn mở; hồ sơ nguyên mẫu không qua WHATDID khi M02 còn mở; học tốt qua cả unit trong trần lượt |
+| **Học sinh mô phỏng** | Tám hồ sơ: trả lời "Yes, I do", dùng nguyên mẫu sau "We", quên "did", nhầm nghĩa cụm từ, trả lời tiếng Việt, chỉ nói theo cô, nói không rõ (q thấp), học tốt | Chỉ-nói-theo-cô không qua node nào; q thấp sai không bao giờ làm M giảm; hồ sơ "Yes, I do" không qua DIDYOU khi M03 còn mở; hồ sơ nguyên mẫu không qua WHATDID khi M07 còn mở (mã theo Revision 15/11); học tốt qua cả unit trong trần lượt |
 | **Rò rỉ giữa hai môn** | Eval chéo: câu hỏi tiếng Anh vào RAG chỉ ra đoạn `subject=english`, câu Toán chỉ ra đoạn `math`; prompt buổi tiếng Anh không chứa đoạn Toán và ngược lại; câu hỏi Toán trong buổi tiếng Anh được gác như ngoài bài | **DI-116:** 0 đoạn khác môn ở top-k; 0 prompt lẫn môn |
 | **Regression Toán** | `make test`, `make eval-hard`, `make eval-rag-published`, phép chiếu Toán trên replay cũ | Không đổi so với `main` trước ENG-2 |
 | **Rò rỉ đáp án** | Validator: câu trả lời mẫu của item assessment không có trong prompt, không có trong lời cô trước khi con trả lời (trừ item cùng làm và H7) | 0 |
