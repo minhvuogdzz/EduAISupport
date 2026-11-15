@@ -159,6 +159,26 @@ def test_no_leak_on_a_hint_that_keeps_the_target(item_id, text):
     assert "ANSWER_LEAK" not in codes(text, item_id)
 
 
+@pytest.mark.parametrize(
+    ("item_id", "text", "leak"),
+    [
+        # DI-152: the question quotes "His parents … some souvenirs", so the missing word alone is the answer
+        ("U11-PA-PR-04", "Con điền [[en: bought]] vào chỗ trống nhé?", True),
+        ("U11-PA-PR-04", "Đáp án là bought đó con, con nói cả câu nhé?", True),
+        # the question gives "last weekend": "We went there" completes it
+        ("U11-WD-PR-07", "Con nói: [[en: We went there]] rồi thêm thời gian nhé?", True),
+        # repeating the question's own words gives nothing
+        ("U11-PA-PR-04", "Con đọc lại câu: [[en: His parents … some souvenirs.]] Chỗ trống là gì?", False),
+        # a group neither said nor in the question ("souvenirs" is only in Vietnamese in the question)
+        ("U11-WD-TR-01", "Con bắt đầu bằng [[en: We bought]] … rồi nói tiếp nhé?", False),
+        # the wrong form is not the answer
+        ("U11-PA-PR-04", "Có bạn nói [[en: buyed]]. Con thấy đúng chưa?", False),
+    ],
+)
+def test_a_group_the_question_quotes_is_given(item_id, text, leak):
+    assert ("ANSWER_LEAK" in codes(text, item_id)) is leak
+
+
 def test_say_after_me_may_read_the_model_sentence_first():
     text = "Con nói theo cô: [[en: We ate seafood.]] Con nói theo nhé?"
     assert "ANSWER_LEAK" in codes(text, "U11-WD-PR-01")

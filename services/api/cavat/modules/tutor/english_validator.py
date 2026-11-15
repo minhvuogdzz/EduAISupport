@@ -42,7 +42,7 @@ from cavat.modules.tutor.validator import (
     validate_message,
 )
 
-VALIDATOR_VERSION = "english-validator/1.0.0"
+VALIDATOR_VERSION = "english-validator/1.1.0"  # ENG-5e: DI-152, a group the question quotes is given
 SAY_AFTER_ME = "say_after_me"  # ENG-3b G10: ``Item.kind`` of a "con nói theo cô" item, when the schema has it
 
 
@@ -346,11 +346,27 @@ def is_english_text(text: str) -> bool:
     )
 
 
+def _told_groups(said: str, stem: str, groups: list[list[str]]) -> list[str]:
+    """DI-152: the phrasings the text adds when the text and the question hold every group, else []."""
+    told: list[str] = []
+    for group in groups:
+        phrasings = [normalize_en(p) for p in group]
+        hit = next((p for p, n in zip(group, phrasings, strict=True) if _contains(said, n)), None)
+        if hit is not None:
+            if not _contains(stem, normalize_en(hit)):
+                told.append(hit)
+        elif not any(_contains(stem, n) for n in phrasings):
+            return []  # a group neither said nor given by the question: the answer is not complete
+    return told
+
+
 def english_leak(text: str, item: Item) -> str | None:
     """The target the text gives away, if any (DI-108, DI-110).
 
-    A leak is the whole target sentence, or a text that holds one phrasing of every required group with at
-    least one of them not already in the question (the question may quote part of the answer)."""
+    A leak is the whole target sentence, or a text that, together with the question, holds one phrasing of
+    every required group, with at least one phrasing said by the text that the question does not hold
+    (DI-152). A group the question already quotes ("His parents … some souvenirs.") is given, so the tutor
+    saying only the missing word ("bought") is a leak; before ENG-5e every group had to be in the text."""
     said = normalize_en(display_text(text))
     stem = normalize_en(" ".join((item.stem, item.rephrase or "")))
     sentences, groups = _target_groups(item)
@@ -358,10 +374,8 @@ def english_leak(text: str, item: Item) -> str | None:
         target = normalize_en(sentence)
         if len(target.split()) >= 2 and _contains(said, target) and not _contains(stem, target):
             return f"states {sentence}"
-    if groups:
-        hits = [next((p for p in g if _contains(said, normalize_en(p))), None) for g in groups]
-        if all(hits) and any(not _contains(stem, normalize_en(p)) for p in hits if p):
-            return "states " + " … ".join(p for p in hits if p)
+    if groups and (told := _told_groups(said, stem, groups)):
+        return "states " + " … ".join(told)
     if isinstance(item.answer, ChoiceAnswer) and singles_out_choice(display_text(text), item):
         return "singles out the right option"
     return None
