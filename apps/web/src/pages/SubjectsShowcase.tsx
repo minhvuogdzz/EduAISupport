@@ -91,7 +91,7 @@ export function SubjectsShowcase() {
             <span className="subject-tile-icon">
               <GlobeIcon />
             </span>
-            <span className="hm-tag">Bản xem trước</span>
+            <span className="hm-tag">Đang học được</span>
           </header>
           <h3>Tiếng Anh lớp 5</h3>
           <p>
@@ -104,7 +104,7 @@ export function SubjectsShowcase() {
             ))}
           </ul>
           <Link to="/student/english" className="hm-subject-go">
-            Xem trước Tiếng Anh <ArrowRightIcon />
+            Vào học Tiếng Anh <ArrowRightIcon />
           </Link>
         </article>
       </div>
@@ -154,7 +154,7 @@ export function Curriculum({ onOpenStudent }: { onOpenStudent: () => void }) {
           </div>
           <div data-reveal>
             <h3 className="hm-column-title">
-              Tiếng Anh <small>Bản xem trước</small>
+              Tiếng Anh <small>Unit 11</small>
             </h3>
             <ol className="hm-topics" aria-label="Unit 11: Family time">
               {ENGLISH_PARTS.map((part) => (

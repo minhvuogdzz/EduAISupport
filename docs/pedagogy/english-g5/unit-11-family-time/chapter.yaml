@@ -20,7 +20,7 @@
 # key_ideas: mỗi ý liệt kê các cách nói được tính là có ý đó (so khớp sau chuẩn hóa chữ thường; DI tạm như Toán).
 
 chapter_id: eng-g5-u11-family-time
-version: 0.2.0
+version: 0.2.1
 status: DRAFT
 subject: english
 grade: 5
@@ -42,6 +42,7 @@ nodes:
     layer: BASIC
     description: "Tám cụm động từ của unit: swim, take photos, collect seashells, walk on the beach (SGK tr.6); take a boat trip around the bay, eat seafood, see some interesting places, buy souvenirs (SGK tr.8)."
     home_tip: "Xem lại ảnh một chuyến đi của gia đình, chỉ vào từng ảnh và hỏi con bằng tiếng Việt: ở đây cả nhà làm gì? Con nói câu tiếng Anh, ví dụ 'We took photos.' hay 'We ate seafood.'"
+    pattern: "take photos, collect seashells, eat seafood, buy souvenirs…"
     lesson_id: eng-g5-u11-l1
     theory:
       - id: T1
@@ -97,6 +98,7 @@ nodes:
     layer: BASIC
     description: "Kể chuyện đã xảy ra thì động từ đổi sang quá khứ: thêm -ed (walk → walked, collect → collected, visit → visited) hoặc dạng riêng (swim → swam, take → took, eat → ate, see → saw, buy → bought, go → went, are → were)."
     home_tip: "Buổi tối, hỏi con bằng tiếng Việt 'hôm nay con làm gì?' rồi cùng con nói câu tiếng Anh ở quá khứ, ví dụ 'I walked to school.' hay 'I ate rice.'"
+    pattern: "walk → walked, swim → swam, buy → bought"
     lesson_id: eng-g5-u11-l1
     theory:
       - id: T1
@@ -152,6 +154,7 @@ nodes:
     layer: BASIC
     description: "Hỏi ai đó đã làm việc gì chưa: Did you + động từ giữ nguyên …? Trả lời: Yes, I did. I + động từ quá khứ … / No, I didn't. (SGK tr.6–7, Review 3 tr.37)."
     home_tip: "Cuối tuần, hỏi con bằng tiếng Anh về một việc con vừa làm, ví dụ 'Did you take photos?', để con trả lời 'Yes, I did. I took photos with …' hoặc 'No, I didn't.'"
+    pattern: "Did you …? – Yes, I did. / No, I didn't."
     lesson_id: eng-g5-u11-l1
     theory:
       - id: T1
@@ -204,6 +207,7 @@ nodes:
     layer: BASIC
     description: "Hỏi gia đình đã làm gì ở một nơi: What did your family do in/at …? – We + động từ quá khứ …; hỏi khi nào: When did you go to …? – We went there last … (SGK tr.8–9, Review 3 tr.36)."
     home_tip: "Khi cả nhà đi chơi về, hỏi con 'What did our family do there?' và giúp con trả lời bằng câu bắt đầu bằng 'We …', ví dụ 'We ate seafood.'"
+    pattern: "What did your family do in …? – We …"
     lesson_id: eng-g5-u11-l2
     theory:
       - id: T1
@@ -257,6 +261,7 @@ nodes:
     layer: BASIC
     description: "Rhythm của unit: 'When did you 'go to 'London? / 'What did they 'do in 'Finland? Ba từ được nhấn là từ để hỏi, động từ chính và tên nơi chốn (SGK tr.10, SGV tr.189)."
     home_tip: "Cùng con vỗ tay theo câu 'When did you go to London?': vỗ ba cái đúng vào When, go, London. Đổi London thành tên nơi cả nhà từng đi và vỗ lại."
+    pattern: "'When did you 'go to 'London?"
     lesson_id: eng-g5-u11-l3
     theory:
       - id: T1
@@ -305,6 +310,7 @@ nodes:
     layer: IMPLEMENT
     description: "Ghép các mẫu của unit: đi đâu và khi nào (went to … last …), làm gì (We + động từ quá khứ), trả lời đúng câu hỏi Where/When/What; đọc hiểu đoạn kể ngắn (SGK tr.11 Ex4–6)."
     home_tip: "Làm một trang nhật ký ảnh về chuyến đi gần nhất của cả nhà; dưới mỗi ảnh, cùng con viết một câu tiếng Anh như 'We swam in the sea.'"
+    pattern: "We went to … last … We …"
     lesson_id: eng-g5-u11-l3
     theory:
       - id: T1

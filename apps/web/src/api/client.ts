@@ -143,11 +143,16 @@ export interface SessionApi {
   getClassOverview?: (chapterId?: string) => Promise<ClassOverview>;
   /** Teacher: "cô đã xem" the worrying words of a session (SAFE-1); a later flag shows again (real API only). */
   markSafetyReviewed?: (sessionId: string) => Promise<SafetyReview>;
-  /** Teacher: the chapters the tutor teaches now (real API only). `subject` absent: math. */
-  getTaughtChapters?: () => Promise<{ chapter_id: string; title: string; subject?: Subject }[]>;
   /**
-   * Teacher only: the recording of one spoken turn (`VoiceTurn.audio_ref`), filtered by school (rule F5).
-   * ENG-7a: proposed `GET /v1/teachers/voice/{audio_ref}`, built in ENG-7b; the mock answers a short tone.
+   * Teacher: the chapters the tutor teaches now (real API only). Without `subject`: the math chapters, as
+   * before; `"english"`: the English units, each with `subject` (ENG-7b, ADR-067).
+   */
+  getTaughtChapters?: (
+    subject?: Subject,
+  ) => Promise<{ chapter_id: string; title: string; subject?: Subject }[]>;
+  /**
+   * Teacher only: the recording of one spoken turn (`VoiceTurn.audio_ref`), filtered by school (rule F5):
+   * `GET /v1/teachers/voice/{audio_ref}` (ENG-7b, ADR-067); the mock answers a short tone.
    */
   getTurnAudio?: (audioRef: string) => Promise<Blob>;
   /** Teacher: one student on the chapter, every KC in detail (real API only). */
@@ -180,8 +185,9 @@ export interface SessionApi {
 
   /**
    * Mock only (ENG-7a): the English unit on fixed demo data, a tutor session included. Inside the English
-   * pages these methods stand in for the ones above (`features/subjects/SubjectScope.tsx`). With the real
-   * API the English pages call the same endpoints as math with the unit's `?chapter=` (ENG-7b).
+   * pages these methods stand in for the ones above (`features/subjects/SubjectScope.tsx`). The real API
+   * has no such field: the English pages call the same endpoints as math with the unit's `?chapter=`, and
+   * the server fills the English fields (ENG-7b). `make web` keeps this demo; a real build never loads it.
    */
   englishDemo?: SubjectOverrides;
 }

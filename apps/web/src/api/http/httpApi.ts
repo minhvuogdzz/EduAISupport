@@ -33,6 +33,7 @@ import {
   type SessionTranscript,
   type StreamEvent,
   type StudentOverview,
+  type Subject,
   type TeacherDocument,
   type TeacherDocumentDetail,
   type TeachingReport,
@@ -523,12 +524,25 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       );
     },
 
-    getTaughtChapters() {
-      return request<{ chapter_id: string; title: string }[]>(
+    getTaughtChapters(subject) {
+      return request<{ chapter_id: string; title: string; subject?: Subject }[]>(
         "GET",
-        "/v1/teachers/taught-chapters",
+        `/v1/teachers/taught-chapters${subject ? `?subject=${encodeURIComponent(subject)}` : ""}`,
         as(() => TEACHER_HEADERS),
       );
+    },
+
+    async getTurnAudio(audioRef) {
+      // The path segments of the reference stay segments (in/<day>/<hash>/<uuid>.webm); the server checks
+      // the shape, the school and the folder (rule F5) and answers 404 for anything else.
+      const path = audioRef.split("/").map(encodeURIComponent).join("/");
+      return (
+        await send(
+          "GET",
+          `/v1/teachers/voice/${path}`,
+          as(() => TEACHER_HEADERS),
+        )
+      ).blob();
     },
 
     getClassOverview(chapterId) {

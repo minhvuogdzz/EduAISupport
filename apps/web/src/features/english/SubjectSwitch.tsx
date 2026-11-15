@@ -38,7 +38,7 @@ export function SubjectSwitch({
         </span>
         <span className="subject-tile-text">
           <strong>Tiếng Anh</strong>
-          <small>Bản xem trước</small>
+          <small>Unit 11 · Family time</small>
         </span>
       </Link>
     </nav>

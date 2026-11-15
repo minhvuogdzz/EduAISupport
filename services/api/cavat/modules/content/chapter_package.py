@@ -104,6 +104,9 @@ class Node(_Model):
     transfer: list[str]  # PRACTICE items of a new form (stage TRANSFER)
     pass_rule: PassRule = Field(default_factory=PassRule)
     home_tip: str = ""  # for the parent: how to practise this node at home, in everyday words
+    # ENG-7b (ADR-067): the target pattern said beside the Vietnamese name on the English pages ("We …").
+    # Empty for Mathematics, whose views never send it.
+    pattern: str = ""
     # FIX-3: the "vì sao" asked after a right answer to an item of this period that has none of its own
     # (R-VERIFY). One for the period, so it names no number; drafted by Qwen, approved by the teacher.
     verify_prompt: str = ""

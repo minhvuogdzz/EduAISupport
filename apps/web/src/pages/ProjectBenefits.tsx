@@ -77,7 +77,7 @@ export function ProjectBenefits() {
       </div>
       <p className="hm-note hm-table-note">
         So sánh cách học minh họa; tính năng cụ thể tùy công cụ và cách thiết lập. Phiên bản hiện tại dạy Toán
-        lớp 5; Tiếng Anh đang ở bản xem trước giao diện.
+        lớp 5 và Tiếng Anh lớp 5 (Unit 11 “Family time”).
       </p>
     </section>
   );

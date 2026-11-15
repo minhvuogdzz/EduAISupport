@@ -12,12 +12,23 @@ async function openSession(api: SessionApi = testApi(), name = "An") {
   return { ...rendered, sessionId: session_id };
 }
 
+/**
+ * How long one tutor turn of the mock may take to finish streaming. Measured on the same commit of main and
+ * of ENG-7b: the longest turn of the eight-item session takes about 1.3 s, the completion card 2.3 s, run
+ * alone; on CI, with the other test files in parallel, the whole test took 15-19 s and a late turn passed
+ * the shared 5 s of `asyncUtilTimeout`. The turn is what this waits for, so it has its own budget here.
+ */
+const TURN_TIMEOUT_MS = 15_000;
+
 /** Waits until the tutor has finished answering. */
 async function waitForTurn() {
-  await waitFor(() => {
-    expect(screen.queryByText("Cô đang trả lời…")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("typing")).not.toBeInTheDocument();
-  });
+  await waitFor(
+    () => {
+      expect(screen.queryByText("Cô đang trả lời…")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("typing")).not.toBeInTheDocument();
+    },
+    { timeout: TURN_TIMEOUT_MS },
+  );
 }
 
 /** Numbers are wrapped in their own spans, so match on the conversation's text content. */
@@ -189,7 +200,9 @@ describe("student session screen", () => {
       "Minh",
     ];
     for (const text of answers) await answer(user, text);
-    expect(await screen.findByText("Con đã hoàn thành buổi học!")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Con đã hoàn thành buổi học!", {}, { timeout: TURN_TIMEOUT_MS }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Con đã làm 8/8 câu.")).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });

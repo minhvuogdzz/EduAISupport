@@ -274,4 +274,25 @@ describe("createHttpApi", () => {
     }
     expect(api.resetDemoData).toBeUndefined(); // demo data lives on the server, not in this browser
   });
+  it("asks the server for the English units and plays a turn with the teacher identity (ENG-7b)", async () => {
+    const ref = "in/2026-11-12/0123456789abcdef/" + "a".repeat(32) + ".webm";
+    const { api, calls } = client({
+      "GET /v1/teachers/taught-chapters": () => ({ body: [{ chapter_id: "math-g5-decimals", title: "Số" }] }),
+      "GET /v1/teachers/taught-chapters?subject=english": () => ({
+        body: [{ chapter_id: "eng-g5-u11-family-time", title: "Unit 11: Family time", subject: "english" }],
+      }),
+      [`GET /v1/teachers/voice/${ref}`]: () => ({ text: "opus" }),
+    });
+
+    await expect(api.getTaughtChapters?.()).resolves.toEqual([
+      { chapter_id: "math-g5-decimals", title: "Số" },
+    ]);
+    const units = await api.getTaughtChapters?.("english");
+    expect(units?.map((u) => u.subject)).toEqual(["english"]);
+    const audio = await api.getTurnAudio?.(ref);
+    expect(await audio?.text()).toBe("opus"); // the slashes of the reference stay path segments
+    expect(calls).toHaveLength(3);
+    for (const call of calls) expect(call.headers["X-Demo-Teacher"]).toBeTruthy();
+    await expect(api.getTurnAudio?.("in/../../x.webm")).rejects.toBeInstanceOf(Error);
+  });
 });

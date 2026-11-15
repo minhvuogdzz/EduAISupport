@@ -218,7 +218,7 @@ export function HomePage() {
               Học cùng Buddy <ArrowRightIcon />
             </button>
             <Link className="hm-button-ghost" to="/student/english">
-              Xem trước Tiếng Anh
+              Vào học Tiếng Anh
             </Link>
           </div>
         </div>
