@@ -4,6 +4,13 @@ Ngày: 14/11/2026 · DI-136, DI-137, DI-138, DI-139 · Task ENG-5a (`docs/tasks/
 
 Module Tiếng Anh thật cho Unit 11 "Family time" (D-T13, ADR-060) cần gia sư nói theo khuôn Toán: policy quyết nước đi, model chỉ diễn đạt, không chấm, không ghi mastery. Khác Toán ở ba chỗ: cô giảng tiếng Việt nhưng câu đích là tiếng Anh; câu trả lời đích là một câu tiếng Anh nên luật "lộ đáp án" phải đọc được câu lẫn Việt–Anh; giọng cô (VieNeu) đọc sai một từ tiếng Anh đứng riêng (POC PR #139) nên lời gửi TTS phải biết đâu là đoạn tiếng Anh. **Ràng buộc trên hết: luồng Toán đang ổn định, không được đổi.**
 
+## Revision
+
+**15/11/2026 · ENG-5e (DI-152, chủ dự án duyệt mặc định).** Luật lộ đáp án theo nhóm `required` của DI-138(a) đòi lời cô chứa **mọi** nhóm. Khi đề đã trích một phần câu trả lời, lời cô nói riêng phần còn thiếu không bị bắt. Ví dụ `U11-PA-PR-04`: đề có "His parents … some souvenirs", `required` (siết ở ENG-3c) là parents + bought + souvenirs, nên cô nói "bought" không bị coi là lộ. Học sinh mô phỏng ENG-9a và ENG-3c (PR #151) phát hiện lỗi này.
+
+- **DI-152 (nhóm đề đã trích được coi là đã cho):** lời cô lộ đáp án khi lời cô **cùng với đề** có một cách nói của mọi nhóm `required`, và lời cô có ít nhất một cách nói mà đề không có. Nhóm vừa không có trong lời cô vừa không có trong đề thì câu trả lời chưa đủ, không lộ. Luật cũ là trường hợp riêng (mọi nhóm đều trong lời cô). So khớp vẫn dùng chuẩn hóa DI-110 và ranh giới từ. `english-validator/1.0.0` → `1.1.0`.
+- **Phạm vi:** chỉ lời model. Lời mẫu đã duyệt (đề, gợi ý của nội dung) vẫn không xét lộ (DI-141). Template dự phòng của `EnglishRenderer` không qua validator. Quét 201 câu (gợi ý, đề, cách nói `required`, `wrong_answers` của mọi item `phrase`/`word_order`/`open`): luật mới bắt thêm 7 câu, đều là câu cho đủ đáp án khi ghép với đề. Ba câu là gợi ý đã duyệt (`U11-WD-PR-02` H4, `U11-WD-PR-07` H3, H4), nên model nói lại ý đó sẽ bị loại và rơi về đúng lời gợi ý đã duyệt. Validator Toán (`validator.validate_message`) không đổi.
+
 ## Khảo sát
 
 | Đường | File | Prompt Toán hiện hành |
