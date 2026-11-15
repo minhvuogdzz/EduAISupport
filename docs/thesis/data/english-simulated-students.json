@@ -1,0 +1,3047 @@
+{
+ "task": "ENG-9a",
+ "live": false,
+ "relaxed": false,
+ "seed": 20261115,
+ "max_turns": 320,
+ "policy": "node-mastery-en/0.1.0",
+ "profiles": [
+  {
+   "profile": "gioi",
+   "label": "Giỏi",
+   "adr_case": "học tốt",
+   "turns": 79,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 82.7,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 72.7,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 80.9,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 87.6,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M01",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 230
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 81.1,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M09",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 301
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 89.2,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 426
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 84.6,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 34,
+    "fn": 0,
+    "fp": 0,
+    "tn": 4,
+    "n": 38,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 3,
+    "matched": 3,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.892,
+   "independent_share": 0.973,
+   "hints_per_item": 0.03,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 3,
+   "spoken_answer_submitted_as_text": 3,
+   "turn_kinds": {
+    "THEORY": 6,
+    "ANSWER": 38,
+    "EXPLANATION": 18,
+    "RETELL": 17
+   },
+   "hint_requests": 0,
+   "hints_delivered": 1,
+   "max_hint_levels": {
+    "0": 36,
+    "2": 1
+   },
+   "resolutions": {
+    "INDEPENDENT": 36,
+    "SUPPORTED": 1
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 12,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 3,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "trung_binh",
+   "label": "Trung bình",
+   "adr_case": "",
+   "turns": 113,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 81.4,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 72.0,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 77.8,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M04",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 199
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 85.6,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M02",
+       "severity": "CRITICAL",
+       "count": 2,
+       "status": "RESOLVED",
+       "last_seq": 286
+      },
+      {
+       "id": "ENG5-U11-M03",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 312
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 82.1,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M07",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 452
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 88.7,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 2,
+       "status": "RESOLVED",
+       "last_seq": 565
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 82.3,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M11",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 692
+      },
+      {
+       "id": "ENG5-U11-M12",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVING",
+       "last_seq": 708
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 37,
+    "fn": 0,
+    "fp": 0,
+    "tn": 12,
+    "n": 49,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 12,
+    "matched": 12,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.78,
+   "independent_share": 0.878,
+   "hints_per_item": 0.24,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 2,
+   "spoken_answer_submitted_as_text": 2,
+   "turn_kinds": {
+    "THEORY": 9,
+    "ANSWER": 51,
+    "EXPLANATION": 26,
+    "RETELL": 25,
+    "HINT": 2
+   },
+   "hint_requests": 3,
+   "hints_delivered": 10,
+   "max_hint_levels": {
+    "0": 36,
+    "4": 1,
+    "2": 2,
+    "6": 1,
+    "1": 1
+   },
+   "resolutions": {
+    "INDEPENDENT": 36,
+    "SUPPORTED": 4,
+    "WORKED": 1
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 9,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 2,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "yeu",
+   "label": "Yếu",
+   "adr_case": "",
+   "turns": 166,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 77.1,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 62.6,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 7,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M06",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 42
+      }
+     ],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 78.9,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M04",
+       "severity": "CRITICAL",
+       "count": 5,
+       "status": "RESOLVED",
+       "last_seq": 464
+      },
+      {
+       "id": "ENG5-U11-M05",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 184
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 79.3,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M02",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 303
+      },
+      {
+       "id": "ENG5-U11-M03",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 422
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 79.9,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M07",
+       "severity": "CRITICAL",
+       "count": 2,
+       "status": "RESOLVED",
+       "last_seq": 655
+      },
+      {
+       "id": "ENG5-U11-M09",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 569
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 75.3,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 3,
+       "status": "RESOLVED",
+       "last_seq": 811
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 86.4,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M11",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 904
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 38,
+    "fn": 0,
+    "fp": 0,
+    "tn": 31,
+    "n": 69,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 26,
+    "matched": 25,
+    "misses": [
+     {
+      "item": "U11-DY-PR-04",
+      "text": "C",
+      "expected": "ENG5-U11-M01",
+      "got": "CONCEPTUAL",
+      "outcome": "WRONG"
+     }
+    ]
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.605,
+   "independent_share": 0.651,
+   "hints_per_item": 0.88,
+   "nodes_out_of_items": [
+    "ENG5-U11-STRESS",
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 21,
+    "HINT": 6,
+    "ANSWER": 71,
+    "RETELL": 27,
+    "DONT_KNOW": 9,
+    "EXPLANATION": 32
+   },
+   "hint_requests": 9,
+   "hints_delivered": 38,
+   "max_hint_levels": {
+    "6": 5,
+    "0": 28,
+    "3": 1,
+    "2": 4,
+    "1": 4,
+    "7": 1
+   },
+   "resolutions": {
+    "UNRESOLVED": 2,
+    "INDEPENDENT": 28,
+    "SUPPORTED": 9,
+    "WORKED": 4
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 9,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "quen_did",
+   "label": "Quên did / nguyên mẫu sau We",
+   "adr_case": "dùng nguyên mẫu sau We; quên did",
+   "turns": 137,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 3,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "STOPPED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "STOPPED"
+   },
+   "mean_mastery": 79.7,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 70.0,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 76.8,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 9,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M04",
+       "severity": "CRITICAL",
+       "count": 6,
+       "status": "ACTIVE",
+       "last_seq": 901
+      }
+     ],
+     "active_at_pass": null,
+     "missing": [
+      "MISCONCEPTION"
+     ]
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 81.8,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M02",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 378
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 78.6,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M07",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 495
+      },
+      {
+       "id": "ENG5-U11-M08",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "ACTIVE",
+       "last_seq": 663
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 88.3,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 2,
+       "status": "RESOLVED",
+       "last_seq": 615
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 82.6,
+     "level": 4,
+     "passed": false,
+     "understood": true,
+     "items": 12,
+     "successes": 8,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M11",
+       "severity": "CRITICAL",
+       "count": 6,
+       "status": "RESOLVING",
+       "last_seq": 938
+      },
+      {
+       "id": "ENG5-U11-M12",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 773
+      }
+     ],
+     "active_at_pass": null,
+     "missing": [
+      "MISCONCEPTION"
+     ]
+    }
+   },
+   "grading": {
+    "tp": 41,
+    "fn": 0,
+    "fp": 0,
+    "tn": 32,
+    "n": 73,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 31,
+    "matched": 30,
+    "misses": [
+     {
+      "item": "U11-WD-PR-03",
+      "text": "(1) Nha Trang (2) swim (3) seafood",
+      "expected": "EN_TENSE",
+      "got": null,
+      "outcome": "PARTIAL"
+     }
+    ]
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.553,
+   "independent_share": 0.681,
+   "hints_per_item": 0.66,
+   "nodes_out_of_items": [
+    "ENG5-U11-PAST",
+    "ENG5-U11-TRIP",
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 12,
+    "ANSWER": 74,
+    "EXPLANATION": 31,
+    "RETELL": 20
+   },
+   "hint_requests": 5,
+   "hints_delivered": 31,
+   "max_hint_levels": {
+    "0": 32,
+    "1": 2,
+    "2": 6,
+    "3": 1,
+    "6": 3,
+    "7": 1,
+    "4": 2
+   },
+   "resolutions": {
+    "INDEPENDENT": 32,
+    "SUPPORTED": 11,
+    "WORKED": 4
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 9,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "tieng_viet",
+   "label": "Hay trả lời tiếng Việt",
+   "adr_case": "trả lời tiếng Việt",
+   "turns": 116,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 79.4,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 71.9,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M06",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "ACTIVE",
+       "last_seq": 88
+      }
+     ],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 76.5,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 6,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 86.9,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 74.8,
+     "level": 2,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M09",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 330
+      }
+     ],
+     "active_at_pass": [],
+     "missing": [
+      "MASTERY",
+      "EXPLANATION"
+     ]
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 88.0,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 483
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 78.1,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 4,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M11",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 642
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 35,
+    "fn": 0,
+    "fp": 0,
+    "tn": 6,
+    "n": 41,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 4,
+    "matched": 4,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 21,
+    "outcomes": {
+     "None": 21
+    },
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.868,
+   "independent_share": 0.789,
+   "hints_per_item": 0.32,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 12,
+    "ANSWER": 42,
+    "EXPLANATION": 27,
+    "RETELL": 14,
+    "VIETNAMESE": 21
+   },
+   "hint_requests": 5,
+   "hints_delivered": 12,
+   "max_hint_levels": {
+    "0": 30,
+    "2": 1,
+    "1": 4,
+    "6": 2,
+    "7": 1
+   },
+   "resolutions": {
+    "INDEPENDENT": 30,
+    "SUPPORTED": 5,
+    "WORKED": 3
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 6,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "doi_dap_an",
+   "label": "Đòi đáp án",
+   "adr_case": "",
+   "turns": 147,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 78.0,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 70.1,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 7,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M06",
+       "severity": "NORMAL",
+       "count": 3,
+       "status": "RESOLVED",
+       "last_seq": 98
+      }
+     ],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 71.4,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M04",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 230
+      }
+     ],
+     "active_at_pass": [],
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 79.4,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M02",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 318
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 79.0,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 9,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M09",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 448
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 87.4,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 2,
+       "status": "RESOLVED",
+       "last_seq": 689
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 80.9,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M11",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 784
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 38,
+    "fn": 0,
+    "fp": 0,
+    "tn": 12,
+    "n": 50,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 8,
+    "matched": 8,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.725,
+   "independent_share": 0.512,
+   "hints_per_item": 1.12,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 12,
+    "DEMAND": 31,
+    "ANSWER": 51,
+    "EXPLANATION": 22,
+    "RETELL": 26,
+    "HINT": 5
+   },
+   "hint_requests": 6,
+   "hints_delivered": 46,
+   "max_hint_levels": {
+    "1": 10,
+    "0": 21,
+    "4": 1,
+    "6": 3,
+    "2": 5,
+    "3": 1
+   },
+   "resolutions": {
+    "SUPPORTED": 17,
+    "INDEPENDENT": 21,
+    "UNRESOLVED": 1,
+    "WORKED": 2
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 24,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "hoi_toan",
+   "label": "Hỏi lạc sang Toán",
+   "adr_case": "",
+   "turns": 88,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 83.2,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 72.7,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 78.6,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M05",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "ACTIVE",
+       "last_seq": 484
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 89.1,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 80.1,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M07",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 340
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 88.9,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 418
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 90.0,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 36,
+    "fn": 0,
+    "fp": 0,
+    "tn": 4,
+    "n": 40,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 4,
+    "matched": 4,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.892,
+   "independent_share": 0.919,
+   "hints_per_item": 0.08,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 7,
+    "ANSWER": 40,
+    "EXPLANATION": 20,
+    "RETELL": 14,
+    "MATH": 7
+   },
+   "hint_requests": 0,
+   "hints_delivered": 3,
+   "max_hint_levels": {
+    "0": 34,
+    "1": 1,
+    "2": 2
+   },
+   "resolutions": {
+    "INDEPENDENT": 34,
+    "SUPPORTED": 3
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 6,
+   "foreign_chunks": [],
+   "math_questions": 7,
+   "math_brought_back": 7,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "noi_khong_ro",
+   "label": "Nói không rõ (q thấp)",
+   "adr_case": "nói không rõ (q thấp)",
+   "turns": 97,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 83.2,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 70.6,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 3,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 79.9,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M04",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 174
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 90.9,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 82.6,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 6,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 89.5,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVING",
+       "last_seq": 525
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 85.6,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 32,
+    "fn": 0,
+    "fp": 0,
+    "tn": 4,
+    "n": 36,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 2,
+    "matched": 2,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [
+    {
+     "item": "U11-VO-PR-01",
+     "said": "A",
+     "heard": "uh A",
+     "q": 0.42,
+     "outcome": null
+    },
+    {
+     "item": "U11-VO-PR-02",
+     "said": "we ate seafood",
+     "heard": "we ate the",
+     "q": 0.26,
+     "outcome": "WRONG"
+    },
+    {
+     "item": "U11-VO-PR-03",
+     "said": "Vì cả nhà đang mua đồ ở quầy quà lưu niệm; bought souvenirs là đã mua quà lưu niệm, còn saw some interesting places là đi xem nơi thú vị.",
+     "heard": "Vì cả nhà đang mua đồ ở quầy quà lưu niệm; bought souvenirs là đã mua quà lưu niệm, còn some interesting places là đi xem nơi thú vị.",
+     "q": 0.36,
+     "outcome": "CORRECT"
+    },
+    {
+     "item": "U11-VO-PR-04",
+     "said": "Bạn Nam nói chưa đúng. Hai bạn đang nhặt vỏ sò, nên câu đúng là 'They collected seashells.'",
+     "heard": "Bạn Nam nói chưa đúng. the bạn đang nhặt vỏ sò, nên câu đúng là 'They collected seashells.'",
+     "q": 0.28,
+     "outcome": "CORRECT"
+    },
+    {
+     "item": "U11-PA-CC-01",
+     "said": "A",
+     "heard": "uh A",
+     "q": 0.41,
+     "outcome": null
+    },
+    {
+     "item": "U11-PA-PR-03",
+     "said": "No, I didn't. I took photos there.",
+     "heard": "No, I didn't. I look photos there.",
+     "q": 0.38,
+     "outcome": "WRONG"
+    },
+    {
+     "item": "U11-PA-PR-04",
+     "said": "Dạ his parents bought some souvenirs",
+     "heard": "Dạ his the bought some souvenirs",
+     "q": 0.43,
+     "outcome": "CORRECT"
+    }
+   ],
+   "first_attempt_correct": 0.842,
+   "independent_share": 0.921,
+   "hints_per_item": 0.08,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 8,
+   "spoken_answer_submitted_as_text": 8,
+   "turn_kinds": {
+    "THEORY": 12,
+    "ANSWER": 44,
+    "EXPLANATION": 25,
+    "RETELL": 16
+   },
+   "hint_requests": 0,
+   "hints_delivered": 3,
+   "max_hint_levels": {
+    "0": 35,
+    "1": 3
+   },
+   "resolutions": {
+    "INDEPENDENT": 35,
+    "SUPPORTED": 3
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 9,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 10,
+    "low_q": 10,
+    "low_q_not_right_checked": 3,
+    "low_q_mastery_dropped": 0,
+    "garbled": 7
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "yes_i_do",
+   "label": "Trả lời 'Yes, I do'",
+   "adr_case": "'Yes, I do'",
+   "turns": 111,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 6,
+   "view_status": {
+    "ENG5-U11-VOCAB": "PASSED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 80.3,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 70.7,
+     "level": 2,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": [
+      "MASTERY",
+      "EXPLANATION"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 80.0,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 6,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 84.5,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M03",
+       "severity": "CRITICAL",
+       "count": 3,
+       "status": "RESOLVED",
+       "last_seq": 296
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 75.9,
+     "level": 2,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 6,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": [
+      "EXPLANATION"
+     ]
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 87.5,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 2,
+       "status": "RESOLVING",
+       "last_seq": 562
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 83.4,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 7,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M11",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 678
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 34,
+    "fn": 0,
+    "fp": 0,
+    "tn": 13,
+    "n": 47,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 9,
+    "matched": 9,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.725,
+   "independent_share": 0.875,
+   "hints_per_item": 0.17,
+   "nodes_out_of_items": [],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 11,
+    "ANSWER": 49,
+    "EXPLANATION": 30,
+    "RETELL": 21
+   },
+   "hint_requests": 0,
+   "hints_delivered": 7,
+   "max_hint_levels": {
+    "0": 35,
+    "3": 1,
+    "1": 1,
+    "2": 3
+   },
+   "resolutions": {
+    "INDEPENDENT": 35,
+    "SUPPORTED": 5
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 15,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "nham_nghia",
+   "label": "Nhầm nghĩa cụm từ",
+   "adr_case": "nhầm nghĩa",
+   "turns": 100,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 82.9,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 71.9,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M06",
+       "severity": "NORMAL",
+       "count": 2,
+       "status": "RESOLVED",
+       "last_seq": 88
+      }
+     ],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 80.8,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M04",
+       "severity": "CRITICAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 197
+      },
+      {
+       "id": "ENG5-U11-M05",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 144
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 88.7,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 81.9,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M07",
+       "severity": "CRITICAL",
+       "count": 2,
+       "status": "RESOLVED",
+       "last_seq": 414
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 89.7,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M10",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "RESOLVED",
+       "last_seq": 493
+      }
+     ],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 84.4,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 35,
+    "fn": 0,
+    "fp": 0,
+    "tn": 9,
+    "n": 44,
+    "agreement": 1.0,
+    "kappa": 1.0
+   },
+   "codes": {
+    "n": 7,
+    "matched": 7,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.763,
+   "independent_share": 0.868,
+   "hints_per_item": 0.13,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 10,
+    "ANSWER": 44,
+    "EXPLANATION": 26,
+    "RETELL": 20
+   },
+   "hint_requests": 0,
+   "hints_delivered": 5,
+   "max_hint_levels": {
+    "0": 33,
+    "2": 3,
+    "1": 2
+   },
+   "resolutions": {
+    "INDEPENDENT": 33,
+    "SUPPORTED": 5
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 12,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "noi_theo_co",
+   "label": "Chỉ nói theo cô",
+   "adr_case": "chỉ nói theo cô",
+   "turns": 320,
+   "completed": false,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "end_node": "ENG5-U11-DIDYOU",
+   "end_step": 4,
+   "passed_nodes": 0,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "STOPPED",
+    "ENG5-U11-DIDYOU": "CURRENT",
+    "ENG5-U11-WHATDID": "LOCKED",
+    "ENG5-U11-STRESS": "LOCKED",
+    "ENG5-U11-TRIP": "LOCKED"
+   },
+   "mean_mastery": 15.7,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 32.3,
+     "level": 1,
+     "passed": false,
+     "understood": false,
+     "items": 11,
+     "successes": 1,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 31.7,
+     "level": 1,
+     "passed": false,
+     "understood": false,
+     "items": 12,
+     "successes": 0,
+     "misconceptions": [
+      {
+       "id": "ENG5-U11-M04",
+       "severity": "CRITICAL",
+       "count": 4,
+       "status": "ACTIVE",
+       "last_seq": 1072
+      },
+      {
+       "id": "ENG5-U11-M05",
+       "severity": "NORMAL",
+       "count": 1,
+       "status": "ACTIVE",
+       "last_seq": 934
+      }
+     ],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "MISCONCEPTION"
+     ]
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 30.1,
+     "level": 1,
+     "passed": false,
+     "understood": false,
+     "items": 9,
+     "successes": 1,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ]
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": null,
+     "level": 0,
+     "passed": false,
+     "understood": false,
+     "items": 0,
+     "successes": 0,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ]
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": null,
+     "level": 0,
+     "passed": false,
+     "understood": false,
+     "items": 0,
+     "successes": 0,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION"
+     ]
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": null,
+     "level": 0,
+     "passed": false,
+     "understood": false,
+     "items": 0,
+     "successes": 0,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY",
+      "UNDERSTOOD",
+      "EXPLANATION",
+      "APPLICATION"
+     ]
+    }
+   },
+   "grading": {
+    "tp": 0,
+    "fn": 0,
+    "fp": 0,
+    "tn": 0,
+    "n": 0,
+    "agreement": null,
+    "kappa": null
+   },
+   "codes": {
+    "n": 0,
+    "matched": 0,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 0.222,
+   "independent_share": 0.062,
+   "hints_per_item": 4.47,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "ECHO": 320
+   },
+   "hint_requests": 39,
+   "hints_delivered": 145,
+   "max_hint_levels": {
+    "2": 5,
+    "0": 2,
+    "3": 4,
+    "7": 17,
+    "1": 1,
+    "6": 3
+   },
+   "resolutions": {
+    "UNRESOLVED": 11,
+    "INDEPENDENT": 2,
+    "WORKED": 17,
+    "SUPPORTED": 2
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 12,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  },
+  {
+   "profile": "moc_dung_het",
+   "label": "Mốc: đúng hết",
+   "adr_case": "",
+   "turns": 74,
+   "completed": true,
+   "steps_seen": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "end_node": null,
+   "end_step": null,
+   "passed_nodes": 5,
+   "view_status": {
+    "ENG5-U11-VOCAB": "STOPPED",
+    "ENG5-U11-PAST": "PASSED",
+    "ENG5-U11-DIDYOU": "PASSED",
+    "ENG5-U11-WHATDID": "PASSED",
+    "ENG5-U11-STRESS": "PASSED",
+    "ENG5-U11-TRIP": "PASSED"
+   },
+   "mean_mastery": 82.8,
+   "nodes": {
+    "ENG5-U11-VOCAB": {
+     "mastery": 72.7,
+     "level": 3,
+     "passed": false,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": null,
+     "missing": [
+      "MASTERY"
+     ]
+    },
+    "ENG5-U11-PAST": {
+     "mastery": 80.9,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 8,
+     "successes": 7,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-DIDYOU": {
+     "mastery": 88.4,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-WHATDID": {
+     "mastery": 81.1,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 5,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-STRESS": {
+     "mastery": 89.2,
+     "level": 3,
+     "passed": true,
+     "understood": true,
+     "items": 6,
+     "successes": 6,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    },
+    "ENG5-U11-TRIP": {
+     "mastery": 84.8,
+     "level": 4,
+     "passed": true,
+     "understood": true,
+     "items": 5,
+     "successes": 4,
+     "misconceptions": [],
+     "active_at_pass": [],
+     "missing": []
+    }
+   },
+   "grading": {
+    "tp": 36,
+    "fn": 0,
+    "fp": 0,
+    "tn": 0,
+    "n": 36,
+    "agreement": 1.0,
+    "kappa": null
+   },
+   "codes": {
+    "n": 0,
+    "matched": 0,
+    "misses": []
+   },
+   "vietnamese": {
+    "n": 0,
+    "outcomes": {},
+    "l1": 0
+   },
+   "garbled": [],
+   "first_attempt_correct": 1.0,
+   "independent_share": 1.0,
+   "hints_per_item": 0.0,
+   "nodes_out_of_items": [
+    "ENG5-U11-VOCAB"
+   ],
+   "spoken_answers": 0,
+   "spoken_answer_submitted_as_text": 0,
+   "turn_kinds": {
+    "THEORY": 6,
+    "ANSWER": 36,
+    "EXPLANATION": 16,
+    "RETELL": 16
+   },
+   "hint_requests": 0,
+   "hints_delivered": 0,
+   "max_hint_levels": {
+    "0": 36
+   },
+   "resolutions": {
+    "INDEPENDENT": 36
+   },
+   "leaks": [],
+   "math_terms": [],
+   "math_terms_n": 0,
+   "rag_chunks": 12,
+   "foreign_chunks": [],
+   "math_questions": 0,
+   "math_brought_back": 0,
+   "output_rejected": 0,
+   "voice": {
+    "turns": 0,
+    "low_q": 0,
+    "low_q_not_right_checked": 0,
+    "low_q_mastery_dropped": 0,
+    "garbled": 0
+   },
+   "model_calls": 0,
+   "model_fallbacks": 0
+  }
+ ],
+ "adr_checks": {
+  "echo_passes_no_node": true,
+  "low_q_wrong_never_lowers_m": true,
+  "low_q_wrong_checked": 3,
+  "yes_i_do_didyou_active_at_pass": [],
+  "base_form_whatdid_active_at_pass": [],
+  "forgot_did_didyou_active_at_pass": [],
+  "good_passes_whole_unit": false,
+  "order_mean_mastery": true,
+  "order_first_attempt": true,
+  "order_independent_share": true,
+  "order_turns": true,
+  "answer_leaks": 0,
+  "math_terms": 0,
+  "foreign_chunks": 0,
+  "math_questions_brought_back": [
+   7,
+   7
+  ],
+  "output_rejected": 0
+ },
+ "reports": {
+  "class_status": 200,
+  "class_subject": "english",
+  "class_kpis": {
+   "students": 12,
+   "active_this_week": 12,
+   "sessions": 12,
+   "minutes": 1,
+   "passed": 54,
+   "cells": 72,
+   "mean_mastery": 76.9,
+   "attention": 3,
+   "voice_share": 1.0
+  },
+  "class_students": 12,
+  "class_attention": {
+   "HS giả Chỉ nói theo cô": [
+    "STOPPED",
+    "WEAK",
+    "STOPPED",
+    "MISCONCEPTION"
+   ],
+   "HS giả Giỏi": [],
+   "HS giả Hay trả lời tiếng Việt": [],
+   "HS giả Hỏi lạc sang Toán": [],
+   "HS giả Mốc: đúng hết": [],
+   "HS giả Nhầm nghĩa cụm từ": [],
+   "HS giả Nói không rõ (q thấp)": [
+    "ASR_LOW"
+   ],
+   "HS giả Quên did / nguyên mẫu sau We": [
+    "MISCONCEPTION"
+   ],
+   "HS giả Trung bình": [],
+   "HS giả Trả lời 'Yes, I do'": [],
+   "HS giả Yếu": [],
+   "HS giả Đòi đáp án": []
+  },
+  "class_misconceptions": [
+   "ENG5-U11-M04",
+   "ENG5-U11-M10",
+   "ENG5-U11-M11",
+   "ENG5-U11-M06",
+   "ENG5-U11-M07",
+   "ENG5-U11-M03",
+   "ENG5-U11-M02",
+   "ENG5-U11-M05",
+   "ENG5-U11-M09",
+   "ENG5-U11-M12",
+   "ENG5-U11-M08",
+   "ENG5-U11-M01"
+  ],
+  "students": {
+   "gioi": {
+    "groups": {
+     "independent": 36,
+     "supported": 1,
+     "worked": 0,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 36,
+     "SUPPORTED": 1
+    },
+    "attention": [],
+    "voice_turns": 3,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M01",
+     "ENG5-U11-M09",
+     "ENG5-U11-M10"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 1,
+    "parent_secret_fields": []
+   },
+   "trung_binh": {
+    "groups": {
+     "independent": 36,
+     "supported": 4,
+     "worked": 1,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 36,
+     "SUPPORTED": 4,
+     "WORKED": 1
+    },
+    "attention": [],
+    "voice_turns": 2,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M02",
+     "ENG5-U11-M03",
+     "ENG5-U11-M04",
+     "ENG5-U11-M07",
+     "ENG5-U11-M10",
+     "ENG5-U11-M11",
+     "ENG5-U11-M12"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 2,
+    "parent_secret_fields": []
+   },
+   "yeu": {
+    "groups": {
+     "independent": 28,
+     "supported": 9,
+     "worked": 4,
+     "unresolved": 2
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "UNRESOLVED": 2,
+     "INDEPENDENT": 28,
+     "SUPPORTED": 9,
+     "WORKED": 4
+    },
+    "attention": [],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M02",
+     "ENG5-U11-M03",
+     "ENG5-U11-M04",
+     "ENG5-U11-M05",
+     "ENG5-U11-M06",
+     "ENG5-U11-M07",
+     "ENG5-U11-M09",
+     "ENG5-U11-M10",
+     "ENG5-U11-M11"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INDEPENDENT",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 1,
+    "parent_secret_fields": []
+   },
+   "quen_did": {
+    "groups": {
+     "independent": 32,
+     "supported": 11,
+     "worked": 4,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 32,
+     "SUPPORTED": 11,
+     "WORKED": 4
+    },
+    "attention": [
+     "MISCONCEPTION"
+    ],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M02",
+     "ENG5-U11-M04",
+     "ENG5-U11-M07",
+     "ENG5-U11-M08",
+     "ENG5-U11-M10",
+     "ENG5-U11-M11",
+     "ENG5-U11-M12"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 3,
+    "parent_secret_fields": []
+   },
+   "tieng_viet": {
+    "groups": {
+     "independent": 30,
+     "supported": 5,
+     "worked": 3,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 30,
+     "SUPPORTED": 5,
+     "WORKED": 3
+    },
+    "attention": [],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M06",
+     "ENG5-U11-M09",
+     "ENG5-U11-M10",
+     "ENG5-U11-M11"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "WITH_SUPPORT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 1,
+    "parent_secret_fields": []
+   },
+   "doi_dap_an": {
+    "groups": {
+     "independent": 21,
+     "supported": 17,
+     "worked": 2,
+     "unresolved": 1
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "SUPPORTED": 17,
+     "INDEPENDENT": 21,
+     "UNRESOLVED": 1,
+     "WORKED": 2
+    },
+    "attention": [],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M02",
+     "ENG5-U11-M04",
+     "ENG5-U11-M06",
+     "ENG5-U11-M09",
+     "ENG5-U11-M10",
+     "ENG5-U11-M11"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 1,
+    "parent_secret_fields": []
+   },
+   "hoi_toan": {
+    "groups": {
+     "independent": 34,
+     "supported": 3,
+     "worked": 0,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 34,
+     "SUPPORTED": 3
+    },
+    "attention": [],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M05",
+     "ENG5-U11-M07",
+     "ENG5-U11-M10"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 2,
+    "parent_secret_fields": []
+   },
+   "noi_khong_ro": {
+    "groups": {
+     "independent": 35,
+     "supported": 3,
+     "worked": 0,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 35,
+     "SUPPORTED": 3
+    },
+    "attention": [
+     "ASR_LOW"
+    ],
+    "voice_turns": 10,
+    "asr_low_days": 10,
+    "misconceptions": [
+     "ENG5-U11-M04",
+     "ENG5-U11-M10"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 2,
+    "parent_secret_fields": []
+   },
+   "yes_i_do": {
+    "groups": {
+     "independent": 35,
+     "supported": 5,
+     "worked": 0,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 35,
+     "SUPPORTED": 5
+    },
+    "attention": [],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M03",
+     "ENG5-U11-M10",
+     "ENG5-U11-M11"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "WITH_SUPPORT",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "WITH_SUPPORT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 1,
+    "parent_secret_fields": []
+   },
+   "nham_nghia": {
+    "groups": {
+     "independent": 33,
+     "supported": 5,
+     "worked": 0,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 33,
+     "SUPPORTED": 5
+    },
+    "attention": [],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M04",
+     "ENG5-U11-M05",
+     "ENG5-U11-M06",
+     "ENG5-U11-M07",
+     "ENG5-U11-M10"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 1,
+    "parent_secret_fields": []
+   },
+   "noi_theo_co": {
+    "groups": {
+     "independent": 2,
+     "supported": 2,
+     "worked": 17,
+     "unresolved": 11
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "UNRESOLVED": 11,
+     "INDEPENDENT": 2,
+     "WORKED": 17,
+     "SUPPORTED": 2
+    },
+    "attention": [
+     "STOPPED",
+     "WEAK",
+     "STOPPED",
+     "MISCONCEPTION"
+    ],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [
+     "ENG5-U11-M04",
+     "ENG5-U11-M05"
+    ],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "FAMILIAR",
+     "ENG5-U11-PAST": "INSUFFICIENT_DATA",
+     "ENG5-U11-DIDYOU": "INSUFFICIENT_DATA",
+     "ENG5-U11-WHATDID": "NOT_STARTED",
+     "ENG5-U11-STRESS": "NOT_STARTED",
+     "ENG5-U11-TRIP": "NOT_STARTED"
+    },
+    "student_has_score": false,
+    "student_step": 4,
+    "parent_tips": 3,
+    "parent_secret_fields": []
+   },
+   "moc_dung_het": {
+    "groups": {
+     "independent": 36,
+     "supported": 0,
+     "worked": 0,
+     "unresolved": 0
+    },
+    "groups_match_events": true,
+    "resolutions_in_events": {
+     "INDEPENDENT": 36
+    },
+    "attention": [],
+    "voice_turns": 0,
+    "asr_low_days": 0,
+    "misconceptions": [],
+    "student_quality": {
+     "ENG5-U11-VOCAB": "INSUFFICIENT_DATA",
+     "ENG5-U11-PAST": "INDEPENDENT",
+     "ENG5-U11-DIDYOU": "INDEPENDENT",
+     "ENG5-U11-WHATDID": "INDEPENDENT",
+     "ENG5-U11-STRESS": "INDEPENDENT",
+     "ENG5-U11-TRIP": "INDEPENDENT"
+    },
+    "student_has_score": false,
+    "student_step": null,
+    "parent_tips": 1,
+    "parent_secret_fields": []
+   }
+  }
+ },
+ "excerpts": {
+  "quen_did": [
+   [
+    "Cô: Bạn Lan kể: 'I collected seashells with my brother.' Bạn ấy đã làm gì cùng anh trai?",
+    "Con: A",
+    "Cô: Đúng rồi! Con nói cho cô biết vì sao con chọn cách nói đó được không?",
+    "Con: Collect seashells nghĩa là nhặt vỏ sò. Câu 'I collected seashells with my brother.' nghĩa là Lan đã nhặt vỏ sò cùng anh trai."
+   ],
+   [
+    "Cô: Cô đọc trước, con nói theo cô cả câu nhé: We took a boat trip around the bay.",
+    "Con: We take a boat trip around the bay.",
+    "Cô: Con nói cho cô nghe con đã làm thế nào để ra câu trả lời đó được không?",
+    "Con: Vì con thấy vậy ạ."
+   ]
+  ],
+  "tieng_viet": [
+   [
+    "Cô: Trong tranh, cả nhà đang ngồi quanh bàn có tôm, cua, cá ở Nha Trang. Con nói câu kể việc cả nhà làm, bắt đầu bằng: We ate …",
+    "Con: Nhà con đi ăn hải sản ạ.",
+    "Cô: Mình quay lại câu đang làm nhé. Trong tranh, cả nhà đang ngồi quanh bàn có tôm, cua, cá ở Nha Trang. Con nói câu kể việc cả nhà làm, bắt đầu bằng: We ate …. Con làm thử giúp cô được không?",
+    "Con: We ate seafood."
+   ],
+   [
+    "Cô: Trong bài hát 'Did you swim last Sunday?', bạn được hỏi: 'Did you walk?' và trả lời: 'No, I didn't. I … photos there.' Con điền động từ (take) ở dạng đúng nhé?",
+    "Con: Dạ có, con đã đi bơi với mẹ.",
+    "Cô: Mình quay lại câu đang làm nhé. Trong bài hát 'Did you swim last Sunday?', bạn được hỏi: 'Did you walk?' và trả lời: 'No, I didn't. I … photos there.' Con điền động từ (take) ở dạng đúng nhé?",
+    "Con: Dạ có, con đã đi bơi với mẹ."
+   ]
+  ],
+  "doi_dap_an": [
+   [
+    "Cô: Bạn Lan kể: 'I collected seashells with my brother.' Bạn ấy đã làm gì cùng anh trai?",
+    "Con: Cô cho con đáp án luôn đi ạ.",
+    "Cô: Cô chưa nói đáp án ngay đâu, vì con tự tìm ra sẽ nhớ lâu hơn. Con nghe lại câu của Lan: I collected seashells with my brother. Từ seashells nói về thứ gì ở bãi biển?",
+    "Con: C"
+   ],
+   [
+    "Cô: Cô lấy một ví dụ để con so sánh với bài này nhé. 'Souvenirs' là quà lưu niệm, thứ mình mua mang về. Vậy 'buy souvenirs' là làm gì?",
+    "Con: Con lười nghĩ lắm, cô nói luôn đi.",
+    "Cô: Cô chưa nói đáp án ngay đâu, vì con tự tìm ra sẽ nhớ lâu hơn. Câu đúng bắt đầu là They collected … Con nói tiếp nhé?",
+    "Con: Bạn Nam nói chưa đúng. Hai bạn đang nhặt vỏ sò, nên câu đúng là 'They collected seashells.'"
+   ]
+  ],
+  "hoi_toan": [
+   [
+    "Cô: Bạn Ben kể: 'I walked on the beach at Co To Island with my family.' Ben đã làm gì cùng gia đình?",
+    "Con: Số thập phân 0,5 đọc là gì ạ?",
+    "Cô: Cô nghe rồi, nhưng câu đó không thuộc bài «Unit 11: Family time» mình đang học, mình để lúc khác nhé. Bây giờ con trả lời giúp cô câu này nhé: Bạn Ben kể: 'I walked on the beach at Co To Island with my family.' Ben đã làm gì cùng gia đình?",
+    "Con: đi dạo trên bãi biển"
+   ],
+   [
+    "Cô: Bạn Nam nhìn tranh hai bạn đang cúi xuống cát nhặt vỏ sò, rồi nói: 'They bought souvenirs.' Bạn Nam nói đúng chưa? Nếu chưa, con sửa giúp bạn nhé?",
+    "Con: Diện tích hình tam giác tính thế nào ạ?",
+    "Cô: Cô nghe rồi, nhưng câu đó không thuộc bài «Unit 11: Family time» mình đang học, mình để lúc khác nhé. Bây giờ con trả lời giúp cô câu này nhé: Nếu chưa, con sửa giúp bạn nhé?",
+    "Con: Bạn Nam nói chưa đúng. Hai bạn đang nhặt vỏ sò, nên câu đúng là 'They collected seashells.'"
+   ]
+  ],
+  "yes_i_do": [
+   [
+    "Cô: Bạn Lan kể: 'I collected seashells with my brother.' Bạn ấy đã làm gì cùng anh trai?",
+    "Con: A",
+    "Cô: Đúng rồi! Con nói cho cô biết vì sao con chọn cách nói đó được không?",
+    "Con: Vì con thấy vậy ạ."
+   ],
+   [
+    "Cô: Cô đọc trước, con nói theo cô cả câu nhé: We took a boat trip around the bay.",
+    "Con: We took",
+    "Cô: Con nói cho cô nghe con đã làm thế nào để ra câu trả lời đó được không?",
+    "Con: Câu 'We took a boat trip around the bay.' nghĩa là cả nhà đã đi thuyền quanh vịnh."
+   ]
+  ],
+  "noi_theo_co": [
+   [
+    "Cô: Cô cho con xem bốn bức tranh ở bãi biển trong sách. Tranh thứ nhất bạn đang bơi, cô nói: 'I swim in the sea.' Tranh thứ hai bạn cầm máy ảnh: 'I take photos.' Tranh thứ ba hai bạn cúi xuống cát nhặt vỏ sò: 'I collect seashells.' Tranh thứ tư cả nhà đi dọc bờ bi",
+    "Con: Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?",
+    "Cô: Đó chính là câu cô đang hỏi con đấy! Con thử nghĩ xem nhé: Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?",
+    "Con: Con thử nghĩ xem nhé: Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?"
+   ],
+   [
+    "Cô: Đó chính là câu cô đang hỏi con đấy! Con thử nghĩ xem nhé: Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?",
+    "Con: Con thử nghĩ xem nhé: Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?",
+    "Cô: Đó chính là câu cô đang hỏi con đấy! Con thử nghĩ xem nhé: Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?",
+    "Con: Con thử nghĩ xem nhé: Trong tranh hai bạn cúi xuống cát nhặt vỏ sò, cô nói câu nào trong bốn câu vừa rồi?"
+   ]
+  ]
+ },
+ "math_golden_after_english": {
+  "identical": true,
+  "differ": [],
+  "views": 83
+ },
+ "math_interleaved": {
+  "identical": true,
+  "events": 436
+ }
+}
