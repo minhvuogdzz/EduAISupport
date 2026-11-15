@@ -49,6 +49,6 @@ Sai bất kỳ bước nào đều trả 404 với cùng một thông điệp. R
 
 ## 4. Hệ quả
 
-- Toán: golden API báo cáo khớp 8/8 response. DOM 256 test web Toán so với `main`: 231 giống hệt, 23 chỉ khác nhãn "Bản xem trước" đã bỏ (Q-E7), 2 chỉ khác giờ chạy test.
+- Toán: golden API báo cáo khớp 7/7 response. DOM 256 test web Toán so với `main`: 231 giống hệt, 23 chỉ khác nhãn "Bản xem trước" đã bỏ (Q-E7), 2 chỉ khác giờ chạy test.
 - Khi buổi học Tiếng Anh thật chạy (ENG-5b), danh sách buổi chung của giáo viên (`GET /v1/sessions`) cũng sẽ có buổi Tiếng Anh. Việc lọc hoặc gắn `subject` cho buổi là phần của ENG-5b; trang Tiếng Anh đã lọc theo `subject` khi server gửi trường này.
 - `audio_ref` được tìm bằng truy vấn `events.payload.audio_ref` (không có index, quét theo trường). Cách này đủ cho quy mô một trường thử nghiệm; khi cần nhanh hơn thì thêm index.
