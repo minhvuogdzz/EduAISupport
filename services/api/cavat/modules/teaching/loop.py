@@ -110,6 +110,8 @@ CONFIRM_REF = "ASK_CONFIRM"
 # REFORM-6 (3.3): the ref of the message that teaches again a child who has not understood. One per wait: the
 # next time the approved reply is said and the step goes on.
 HOLD_REF = "RETEACH"
+# ENG-5b (DI-141): the ref of the message that brings the child back from a question of another subject.
+OFF_SUBJECT_REF = "OFF_SUBJECT"
 # What says "I have not understood" ("ko", "không biết", "hả", "là sao má", "???"). Feeling, a demand for the
 # answer and talk outside the lesson keep their own paths.
 _NOT_UNDERSTOOD = frozenset({Outcome.HELP_REQUEST, Outcome.CLARIFY_REQUEST, Outcome.NO_RESPONSE})
@@ -176,6 +178,12 @@ PHRASES: dict[str, str] = {
         "{T} nghe {s} nói rồi. Chuyện này quan trọng lắm: {s} hãy kể ngay với thầy cô hoặc bố mẹ, "
         "người lớn mà {s} tin nhé. {T} ghi lại để thầy cô biết."
     ),
+    # ENG-5b (DI-141, drafted for the owner's review): a question of another subject in this session. Only a
+    # session whose subject reads such questions (``off_topic``) says them; Mathematics never does.
+    "off_subject": (
+        "{T} nghe rồi, nhưng câu đó không thuộc bài «{lesson}» mình đang học, mình để lúc khác nhé."
+    ),
+    "off_subject_back": "Bây giờ {s} trả lời giúp {t} câu này nhé: {question}",
     # REFORM-5 (DI-77, drafted for the owner's review): the same two questions as the item loop's, for a
     # theory question or a retell that waits.
     "confirm_typo": "{T} đoán {s} muốn nói là {s} {meaning}, đúng không, hay {s} định gõ ý khác?",
@@ -326,8 +334,12 @@ class TeachingLoop:
         speaker: GroundedSpeaker | None = None,
         item_reader: ContextReader | None = None,
         item_chooser: MoveChooser | None = None,
+        off_topic: Callable[[str], str | None] | None = None,
     ) -> None:
         self.chapter, self.session_id = chapter, session_id
+        # ENG-5b (DI-139, rule P4): a question of another subject, read by the subject's own rule before any
+        # other path; None (Mathematics) leaves every path as it was.
+        self.off_topic = off_topic
         self.speaker = speaker  # live turns only: a replay never calls the RAG or a model again
         self.item_reader = item_reader  # CTX-1: reads an unclear item message in context (live turns only)
         self.item_chooser = item_chooser  # AUTO-1: picks one of the moves the policy allows (live turns only)
@@ -440,6 +452,8 @@ class TeachingLoop:
             return TeachTurn(
                 tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
             )
+        if self.off_topic is not None and self.off_topic(text):
+            return self._off_subject(text, now, seconds, modality)
         if self.awaiting != Awaiting.ANSWER:
             # An undelivered opening is not a question the child can answer. Retry teaching first,
             # including after restoring an existing session whose opening failed.
@@ -1375,6 +1389,37 @@ class TeachingLoop:
         if spoken.safety_flag:
             events.append(self._record(now, EventType.SAFETY_FLAGGED, SafetyFlagged(item_id=ref)))
 
+    def _off_subject(self, text: str, now: datetime, seconds: float, modality: str) -> TeachTurn:
+        """ENG-5b (DI-139, DI-141): a question of another subject. Not an attempt, not graded, no evidence,
+        no hint: ``:OFF_TOPIC`` keeps it out of the item's replay and of the waits' counts. The tutor says
+        the question belongs elsewhere and asks again what waits, word for word; nothing of the other
+        subject is answered, looked up or sent to a model."""
+        ref = self.tutor.item.id if self.awaiting == Awaiting.ANSWER and self.tutor else self._node
+        said = StudentMessage(
+            item_id=f"{ref}:OFF_TOPIC", kind="MESSAGE", text=text, seconds=seconds, modality=modality
+        )
+        events = [self._record(now, EventType.STUDENT_MESSAGE, said)]
+        messages: list[TeachMessage] = []
+        if self.awaiting == Awaiting.ANSWER and self.tutor is not None:
+            from cavat.modules.tutor.dialogue import question_tail
+
+            # the question the child was last asked on the item ("vì sao…?"), else the item itself
+            pending = question_tail(self.tutor.last_tutor or "") or self.tutor.item.stem
+            node_id = self._item_node(self.tutor.item.id)
+        else:
+            pending, node_id = self._prompt or "", self._node
+        back = self._phrase("off_subject", lesson=self.chapter.package.title)
+        if pending:
+            back = f"{back} {self._phrase('off_subject_back', question=pending)}"
+        self._say(
+            now, messages, events, TeachMessage(MessageKind.FEEDBACK, back, node_id, ref=OFF_SUBJECT_REF)
+        )
+        if self.awaiting == Awaiting.ANSWER:
+            return self._waiting_for_item(messages, events)
+        return TeachTurn(
+            tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
+        )
+
     def _replies_since_decision(self) -> int:
         """Student messages since the last teaching decision, the current one included."""
         last = max(
@@ -1384,7 +1429,9 @@ class TeachingLoop:
             1
             for e in self.events[last + 1 :]
             if e.event_type == EventType.STUDENT_MESSAGE
-            and not str(e.payload.get("item_id", "")).endswith((":SOCIAL", ":MODEL_WAIT", ":OPENING_RETRY"))
+            and not str(e.payload.get("item_id", "")).endswith(
+                (":SOCIAL", ":MODEL_WAIT", ":OPENING_RETRY", ":OFF_TOPIC")
+            )
         )
 
     def on_hint_request(self, now: datetime, seconds: float = 0.0, *, source="BUTTON") -> TeachTurn:

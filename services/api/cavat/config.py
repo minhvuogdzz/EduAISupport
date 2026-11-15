@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # DI-133: English the tutor's voice reads badly ("ate" heard as "are", the verb table "go, went"):
     # "browser" reads that part with the browser's English voice; "vieneu" sends it to VieNeu anyway.
     english_tts_risky: Literal["browser", "vieneu"] = "browser"
+    # ENG-5b (ADR-066, rules C1/C2). English sessions only; Mathematics keeps WEB_LOOKUP and
+    # MAX_LLM_CALLS_PER_CHAPTER. DI-143: the web lookup of an English session, off unless turned on.
+    english_web_lookup: Literal["off", "search", "official", "wikipedia"] = "off"
+    # The model calls one English unit session may spend (each session counts its own, as a chapter session).
+    english_max_llm_calls_per_unit: int = 160
     gemini_api_key: SecretStr | None = None
     gemini_vision_model: str = "gemini-3.8-flash"
     # Free tier (docs/poc/free-tier-quota.md): 20 requests a day per model. When the first model is rate
