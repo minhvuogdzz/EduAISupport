@@ -52,7 +52,9 @@ from cavat.modules.tutor.prompt_builder import (
 ENGLISH = "english"
 # v3 (ENG-5g, DI-162/163): the RETEACH task, the hint and CONFIRM_ADVANCE tasks stay on the item
 # ENG-5g also: constitution-en.v2 (DI-164)
-PROMPT_VERSION_EN = "tutor-prompt-en.v3"
+# v4 (ENG-5h, DI-165/169/170): a feeling answered first, the "say after me" hints climb the ladder, the
+# move's own task on a "say after me" item outside its hints, CONFIRM_ADVANCE never tells the next question
+PROMPT_VERSION_EN = "tutor-prompt-en.v4"
 HINT_LADDER_VERSION = "hint-ladder-en/1"  # DI-112 words, DI-136
 MAX_UNIT_WORDS_CHARS = 600
 
@@ -82,7 +84,8 @@ TASKS_EN: dict[Move, str] = {
     "không nói thẳng là sai. Kết thúc bằng một câu hỏi.",
     Move.NUDGE: "Con im lặng một lúc: nhắc nhẹ, hỏi con đang nghĩ đến đâu, có cần cô gợi ý không. "
     "Một câu hỏi.",
-    Move.REDIRECT: "Đưa con về lại câu đang làm, ngắn gọn. Kết thúc bằng một câu hỏi.",
+    Move.REDIRECT: "Đưa con về lại câu đang làm, ngắn gọn; không hỏi kiểu 'con có muốn … không'. Kết thúc "
+    "bằng một câu hỏi.",
     Move.EXPLAIN: "Trả lời điều con hỏi{asks} bằng tiếng Việt đơn giản và một câu ví dụ tiếng Anh khác câu "
     "đang làm; không nói câu đích. Kết thúc bằng một câu hỏi để con làm tiếp.",
     Move.ASK_CONFIRM: "Cô chưa nghe rõ con nói gì: nói thế và mời con nói lại hoặc gõ lại, không đoán thay. "
@@ -95,7 +98,8 @@ TASKS_EN: dict[Move, str] = {
     "Một câu hỏi, ở cuối.",
     Move.CONFIRM_ADVANCE: "Vui cùng con một cách ngọt ngào và cụ thể về điều con vừa nói đúng ở câu đang làm "
     "(nhắc đúng một chi tiết trong lời con, không nhắc câu của bài khác; nếu con phải thử nhiều lần thì ghi "
-    "nhận sự cố gắng), rồi nhẹ nhàng báo sẽ sang câu sau. Không đặt câu hỏi.",
+    "nhận sự cố gắng), rồi nhẹ nhàng báo sẽ sang câu sau. Không nói trước câu sau là gì hay kể về chuyện gì, "
+    "không mời con nói hay làm gì thêm. Không đặt câu hỏi.",
     Move.OFFER_CHOICE: "Hỏi con muốn cô gợi ý thêm hay muốn tự thử lại một lần nữa; phải nói đủ cả hai. "
     "Một câu hỏi.",
     Move.FULL_EXPLANATION: "Đọc mẫu (H7): giảng ngắn vì sao câu nói như vậy, đọc nguyên câu mẫu sau câu dẫn "
@@ -103,9 +107,31 @@ TASKS_EN: dict[Move, str] = {
     Move.CLOSE_ITEM: "Con nói đúng nhưng chưa nói được vì sao: giảng ngắn vì sao câu nói như vậy, rồi báo "
     "mình sang câu tiếp theo. Được nhắc lại câu đúng. Không đặt câu hỏi.",
 }
-SAY_AFTER_ME_TASK = (
-    "Nói theo cô (DI-108): nói ngắn câu này dùng khi nào, đọc nguyên câu mẫu sau câu dẫn có dấu hai chấm "
-    "và mời con nói theo. Kết thúc bằng một câu hỏi hoặc lời mời con nói."
+# DI-108 "nói theo cô". ENG-5h (DI-170): the help on a "say after me" item climbs with the policy's level,
+# as the hint ladder does;
+# before, every hint was the same task and the model said the same sentence four times.
+SAY_AFTER_ME_LADDER: dict[int, str] = {
+    1: "Nói theo cô, mức 1: nói một ý ngắn câu này kể chuyện gì (tiếng Việt), đọc chậm câu mẫu sau câu "
+    "dẫn có dấu hai chấm, mời con nói theo.",
+    2: "Nói theo cô, mức 2: chia câu mẫu thành hai hoặc ba cụm ngắn, đọc từng cụm kèm nghĩa tiếng Việt, mời "
+    "con nói từng cụm rồi ghép cả câu. Không đọc lại cả câu liền một mạch.",
+    3: "Nói theo cô, mức 3: chỉ ra một từ khó của câu (ví dụ động từ quá khứ), đọc riêng từ đó và nói nghĩa, "
+    "rồi mời con nói cả câu.",
+    5: "Nói theo cô, mức 5: cô nói nửa đầu câu mẫu, mời con nói nốt nửa sau.",
+    7: "Nói theo cô, mức 7: khen con đã kiên trì, đọc nguyên câu mẫu thật chậm một lần sau câu dẫn có "
+    "dấu hai chấm, mời con nói lại cả câu.",
+}
+_SAY_AFTER_ME_MOVES = frozenset(
+    {Move.HINT, Move.WORKED_GUIDANCE, Move.FULL_EXPLANATION, Move.EXPLAIN, Move.COGNITIVE_CONFLICT}
+)
+NO_REPEAT_EN = " Không lặp lại câu chữ cô đã nói ở các lượt trước; nói theo một cách mới."
+# ENG-5h (DI-165): what the child said of how they feel is answered first, like the Mathematics tutor does
+# (BRAIN-6, ADR-042): the feeling in its own word, warmly, no lesson and no English sentence in this turn.
+FEELING_TASK_EN = (
+    "Con vừa nói về cảm giác của mình ({feeling}). Trước hết đáp lại đúng điều đó bằng một câu kể ấm áp, "
+    "nhắc đúng chữ con nói (con {feeling}), không dùng dấu chấm hỏi ở câu này; không giảng bài, không đọc "
+    "câu mẫu hay câu tiếng Anh nào ở lượt này, không hỏi kiểu 'con có muốn … không'. Rồi nhẹ nhàng mời con "
+    "quay lại câu đang làm khi sẵn sàng. Cả lượt chỉ có một dấu chấm hỏi, ở câu cuối."
 )
 # ENG-5g (DI-162): the child asked to be taught again in a theory or retell wait ("con chưa hiểu", "souvenirs
 # là gì?"). Short, on what was asked, from the node's material; the question that waits is said after it.
@@ -133,19 +159,27 @@ def task_for_en(
     asks: str | None = None,
     reasons: Sequence[str] = (),
     say_after_me: bool = False,
+    feeling: str | None = None,
 ) -> str:
     """The turn's job in words. The policy picked the move and the level; the brain only words it."""
-    if "OFF_TOPIC" in reasons:
+    if "OFF_TOPIC" in reasons and feeling is None:
         return OFF_TOPIC_TASK
+    if feeling is not None and move not in (Move.CONFIRM_ADVANCE, Move.CLOSE_ITEM, Move.VERIFY):
+        return FEELING_TASK_EN.format(feeling=feeling)
     if "L1_ASK_ENGLISH" in reasons:  # ENG-5c (DI-149): the child answered this English item in Vietnamese
         task = (
             "Con vừa trả lời bằng tiếng Việt. Nhẹ nhàng mời con nói lại bằng tiếng Anh, không khen hay chê ý "
             "con nói (chưa ai kiểm), không nói câu tiếng Anh đáp án. Kết thúc bằng một câu hỏi."
         )
         return f"{task} Mức H{level}." if level is not None and move == Move.HINT else task
-    if say_after_me:
-        return SAY_AFTER_ME_TASK
+    if say_after_me and move in _SAY_AFTER_ME_MOVES:
+        if move == Move.FULL_EXPLANATION or (level is not None and level >= 7):
+            return SAY_AFTER_ME_LADDER[7] + NO_REPEAT_EN
+        rung = max((k for k in SAY_AFTER_ME_LADDER if k <= (level or 1)), default=1)
+        return SAY_AFTER_ME_LADDER[rung] + NO_REPEAT_EN
     task = TASKS_EN[move].format(asks=f" ({asks})" if asks else "")
+    if move in (Move.HINT, Move.WORKED_GUIDANCE, Move.EXPLAIN, Move.FULL_EXPLANATION):
+        task += NO_REPEAT_EN
     if move == Move.VERIFY and "VERIFY_BEFORE_HINT" in reasons:
         return (
             "Con vừa trả lời chưa đúng. Hỏi nhẹ con đã nghĩ thế nào, nhắc đúng điều con nói. Được động viên "
@@ -270,6 +304,15 @@ _RETRY_NOTES = {
     # ENG-5g (DI-163)
     "INVENTED_QUOTE": "trích lời con mà con không nói: chỉ nhắc đúng lời con vừa nói",
     "OFF_ITEM_ENGLISH": "dạy câu tiếng Anh không thuộc câu đang làm: chỉ gợi ý về câu đang làm",
+    # ENG-5h (DI-165, DI-169–172)
+    "FEELING_IGNORED": "chưa đáp lại cảm giác con vừa nói, hoặc đọc câu tiếng Anh: đáp lại đúng chữ con nói",
+    "INVENTED_QUESTION": "đặt câu hỏi tiếng Anh không có trong bài: chỉ nhắc câu hỏi có trong đề",
+    "EMOJI": "có biểu tượng cảm xúc: giọng đọc sẽ đọc nó, chỉ dùng chữ",
+    "PREVIEWS_NEXT": "nói trước câu sau là gì: chỉ báo nhẹ là sang câu sau",
+    "INVITES_AFTER_CLOSE": "vừa chuyển câu vừa mời con nói lại: không mời con làm gì thêm",
+    "REPEATS_EARLIER": "lặp gần nguyên lời cô đã nói trước: nói theo cách mới",
+    "MISSES_WORD_ORDER": "chưa nói lỗi trật tự từ của câu con sửa",
+    "MISSES_SLIP": "chưa nói chữ con viết sai chính tả",
 }
 
 

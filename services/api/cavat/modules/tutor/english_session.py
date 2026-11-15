@@ -55,9 +55,10 @@ from cavat.modules.tutor.english_validator import (
 from cavat.modules.tutor.llm_renderer import RenderTrace, _template_only
 from cavat.modules.tutor.prompt_builder import Turn, clean_text
 from cavat.modules.tutor.reader import LiveReader, Reading, rule_reading
-from cavat.modules.tutor.renderer import TemplateRenderer
+from cavat.modules.tutor.renderer import TemplateRenderer, feeling_of
 
-ENGLISH_SESSION_VERSION = "english-session/1.2.0"  # 1.2.0 (ENG-5g): DI-156–163; 1.1.0 (ENG-5c): DI-148–151
+# 1.3.0 (ENG-5h): DI-165–172; 1.2.0 (ENG-5g): DI-156–163; 1.1.0 (ENG-5c): DI-148–151
+ENGLISH_SESSION_VERSION = "english-session/1.3.0"
 RECENT_TURNS_EN = 6
 # DI-164: the model is the way a turn is worded; a refused output is asked again twice with the refusal codes
 # (ENG-5g) before the approved words are said, so the fallback is the last resort, not the usual turn.
@@ -81,6 +82,9 @@ class EnglishTools:
     # ENG-5g (DI-163): the English words of each node's approved teaching (theory, rule, worked examples). A
     # hint on an item may use them and the item's own; other English is teaching off the item.
     node_words: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    # ENG-5h (DI-171): the normalized English of each node's approved teaching: an English question the tutor
+    # asks must be one of the item's or of its node's, never one the model made up
+    node_texts: Mapping[str, str] = field(default_factory=dict)
 
 
 _tools: dict[tuple[str, str], EnglishTools] = {}
@@ -94,7 +98,9 @@ def english_tools(chapter: Chapter) -> EnglishTools:
     key = (pkg.chapter_id, pkg.version)
     if key not in _tools:
         lessons = list(chapter.lessons.values())
-        _tools[key] = EnglishTools(unit_lexicon(lessons), unit_targets(lessons), _node_words(chapter))
+        _tools[key] = EnglishTools(
+            unit_lexicon(lessons), unit_targets(lessons), _node_words(chapter), _node_texts(chapter)
+        )
     return _tools[key]
 
 
@@ -112,18 +118,55 @@ def english_words(text: str) -> set[str]:
     return {w.lower() for w in _EN_TOKEN.findall(text)}
 
 
+def _node_texts_of(node: Any) -> list[str]:
+    texts = [
+        node.name,
+        node.method.rule,
+        *(t.text for t in node.theory),
+        *(t.reply or "" for t in node.theory),
+    ]
+    return texts + [x for w in node.worked_examples for x in (w.problem, *w.steps, w.answer)]
+
+
 def _node_words(chapter: Chapter) -> dict[str, frozenset[str]]:
-    out: dict[str, frozenset[str]] = {}
-    for node in chapter.nodes:
-        texts = [
-            node.name,
-            node.method.rule,
-            *(t.text for t in node.theory),
-            *(t.reply or "" for t in node.theory),
-        ]
-        texts += [x for w in node.worked_examples for x in (w.problem, *w.steps, w.answer)]
-        out[node.id] = frozenset(w for t in texts for w in english_words(t or ""))
-    return out
+    return {
+        node.id: frozenset(w for t in _node_texts_of(node) for w in english_words(t or ""))
+        for node in chapter.nodes
+    }
+
+
+def _node_texts(chapter: Chapter) -> dict[str, str]:
+    return {node.id: normalize_en(" ".join(t or "" for t in _node_texts_of(node))) for node in chapter.nodes}
+
+
+# ENG-5h (DI-172): emoji are read aloud by the voice ("mặt cười"); the screen does not need them either.
+_EMOJI = re.compile("[\U0001f300-\U0001faff\U00002600-\U000027bf\U0001f000-\U0001f2ff\U0000fe0f\U0000200d]+")
+
+
+def strip_emoji(text: str) -> str:
+    return " ".join(_EMOJI.sub(" ", text).split())
+
+
+# ENG-5h (DI-165): what a reply to a feeling must hold of it (its word, or the tutor's care for it).
+_FEELING_WORDS = {
+    "đói": ("đói", "ăn"),
+    "buồn": ("buồn", "thương"),
+    "mệt": ("mệt", "nghỉ", "ngủ"),
+    "chán": ("chán",),
+}
+# DI-170: a turn that closes the item invites nothing more ("Con thử nói lại theo cô nhé" then the next one)
+_INVITES = re.compile(r"(?i)\b(?:thử nói|nói lại|nói theo|đọc theo|thử đọc|mời con|con thử|viết lại)\b")
+# DI-170: the words of "mình sang câu sau" itself; any other word in that sentence tells what comes next
+_MOVE_ON = re.compile(r"(?i)\b(?:sang|chuyển|tiếp theo|câu sau|câu tới|tiếp tục)\b")
+_MOVE_ON_WORDS = frozenset(
+    fold(w)
+    for w in """giờ bây mình cô con sẽ thử chuyển sang câu tiếp theo sau tới nhé nha nào cùng làm một bài
+    nhau chúng ta hỏi tục rồi đây và ơi đưa với nữa luôn ngay hãy đi thôi tiếp nhé nhá giờ thì vậy ạ
+    phần""".split()
+)
+_SENTENCE = re.compile(r"(?<=[.!?])\s+")
+REPEAT_SIMILARITY = 0.7  # DI-170: word overlap with an earlier turn of the item from which a turn repeats it
+SENTENCE_REPEATS = 2  # DI-170: the item's model sentence said this often already is not read again
 
 
 def _item_texts(item: Any) -> list[str]:
@@ -155,7 +198,9 @@ def session_validator(lexicon: frozenset[str]) -> Callable[[str, RenderContext],
     return validate
 
 
-_ALWAYS_CHECKED = frozenset({EnglishCode.MATH_TERM, EnglishCode.BROKEN_MARKER, ValidationCode.EMPTY})
+_ALWAYS_CHECKED = frozenset(
+    {EnglishCode.MATH_TERM, EnglishCode.BROKEN_MARKER, EnglishCode.EMOJI, ValidationCode.EMPTY}
+)
 
 
 def loop_options(chapter: Chapter) -> dict[str, Any]:
@@ -254,7 +299,7 @@ class EnglishRenderer:
         if ctx.item.id != self._history_item:
             self._history, self._history_item = [], ctx.item.id
         fallback = self._template.render(ctx)
-        if _template_only(ctx) or "CONTINUE" in ctx.decision.reason_codes:
+        if _template_only(ctx) or {"CONTINUE", "SAY_AGAIN"}.intersection(ctx.decision.reason_codes):
             message = fallback
             self.last_trace = RenderTrace(ctx.decision.move, fallback.source)
         else:
@@ -278,6 +323,7 @@ class EnglishRenderer:
                 asks=ctx.focus,
                 reasons=d.reason_codes,
                 say_after_me=say_after_me,
+                feeling=feeling_of(ctx.student_text),
             ),
             question=item.stem,
             student_text=ctx.student_text or "",
@@ -314,8 +360,8 @@ class EnglishRenderer:
         """DI-163: two checks of a model's English turn the shared validator cannot make. INVENTED_QUOTE: it
         quotes the child ("Con nói: Yes, I did…") with English the child did not say. OFF_ITEM_ENGLISH: a hint
         or an explanation teaches English of another node than the item's (the "Did you…?" hints on a
-        comprehension item of VOCAB)."""
-        codes: list[str] = []
+        comprehension item of VOCAB). ENG-5h adds ``_turn_checks`` (DI-165–172)."""
+        codes: list[str] = list(self._turn_checks(marked, ctx))
         said = normalize_en(ctx.student_text or "")
         for quoted in _QUOTE.findall(marked):
             if normalize_en(quoted) and f" {normalize_en(quoted)} " not in f" {said} ":
@@ -329,6 +375,74 @@ class EnglishRenderer:
             spoken = {w for span in english_spans(marked) for w in english_words(span)}
             if len(spoken - allowed - _COMMON_EN) >= 1 or ("did" in spoken and "did" not in allowed):
                 codes.append("OFF_ITEM_ENGLISH")
+        return tuple(codes)
+
+    def _turn_checks(self, marked: str, ctx: RenderContext) -> tuple[str, ...]:
+        """ENG-5h: what the second live run showed a model's turn may still do wrong (all deterministic).
+
+        - FEELING_IGNORED (DI-165): the child said how they feel; the turn does not answer it, or reads
+          English.
+        - INVENTED_QUESTION (DI-171): an English question that is neither the item's nor its node's.
+        - PREVIEWS_NEXT, INVITES_AFTER_CLOSE (DI-170): closing the item, it tells what comes next ("sang việc
+          cả nhà đi dạo biển") or asks the child to say it again although the next question follows.
+        - REPEATS_EARLIER (DI-170): nearly the words of an earlier turn on the item, or the model sentence
+          read again after it was said twice.
+        - MISSES_SLIP, MISSES_WORD_ORDER (DI-166, DI-167): the checker found a spelling slip or a correction
+          in a wrong word order, and the turn does not say so."""
+        codes: list[str] = []
+        move, shown = ctx.decision.move, display_text(marked)
+        low = shown.lower()
+        spans = english_spans(marked)
+        closing = move in (Move.CONFIRM_ADVANCE, Move.CLOSE_ITEM)
+        feeling = feeling_of(ctx.student_text)
+        if feeling and not closing and move != Move.VERIFY:
+            heard = any(w in low for w in _FEELING_WORDS.get(feeling, (feeling,)))
+            if not heard or any(len(sp.split()) >= 3 for sp in spans):
+                codes.append("FEELING_IGNORED")
+        known = normalize_en(" ".join(_item_texts(ctx.item)))
+        known += " " + " ".join(self._tools.node_texts.get(k, "") for k in ctx.item.kc_ids)
+        for span in spans:
+            asked = normalize_en(span)
+            if "?" in span and len(asked.split()) >= 2 and f" {asked} " not in f" {known} ":
+                codes.append("INVENTED_QUESTION")
+                break
+        if closing:
+            if _INVITES.search(shown):
+                codes.append("INVITES_AFTER_CLOSE")
+            name = fold((self._student_name or "").lower())
+            for sentence in _SENTENCE.split(shown):
+                if not _MOVE_ON.search(sentence):
+                    continue
+                words = {fold(w) for w in re.findall(r"[^\W\d_]+", sentence.lower())} - {name}
+                if words - _MOVE_ON_WORDS:
+                    codes.append("PREVIEWS_NEXT")
+                    break
+        earlier = [t.text for t in self._history if t.role == "tutor"]
+        mine = _folded_words(shown) - {fold((self._student_name or "").lower())}
+        if any(_overlap(mine, _folded_words(t)) >= REPEAT_SIMILARITY for t in earlier):
+            codes.append("REPEATS_EARLIER")
+        elif move != Move.FULL_EXPLANATION and not closing:
+            accept = getattr(ctx.item.answer, "accept", None) or ()
+            target = normalize_en(str(accept[0])) if accept and isinstance(accept[0], str) else ""
+            if target and len(target.split()) >= 3 and f" {target} " in f" {normalize_en(shown)} ":
+                said = sum(f" {target} " in f" {normalize_en(t)} " for t in earlier)
+                if said >= SENTENCE_REPEATS:
+                    codes.append("REPEATS_EARLIER")
+        detail = (ctx.check.detail or {}) if ctx.check is not None else {}
+        if (
+            detail.get("en_code") == "EN_SLIP"
+            and detail.get("slips")
+            and move in (Move.HINT, Move.PROBE, Move.COGNITIVE_CONFLICT, Move.VERIFY, Move.OFFER_CHOICE)
+            and not ("chính tả" in low or "đánh vần" in low or detail["slips"][0].lower() in low)
+        ):
+            codes.append("MISSES_SLIP")
+        if (
+            detail.get("word_order")
+            and move == Move.VERIFY
+            and not any(w in low for w in ("trật tự", "thứ tự", "đảo"))
+            and normalize_en(detail["word_order"]) not in normalize_en(shown)
+        ):
+            codes.append("MISSES_WORD_ORDER")
         return tuple(codes)
 
     def explain_again(
@@ -382,7 +496,7 @@ class EnglishRenderer:
             if outcome.result is None:
                 break
             text, _, _ = fields_of(outcome.result.data)
-            marked = mark_english(self._named(text), self._tools.lexicon)
+            marked = mark_english(strip_emoji(self._named(text)), self._tools.lexicon)
             codes = tuple(self._validator(marked, ctx).codes) + self._own_checks(marked, ctx)
             if not codes and asked and not display_text(marked).rstrip().endswith("?"):
                 codes = ("MISSING_QUESTION",)
@@ -413,7 +527,7 @@ class EnglishRenderer:
                 self.last_trace = RenderTrace(move, fallback.source, calls, reason, tuple(rejected))
                 return fallback
             text, flagged, feedback = fields_of(outcome.result.data)
-            text = self._named(text)
+            text = strip_emoji(self._named(text))
             marked = mark_english(text, self._tools.lexicon)
             codes = tuple(self._validator(marked, ctx).codes) + self._own_checks(marked, ctx)
             if not codes:
@@ -428,10 +542,20 @@ class EnglishRenderer:
         return fallback
 
 
+def _folded_words(text: str) -> set[str]:
+    return {fold(w) for w in re.findall(r"[^\W\d_]+", text.lower())}
+
+
+def _overlap(a: set[str], b: set[str]) -> float:
+    return len(a & b) / len(a | b) if a and b else 0.0
+
+
 def _verdict(ctx: RenderContext) -> str:
     """The checker's conclusion, in words (the English checker graded; the model never does)."""
     check = ctx.check
     if check is None or set(ctx.decision.reason_codes) & {"OFF_TOPIC", "CONVERSATION", "CLARIFY"}:
+        return ""
+    if feeling_of(ctx.student_text):
         return ""
     said = {"CORRECT": "ĐÚNG", "WRONG": "CHƯA ĐÚNG", "PARTIAL": "mới ĐÚNG MỘT PHẦN"}.get(check.outcome.value)
     if said is None:
@@ -439,6 +563,17 @@ def _verdict(ctx: RenderContext) -> str:
     verdict = f"Câu trả lời của con: {said}. Con đã trả lời {ctx.state.attempt_no} lần."
     if check.detail.get("whole_sentence"):  # DI-159: the right word, said alone
         verdict += " Con mới nói đúng một từ cần điền; câu này cần nói cả câu."
+    if check.detail.get("en_code") == "EN_SLIP" and check.detail.get("slips"):  # DI-166
+        verdict += (
+            f" Câu của con đã đủ ý; con chỉ viết sai chính tả chữ «{check.detail['slips'][0]}». Chỉ nhắc con "
+            "xem lại chữ đó, không đọc chính tả đúng, không bảo con nói cả câu."
+        )
+    if check.detail.get("word_order"):  # DI-167
+        verdict += (
+            " Con nhận đúng là câu đó sai, nhưng câu con sửa đúng từ mà sai trật tự từ (đúng trật tự: "
+            f"«{check.detail['word_order']}»). Phải nói nhẹ nhàng lỗi trật tự từ này, không khen câu sửa "
+            "là đúng."
+        )
     return verdict
 
 

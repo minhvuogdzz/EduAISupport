@@ -104,7 +104,9 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 TEMPLATES_VERSION = "teaching-templates/0.19.0"  # ADR-055: one wait notice per recovery
 # ENG-5g (DI-156, DI-157): the teaching templates an English session says (PHRASES with PHRASES_EN over them).
 # A Mathematics session records TEMPLATES_VERSION exactly as before.
-EN_TEMPLATES_VERSION = "teaching-templates-en/0.1.0"
+# 0.2.0 (ENG-5h, DI-173): the question of the item asked again after another subject, the missing idea of
+# a retell without the whole list, "Toán" named
+EN_TEMPLATES_VERSION = "teaching-templates-en/0.2.0"
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -255,9 +257,10 @@ PHRASES_EN: dict[str, tuple[str, ...]] = {
         "Không sao đâu, {s} cứ từ từ. {T} nói lại nhé: {reply}",
     ),
     "off_subject": (
-        "{T} nghe rồi, nhưng câu đó không thuộc bài «{lesson}» mình đang học, mình để lúc khác nhé.",
-        "Câu đó là của môn khác rồi {s} ạ. Giờ mình đang ôn «{lesson}», {s} hỏi thầy cô môn đó sau nhé.",
-        "{T} biết {s} còn lo bài khác. Mình làm xong phần tiếng Anh này rồi {s} ôn tiếp nhé.",
+        "{T} nghe rồi, nhưng câu đó là bài Toán, không thuộc bài «{lesson}» mình đang học, "
+        "mình để lúc khác nhé.",
+        "Câu đó là của môn Toán rồi {s} ạ. Giờ mình đang ôn «{lesson}», {s} hỏi thầy cô dạy Toán sau nhé.",
+        "{T} biết {s} còn lo bài Toán. Mình làm xong phần tiếng Anh này rồi {s} ôn Toán tiếp nhé.",
     ),
     "off_subject_back": (
         "Bây giờ {s} trả lời giúp {t} câu này nhé: {question}",
@@ -268,6 +271,13 @@ PHRASES_EN: dict[str, tuple[str, ...]] = {
     "reteach_lead": ("{T} nói ngắn lại nhé:", "Mình xem cách nói này nhé:", "{T} giảng lại chỗ đó nhé:"),
     "reteach_ask": ("{S} thử trả lời lại giúp {t} nhé: {ask}",),
 }
+
+# ENG-5h (DI-173): the tutor's last line was an invitation ("Con thử nói theo cô nha?"), not a question to
+# answer: after a question of another subject, the item's own question is asked again instead.
+_INVITATION = re.compile(r"(?i)\b(?:nói theo|nói lại|thử nói|đọc theo|thử đọc|nói cả câu)\b")
+# DI-173 (L-2): a sentence of the rule that lists every phrase ("…phần đi kèm: swim; take photos; …") is cut
+# to its idea and one example when a retell lacks that idea.
+_LISTED = re.compile(r"^(?P<idea>[^:]{8,}):\s*(?P<first>[^;,]+)[;,](?:[^;,]+[;,]){1,}[^;,]*$")
 
 # "Con nói lại giúp cô: ..." asks for a retell; for a recall only the question after it is kept (DI-52).
 _RETELL_LEAD = re.compile(
@@ -1099,7 +1109,15 @@ class TeachingLoop:
         return None
 
     def _rule_part(self, node: Node, found: Sequence[int]) -> str:
-        """The sentence of the rule that says the first idea not said yet (else the first sentence)."""
+        """The sentence of the rule that says the first idea not said yet (else the first sentence). ENG-5h
+        (DI-173): a sentence that lists every phrase of the node keeps its idea and the first example."""
+        part = self._rule_sentence(node, found)
+        listed = _LISTED.match(part.strip()) if self._english else None
+        if listed:
+            return f"{listed['idea'].strip()}, ví dụ: {listed['first'].strip()}."
+        return part
+
+    def _rule_sentence(self, node: Node, found: Sequence[int]) -> str:
         source = " ".join([node.method.rule, *(t.reply for t in node.theory if t.reply)])
         sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", source.strip()) if x.strip()]
         for i, phrasings in enumerate(node.explain.key_ideas):
@@ -1585,6 +1603,8 @@ class TeachingLoop:
 
             # the question the child was last asked on the item ("vì sao…?"), else the item itself
             pending = question_tail(self.tutor.last_tutor or "") or self.tutor.item.stem
+            if self._english and _INVITATION.search(pending):
+                pending = self.tutor.item.stem  # DI-173: "trả lời giúp cô câu này: Con thử nói theo cô nha?"
             if pending in self.tutor.item.stem:
                 # ENG-5c (L-6): the item's own question is asked again whole, not its last sentence ("Nếu
                 # chưa, con sửa giúp bạn nhé?" lost what was to be corrected).

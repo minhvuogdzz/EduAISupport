@@ -31,7 +31,7 @@ from cavat.modules.assessment.english_checker import english_intent
 from cavat.modules.assessment.math_checker import classify_intent
 from cavat.modules.assessment.reason import judge_reason
 from cavat.modules.session import chapter_service
-from cavat.modules.teaching.loop import PHRASES, Awaiting, TeachingLoop
+from cavat.modules.teaching.loop import EN_TEMPLATES_VERSION, PHRASES, Awaiting, TeachingLoop
 from cavat.modules.tutor.contracts import ItemState, PolicyDecision, RenderContext
 from cavat.modules.tutor.english_session import (
     EnglishRenderer,
@@ -514,7 +514,7 @@ def test_english_teaching_messages_record_their_own_templates_version():
         for e in turn.events
         if e.event_type == EventType.TEACH_MESSAGE_SENT
     }
-    assert versions == {"teaching-templates-en/0.1.0"}
+    assert versions == {EN_TEMPLATES_VERSION}
     math = TeachingLoop(MATH, "s-math", []).start(NOW)
     versions = {
         e.payload.get("templates_version")

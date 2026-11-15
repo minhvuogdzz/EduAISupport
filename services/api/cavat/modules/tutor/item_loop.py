@@ -289,6 +289,7 @@ class ItemTutor:
         self._known = known_words(item.stem, item.rephrase or "", *_option_words(item))
         self._intent_reads = 0
         self._l1_asked = 0  # ENG-5c (DI-149): answers in Vietnamese to this English item already asked again
+        self._said_again = False  # ENG-5h (DI-169): the model sentence's repeat already asked again once
         self._clarification: str | None = None
         self._guess: str | None = None
         self._guess_intent: Outcome | None = None
@@ -375,6 +376,8 @@ class ItemTutor:
             st.verified = True
             self._why_pending = False
 
+        if self.phase == Phase.TEACH_BACK and (again := self._say_again(text, seconds)) is not None:
+            return again
         if self.phase in (Phase.VERIFYING, Phase.TEACH_BACK):
             return self._on_explanation(text)
         if self.phase == Phase.AWAITING_PROBE:
@@ -814,6 +817,35 @@ class ItemTutor:
         decision = self._decide("EXPLANATION", check)
         if decision is not None and "ASK_AGAIN" in decision.reason_codes:
             self.state.explanation_asked_again = True  # once (DI-38)
+        return self._act(decision, text)
+
+    def _say_again(self, text: str, seconds: float) -> TutorTurn | None:
+        """ENG-5h (DI-169): on a "con nói theo cô" item, the reply to the model sentence (H7) is the child's
+        repeat, not an explanation. A repeat that is not right yet ("We took a bot trip around the bay.") is
+        graded, the word to look at is named, and the tutor waits for the sentence again, once; before, the
+        tutor said "con thử nói lại theo cô nhé" and went on to the next question. Mathematics never comes
+        here; a right repeat keeps the path of an explanation."""
+        from cavat.modules.tutor.english_validator import is_english_text, is_say_after_me, normalize_en
+
+        if (
+            self.package.subject != "english"
+            or self._said_again
+            or not is_say_after_me(self.item)
+            or not is_english_text(text)
+            or len(text.split()) < 3
+        ):
+            return None
+        check = self._check(text)
+        if check.outcome == Outcome.CORRECT or check.outcome not in GRADED_OUTCOMES:
+            return None
+        self._said_again = True
+        target = set(normalize_en(str((getattr(self.item.answer, "accept", None) or [""])[0])).split())
+        off = [w for w in normalize_en(text).split() if w not in target]
+        check = replace(check, detail={**check.detail, "off_words": off[:1]})
+        self._record_answer(check, text, seconds)
+        decision = PolicyDecision(
+            move=Move.REDIRECT, reason_codes=("SAY_AGAIN",), rule_ids=("R-SAY-AGAIN-EN",)
+        )
         return self._act(decision, text)
 
     def _explanation_intent(self, text: str) -> Outcome | None:

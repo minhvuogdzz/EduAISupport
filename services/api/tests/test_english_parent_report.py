@@ -160,3 +160,46 @@ def test_only_english_subjects_for_a_child_who_studied_only_english(client):
     code = progress.parent_code("linh")
     rows = client.get(f"/v1/parents/children/{code}/subjects", headers=PARENT).json()
     assert [(r["subject"], r["chapter_id"]) for r in rows] == [("english", UNIT_ID)]
+
+
+# --- ENG-5h (DI-176): the second live run of Vuong ---------------------------------------------------------
+
+
+def test_every_node_of_the_parents_view_has_its_mistakes(client):
+    """Live run 2: VOCAB was passed after many mistakes and the report showed none (only "cần luyện" had)."""
+    view = linh_parent(client)
+    [vocab] = [n for n in view["nodes"] if n["node_id"] == VOCAB]
+    assert vocab["mistakes"] and vocab["mistakes"][0]["examples"]
+    for topic in view["going_well"]:
+        assert "mistakes" not in topic or topic["mistakes"]  # absent (None omitted) or a real list
+
+
+def test_a_wrong_past_form_said_alone_has_an_example():
+    """Live run 2: "Thêm -ed cho động từ có dạng quá khứ riêng" with ``examples: []`` ("eated" alone)."""
+    assert report._wrong_form("eated") == "eated → ate"
+    assert report._wrong_form("we swimmed in the sea") == "swimmed → swam"
+    assert report._wrong_form("we ate seafood") is None
+
+
+def test_a_session_without_a_word_of_the_child_is_not_counted():
+    """Live run 2: the session opened when every node was passed ("mình dừng ở đây", 0 phút) was counted."""
+    from cavat.core.events import EventType
+    from cavat.modules.session.repository import LifecycleState
+
+    def session(sid, kinds, lifecycle):
+        events = [
+            SimpleNamespace(event_type=k, occurred_at=T0 + timedelta(seconds=30 * i))
+            for i, k in enumerate(kinds)
+        ]
+        return SimpleNamespace(id=sid, events=events, state=SimpleNamespace(lifecycle=lifecycle))
+
+    studied = session(
+        "a", [EventType.TEACH_MESSAGE_SENT, EventType.STUDENT_MESSAGE], LifecycleState.COMPLETED
+    )
+    empty = session(
+        "b", [EventType.TEACH_MESSAGE_SENT, EventType.SESSION_COMPLETED], LifecycleState.COMPLETED
+    )
+    folded = SimpleNamespace(sessions=[studied, empty], unfinished=[])
+    assert report.sessions_count(folded) == {"total": 1, "completed": 1, "unfinished": 0, "minutes": 0}
+    view = {"home_tips": [], "session_list": [{"session_id": "a"}, {"session_id": "b"}]}
+    assert report.parent(view, folded)["session_list"] == [{"session_id": "a"}]

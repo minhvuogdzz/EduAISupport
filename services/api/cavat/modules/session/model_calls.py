@@ -2,7 +2,8 @@
 
 ``MODEL_CALLED`` for every call that reached the chain: the model that answered, the tokens the provider
 counted and the gateway's estimate before sending. ``MODEL_FALLBACK`` for every step down the chain, when a
-model did not answer and the next one was tried (ADR-017: Qwen, then gpt-oss; blueprint PART 12.6). A call
+model was sent the request, did not answer and the next one was tried (ADR-017: Qwen, then gpt-oss;
+blueprint PART 12.6; ENG-5h, DI-175: a model skipped without sending is no step). A call
 that reached no model (the session's cap was already used up) leaves nothing. None of them is replayed.
 """
 
@@ -32,7 +33,10 @@ def model_call_events(calls: Iterable[ChatCall], item_attempt_id: str | None = N
         if not attempts:
             continue
         for tried, after in pairwise(attempts):
-            if tried.error in _FALLBACK_REASON:
+            # ENG-5h (DI-175): a model the router skipped without sending (resting after a 429 or an error,
+            # ``sent`` False) is no step down the chain; it stays in MODEL_CALLED.attempts. Before, each turn
+            # wrote three MODEL_FALLBACK for Gemini models that were never asked.
+            if tried.error in _FALLBACK_REASON and tried.sent:
                 moved = ModelFallback(
                     model_class=call.model_class.value,
                     from_model=tried.model,

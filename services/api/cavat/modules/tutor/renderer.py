@@ -32,7 +32,9 @@ TEMPLATE_VERSION = "template-renderer.v14"
 # ENG-5g (DI-157): the words an English session says in place of the Mathematics ones ("những số con đã
 # dùng", "kết quả bài trên thẻ"). Mathematics never reads them: ``_phrase_of`` picks them by the package's
 # subject.
-TEMPLATE_VERSION_EN = "template-renderer-en.v1"
+# v2 (ENG-5h, DI-165–168): a feeling answered first, a spelling slip named, the word order of a correction
+# named, a counterexample only when the item has its cue, "nói lại cả câu" after the model sentence
+TEMPLATE_VERSION_EN = "template-renderer-en.v2"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -135,6 +137,59 @@ LEADS_EN: dict[str, tuple[str, ...]] = {
 # ENG-5g (DI-159): a right word said alone where the item wants the whole sentence ("ate" for "Yesterday we …
 # seafood"). The English checker marks it (``whole_sentence``); the tutor says so before the move's text.
 WHOLE_SENTENCE_LEAD = "Từ đó {s} chọn đúng rồi! {S} nói cả câu giúp {t} nhé."
+# ENG-5h (DI-165, drafted for the owner's review): what the child says of how they feel ("con đói quá cô
+# ơi", "hôm nay con buồn") is answered first, in its own words, before the lesson goes on; the model sentence
+# is not read again in the same turn. Matched on the words with or without diacritics.
+FEELINGS_EN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    (
+        "đói",
+        r"\b(?:đói|khát|doi (?:qua|bung|roi)|khat (?:qua|nuoc))",
+        (
+            "{S} đói bụng rồi à, {t} hiểu mà. Mình làm nốt câu này thật nhẹ nhàng rồi {s} đi ăn nhé, "
+            "được không {s}?",
+            "Đói thì khó học lắm, {t} biết. {S} uống chút nước rồi mình làm nốt câu này nhé, được không?",
+        ),
+    ),
+    (
+        "buồn",
+        r"\b(?:buồn(?! ngủ)|buon (?:qua|lam|roi)|hom nay con buon)",
+        (
+            "{T} nghe {s} nói hôm nay {s} buồn, {t} thương {s} lắm. {T} vẫn ở đây với {s}; {s} muốn kể "
+            "{t} nghe một chút, hay mình học tiếp thật nhẹ nhàng nhé?",
+            "{S} đang buồn à, không sao đâu, {t} ở đây cùng {s}. Mình học chậm thôi nhé, {s} sẵn sàng chưa?",
+        ),
+    ),
+    (
+        "mệt",
+        r"\b(?:mệt|buồn ngủ|met (?:qua|lam|roi)|buon ngu)",
+        (
+            "{S} mệt rồi à, {t} hiểu. Mình đi chậm lại, làm nốt câu này rồi nghỉ một chút nhé, được không?",
+            "Học lâu cũng mệt thật, {t} biết. {S} hít thở sâu một cái rồi mình thử tiếp nhé?",
+        ),
+    ),
+    (
+        "chán",
+        r"\b(?:chán|chan (?:qua|lam|roi))",
+        (
+            "{T} biết học mãi cũng có lúc chán. Mình thử câu này thật nhanh, như một trò chơi nhé, "
+            "{s} sẵn sàng chưa?",
+            "{S} thấy chán à, {t} hiểu. Câu này ngắn thôi, mình làm cùng nhau nhé?",
+        ),
+    ),
+)
+
+
+def feeling_of(text: str | None) -> str | None:
+    """ENG-5h (DI-165): the feeling the child's words name ("đói", "buồn", "mệt", "chán"), else None."""
+    import unicodedata
+
+    low = unicodedata.normalize("NFC", text or "").lower()
+    for name, pattern, _ in FEELINGS_EN:
+        if re.search(pattern, low):
+            return name
+    return None
+
+
 # The counter that picks the variant: the same words are not said twice in a row (anti-loop, replayable).
 _LEAD_COUNTER = {
     "STEP_PRAISE": "attempt_no",
@@ -308,6 +363,8 @@ def counter_example(
         return None
     usable: list[tuple[str, str]] = []
     for i, text in enumerate(mis.counter_examples, start=1):
+        if not _cue_present(text, item, package):
+            continue
         if "{" not in text:
             found = text
         elif isinstance(item.answer, CompareAnswer):
@@ -317,6 +374,20 @@ def counter_example(
         if _one_question(found):
             usable.append((found, f"{mis.id}:COUNTER:{i}"))
     return usable[shown % len(usable)] if usable else None
+
+
+# ENG-5h (DI-168): "Câu có 'yesterday' (hôm qua)…" speaks of a word of the item's own sentence; said on an
+# item without that word ("Con nói câu kể việc cả nhà làm… We ate …") it compares the child with nothing.
+_CUE = re.compile(r"\bcó (?:chữ |từ )?['‘\"“]([^'’\"”]+)['’\"”]", re.IGNORECASE)
+
+
+def _cue_present(text: str, item: Item, package: LessonPackage) -> bool:
+    """An English counterexample that names a word the item has ("câu có 'yesterday'") is usable only when
+    the item's words hold it. Mathematics: always (its counterexamples are not read this way)."""
+    if getattr(package, "subject", "math") != "english":
+        return True
+    said = fold(" ".join((item.stem, item.rephrase or ""))).lower()
+    return all(fold(cue).lower() in said for cue in _CUE.findall(text))
 
 
 _FIGURE = re.compile(r"\[Hình[^\]]*\]\s*", re.IGNORECASE)
@@ -621,12 +692,77 @@ def _with_lead(ctx: RenderContext, msg: RenderedMessage) -> RenderedMessage:
     return _msg(text, msg.source, msg.hint_ref)
 
 
+# ENG-5h (drafted for the owner's review). DI-166: a sentence right but for the spelling of a word.
+SLIP_EN = (
+    "Câu của {s} đủ ý rồi, chỉ có chữ «{word}» viết chưa đúng chính tả thôi. {S} xem lại chữ đó rồi viết "
+    "lại cả câu giúp {t} nhé?",
+    "{S} nói gần đúng rồi đó! Chữ «{word}» còn sai chính tả, {s} đánh vần lại rồi viết lại cả câu "
+    "giúp {t} nhé?",
+)
+# DI-167: the judgment right, the corrected sentence in a wrong word order.
+WORD_ORDER_EN = (
+    "{S} nhận ra câu đó chưa đúng rồi, giỏi lắm! Có điều câu {s} sửa bị đảo trật tự từ: trong tiếng Anh, "
+    "việc làm đứng ngay sau người làm, nên mình nói: {right} {S} nói lại câu đó giúp {t} nhé?"
+)
+# DI-169: after the model sentence, the child's repeat that is not right yet: what to look at, then wait.
+SAY_AGAIN_EN = (
+    "{S} nói gần đúng rồi! Chữ «{word}» chưa đúng, câu mẫu là: {right} {S} nói lại cả câu giúp {t} nhé?",
+    "Mình nói lại cả câu một lần nữa nhé: {right} Lần này {s} nói chậm từng chữ theo {t} được không?",
+)
+_FEELING_MOVES = frozenset(
+    {
+        Move.REDIRECT,
+        Move.EXPLAIN,
+        Move.HINT,
+        Move.NUDGE,
+        Move.OFFER_CHOICE,
+        Move.WORKED_GUIDANCE,
+        Move.PROBE,
+        Move.COGNITIVE_CONFLICT,
+        Move.ASK_CONFIRM,
+    }
+)
+_SLIP_MOVES = frozenset({Move.HINT, Move.PROBE, Move.COGNITIVE_CONFLICT, Move.OFFER_CHOICE, Move.VERIFY})
+
+
+def _fmt(ctx: RenderContext, template: str, **extra: str) -> str:
+    t, s = ctx.persona.tutor_self, ctx.persona.student_address
+    return template.format(T=_cap(t), t=t, S=_cap(s), s=s, **extra)
+
+
+def english_special(ctx: RenderContext) -> RenderedMessage | None:
+    """ENG-5h: the English templates that answer what the child just did, before the move's own words.
+    None for Mathematics and for every other case."""
+    if not _english(ctx):
+        return None
+    d, check = ctx.decision, ctx.check
+    detail = (check.detail or {}) if check is not None else {}
+    if "SAY_AGAIN" in d.reason_codes:
+        right = str((getattr(ctx.item.answer, "accept", None) or [""])[0])
+        word = (detail.get("off_words") or [""])[0]
+        pick = SAY_AGAIN_EN[0] if word else SAY_AGAIN_EN[1]
+        return _msg(_fmt(ctx, pick, word=word, right=right), "TEMPLATE", f"{ctx.item.id}:SAY_AGAIN")
+    feeling = feeling_of(ctx.student_text)
+    if feeling is not None and d.move in _FEELING_MOVES:
+        variants = next(v for name, _, v in FEELINGS_EN if name == feeling)
+        pick = variants[max(ctx.state.affect_signals - 1, 0) % len(variants)]
+        return _msg(_fmt(ctx, pick), "TEMPLATE", f"FEELING:{feeling}")
+    if detail.get("en_code") == "EN_SLIP" and detail.get("slips") and d.move in _SLIP_MOVES:
+        pick = SLIP_EN[ctx.state.attempt_no % len(SLIP_EN)]
+        return _msg(_fmt(ctx, pick, word=detail["slips"][0]), "TEMPLATE", f"{ctx.item.id}:SLIP")
+    if detail.get("word_order") and d.move == Move.VERIFY:
+        return _msg(_fmt(ctx, WORD_ORDER_EN, right=detail["word_order"]), "TEMPLATE", f"{ctx.item.id}:ORDER")
+    return None
+
+
 class TemplateRenderer:
     """`MessageRenderer` that only uses approved lesson content and fixed sentences (no network)."""
 
     version = TEMPLATE_VERSION
 
     def render(self, ctx: RenderContext) -> RenderedMessage:
+        if (special := english_special(ctx)) is not None:
+            return special
         if "CONVERSATION" in ctx.decision.reason_codes:
             if "CONTINUE" in ctx.decision.reason_codes:
                 return _msg(f"Ừ, mình thử nhé. {ctx.resume_prompt}", "TEMPLATE")

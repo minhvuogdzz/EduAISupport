@@ -42,7 +42,8 @@ from cavat.modules.tutor.validator import (
     validate_message,
 )
 
-VALIDATOR_VERSION = "english-validator/1.1.0"  # ENG-5e: DI-152, a group the question quotes is given
+# 1.2.0 (ENG-5h, DI-172): an emoji is refused (the voice reads it); 1.1.0 (ENG-5e): DI-152
+VALIDATOR_VERSION = "english-validator/1.2.0"
 SAY_AFTER_ME = "say_after_me"  # ENG-3b G10: ``Item.kind`` of a "con nói theo cô" item, when the schema has it
 
 
@@ -51,6 +52,7 @@ class EnglishCode(StrEnum):
     OUT_OF_UNIT_ENGLISH = "OUT_OF_UNIT_ENGLISH"
     BARE_ENGLISH = "BARE_ENGLISH"
     BROKEN_MARKER = "BROKEN_MARKER"
+    EMOJI = "EMOJI"
 
 
 # Notes for the retry prompt (Vietnamese, as the tutor's instructions are).
@@ -59,6 +61,7 @@ CODE_NOTES_EN: dict[str, str] = {
     EnglishCode.OUT_OF_UNIT_ENGLISH: "dùng từ tiếng Anh ngoài bài: chỉ dùng từ và mẫu câu của bài",
     EnglishCode.BARE_ENGLISH: "câu tiếng Anh thiếu câu dẫn tiếng Việt: đặt sau câu dẫn có dấu hai chấm",
     EnglishCode.BROKEN_MARKER: "đánh dấu sai: mỗi đoạn tiếng Anh viết đúng [[en: …]], không lẫn tiếng Việt",
+    EnglishCode.EMOJI: "có biểu tượng cảm xúc: giọng đọc sẽ đọc nó, chỉ dùng chữ",
     ValidationCode.ANSWER_LEAK: "đã nói câu trả lời đích của câu đang chờ: gợi ý đúng mức, để con tự nói",
 }
 
@@ -410,6 +413,7 @@ def is_say_after_me(item: Item, say_after_me: bool | None = None) -> bool:
 # ---------------------------------------------------------------------------------------------- validator
 
 _PLACEHOLDER = "«»"
+_EMOJI_RE = re.compile("[\U0001f300-\U0001faff\U00002600-\U000027bf\U0001f000-\U0001f2ff]")
 
 
 def _vietnamese_part(marked: str) -> str:
@@ -461,6 +465,8 @@ def validate_english_message(
     words = len(shown.split())
     if words > ctx.max_words:
         issues.append(ValidationIssue(ValidationCode.TOO_LONG, f"{words} > {ctx.max_words} words"))
+    if _EMOJI_RE.search(text):
+        issues.append(ValidationIssue(EnglishCode.EMOJI, "emoji"))
     if math := math_terms_in(shown):
         issues.append(ValidationIssue(EnglishCode.MATH_TERM, ", ".join(math)))
     for span in english_spans(marked):

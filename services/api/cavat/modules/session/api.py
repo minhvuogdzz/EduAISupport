@@ -482,8 +482,17 @@ class TeachingReportView(BaseModel):
     decisions: list[DecisionView]
 
 
+class TypicalMistake(BaseModel):
+    """English (ENG-7c, DI-153): one kind of mistake the child made on a node, in Vietnamese, with how many
+    graded answers showed it and short examples ("eat → ate"), never the child's whole sentence."""
+
+    label: str
+    count: int
+    examples: list[str]
+
+
 class ProgressNode(_OmitNone):
-    _omit_none = ("pattern",)
+    _omit_none = ("pattern", "mistakes")
 
     node_id: str
     name: str
@@ -494,15 +503,7 @@ class ProgressNode(_OmitNone):
     order: int
     passed: bool
     pattern: str | None = None  # English: the target pattern beside the name (DI-144)
-
-
-class TypicalMistake(BaseModel):
-    """English (ENG-7c, DI-153): one kind of mistake the child made on a node, in Vietnamese, with how many
-    graded answers showed it and short examples ("eat → ate"), never the child's whole sentence."""
-
-    label: str
-    count: int
-    examples: list[str]
+    mistakes: list[TypicalMistake] | None = None  # English (ENG-5h, DI-176): a node passed shows them too
 
 
 class ProgressTopic(_OmitNone):
@@ -1934,7 +1935,9 @@ async def _child_view(database: Any, student_id: str, today: date, chapter: Chap
         "home_tips": progress.home_tips(chapter, practise),
         "session_list": progress.sessions_list(chapter, own),
     }
-    return english_report.parent(view) if english_report.is_english(chapter) else view
+    if english_report.is_english(chapter):  # ENG-7b: Mathematics never comes here
+        return english_report.parent(view, progress.fold(chapter, own))
+    return view
 
 
 @teachers.get("/taught-chapters", response_model=list[ChapterRef])
