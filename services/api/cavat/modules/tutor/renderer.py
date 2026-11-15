@@ -29,6 +29,10 @@ from cavat.modules.tutor.contracts import MessageSource, RenderContext, Rendered
 # v8: REFORM-2, EXPLAIN_AND_ADVANCE says the approved explanation, the rule answers "lý thuyết là gì",
 #     punctuation no longer hides a word; v7: FIX-6, the counterexample is tied to the item and varies
 TEMPLATE_VERSION = "template-renderer.v14"
+# ENG-5g (DI-157): the words an English session says in place of the Mathematics ones ("những số con đã
+# dùng", "kết quả bài trên thẻ"). Mathematics never reads them: ``_phrase_of`` picks them by the package's
+# subject.
+TEMPLATE_VERSION_EN = "template-renderer-en.v1"
 
 # {T}/{t}: how the tutor calls themself, {S}/{s}: how the tutor calls the student (capitalised / not).
 PHRASES: dict[str, str] = {
@@ -95,6 +99,42 @@ LEADS: dict[str, tuple[str, ...]] = {
         "{T} rất muốn nghe, nhưng mình làm xong câu này đã nhé!",
     ),
 }
+# ENG-5g (DI-157, drafted for the owner's review): an English session's own words for the templates whose
+# shared wording speaks of Mathematics (numbers, "bài trên thẻ", "bước") or is said the same way each time.
+PHRASES_EN: dict[str, tuple[str, ...]] = {
+    "probe": (
+        "{S} đọc lại câu của mình rồi cho {t} biết {s} đã nghĩ thế nào khi nói như vậy nhé?",
+        "{S} kể cho {t} nghe vì sao {s} chọn cách nói đó được không?",
+    ),
+    "verify": ("Đúng rồi! {S} nói cho {t} biết chữ nào trong câu giúp {s} chọn cách nói đó được không?",),
+    "confirm_advance": (
+        "Đúng rồi! Mình sang câu tiếp theo nhé.",
+        "{S} nói đúng rồi, giỏi lắm! Mình sang câu tiếp theo nhé.",
+        "Chính xác! {T} chuyển sang câu sau nhé.",
+        "Đúng rồi, {s} nhớ bài tốt lắm! Mình làm câu tiếp theo nhé.",
+    ),
+    "explain_back": ("{S} nói lại câu đó và vì sao nói như vậy cho {t} nghe được không?",),
+    "teach_back": ("{S} thử giảng lại cho {t} vì sao câu này nói như vậy, bằng lời của {s} nhé?",),
+    "worked_next": ("{S} nói tiếp phần còn lại của câu giúp {t} được không?",),
+    "close_item": (
+        "Mình dừng câu này ở đây nhé, {s} đã cố gắng nhiều rồi.",
+        "Câu này mình tạm dừng nhé. {S} đã thử rất chăm chỉ.",
+    ),
+}
+LEADS_EN: dict[str, tuple[str, ...]] = {
+    "NEGATIVE_AFFECT": (
+        "{T} nghe {s} nói rồi. Không sao đâu, mình đi chậm thôi nhé.",
+        "{T} ở đây cùng {s}. Mình thử từng chút một nhé.",
+    ),
+    "VAGUE": (
+        "{T} muốn nghe rõ hơn: chữ nào trong câu cho {s} biết phải nói như vậy?",
+        "{S} chỉ cho {t} chữ hoặc cụm từ trong câu đã giúp {s} nhé.",
+    ),
+    "HELP_REQUEST": ("Không sao đâu, mình cùng nghĩ từng chút nhé.", "Mình thử thêm một chút nữa nhé."),
+}
+# ENG-5g (DI-159): a right word said alone where the item wants the whole sentence ("ate" for "Yesterday we …
+# seafood"). The English checker marks it (``whole_sentence``); the tutor says so before the move's text.
+WHOLE_SENTENCE_LEAD = "Từ đó {s} chọn đúng rồi! {S} nói cả câu giúp {t} nhé."
 # The counter that picks the variant: the same words are not said twice in a row (anti-loop, replayable).
 _LEAD_COUNTER = {
     "STEP_PRAISE": "attempt_no",
@@ -137,9 +177,25 @@ def _cap(word: str) -> str:
     return word[:1].upper() + word[1:]
 
 
+def _english(ctx: RenderContext) -> bool:
+    return getattr(ctx.package, "subject", "math") == "english"
+
+
+def _phrase_of(ctx: RenderContext, key: str) -> str:
+    """The template of ``key`` in the session's subject: an English session's own words when it has them
+    (DI-157), else the shared ones. A Mathematics package always gets ``PHRASES``."""
+    if _english(ctx):
+        variants = PHRASES_EN.get(key)
+        if variants:
+            # several wordings, picked by the item and the attempt: the same praise is not said each time
+            pick = (sum(map(ord, ctx.item.id)) + ctx.state.attempt_no) % len(variants)
+            return variants[pick]
+    return PHRASES[key]
+
+
 def _say(ctx: RenderContext, key: str, **extra: str) -> str:
     t, s = ctx.persona.tutor_self, ctx.persona.student_address
-    return PHRASES[key].format(T=_cap(t), t=t, S=_cap(s), s=s, **extra)
+    return _phrase_of(ctx, key).format(T=_cap(t), t=t, S=_cap(s), s=s, **extra)
 
 
 def _words_of(text: str) -> set[str]:
@@ -535,13 +591,27 @@ def lead(ctx: RenderContext) -> str | None:
     code = next((c for c in _LEAD_ORDER if c in ctx.decision.reason_codes), None)
     if code is None:
         return None
-    variants = LEADS[code]
+    variants = (LEADS_EN.get(code) if _english(ctx) else None) or LEADS[code]
     said = max(getattr(ctx.state, _LEAD_COUNTER[code]) - 1, 0)
     t, s = ctx.persona.tutor_self, ctx.persona.student_address
     return variants[said % len(variants)].format(T=_cap(t), t=t, S=_cap(s), s=s)
 
 
+def _whole_sentence(ctx: RenderContext) -> bool:
+    return (
+        _english(ctx)
+        and ctx.check is not None
+        and bool(ctx.check.detail.get("whole_sentence"))
+        and ctx.decision.move
+        in (Move.HINT, Move.PROBE, Move.VERIFY, Move.COGNITIVE_CONFLICT, Move.OFFER_CHOICE)
+    )
+
+
 def _with_lead(ctx: RenderContext, msg: RenderedMessage) -> RenderedMessage:
+    if _whole_sentence(ctx):
+        t, s = ctx.persona.tutor_self, ctx.persona.student_address
+        said = WHOLE_SENTENCE_LEAD.format(T=_cap(t), t=t, S=_cap(s), s=s)
+        return _msg(f"{said} {msg.text}", msg.source, msg.hint_ref)
     first = lead(ctx)
     if first is None:
         return msg
@@ -567,11 +637,17 @@ class TemplateRenderer:
             if "DECLINE" in ctx.decision.reason_codes:
                 return _msg("Mình nghỉ một chút nhé. Khi sẵn sàng, con nhắn cô để mình học tiếp.", "TEMPLATE")
             if (ctx.focus or "").startswith("con tiếp nhận lời hướng dẫn"):
+                if _english(ctx):  # DI-157: no "thẻ" of a Mathematics exercise card in an English lesson
+                    return _msg(f"Ừ, mình làm tiếp nhé. {ctx.resume_prompt}".strip(), "TEMPLATE")
                 return _msg("Ừ, con thử làm tiếp câu trên thẻ nhé. Cô theo dõi cùng con.", "TEMPLATE")
             from cavat.modules.tutor.dialogue import conversion_ground
 
             rule = conversion_ground(ctx.item) or (
-                ctx.evidence[0] if ctx.evidence else "Mình cùng xem lại từng bước của bài nhé."
+                ctx.evidence[0]
+                if ctx.evidence
+                else "Mình cùng đọc lại câu nhé."
+                if _english(ctx)
+                else "Mình cùng xem lại từng bước của bài nhé."
             )
             said = fold((ctx.student_text or "").lower())
             lead = (

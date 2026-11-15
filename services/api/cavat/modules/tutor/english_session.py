@@ -18,18 +18,21 @@ Nothing here is imported by a Mathematics session: ``loop_options("math")`` is e
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+import re
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any
 
 from cavat.core.pedagogy import Move
 from cavat.core.subjects import check_subject
+from cavat.core.vi_text import fold
 from cavat.modules.ai_gateway.base import ModelClass
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.tutor.brain import BrainPack, fields_of
 from cavat.modules.tutor.contracts import RenderContext, RenderedMessage, ValidationCode, ValidationResult
 from cavat.modules.tutor.english import (
     EN_DIALOGUE_LABELS,
+    RETEACH_TASK_EN,
     build_english_request,
     english_off_topic,
     listen_request_en,
@@ -39,8 +42,10 @@ from cavat.modules.tutor.english import (
 from cavat.modules.tutor.english_validator import (
     EnglishCode,
     display_text,
+    english_spans,
     is_say_after_me,
     mark_english,
+    normalize_en,
     unit_lexicon,
     validator_for,
 )
@@ -49,7 +54,7 @@ from cavat.modules.tutor.prompt_builder import Turn, clean_text
 from cavat.modules.tutor.reader import LiveReader, Reading, rule_reading
 from cavat.modules.tutor.renderer import TemplateRenderer
 
-ENGLISH_SESSION_VERSION = "english-session/1.1.0"  # 1.1.0 (ENG-5c): DI-148–151
+ENGLISH_SESSION_VERSION = "english-session/1.2.0"  # 1.2.0 (ENG-5g): DI-156–163; 1.1.0 (ENG-5c): DI-148–151
 RECENT_TURNS_EN = 6
 MAX_ATTEMPTS_EN = 2  # one request, then once more with the rejection codes (as the Math brain)
 # DI-140: the moves an English turn may spend a model call on. The others keep the approved template words
@@ -57,6 +62,9 @@ MAX_ATTEMPTS_EN = 2  # one request, then once more with the rejection codes (as 
 _REVEAL_MOVES = frozenset({Move.FULL_EXPLANATION})
 # DI-151 (ENG-5c, L-4): messages in a row that only repeat the tutor before the period stops (N-ECHO).
 ECHO_STOP_EN = 4
+RETEACH_MAX_WORDS = 55  # DI-162: a short teaching again, then the question that waits
+# DI-163: what a model's turn says the child said, in English ("Con nói: [[en: Yes, I did.]]").
+_QUOTE = re.compile(r"(?i)\bcon\s+(?:vừa\s+|đã\s+)?nói(?:\s+là)?\s*:?\s*\[\[en:\s*([^\]]+?)\s*\]\]")
 
 
 @dataclass(frozen=True)
@@ -65,6 +73,9 @@ class EnglishTools:
 
     lexicon: frozenset[str]
     targets: tuple[str, ...]
+    # ENG-5g (DI-163): the English words of each node's approved teaching (theory, rule, worked examples). A
+    # hint on an item may use them and the item's own; other English is teaching off the item.
+    node_words: Mapping[str, frozenset[str]] = field(default_factory=dict)
 
 
 _tools: dict[tuple[str, str], EnglishTools] = {}
@@ -78,8 +89,45 @@ def english_tools(chapter: Chapter) -> EnglishTools:
     key = (pkg.chapter_id, pkg.version)
     if key not in _tools:
         lessons = list(chapter.lessons.values())
-        _tools[key] = EnglishTools(unit_lexicon(lessons), unit_targets(lessons))
+        _tools[key] = EnglishTools(unit_lexicon(lessons), unit_targets(lessons), _node_words(chapter))
     return _tools[key]
+
+
+_EN_TOKEN = re.compile(r"(?<![^\W\d_])[A-Za-z][A-Za-z']*(?![^\W\d_])")
+# Words any sentence of the unit may hold: grammar words, the names of the people of the book.
+_COMMON_EN = frozenset(
+    "a an the and or to of in on at with for is are was were it i we you he she they my your his her our "
+    "their this that there yes no not do does did ok".split()
+)
+
+
+def english_words(text: str) -> set[str]:
+    """The English words of a text: ASCII words that are not a Vietnamese syllable typed without marks are
+    not told apart here, so only the words of the unit's English count (callers intersect with a lexicon)."""
+    return {w.lower() for w in _EN_TOKEN.findall(text)}
+
+
+def _node_words(chapter: Chapter) -> dict[str, frozenset[str]]:
+    out: dict[str, frozenset[str]] = {}
+    for node in chapter.nodes:
+        texts = [
+            node.name,
+            node.method.rule,
+            *(t.text for t in node.theory),
+            *(t.reply or "" for t in node.theory),
+        ]
+        texts += [x for w in node.worked_examples for x in (w.problem, *w.steps, w.answer)]
+        out[node.id] = frozenset(w for t in texts for w in english_words(t or ""))
+    return out
+
+
+def _item_texts(item: Any) -> list[str]:
+    answer = item.answer
+    texts = [item.stem, item.explanation or "", item.rephrase or "", *item.worked_solution]
+    texts += [h.text for h in item.hints]
+    texts += [str(a) for a in getattr(answer, "accept", ()) or ()]
+    texts += [o.text for o in getattr(answer, "options", ()) or ()]
+    return texts
 
 
 def session_validator(lexicon: frozenset[str]) -> Callable[[str, RenderContext], ValidationResult]:
@@ -208,7 +256,7 @@ class EnglishRenderer:
         del self._history[:-RECENT_TURNS_EN]
         return message
 
-    def _pack(self, ctx: RenderContext, retry: tuple[str, ...]) -> BrainPack:
+    def _pack(self, ctx: RenderContext, retry: tuple[str, ...], approved: str = "") -> BrainPack:
         d, item = ctx.decision, ctx.item
         say_after_me = is_say_after_me(item)
         reveal = ctx.solved or ctx.answer_revealed or d.move in _REVEAL_MOVES or say_after_me
@@ -226,7 +274,10 @@ class EnglishRenderer:
             student_text=ctx.student_text or "",
             verdict=_verdict(ctx),
             recent=tuple(self._history),
-            grounds=tuple(g for g in (*ctx.evidence[:2],) if g),
+            # DI-163 (L-7): a hint rests on the item's own approved hint first, so it stays on the item
+            grounds=tuple(
+                dict.fromkeys(g for g in ((approved if d.move == Move.HINT else ""), *ctx.evidence[:2]) if g)
+            ),
             answer=str(accept[0]) if reveal and accept and isinstance(accept[0], str) else "",
             tutor_self=persona.tutor_self,
             student_address=persona.student_address,
@@ -236,12 +287,107 @@ class EnglishRenderer:
             retry_codes=retry,
         )
 
+    def _named(self, text: str) -> str:
+        """DI-163 (L-9): the child's name exactly as it is written ("Vuong", never "Vuông"): a word that is
+        the name with other diacritics is put back to the name. Deterministic, never a model's call."""
+        name = (self._student_name or "").strip()
+        if not name or " " in name:
+            return text
+        folded = fold(name.lower())
+
+        def fix(m: re.Match[str]) -> str:
+            word = m.group(0)
+            return name if word != name and fold(word.lower()) == folded else word
+
+        return re.sub(r"\w+", fix, text)
+
+    def _own_checks(self, marked: str, ctx: RenderContext) -> tuple[str, ...]:
+        """DI-163: two checks of a model's English turn the shared validator cannot make. INVENTED_QUOTE: it
+        quotes the child ("Con nói: Yes, I did…") with English the child did not say. OFF_ITEM_ENGLISH: a hint
+        or an explanation teaches English of another node than the item's (the "Did you…?" hints on a
+        comprehension item of VOCAB)."""
+        codes: list[str] = []
+        said = normalize_en(ctx.student_text or "")
+        for quoted in _QUOTE.findall(marked):
+            if normalize_en(quoted) and f" {normalize_en(quoted)} " not in f" {said} ":
+                codes.append("INVENTED_QUOTE")
+                break
+        if ctx.decision.move in (Move.HINT, Move.EXPLAIN) and self._tools.node_words:
+            allowed = set().union(*(self._tools.node_words.get(k, frozenset()) for k in ctx.item.kc_ids))
+            allowed |= {w for t in _item_texts(ctx.item) for w in english_words(t)}
+            spoken = {w for span in english_spans(marked) for w in english_words(span)}
+            if len(spoken - allowed - _COMMON_EN) >= 1 or ("did" in spoken and "did" not in allowed):
+                codes.append("OFF_ITEM_ENGLISH")
+        return tuple(codes)
+
+    def explain_again(
+        self,
+        *,
+        student_text: str,
+        asked: str,
+        grounds: Sequence[str],
+        recent: Sequence[tuple[str, str]],
+        item: Any,
+        package: Any,
+    ) -> Any:
+        """DI-162 (L-8): the teaching loop asks the English brain to teach again, short, what the child asked
+        in a theory or retell wait. Checked by the English validator (the node's check item for the leak
+        check) and by ``_own_checks``; the question that waits ends the turn. None: no model may speak."""
+        from cavat.core.pedagogy import ActivityType
+        from cavat.modules.teaching.grounded import Spoken
+        from cavat.modules.tutor.contracts import ItemState, Persona, PolicyDecision
+
+        persona = package.persona
+        ctx = RenderContext(
+            decision=PolicyDecision(move=Move.EXPLAIN, reason_codes=("RETEACH",)),
+            item=item,
+            package=package,
+            state=ItemState(item_id=item.id, activity=ActivityType.GUIDED_PRACTICE),
+            student_text=student_text,
+            persona=Persona(tutor_self=persona.tutor_self, student_address=persona.student_address),
+            max_words=RETEACH_MAX_WORDS,
+        )
+        history = tuple(Turn(role, text) for role, text in recent)[-RECENT_TURNS_EN:]
+        calls, rejected = 0, []
+        for _ in range(MAX_ATTEMPTS_EN):
+            pack = BrainPack(
+                task=RETEACH_TASK_EN,
+                question=asked,
+                student_text=student_text,
+                recent=history,
+                grounds=tuple(grounds),
+                tutor_self=persona.tutor_self,
+                student_address=persona.student_address,
+                name=self._student_name,
+                max_words=RETEACH_MAX_WORDS,
+                lesson=package.title,
+                retry_codes=tuple(rejected[-1]) if rejected else (),
+            )
+            request = build_english_request(pack, unit_words=self._tools.targets)
+            outcome = self._router.chat(
+                ModelClass.TUTOR_REASONING, request, calls_used=self.calls_used + calls
+            )
+            calls += outcome.calls_made
+            if outcome.result is None:
+                break
+            text, _, _ = fields_of(outcome.result.data)
+            marked = mark_english(self._named(text), self._tools.lexicon)
+            codes = tuple(self._validator(marked, ctx).codes) + self._own_checks(marked, ctx)
+            if not codes and asked and not display_text(marked).rstrip().endswith("?"):
+                codes = ("MISSING_QUESTION",)
+            if not codes:
+                self.calls_used += calls
+                return Spoken(display_text(marked), "LLM", (), tuple(rejected))
+            rejected.append(codes)
+        self.calls_used += calls
+        return Spoken("", "TEMPLATE", (), tuple(rejected))
+
     def _with_brain(self, ctx: RenderContext, fallback: RenderedMessage) -> RenderedMessage:
         move, calls, rejected = ctx.decision.move, 0, []
         level = int(ctx.decision.level) if ctx.decision.level is not None else None
         for _ in range(MAX_ATTEMPTS_EN):
             request = build_english_request(
-                self._pack(ctx, tuple(rejected[-1]) if rejected else ()),
+                self._pack(ctx, tuple(rejected[-1]) if rejected else (), fallback.text),
                 unit_words=self._tools.targets,
                 hint_level=level if move == Move.HINT else None,
             )
@@ -255,8 +401,9 @@ class EnglishRenderer:
                 self.last_trace = RenderTrace(move, fallback.source, calls, reason, tuple(rejected))
                 return fallback
             text, flagged, feedback = fields_of(outcome.result.data)
+            text = self._named(text)
             marked = mark_english(text, self._tools.lexicon)
-            codes = tuple(self._validator(marked, ctx).codes)
+            codes = tuple(self._validator(marked, ctx).codes) + self._own_checks(marked, ctx)
             if not codes:
                 self.calls_used += calls
                 self.last_trace = RenderTrace(
@@ -277,7 +424,10 @@ def _verdict(ctx: RenderContext) -> str:
     said = {"CORRECT": "ĐÚNG", "WRONG": "CHƯA ĐÚNG", "PARTIAL": "mới ĐÚNG MỘT PHẦN"}.get(check.outcome.value)
     if said is None:
         return ""
-    return f"Câu trả lời của con: {said}. Con đã trả lời {ctx.state.attempt_no} lần."
+    verdict = f"Câu trả lời của con: {said}. Con đã trả lời {ctx.state.attempt_no} lần."
+    if check.detail.get("whole_sentence"):  # DI-159: the right word, said alone
+        verdict += " Con mới nói đúng một từ cần điền; câu này cần nói cả câu."
+    return verdict
 
 
 def english_renderer(chapter: Chapter, router: Any, *, student_name, calls_used, history, history_item):

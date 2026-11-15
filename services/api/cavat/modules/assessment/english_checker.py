@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -66,6 +66,10 @@ class PhraseSpec:
     wrong_answers: Mapping[str, str] = field(default_factory=dict)
     allow_name: bool = False
     type: Literal["phrase"] = "phrase"
+    # ENG-5g (DI-159): the words the item's stem already gives ("Yesterday we … seafood": yesterday, we,
+    # seafood). A word said alone that an accepted answer holds and the stem does not give is the blank
+    # filled without the sentence (PARTIAL, ``whole_sentence``), not a wrong answer.
+    given: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -562,6 +566,19 @@ def check_phrase(spec: PhraseSpec, text: str, ctx: EnglishContext = NO_CONTEXT) 
         return CheckResult(Outcome.CORRECT, normalized=answer, correct_answer=correct)
     if repaired != answer and right(repaired):
         return _wrong(EnCode.SLIP, ctx, answer, correct, codes=[EnCode.SLIP])
+    target_words = {w for g in groups for p in g for w in p.split()} - spec.given
+    if (
+        len(answer.split()) <= 2
+        and any(contains_words(f.text, answer) for f in forms)
+        and set(answer.split()) & target_words
+    ):
+        # DI-159: "ate" for "Yesterday we … seafood": the right word, said alone. The sentence is still owed.
+        return CheckResult(
+            Outcome.PARTIAL,
+            normalized=answer,
+            correct_answer=correct,
+            detail={"missing_groups": list(range(len(groups))), "whole_sentence": True},
+        )
     met = [any(contains_words(answer, p) for p in g) for g in groups]
     if any(met):
         missing = [i for i, ok in enumerate(met) if not ok]
@@ -638,4 +655,34 @@ def check_english_item(item: Any, text: str, pkg: Any) -> CheckResult:
     if intent is not None:
         return CheckResult(intent)
     ctx = context_for(list(item.kc_ids), list(_field(pkg, "misconceptions", ()) or ()))
+    if isinstance(spec, PhraseSpec):
+        spec = replace(spec, given=frozenset(normalize_answer(_field(item, "stem", "") or "").split()))
     return check_english(spec, text, ctx)
+
+
+# ENG-5g (L-5, DI-160): Vietnamese words of intent ("hả", "là sao") that the English words of an item can
+# look like once the diacritics are left out ("Ha Long Bay" read as "hả"). Quoted English is not intent.
+_EN_WORD = r"(?<![^\W\d_])[A-Za-z][A-Za-z'’]*(?![^\W\d_])"
+_EN_RUN = re.compile(rf"{_EN_WORD}(?:[\s,]+{_EN_WORD})*")
+
+
+def english_intent(text: str, item: Any) -> Outcome | None:
+    """The intent of a reply in an English lesson (``read_intent``), read on the reply without the English
+    words it quotes from the item (its stem, accepted answers, explanation): "Vì đoạn văn có Ha Long Bay"
+    is an explanation, not "hả?". A reply that is only English words keeps its plain reading."""
+    answer = _field(item, "answer", None)
+    sources = [
+        _field(item, "stem", "") or "",
+        _field(item, "explanation", "") or "",
+        *(_field(answer, "accept", ()) or ()),
+    ]
+    known = {w for src in sources for w in normalize_answer(src).split() if w.isascii()}
+
+    def keep(m: re.Match[str]) -> str:
+        words = normalize_answer(m.group(0)).split()
+        return " " if words and all(w in known for w in words) else m.group(0)
+
+    stripped = _EN_RUN.sub(keep, text)
+    if not stripped.strip(" .,!?…:;'\"") or len(re.findall(r"\w+", stripped)) < 2:
+        return read_intent(text)
+    return read_intent(stripped)

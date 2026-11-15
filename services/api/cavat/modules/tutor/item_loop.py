@@ -415,6 +415,12 @@ class ItemTutor:
 
         signal = conversation_signal(text, self.last_tutor)
         plain = check_answer(self.item, text, self.package)
+        if self.package.subject == "english" and plain.outcome == Outcome.CORRECT:
+            # ENG-5g (L-4, DI-158): a right English sentence is the child's answer, whatever the phase (after
+            # "con đã nghĩ thế nào?" too), a question included ("What did your family do…?" is the answer of
+            # a question item). The listener once read it as REPAIR and the tutor taught the theory again
+            # instead of grading it. Mathematics keeps its path.
+            return None
         read = getattr(self.reader, "read_dialogue", None)
         recent = getattr(self.renderer, "recent", ()) or self._heard[-6:]
         reading, listened = None, False
@@ -779,7 +785,7 @@ class ItemTutor:
         )
         if contextual is None and self._ambiguous(text):
             return self._on_unclear(text, "EXPLANATION")
-        intent = None if contextual is not None else classify_intent(text)
+        intent = None if contextual is not None else self._explanation_intent(text)
         self._explained = intent is None
         self.state.last_explanation_vague = False
         if intent is None:
@@ -809,6 +815,15 @@ class ItemTutor:
         if decision is not None and "ASK_AGAIN" in decision.reason_codes:
             self.state.explanation_asked_again = True  # once (DI-38)
         return self._act(decision, text)
+
+    def _explanation_intent(self, text: str) -> Outcome | None:
+        """What a "vì sao" reply is when it is not an explanation. ENG-5g (L-5, DI-160): in English the
+        English words the child quotes from the item ("Ha Long Bay") are not Vietnamese words ("hả")."""
+        if self.package.subject == "english":
+            from cavat.modules.assessment.english_checker import english_intent
+
+            return english_intent(text, self.item)
+        return classify_intent(text)
 
     def _on_reason(self, text: str, seconds: float) -> TutorTurn:
         """The reply to "con đã làm thế nào?" (R-FIRST-WRONG).
@@ -1161,6 +1176,8 @@ class ItemTutor:
             return self._probe_option.probe.prompt
         if self.phase == Phase.AWAITING_CHOICE:
             return "Con muốn tự thử lại hay để cô gợi ý thêm?"
+        if self.package.subject == "english":
+            return self._resume_question_en()
         if self.phase in (Phase.VERIFYING, Phase.TEACH_BACK):
             return "Con kể cô nghe cách con làm câu này nhé?"
         if self.phase == Phase.AWAITING_REASON:
@@ -1177,6 +1194,23 @@ class ItemTutor:
             if asked := question_tail(self.last_tutor):
                 return asked
         return "Kết quả bài trên thẻ là gì con?"
+
+    def _resume_question_en(self) -> str:
+        """ENG-5g (L-3, DI-157): the question an English item still waits for, in the lesson's own words. The
+        Mathematics ones ("kết quả bài trên thẻ", "bắt đầu từ bước nào") never reach an English lesson."""
+        from cavat.modules.tutor.dialogue import question_tail
+        from cavat.modules.tutor.renderer import visible_stem
+
+        if self.phase in (Phase.VERIFYING, Phase.TEACH_BACK, Phase.AWAITING_REASON):
+            if asked := question_tail(self.last_tutor):
+                return asked
+            if self.phase == Phase.AWAITING_REASON:
+                return "Con kể cô nghe con đã nghĩ thế nào khi nói câu đó nhé?"
+            return "Con nói cho cô biết vì sao câu nói như vậy nhé?"
+        if self.item.rephrase:
+            return self.item.rephrase
+        stem = visible_stem(self.item.stem)
+        return stem if "?" in stem else f"{stem.rstrip(' .')}. Con trả lời giúp cô nhé?"
 
     def _render(self, d: PolicyDecision, student_text: str | None) -> tuple[RenderedMessage, int]:
         explaining = d.move == Move.EXPLAIN
