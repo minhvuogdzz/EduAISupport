@@ -36,6 +36,7 @@ from cavat.modules.tutor.contracts import ItemState, PolicyDecision, RenderConte
 from cavat.modules.tutor.english_session import (
     EnglishRenderer,
     english_tools,
+    knowledge_tools,
     loop_options,
     session_validator,
 )
@@ -415,14 +416,15 @@ class ScriptedRouter:
         return ChatOutcome(result=result if text else None, fallback_reason=None, calls_made=1)
 
 
-def english_renderer_for(router, name=None) -> EnglishRenderer:
-    tools = english_tools(unit())
+def english_renderer_for(router, name=None, knowledge=True) -> EnglishRenderer:
+    tools = knowledge_tools(english_tools(unit()), knowledge)
     return EnglishRenderer(
         router,
         TemplateRenderer(),
         validator_for("english", lexicon=tools.lexicon),
         tools,
         student_name=name,
+        knowledge=knowledge,
     )
 
 
@@ -533,3 +535,79 @@ def test_no_math_word_in_the_new_english_phrases():
             for text in variants:
                 assert not math_terms_in(text) and not any(w in text for w in MATH_WORDS), text
     assert re.search(r"\{part\}", PHRASES_EN["retell_partial"][0])
+
+
+# --------- 9. the model is the way, templates the last resort (DI-164)
+
+
+def test_a_refused_model_turn_is_asked_again_and_the_third_is_kept_not_the_template():
+    router = ScriptedRouter(
+        [
+            "Đúng rồi! Con nói đúng. Con còn nhớ vì sao không? Con kể cô nghe nhé?",  # two questions
+            "Con nói đúng rồi, chữ nào trong câu giúp con chọn A? Cô nghe nhé?",  # two questions again
+            "Đúng rồi, Lan nhặt vỏ sò cùng anh trai. Mình sang câu tiếp theo nhé.",
+        ]
+    )
+    ctx = replace(_ctx("U11-VO-CC-01", Move.CONFIRM_ADVANCE), student_text="A")
+    message = english_renderer_for(router).render(ctx)
+    assert message.source == "LLM" and "vỏ sò" in message.text
+    assert len(router.requests) == 3
+
+
+ZOO = "Con nhớ câu: [[en: We went to the zoo.]] Vì sao con chọn cách nói đó?"
+
+
+def test_the_model_may_use_standard_grade_5_english_around_the_units_words():
+    """BRAIN-4 for English: an example with everyday words outside the unit ("zoo") is allowed when
+    ENGLISH_ALLOW_TUTOR_KNOWLEDGE is on, refused when it is off."""
+    ctx = replace(_ctx("U11-VO-CC-01", Move.VERIFY), student_text="A")
+    kept = english_renderer_for(ScriptedRouter([ZOO])).render(ctx)
+    assert kept.source == "LLM"
+    strict = english_renderer_for(ScriptedRouter([ZOO] * 3), knowledge=False).render(ctx)
+    assert strict.source != "LLM"
+
+
+def test_knowledge_off_keeps_the_strict_constitution():
+    from cavat.modules.tutor.english import english_system_prompt
+
+    assert english_system_prompt(True) != english_system_prompt(False)
+    assert "kiến thức tiếng Anh chuẩn lớp 5" in english_system_prompt(True)
+    assert "kiến thức tiếng Anh chuẩn lớp 5" not in english_system_prompt(False)
+
+
+# ------------------------------------------------------------- 10. B then A (owner's screenshot)
+
+
+def test_a_wrong_choice_then_the_right_letter_are_both_graded_and_the_item_is_not_a_first_try():
+    """ "B" (wrong) -> PROBE -> "A" (right): two graded attempts, the item resolves with its two attempts, the
+    answer after the probe is an answer (never an explanation), and no message talks of another item."""
+    ch = unit()
+    item_id = next(
+        i.id
+        for lesson in ch.lessons.values()
+        for i in lesson.items
+        if "Do you swim with your mother" in i.stem
+    )
+    t = ItemTutor(
+        ch.item(item_id), ch.lesson_of(item_id), ActivityType.GUIDED_PRACTICE, TemplateRenderer(),
+        session_validator(english_tools(ch).lexicon), DEFAULT_CONFIG, reader=RepairReader("AWAITING_REASON"),
+    )  # fmt: skip
+    t.start()
+    t.on_student("B", 5, dialogue_version=3)
+    assert t.phase == Phase.AWAITING_REASON
+    t.on_student("A", 5, dialogue_version=3)
+    graded = [e.payload for e in t.events if e.type == EventType.ANSWER_SUBMITTED]
+    assert [g["outcome"] for g in graded] == ["WRONG", "CORRECT"]
+    assert [g["attempt_no"] for g in graded] == [1, 2]
+    resolved = (
+        [e.payload for e in t.events if e.type == EventType.ITEM_RESOLVED][-1]
+        if t.phase == Phase.RESOLVED
+        else None
+    )
+    if resolved is not None:
+        assert resolved["attempts"] == 2
+
+
+def test_a_letter_is_not_an_answer_to_an_item_without_options():
+    for item_id in ("U11-PA-CP-01", "U11-WD-CP-01", "U11-VO-TR-04"):
+        assert _check(item_id, "A").outcome != Outcome.CORRECT, item_id

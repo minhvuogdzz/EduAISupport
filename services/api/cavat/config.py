@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # child (124 messages, ~150 answers needed); model feedback after grading (ENG-5g) adds ~0.3. Cap =
     # messages x answers per message x 1.2. An answer is one call since DI-153, a refusal none.
     english_max_llm_calls_per_unit: int = 240
+    # ENG-5g (DI-164, rule C1): BRAIN-4 for English: the tutor may teach with standard grade-5 English
+    # around the unit's words, not only the unit's own lexicon. False keeps constitution-en.v1.
+    english_allow_tutor_knowledge: bool = True
     gemini_api_key: SecretStr | None = None
     gemini_vision_model: str = "gemini-3.8-flash"
     # Free tier (docs/poc/free-tier-quota.md): 20 requests a day per model. When the first model is rate

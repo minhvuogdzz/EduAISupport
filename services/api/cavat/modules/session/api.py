@@ -1347,6 +1347,7 @@ def _live_renderer(session: LearningSession, content: Any, router: Any) -> Any:
         calls_used=(session.state.activity or {}).get("llm_calls", 0),
         history=service.item_history(session),
         history_item=(session.state.item or {}).get("item_id"),
+        knowledge=get_settings().english_allow_tutor_knowledge,
     )
 
 

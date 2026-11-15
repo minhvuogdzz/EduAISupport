@@ -43,3 +43,29 @@ Mọi thay đổi là một nhánh theo môn, đọc từ gói nội dung của 
 - **[OPEN]** Model cho `GroundedSpeaker` Tiếng Anh (DI-140) vẫn chưa có; DI-162 chỉ phủ giảng lại ở lượt chờ lý thuyết/retell. Các nhãn khác của bộ nghe (REACTION, DECLINE) vẫn là lời đã duyệt.
 - **[OPEN]** Danh sách TERM của DI-160 và ngưỡng OFF_ITEM_ENGLISH (một từ ngoài tư liệu) là khai báo; cần chủ dự án xem lại sau lượt chạy thật kế tiếp.
 - Cap lượt gọi model (L-1 của báo cáo) và lỗi cấu hình Gemini (L-10) thuộc ENG-5f, không sửa ở đây.
+
+## Phụ lục: model là đường chính, lời giọng ngọt ngào (phản hồi chủ dự án sau khi xem buổi Vuong trên web)
+
+Chủ dự án thấy lời cô vẫn như "câu mẫu" (lặp "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận…", "Con nói đúng ý rồi.") và yêu cầu: model trả lời theo ngữ cảnh, có hồn, ngọt ngào với trẻ nhỏ, không thêm câu mẫu; RAG không bó quá chặt như BRAIN-4 của Toán.
+
+**Vì sao Tiếng Anh rơi vào template `confirm_advance`** (đọc từ event của buổi 15/11): CONFIRM_ADVANCE/VERIFY của Tiếng Anh đã đi đường model (`EnglishRenderer`, không thuộc `_template_only`), nhưng (a) validator loại lời model (`OUT_OF_UNIT_ENGLISH` 17, `MULTIPLE_QUESTIONS` 5, `MISSING_QUESTION` 5, `ANSWER_LEAK` 5) và chỉ thử 2 lần rồi rơi về template; (b) từ event 1102 cap lượt gọi cạn nên 100% template (đã sửa ở ENG-5f, #154); (c) constitution v1 chỉ cho dùng từ trong `[TỪ VÀ MẪU CÂU CỦA BÀI]`.
+
+**DI-164 (BRAIN-4 cho Tiếng Anh):**
+1. `ENGLISH_ALLOW_TUTOR_KNOWLEDGE=true` (mặc định; `false` giữ `constitution-en.v1`): model được dùng tiếng Anh chuẩn lớp 5 quanh từ của bài (`STANDARD_WORDS` + dạng quá khứ bất quy tắc `IRREGULAR_PAST`) trong ví dụ và giải thích; từ lạ ngoài danh sách vẫn bị `OUT_OF_UNIT_ENGLISH`. Kiểm lộ đáp án, một câu hỏi/lượt, `INVENTED_QUOTE`, `OFF_ITEM_ENGLISH` giữ nguyên.
+2. `constitution-en.v2`: giọng "cô giáo hiền, ngọt ngào, gần gũi với trẻ lớp 5"; mỗi lượt nghe đúng lời con, nhắc một chi tiết thật trong lời con, vui cùng con khi đúng, dịu dàng kiên nhẫn khi sai/nản; cấm khen chung chung và lặp cách mở lời của các lượt trước. Nhiệm vụ CONFIRM_ADVANCE, VERIFY trong `english.py` viết lại theo hướng đó (không dùng câu hỏi mẫu).
+3. Model được thử tối đa 3 lần (kèm mã từ chối của lần trước) trước khi nói lời đã duyệt (`MAX_ATTEMPTS_EN` 2→3); template là dự phòng cuối, không thêm câu mẫu mới cho đường này.
+4. Gợi ý và giảng lại (DI-162/163) cũng qua đường model có kiểm.
+
+**Chưa làm / không áp dụng:** bộ chọn bandit (BANDIT-1) giữ tắt cho Tiếng Anh vì nó học từ câu trả lời Toán của cả trường (DI-140); bật cần trạng thái bandit tách theo môn, là việc riêng. Lời ngọt ngào phải được chủ dự án nghe thử ở lượt chạy thật tiếp theo: eval offline dùng template nên không đo được chất lượng lời model (`--live` cần khóa Groq).
+
+### Đối chiếu BRAIN-2..8 của Toán → nhánh Tiếng Anh
+
+| Cơ chế Toán | Nhánh Tiếng Anh |
+|---|---|
+| BRAIN-2 (ADR-038) tra RAG rồi ấn phẩm chính thống | Đã có từ ENG-5b: `ENGLISH_WEB_LOOKUP=off`, RAG riêng theo môn; không mở web vì chưa có nguồn công khai đã xác minh cho Unit 11 |
+| BRAIN-3 (ADR-039) giữ vòng dạy, đúng từng phần không tăng gợi ý | Dùng chung `TeachingLoop`/policy; DI-156 (retell thiếu ý nói rõ ý thiếu), DI-159 (đúng một từ = PARTIAL "nói cả câu") thêm ở ENG-5g |
+| BRAIN-4 (ADR-040) model nghe nguyên lời con, giảng bằng kiến thức chuẩn | Vừa thêm: DI-164 (cờ, từ vựng chuẩn, constitution v2) |
+| BRAIN-5 (ADR-041) đọc xác nhận theo lời cô, hồi quota theo bucket | Đọc xác nhận dùng chung (`conversation_signal`); quota là ENG-5f (#154) |
+| BRAIN-6 (ADR-042) nói gọn, ấm, không suy diễn | Vừa thêm: giọng ngọt ngào và `INVENTED_QUOTE` (DI-163); chưa có đo định lượng |
+| BRAIN-7 (ADR-043) `WEB_LOOKUP=search` | Không áp dụng (web tắt cho Tiếng Anh) |
+| BRAIN-8 (ADR-044) CONTINUE giữ mạch, xin giảng ngắn rồi hỏi tiếp | CONTINUE dùng chung; xin giảng lại: DI-162 (`_english_reteach`, model có kiểm rồi tới tư liệu của nút) |

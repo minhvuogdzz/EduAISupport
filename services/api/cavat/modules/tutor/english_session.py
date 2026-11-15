@@ -20,9 +20,11 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
+from cavat.config import get_settings
+from cavat.core.en_text import IRREGULAR_PAST
 from cavat.core.pedagogy import Move
 from cavat.core.subjects import check_subject
 from cavat.core.vi_text import fold
@@ -40,6 +42,7 @@ from cavat.modules.tutor.english import (
     unit_targets,
 )
 from cavat.modules.tutor.english_validator import (
+    STANDARD_WORDS,
     EnglishCode,
     display_text,
     english_spans,
@@ -56,7 +59,9 @@ from cavat.modules.tutor.renderer import TemplateRenderer
 
 ENGLISH_SESSION_VERSION = "english-session/1.2.0"  # 1.2.0 (ENG-5g): DI-156–163; 1.1.0 (ENG-5c): DI-148–151
 RECENT_TURNS_EN = 6
-MAX_ATTEMPTS_EN = 2  # one request, then once more with the rejection codes (as the Math brain)
+# DI-164: the model is the way a turn is worded; a refused output is asked again twice with the refusal codes
+# (ENG-5g) before the approved words are said, so the fallback is the last resort, not the usual turn.
+MAX_ATTEMPTS_EN = 3
 # DI-140: the moves an English turn may spend a model call on. The others keep the approved template words
 # (PRESENT, test items, CONFIRM_ADVANCE without words to answer: ``llm_renderer._template_only``).
 _REVEAL_MOVES = frozenset({Move.FULL_EXPLANATION})
@@ -159,7 +164,9 @@ def loop_options(chapter: Chapter) -> dict[str, Any]:
     if check_subject(chapter.package.subject) == "math":
         return {}
     return {
-        "validator": session_validator(english_tools(chapter).lexicon),
+        "validator": session_validator(
+            knowledge_tools(english_tools(chapter), get_settings().english_allow_tutor_knowledge).lexicon
+        ),
         "off_topic": english_off_topic,
         "echo_stop": ECHO_STOP_EN,
     }
@@ -229,7 +236,9 @@ class EnglishRenderer:
         calls_used: int = 0,
         history: Sequence[Turn] = (),
         history_item: str | None = None,
+        knowledge: bool = True,
     ) -> None:
+        self._knowledge = knowledge
         self._router, self._template, self._validator, self._tools = router, template, validator, tools
         self._student_name = student_name
         self.calls_used = calls_used
@@ -315,6 +324,8 @@ class EnglishRenderer:
         if ctx.decision.move in (Move.HINT, Move.EXPLAIN) and self._tools.node_words:
             allowed = set().union(*(self._tools.node_words.get(k, frozenset()) for k in ctx.item.kc_ids))
             allowed |= {w for t in _item_texts(ctx.item) for w in english_words(t)}
+            if self._knowledge:
+                allowed |= STANDARD_WORDS
             spoken = {w for span in english_spans(marked) for w in english_words(span)}
             if len(spoken - allowed - _COMMON_EN) >= 1 or ("did" in spoken and "did" not in allowed):
                 codes.append("OFF_ITEM_ENGLISH")
@@ -363,7 +374,7 @@ class EnglishRenderer:
                 lesson=package.title,
                 retry_codes=tuple(rejected[-1]) if rejected else (),
             )
-            request = build_english_request(pack, unit_words=self._tools.targets)
+            request = build_english_request(pack, unit_words=self._tools.targets, knowledge=self._knowledge)
             outcome = self._router.chat(
                 ModelClass.TUTOR_REASONING, request, calls_used=self.calls_used + calls
             )
@@ -390,6 +401,7 @@ class EnglishRenderer:
                 self._pack(ctx, tuple(rejected[-1]) if rejected else (), fallback.text),
                 unit_words=self._tools.targets,
                 hint_level=level if move == Move.HINT else None,
+                knowledge=self._knowledge,
             )
             outcome = self._router.chat(
                 ModelClass.TUTOR_REASONING, request, calls_used=self.calls_used + calls
@@ -430,14 +442,27 @@ def _verdict(ctx: RenderContext) -> str:
     return verdict
 
 
-def english_renderer(chapter: Chapter, router: Any, *, student_name, calls_used, history, history_item):
+def knowledge_tools(tools: EnglishTools, knowledge: bool) -> EnglishTools:
+    """DI-164 (BRAIN-4 for English): with ``ENGLISH_ALLOW_TUTOR_KNOWLEDGE`` the lexicon of the checks holds
+    the everyday English of grade 5 and the past forms the checker knows; the targets of the prompt are the
+    unit's own, unchanged."""
+    if not knowledge:
+        return tools
+    extra = STANDARD_WORDS | set(IRREGULAR_PAST) | set(IRREGULAR_PAST.values())
+    return replace(tools, lexicon=tools.lexicon | extra)
+
+
+def english_renderer(
+    chapter: Chapter, router: Any, *, student_name, calls_used, history, history_item, knowledge: bool = True
+):
     """The live renderer of an English session (``session.service.llm_renderer`` for Mathematics)."""
-    tools = english_tools(chapter)
+    tools = knowledge_tools(english_tools(chapter), knowledge)
     return EnglishRenderer(
         router,
         TemplateRenderer(),
         validator_for("english", lexicon=tools.lexicon),
         tools,
+        knowledge=knowledge,
         student_name=student_name,
         calls_used=calls_used,
         history=history,
