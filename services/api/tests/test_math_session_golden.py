@@ -29,14 +29,25 @@ GOLDEN = Path(__file__).parent / "golden" / "math-session-before-eng5b.json"
 
 _ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 _TIME = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d")
-_CLOCK_KEYS = {"seconds", "latency_ms", "time_s", "occurred_at", "recorded_at", "created_at", "updated_at", "started_at", "ended_at"}
+_CLOCK_KEYS = {
+    "seconds",
+    "latency_ms",
+    "time_s",
+    "occurred_at",
+    "recorded_at",
+    "created_at",
+    "updated_at",
+    "started_at",
+    "ended_at",
+}
 
 
 def normalize(value: Any, ids: dict[str, str]) -> Any:
     """Ids become <id1>, <id2>… in order of appearance; clocks and timings become fixed placeholders."""
     if isinstance(value, dict):
         return {
-            k: ("<clock>" if k in _CLOCK_KEYS and v is not None else normalize(v, ids)) for k, v in value.items()
+            k: ("<clock>" if k in _CLOCK_KEYS and v is not None else normalize(v, ids))
+            for k, v in value.items()
         }
     if isinstance(value, list):
         return [normalize(v, ids) for v in value]
@@ -142,7 +153,9 @@ def test_math_session_identical_to_before_eng5b(memory):
     got = _record(TestClient(app), memory)
     if os.environ.get("WRITE_GOLDEN") == "1" and not GOLDEN.exists():
         kept = {k: v for k, v in got.items() if k != "views"}
-        GOLDEN.write_text(json.dumps(kept, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        GOLDEN.write_text(
+            json.dumps(kept, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+        )
     want = json.loads(GOLDEN.read_text(encoding="utf-8"))
     assert set(want) <= set(got)
     for key in want:

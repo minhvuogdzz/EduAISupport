@@ -7,7 +7,7 @@ PORT ?= $(API_PORT)
 BIND_HOST ?= 127.0.0.1
 VOICE_PORT ?= 8010
 
-.PHONY: setup test lint fmt api api-memory run run-memory web-build doctor tunnel backup db-pack storage-pack smoke demo demo-memory accounts library-import item-bank teaching-plan figures draft-teaching eval-items trial review-export teach db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
+.PHONY: setup test lint fmt api api-memory run run-memory web-build doctor tunnel backup db-pack storage-pack smoke demo demo-memory accounts library-import item-bank teaching-plan figures draft-teaching eval-items trial review-export teach teach-en db-ping db-indexes ai-ping web web-live web-install web-check eval-hard eval-rag eval-rag-published eval-grounded voice-setup voice misconception-coverage eval-baselines paper paper-data paper-compact paper-rev eval-chooser model-usage compare-models
 
 setup: ## Create the venv (Python 3.11+) and install dependencies
 	@test -d services/api/.venv || python3.11 -m venv services/api/.venv
@@ -60,6 +60,9 @@ review-export: ## Export every review decision (who, when, why) to var/storage/r
 
 teach: ## Talk with the AI tutor in the terminal: the teaching loop on the decimals chapter, offline
 	cd services/api && .venv/bin/python scripts/teach_cli.py
+
+teach-en: ## Talk with the English tutor in the terminal: Unit 11 "Family time", offline (ENG-5b)
+	cd services/api && .venv/bin/python scripts/teach_en_cli.py
 
 eval-hard: ## Ten hard students with the real Qwen and an LLM judge (uses the free-tier quota; not run by make test)
 	cd services/api && .venv/bin/python scripts/eval_hard_students.py

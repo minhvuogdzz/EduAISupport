@@ -253,13 +253,60 @@ def is_chapter(session: LearningSession) -> bool:
     return (session.state.activity or {}).get("mode") == MODE
 
 
+def subject_of(session: LearningSession) -> Subject:
+    """ENG-5b (rule S1, S4, DI-142): the subject of a chapter session, from its own document. The backend
+    wrote it when the session was created, from the package it runs; a session without one (every session
+    from before English, every Mathematics session) is a Mathematics one. A value that is not a subject is an
+    error, never Mathematics."""
+    return check_subject((session.state.activity or {}).get("subject", DEFAULT_SUBJECT))  # type: ignore[return-value]
+
+
+def teachable_chapter(chapter_id: str) -> Chapter | None:
+    """ENG-5b: the chapter or unit a new session opens, of whichever subject it is. A chapter id names one
+    chapter of one subject (ADR-062), so the subject comes from the package found, never from the request.
+    Mathematics is looked up first: a Mathematics id finds exactly what it found before."""
+    for subject in SUBJECTS:
+        found = chapters(subject).get(chapter_id)
+        if found is not None:
+            return found
+    return None
+
+
+def teachable_chapters() -> list[dict[str, str]]:
+    """ENG-5b: every chapter and unit a student can open a session on, with its subject (for the web's list):
+    Mathematics first, the default chapter first among them, then English."""
+    refs = []
+    for subject in SUBJECTS:
+        found = chapters(subject)
+        order = sorted(found, key=lambda cid: (cid != DEFAULT_CHAPTER_ID, cid))
+        refs += [{"chapter_id": cid, "title": found[cid].package.title, "subject": subject} for cid in order]
+    return refs
+
+
+def _mode(chapter: Chapter) -> dict[str, Any]:
+    """The fixed part of a chapter session's activity. ``subject`` is written only for a subject other than
+    Mathematics (DI-142): a Mathematics session document stays byte for byte what it was (rule S4)."""
+    pkg = chapter.package
+    out: dict[str, Any] = {"mode": MODE, "chapter_id": pkg.chapter_id}
+    if pkg.subject != DEFAULT_SUBJECT:
+        out["subject"] = check_subject(pkg.subject)
+    return out
+
+
+def _loop_options(chapter: Chapter) -> dict[str, Any]:
+    """What the teaching loop is built with for the chapter's subject (empty for Mathematics)."""
+    if chapter.package.subject == DEFAULT_SUBJECT:
+        return {}
+    from cavat.modules.tutor.english_session import loop_options
+
+    return loop_options(chapter)
+
+
 def new_session(
     chapter: Chapter, school_id: str, student_id: str, display_name: str | None
 ) -> LearningSession:
     pkg = chapter.package
-    state = SessionState(
-        lifecycle=LifecycleState.READY, activity={"mode": MODE, "chapter_id": pkg.chapter_id}
-    )
+    state = SessionState(lifecycle=LifecycleState.READY, activity=_mode(chapter))
     return LearningSession(
         school_id=school_id,
         student_id=student_id,
@@ -279,7 +326,7 @@ def join(
     speaker: GroundedSpeaker | None = None,
 ) -> Step:
     """READY -> ACTIVE: the teaching loop starts on the first node the student has not passed yet."""
-    loop = TeachingLoop(chapter, session.id, history, speaker=speaker)
+    loop = TeachingLoop(chapter, session.id, history, speaker=speaker, **_loop_options(chapter))
     turn = loop.start(now)
     started = NewEvent(
         event_type=EventType.SESSION_STARTED.value,
@@ -357,7 +404,7 @@ def apply_command(
     if command == "CHOICE" and choice_id not in CHOICES:
         raise CommandNotAllowed(f"unknown choice {choice_id!r}")
     act = session.state.activity or {}
-    loop = TeachingLoop.resume(chapter, session.id, history, session.events)
+    loop = TeachingLoop.resume(chapter, session.id, history, session.events, **_loop_options(chapter))
     loop.go_live(
         live_renderer, reader, speaker, chooser
     )  # the replay above used templates; this turn may call models
@@ -511,8 +558,7 @@ def _state_after(
     last = NodeDecisionMade.model_validate(decisions[-1].payload)
     step = STEP_OF.get(last.action)
     activity = {
-        "mode": MODE,
-        "chapter_id": chapter.package.chapter_id,
+        **_mode(chapter),
         "awaiting": turn.awaiting.value,
         "node_id": turn.node_id or node_id,
         "step": step,
