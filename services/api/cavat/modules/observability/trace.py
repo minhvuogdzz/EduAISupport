@@ -126,9 +126,9 @@ def _result(kind: str, operation: str, result: Any, args: tuple, kwargs: dict) -
         usage = getattr(answered, "usage", None)
         known = usage is not None and usage.prompt_tokens + usage.completion_tokens > 0
         return {
-            "status": "success" if answered else "fallback" if result.calls_made else "skipped",
+            "status": "success" if answered else "fallback" if _calls_sent(result) else "skipped",
             "model": getattr(answered, "model", None),
-            "calls_sent": result.calls_made,
+            "calls_sent": _calls_sent(result),
             "prompt_tokens": usage.prompt_tokens if known else None,
             "completion_tokens": usage.completion_tokens if known else None,
             "details": {
@@ -156,3 +156,9 @@ def _result(kind: str, operation: str, result: Any, args: tuple, kwargs: dict) -
         "purpose": kwargs.get("task", operation),
         "details": {"usage_reported": usage is not None},
     }
+
+
+def _calls_sent(outcome: Any) -> int:
+    """Requests that reached a provider (DI-153: no longer what the call costs the session's cap)."""
+    sent = getattr(outcome, "calls_sent", None)
+    return sent if isinstance(sent, int) else outcome.calls_made

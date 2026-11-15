@@ -160,7 +160,7 @@ def test_transient_model_limit_recovers_once_without_a_wait_utterance():
         transient_retry_s=6,
     )
     result = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
-    assert result.result and result.calls_made == 2 and len(result.attempts) == 2
+    assert result.result and result.calls_made == 1 and result.calls_sent == 2 and len(result.attempts) == 2
     assert len(sleeps) == 1 and 2 <= sleeps[0] < 3
 
 
@@ -180,7 +180,7 @@ def test_daily_exhaustion_never_sleeps_or_retries_the_same_model():
         transient_retry_s=6,
     )
     result = router.chat(ModelClass.TUTOR_REASONING, _request(), calls_used=0)
-    assert result.result is None and result.calls_made == 1 and not sleeps
+    assert result.result is None and result.calls_made == 0 and result.calls_sent == 1 and not sleeps
 
 
 def test_ambiguous_decimal_digit_rule_and_false_fraction_quantity_are_rejected():
