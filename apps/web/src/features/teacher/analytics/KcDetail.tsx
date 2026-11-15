@@ -7,6 +7,7 @@ import {
   RECOMMENDATION_LABEL,
 } from "../../../components/labels";
 import { formatViDecimal } from "../../../lib/viNumber";
+import { MistakeList } from "../../english/Mistakes";
 import { useSubject } from "../../subjects/subjectContext";
 import { ConfidenceBar } from "./MasteryGauge";
 import { zoneOf } from "./zones";
@@ -168,6 +169,8 @@ export function KcDetail({ node }: { node: TeacherNodeDetail }) {
           </ul>
         </div>
       )}
+
+      <MistakeList mistakes={node.mistakes} title="Lỗi điển hình (từ các câu trả lời đã chấm)" />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

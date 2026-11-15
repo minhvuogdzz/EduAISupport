@@ -22,6 +22,7 @@ import {
   type ChapterContent,
   type ChapterSummary,
   type ChatTurn,
+  type ChildSubject,
   type ClassOverview,
   type CommandAck,
   type SessionState,
@@ -520,6 +521,17 @@ export function createHttpApi(options: HttpApiOptions = {}): SessionApi {
       return request<ParentChildView>(
         "GET",
         `/v1/parents/me/child${chapterQuery(chapterId)}`,
+        as(() => PARENT_HEADERS),
+      );
+    },
+
+    getChildSubjects(code) {
+      const path = code
+        ? `/v1/parents/children/${encodeURIComponent(code.trim())}/subjects`
+        : "/v1/parents/me/child/subjects";
+      return request<ChildSubject[]>(
+        "GET",
+        path,
         as(() => PARENT_HEADERS),
       );
     },

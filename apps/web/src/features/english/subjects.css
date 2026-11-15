@@ -1295,3 +1295,82 @@
     animation: none;
   }
 }
+
+/* ENG-7c (DI-153): the typical mistakes under "cần luyện", bright chips with a short example */
+.mistake-box {
+  margin-top: 8px;
+}
+.mistake-title {
+  margin-bottom: 6px;
+  color: var(--subject-english-deep);
+  font-size: 13px;
+  font-weight: 700;
+}
+.mistake-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mistake-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px 10px;
+  border-left: 4px solid var(--tone-mid);
+  border-radius: 6px;
+  background: var(--tone-soft);
+  color: var(--tone-ink);
+  font-size: 14px;
+  animation: playful-pop 420ms var(--bounce) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+.mistake-label {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.mistake-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.mistake-example {
+  padding: 2px 9px;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(36 64 79 / 0.12);
+  color: var(--subject-english-deep);
+  font-weight: 700;
+}
+.mistake-item:hover .mistake-example {
+  animation: playful-wiggle 500ms ease-in-out;
+}
+
+/* ENG-7c: the subject the child studied last */
+.subject-tile {
+  position: relative;
+}
+.subject-tile-latest {
+  position: absolute;
+  top: -8px;
+  right: 10px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--subject-color);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgb(36 64 79 / 0.2);
+  animation: playful-float 3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mistake-item,
+  .subject-tile-latest {
+    animation: none;
+  }
+}

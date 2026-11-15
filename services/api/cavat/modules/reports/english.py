@@ -8,6 +8,8 @@ copy of such a view, the fields the English pages read and Mathematics has none 
 - ``subject`` on the chapter references, the English units as the chapters to pick from;
 - ``pattern`` beside a node's Vietnamese name, ``example`` beside a home tip (DI-144);
 - ``current_step`` of the six-step cycle for the student (ADR-059);
+- ``mistakes`` beside a node to practise (parent, student) and every node (teacher): the typical mistakes
+  the child made on the node, in Vietnamese with a short example "eat → ate" (ENG-7c, DI-153);
 - the spoken turns: per day (``activity[].voice_turns/asr_low``), per item (``journey[].modality``), the
   share of answers said aloud (``kpis.voice_share``), the warning ``ASR_LOW`` (DI-114 item 3, DI-145) and
   the list of turns with what the listener wrote, q, the language and the recording (DI-146).
@@ -23,11 +25,14 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from difflib import SequenceMatcher
 from typing import Any
 
+from cavat.core.en_text import normalize_answer
 from cavat.core.events import EventType, NodeDecisionMade
-from cavat.core.pedagogy import TeachAction
+from cavat.core.pedagogy import ErrorClass, Outcome, TeachAction
+from cavat.modules.assessment.answer_check import check_answer, is_english_answer
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.session.chapter_service import STEP_OF, chapters
 from cavat.modules.session.progress import Folded, local_day
@@ -199,6 +204,166 @@ def current_step(folded: Folded) -> int | None:
     return STEP_OF.get(TeachAction(NodeDecisionMade.model_validate(decisions[-1].payload).action))
 
 
+# ------------------------------------------------------------------------- typical mistakes (ENG-7c, DI-153)
+
+MISTAKES_SHOWN = 3  # DI-153: the most frequent kinds of mistake listed for a node
+EXAMPLES_SHOWN = 2  # DI-153: distinct examples per kind, newest first
+OFTEN = 2  # DI-153: "còn hay nhầm" from this many graded answers of a kind; one is "có lúc nhầm"
+PAIR_WORDS = 3  # DI-153: an example "said → right" is at most three words on each side
+NEAR = 0.5  # DI-153: below this word similarity to every accepted answer, no example is drawn
+SLIP_NEAR = 0.75  # DI-153: one word for one word this close letter by letter is a spelling slip
+
+# DI-153: the English error codes of DI-107 in the parent's words. A misconception of the lesson keeps its
+# approved name; these words are for a mistake no misconception names.
+MISTAKE_LABEL = {
+    "EN_TENSE": "Kể chuyện đã qua mà chưa đổi động từ sang quá khứ",
+    "EN_VERB_FORM": "Thêm -ed vào động từ có dạng quá khứ riêng",
+    "EN_STRUCTURE": "Hỏi chuyện đã qua với did chưa đúng (thiếu did hoặc đổi động từ sau did)",
+    "EN_SHORT_ANSWER": "Trả lời ngắn chưa khớp câu hỏi (Yes, I did. / No, I didn't.)",
+    "EN_MEANING": "Hiểu nhầm nghĩa của câu hoặc cụm từ",
+    "EN_SLIP": "Viết hoặc nói sai chính tả một từ",
+    "EN_L1": "Trả lời bằng tiếng Việt khi bài cần nói tiếng Anh",
+    "MISSING": "Câu còn thiếu một phần",
+    "WORD": "Dùng chưa đúng từ trong câu",
+}
+
+
+def _accepted(item: Any) -> list[str]:
+    """The right sentences of an English item, from its approved answer (the checker's own source)."""
+    answer = item.answer
+    if answer.type == "word_order":
+        return [" ".join(order) for order in answer.accept]
+    return list(answer.accept) or [" ".join(group[0] for group in answer.required)]
+
+
+def _pair(said: str, right: str) -> str | None:
+    """The first place the child's sentence differs from a right one, as "said → right" ("eat → ate"), or
+    the part left out ("thiếu “around the bay”"). None when the two are not close enough to compare."""
+    a, b = normalize_answer(said).split(), normalize_answer(right).split()
+    for tag, i1, i2, j1, j2 in SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():
+        x, y = " ".join(a[i1:i2]), " ".join(b[j1:j2])
+        if tag == "replace" and i2 - i1 <= PAIR_WORDS and j2 - j1 <= PAIR_WORDS:
+            return f"{x} → {y}"
+        if tag == "insert" and j2 - j1 <= PAIR_WORDS + 1:
+            return f"thiếu “{y}”"
+        if tag == "delete" and i2 - i1 <= PAIR_WORDS:
+            return f"thừa “{x}”"
+        if tag != "equal":
+            return None
+    return None
+
+
+def _example(item: Any, payload: Mapping[str, Any]) -> str | None:
+    """DI-153: a short example of the mistake, derived from the answer, never the child's whole sentence
+    (rule F4): the words that differ from the nearest accepted answer, or the option picked and the right
+    one of a choice item."""
+    answer = item.answer
+    if answer.type == "choice":
+        said = str(payload.get("normalized") or payload.get("raw_text") or "").strip()
+        picked = next((o for o in answer.options if o.id == said), None)
+        right = next((o for o in answer.options if o.correct), None)
+        if picked is None or right is None or picked is right:
+            return None
+        return f"chọn “{picked.text}” thay vì “{right.text}”"
+    if not is_english_answer(answer):
+        return None
+    said = normalize_answer(payload.get("raw_text") or "")
+    candidates = [
+        (SequenceMatcher(a=said.split(), b=normalize_answer(r).split()).ratio(), r) for r in _accepted(item)
+    ]
+    if not said or not candidates:
+        return None
+    ratio, nearest = max(candidates, key=lambda c: c[0])
+    return _pair(said, nearest) if ratio >= NEAR else None
+
+
+def _slip(example: str | None) -> bool:
+    """One word for one word, close letter by letter ("seafod → seafood"): a spelling slip (DI-153)."""
+    if not example or " → " not in example:
+        return False
+    x, y = example.split(" → ")
+    return " " not in x and " " not in y and SequenceMatcher(a=x, b=y).ratio() >= SLIP_NEAR
+
+
+def _kind(
+    chapter: Chapter, item: Any, payload: Mapping[str, Any], example: str | None
+) -> tuple[str, str] | None:
+    """DI-153: what kind of mistake a graded answer shows, and its words: the lesson's misconception when
+    the checker named one; else the DI-107 code the deterministic checker gives the same answer again (it
+    never calls a model); else a part left out, a spelling slip or a wrong word read from the example."""
+    names = {m.id: m.name for lesson in chapter.lessons.values() for m in lesson.misconceptions}
+    mis = payload.get("misconception_id")
+    if mis in names:
+        return f"M:{mis}", names[mis]
+    if payload.get("error_class") == ErrorClass.L1:
+        return "EN_L1", MISTAKE_LABEL["EN_L1"]
+    code = None
+    if is_english_answer(item.answer):
+        try:
+            result = check_answer(item, payload.get("raw_text") or "", chapter.lesson_of(payload["item_id"]))
+        except (KeyError, TypeError, ValueError):
+            result = None
+        if result is not None:
+            code = (result.detail or {}).get("en_code")
+    if code in MISTAKE_LABEL:
+        return code, MISTAKE_LABEL[code]
+    if _slip(example):
+        return "EN_SLIP", MISTAKE_LABEL["EN_SLIP"]
+    if example and example.startswith("thiếu"):
+        return "MISSING", MISTAKE_LABEL["MISSING"]
+    if example and " → " in example:
+        return "WORD", MISTAKE_LABEL["WORD"]
+    return None
+
+
+def mistakes(chapter: Chapter, folded: Folded, node_id: str) -> list[dict[str, Any]]:
+    """DI-153: the typical mistakes of the child on a node, the most frequent first (at most three): each
+    kind in Vietnamese, how many graded answers showed it and up to two examples, newest first. Read from
+    ANSWER_SUBMITTED (outcome WRONG or PARTIAL) on the node's items; nothing is graded or written here."""
+    found: dict[str, dict[str, Any]] = {}
+    for e in folded.events:
+        if e.event_type != EventType.ANSWER_SUBMITTED:
+            continue
+        p = e.payload
+        if p.get("outcome") not in (Outcome.WRONG, Outcome.PARTIAL):
+            continue
+        try:
+            item = chapter.item(p["item_id"])
+        except KeyError:
+            continue
+        if node_id not in item.kc_ids:
+            continue
+        example = _example(item, p)
+        kind = _kind(chapter, item, p, example)
+        if kind is None:
+            continue
+        row = found.setdefault(kind[0], {"label": kind[1], "count": 0, "examples": [], "last": e.occurred_at})
+        row["count"] += 1
+        row["last"] = max(row["last"], e.occurred_at)
+        if example:
+            row["examples"] = [example, *(x for x in row["examples"] if x != example)]
+    rows = sorted(found.values(), key=lambda r: (-r["count"], -_seconds(r["last"])))
+    return [
+        {"label": r["label"], "count": r["count"], "examples": r["examples"][:EXAMPLES_SHOWN]}
+        for r in rows[:MISTAKES_SHOWN]
+    ]
+
+
+def _seconds(moment: datetime) -> float:
+    return moment.timestamp()
+
+
+def mistake_reason(found: Sequence[Mapping[str, Any]]) -> str | None:
+    """DI-153: the sentence "cần luyện" says, as concrete as Mathematics's "Còn hay nhầm: …": the most
+    frequent mistake and its newest example. None when the child made no mistake a kind names."""
+    if not found:
+        return None
+    top = found[0]
+    lead = "Còn hay nhầm" if top["count"] >= OFTEN else "Có lúc nhầm"
+    example = f", ví dụ {top['examples'][0]}" if top["examples"] else ""
+    return f"{lead}: {top['label'][0].lower()}{top['label'][1:]}{example}"
+
+
 # ------------------------------------------------------------------------------------- the views, enriched
 
 
@@ -206,15 +371,26 @@ def _with_patterns(chapter: Chapter, rows: Sequence[Mapping[str, Any]]) -> list[
     return [{**r, "pattern": pattern(chapter, r["node_id"])} for r in rows]
 
 
+def _to_practise(chapter: Chapter, folded: Folded, rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """DI-153: each node to practise with the child's typical mistakes, its reason the most frequent one
+    (the shared reason stays when no mistake has a kind)."""
+    out = []
+    for row in _with_patterns(chapter, rows):
+        found = mistakes(chapter, folded, row["node_id"])
+        out.append({**row, "reason": mistake_reason(found) or row.get("reason"), "mistakes": found or None})
+    return out
+
+
 def overview(view: Mapping[str, Any], chapter: Chapter, folded: Folded) -> dict[str, Any]:
-    """The student's (and the parent's) overview of an English unit: the subject, the patterns, the step."""
+    """The student's (and the parent's) overview of an English unit: the subject, the patterns, the step,
+    the typical mistakes of what to practise."""
     return {
         **view,
         "chapter": chapter_ref(chapter),
         "chapters": chapter_refs(),
         "nodes": _with_patterns(chapter, view["nodes"]),
         "going_well": _with_patterns(chapter, view["going_well"]),
-        "to_practise": _with_patterns(chapter, view["to_practise"]),
+        "to_practise": _to_practise(chapter, folded, view["to_practise"]),
         "current_step": current_step(folded),
     }
 
@@ -278,5 +454,6 @@ def student(view: Mapping[str, Any], chapter: Chapter, folded: Folded, today: da
         "activity": activity,
         "attention": _attention(view["attention"], folded, today),
         "journey": journey,
+        "nodes": [{**n, "mistakes": mistakes(chapter, folded, n["node_id"]) or None} for n in view["nodes"]],
         "voice_turns": voice_turn_list(chapter, folded),
     }
