@@ -42,8 +42,9 @@ class Settings(BaseSettings):
     # MAX_LLM_CALLS_PER_CHAPTER. DI-143: the web lookup of an English session, off unless turned on.
     english_web_lookup: Literal["off", "search", "official", "wikipedia"] = "off"
     # The model calls one English unit session may spend (each session counts its own, as a chapter session).
-    # DI-155 (ENG-5f): 240, from 160. The live run of 15/11/2026 needed about 175-205 answers for the whole
-    # unit (115 by two thirds of it); an answer is one call since DI-153, a refusal none.
+    # DI-155 (ENG-5f, ADR-069): 240, from 160. The live run of 15/11/2026: 1.25 answers per message of the
+    # child (124 messages, ~150 answers needed); model feedback after grading (ENG-5g) adds ~0.3. Cap =
+    # messages x answers per message x 1.2. An answer is one call since DI-153, a refusal none.
     english_max_llm_calls_per_unit: int = 240
     gemini_api_key: SecretStr | None = None
     gemini_vision_model: str = "gemini-3.8-flash"
