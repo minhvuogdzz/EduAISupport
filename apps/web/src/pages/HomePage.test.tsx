@@ -22,12 +22,12 @@ describe("the notebook landing page", () => {
     );
   });
 
-  it("presents both subjects and marks English as a preview", async () => {
+  it("presents both subjects, English running for real (Q-E7, ENG-7b)", async () => {
     renderApp("/");
     expect(await screen.findByRole("heading", { level: 3, name: "Toán lớp 5" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Tiếng Anh lớp 5" })).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /Xem trước Tiếng Anh/ }).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Bản xem trước").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Vào học Tiếng Anh/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Bản xem trước")).not.toBeInTheDocument();
   });
 
   it("switches the worked example between subjects", async () => {

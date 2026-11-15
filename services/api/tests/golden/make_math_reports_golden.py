@@ -25,7 +25,12 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))  # the tests' scripted learners
 # As tests/conftest.py: demo identities, no model, no web, no voice server, no journal.
 os.environ.update(
-    AUTH_MODE="demo", OBSERVABILITY_ENABLED="0", GROQ_API_KEY="", GEMINI_API_KEY="", WEB_LOOKUP="off", TTS="off"
+    AUTH_MODE="demo",
+    OBSERVABILITY_ENABLED="0",
+    GROQ_API_KEY="",
+    GEMINI_API_KEY="",
+    WEB_LOOKUP="off",
+    TTS="off",
 )
 os.environ["WEB_DIST"] = str(HERE.parent / "no-web-build")
 os.environ["API_DOCS"] = "0"

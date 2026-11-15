@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import type { SessionApi } from "../../api/client";
 import { renderApp, testApi } from "../../test/renderApp";
 
 const UNIT = "eng-g5-u11-family-time";
@@ -128,5 +129,66 @@ describe("English, Unit 11 (ENG-7a)", () => {
     expect(screen.queryByText("Vòng ôn bài 6 bước")).not.toBeInTheDocument();
     const subjects = screen.getByRole("navigation", { name: "Chọn môn học" });
     expect(within(subjects).getByRole("link", { name: /Toán/ })).toHaveAttribute("aria-current", "page");
+  });
+});
+
+/**
+ * The real API (ENG-7b): no `englishDemo`. The server is played by the demo's answers, so what is checked is
+ * the path: which endpoint, with which unit and subject; the client never sends a subject for a view.
+ */
+function realApi() {
+  const demo = testApi().englishDemo!;
+  const base = testApi();
+  const api: SessionApi = {
+    ...base,
+    englishDemo: undefined,
+    getTaughtChapters: vi.fn((subject?: string) =>
+      Promise.resolve(
+        subject === "english"
+          ? [{ chapter_id: UNIT, title: "Unit 11: Family time", subject: "english" as const }]
+          : [{ chapter_id: "math-g5-decimals", title: "Số thập phân" }],
+      ),
+    ),
+    getClassOverview: vi.fn((chapter?: string) => demo.getClassOverview!(chapter)),
+    getStudentReport: vi.fn((id: string, chapter?: string) => demo.getStudentReport!(id, chapter)),
+    getChildOverview: vi.fn((code: string, chapter?: string) => demo.getChildOverview!(code, chapter)),
+    getMyOverview: vi.fn((chapter?: string) => demo.getMyOverview!(chapter)),
+    getTurnAudio: vi.fn(() => Promise.resolve(new Blob(["opus"], { type: "audio/webm" }))),
+    getTranscript: vi.fn(() => Promise.reject(new Error("not in this test"))),
+  };
+  return api;
+}
+
+describe("English on the real API (ENG-7b)", () => {
+  it("asks the server for the teacher's units and the unit's class, never a preview label", async () => {
+    const api = realApi();
+    renderApp("/teacher/english", api);
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Lớp học · Tiếng Anh · Unit 11: Family time" }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(api.getTaughtChapters).toHaveBeenCalledWith("english"));
+    expect(api.getClassOverview).toHaveBeenCalledWith(UNIT);
+    expect(screen.queryByText("Bản xem trước")).not.toBeInTheDocument();
+  });
+
+  it("plays a spoken turn through the teacher-only endpoint", async () => {
+    const api = realApi();
+    const { user } = renderApp(`/teacher/english/students/demo-an?chapter=${UNIT}`, api);
+    expect(await screen.findByRole("heading", { level: 1, name: "Học sinh An" })).toBeInTheDocument();
+    expect(api.getStudentReport).toHaveBeenCalledWith("demo-an", UNIT);
+    const voice = screen.getByRole("region", { name: "Lượt nói của con" });
+    await user.click(within(voice).getByRole("button", { name: /Nghe lại lượt nói: Yes I do/ }));
+    await waitFor(() => expect(api.getTurnAudio).toHaveBeenCalledWith("an-v7"));
+  });
+
+  it("gives the parent the unit's words, with no recording endpoint called", async () => {
+    const api = realApi();
+    renderApp("/parent/english/A1B2C3", api);
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Tình hình học của An" }),
+    ).toBeInTheDocument();
+    expect(api.getChildOverview).toHaveBeenCalledWith("A1B2C3", UNIT);
+    expect(api.getTurnAudio).not.toHaveBeenCalled();
+    expect(document.body.textContent ?? "").not.toContain("Nghe lại");
   });
 });

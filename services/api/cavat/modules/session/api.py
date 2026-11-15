@@ -20,13 +20,13 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import date, datetime
 from functools import lru_cache, partial
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, Header, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
 from cavat import db
 from cavat.config import get_settings
@@ -44,6 +44,7 @@ from cavat.modules.library import api as library_api
 from cavat.modules.observability import api as admin_api
 from cavat.modules.rag import api as rag_api
 from cavat.modules.rag.service import RagService
+from cavat.modules.reports import english as english_report
 from cavat.modules.session import chapter_service, progress, service, teacher_view
 from cavat.modules.session.model_calls import model_call_events
 from cavat.modules.session.repository import (
@@ -63,6 +64,7 @@ from cavat.modules.tutor.bandit_store import BanditRepository
 from cavat.modules.tutor.chooser import ModelChooser
 from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.voice import api as voice_api
+from cavat.modules.voice import replay as voice_replay
 
 MAX_TEXT_CHARS = 500
 MAX_TUTOR_RECOVERIES = 3
@@ -190,9 +192,27 @@ class RelationView(BaseModel):
     type: Literal["PREREQUISITE", "SUBCLASS", "SIMILAR", "APPLICATION"]
 
 
-class ChapterRef(BaseModel):
+class _OmitNone(BaseModel):
+    """ENG-7b (ADR-067): the fields added for English are left out of the JSON while unset, so every
+    Mathematics response stays the one before English, key for key (english-module-rules F1)."""
+
+    _omit_none: ClassVar[tuple[str, ...]] = ()
+
+    @model_serializer(mode="wrap")
+    def _leave_out_unset(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        for name in self._omit_none:
+            if isinstance(data, dict) and data.get(name) is None:
+                data.pop(name, None)
+        return data
+
+
+class ChapterRef(_OmitNone):
+    _omit_none = ("subject",)
+
     chapter_id: str
     title: str
+    subject: Literal["english"] | None = None  # absent: Mathematics (DI-124)
 
 
 class TeachingView(BaseModel):
@@ -449,7 +469,9 @@ class TeachingReportView(BaseModel):
     decisions: list[DecisionView]
 
 
-class ProgressNode(BaseModel):
+class ProgressNode(_OmitNone):
+    _omit_none = ("pattern",)
+
     node_id: str
     name: str
     layer: Literal["BASIC", "IMPLEMENT"]
@@ -458,13 +480,17 @@ class ProgressNode(BaseModel):
     quality: Literal["NOT_STARTED", "INSUFFICIENT_DATA", "FAMILIAR", "WITH_SUPPORT", "INDEPENDENT", "SOLID"]
     order: int
     passed: bool
+    pattern: str | None = None  # English: the target pattern beside the name (DI-144)
 
 
-class ProgressTopic(BaseModel):
+class ProgressTopic(_OmitNone):
+    _omit_none = ("pattern",)
+
     node_id: str
     name: str
     quality: str
     reason: str | None = None
+    pattern: str | None = None  # English (DI-144)
 
 
 class SessionCounts(BaseModel):
@@ -479,8 +505,10 @@ class WeekView(BaseModel):
     passed: int
 
 
-class StudentOverviewView(BaseModel):
+class StudentOverviewView(_OmitNone):
     """GET /v1/students/me/overview: the student's chapter in plain words (PART 27.1, DI-14)."""
+
+    _omit_none = ("current_step",)
 
     student_display_name: str
     parent_code: str
@@ -498,6 +526,7 @@ class StudentOverviewView(BaseModel):
     to_practise: list[ProgressTopic]
     current_session_id: str | None
     last_session_at: datetime | None
+    current_step: int | None = None  # English: step 1-6 of the cycle in the open session (ADR-059, ADR-067)
 
 
 class TrendDay(BaseModel):
@@ -507,10 +536,13 @@ class TrendDay(BaseModel):
     started: int
 
 
-class HomeTip(BaseModel):
+class HomeTip(_OmitNone):
+    _omit_none = ("example",)
+
     node_id: str
     name: str
     tip: str
+    example: str | None = None  # English: the sentence to say at home, quoted from the tip (DI-144)
 
 
 class ParentSession(BaseModel):
@@ -555,9 +587,12 @@ class MasteryCell(BaseModel):
     active_misconceptions: int
 
 
-class AttentionReason(BaseModel):
+class AttentionReason(_OmitNone):
+    _omit_none = ("voice_turns", "share")
+
     # SAFETY (SAFE-1): the child said something worrying in a session; first in the list
-    kind: Literal["SAFETY", "STOPPED", "MISCONCEPTION", "WEAK", "INACTIVE"]
+    # ASR_LOW (English, DI-114): many spoken turns the listener did not hear clearly in the last 7 days
+    kind: Literal["SAFETY", "STOPPED", "MISCONCEPTION", "WEAK", "INACTIVE", "ASR_LOW"]
     node_id: str | None = None
     misconception_id: str | None = None
     count: int | None = None
@@ -565,6 +600,8 @@ class AttentionReason(BaseModel):
     days: int | None = None
     session_id: str | None = None  # SAFETY: the session to open
     at: datetime | None = None  # SAFETY: when the last flag was raised
+    voice_turns: int | None = None  # ASR_LOW: spoken turns in the last 7 days (DI-145)
+    share: float | None = None  # ASR_LOW: share of them with q < 0,6, 0-1
 
 
 class OverallView(BaseModel):
@@ -610,7 +647,9 @@ class ClassMisconception(BaseModel):
     recent: int
 
 
-class ClassKpis(BaseModel):
+class ClassKpis(_OmitNone):
+    _omit_none = ("voice_share",)
+
     students: int
     active_this_week: int
     sessions: int
@@ -619,6 +658,7 @@ class ClassKpis(BaseModel):
     cells: int
     mean_mastery: float | None
     attention: int
+    voice_share: float | None = None  # English: % of the answers said aloud, 0-100 (DI-145)
 
 
 class ClassOverviewView(BaseModel):
@@ -688,7 +728,9 @@ class Velocity(BaseModel):
     since: str
 
 
-class ActivityDay(BaseModel):
+class ActivityDay(_OmitNone):
+    _omit_none = ("voice_turns", "asr_low")
+
     date: str
     independent: int
     supported: int
@@ -696,15 +738,37 @@ class ActivityDay(BaseModel):
     unresolved: int
     hints: int
     passed: int
+    voice_turns: int | None = None  # English: spoken turns that day (DI-145)
+    asr_low: int | None = None  # English: of them, with q < 0,6
 
 
-class JourneyStep(BaseModel):
+class JourneyStep(_OmitNone):
+    _omit_none = ("modality",)
+
     node_id: str
     item_id: str
     resolution: str
     attempts: int
     hints: int
     at: datetime
+    modality: Literal["TEXT", "VOICE"] | None = None  # English: how the deciding answer was given
+
+
+class VoiceTurnView(BaseModel):
+    """English (ADR-060 §9.1, DI-146): one spoken turn as the teacher hears it back; never for a parent."""
+
+    turn_id: str
+    session_id: str
+    at: datetime
+    node_id: str | None
+    item_id: str | None
+    prompt: str
+    transcript: str  # what the listener wrote, verbatim
+    asr_confidence: float | None  # q of DI-109
+    language: Literal["vi", "en"]  # the language the listener was told to hear (rule V2)
+    audio_ref: str | None  # GET /v1/teachers/voice/{audio_ref}
+    outcome: str | None
+    teacher_override: bool = False
 
 
 class CurvePoint(BaseModel):
@@ -725,9 +789,11 @@ class ConversationStats(BaseModel):
     intents: dict[str, int] = Field(default_factory=dict)
 
 
-class TeacherStudentView(BaseModel):
+class TeacherStudentView(_OmitNone):
     """GET /v1/teachers/students/{id}: §23 and §43 overview, §24 radar, §27 timeline, §39 velocity, §56
     activity and the §57 detail of every KC."""
+
+    _omit_none = ("voice_turns",)
 
     student_id: str
     display_name: str
@@ -748,6 +814,7 @@ class TeacherStudentView(BaseModel):
     journey: list[JourneyStep] = Field(default_factory=list)
     curve: list[CurvePoint] = Field(default_factory=list)
     conversation: ConversationStats = Field(default_factory=ConversationStats)
+    voice_turns: list[VoiceTurnView] | None = None  # English: the spoken turns, newest first (DI-146)
 
 
 class CommandAck(BaseModel):
@@ -1645,10 +1712,16 @@ async def make_choice(
 
 def _named_chapter(chapter_id: str | None) -> Chapter:
     """The chapter a view is about (``?chapter=``), the default one when none is named. The caller names a
-    chapter the tutor teaches, nothing else: the lesson plan, the model and the activity stay the server's."""
+    chapter the tutor teaches, nothing else: the lesson plan, the model and the activity stay the server's.
+
+    ENG-7b (ADR-067): a report view may name an English unit; its subject is the unit package's, never the
+    caller's (rule S1). A Mathematics chapter is found as before."""
     chapter_id = chapter_id or chapter_service.DEFAULT_CHAPTER_ID
     if chapter_id not in chapter_service.chapters():
-        raise ApiError(404, "NOT_FOUND", f"no chapter {chapter_id!r}")
+        unit = chapter_service.chapters(english_report.ENGLISH).get(chapter_id)
+        if unit is None:
+            raise ApiError(404, "NOT_FOUND", f"no chapter {chapter_id!r}")
+        return unit
     return _chapter(chapter_id)
 
 
@@ -1665,7 +1738,10 @@ def _chapter_overview(
 ) -> dict[str, Any]:
     own = [s for s in sessions if s.student_id == student_id]
     view = progress.overview(chapter, own, today)
-    return {**view, "parent_code": progress.parent_code(student_id), "chapters": _chapter_refs()}
+    view = {**view, "parent_code": progress.parent_code(student_id), "chapters": _chapter_refs()}
+    if english_report.is_english(chapter):  # ENG-7b: Mathematics never comes here
+        view = english_report.overview(view, chapter, progress.fold(chapter, own))
+    return view
 
 
 @students.get("/me/overview", response_model=StudentOverviewView)
@@ -1701,17 +1777,24 @@ async def _child_view(database: Any, student_id: str, today: date, chapter: Chap
     own = await _repo(database).list_for_student(student_id)
     view = _chapter_overview(chapter, own, student_id, today)
     practise = view["to_practise"] or [n for n in view["nodes"] if not n["passed"]][:1]
-    return {
+    view = {
         **view,
         "trend": progress.trend(chapter, own, today),
         "home_tips": progress.home_tips(chapter, practise),
         "session_list": progress.sessions_list(chapter, own),
     }
+    return english_report.parent(view) if english_report.is_english(chapter) else view
 
 
 @teachers.get("/taught-chapters", response_model=list[ChapterRef])
-async def taught_chapters(teacher: Teacher):
-    """Teacher: the chapters the tutor teaches now (built in or published from the teacher's documents)."""
+async def taught_chapters(teacher: Teacher, subject: Literal["math", "english"] | None = None):
+    """Teacher: the chapters the tutor teaches now (built in or published from the teacher's documents).
+
+    ENG-7b (ADR-067): ``?subject=english`` lists the English units, each with its ``subject``, for the
+    English pages; without it, the Mathematics chapters exactly as before (DI-124). It only picks a list to
+    show: what a view or a session contains stays decided by the chapter package."""
+    if subject == english_report.ENGLISH:
+        return english_report.chapter_refs()
     return [
         {"chapter_id": cid, "title": c.package.title} for cid, c in sorted(chapter_service.chapters().items())
     ]
@@ -1727,7 +1810,11 @@ async def class_view(database: Database, teacher: Teacher, today: Today, chapter
         if enrolled is None or session.student_id in enrolled:
             by_student.setdefault(session.student_id, []).append(session)
     reviewed = await _reviews(database).reviewed([s.id for ss in by_student.values() for s in ss])
-    return teacher_view.class_overview(chapter, by_student, today, reviewed)
+    view = teacher_view.class_overview(chapter, by_student, today, reviewed)
+    if english_report.is_english(chapter):  # ENG-7b: Mathematics never comes here
+        folded = {sid: progress.fold(chapter, ss) for sid, ss in by_student.items()}
+        view = english_report.class_view(view, chapter, folded, today)
+    return view
 
 
 async def _enrolled(database: Any) -> set[str] | None:
@@ -1754,7 +1841,10 @@ async def teacher_student(
     if not progress.chapter_sessions(chapter, sessions):
         raise ApiError(404, "NOT_FOUND", "this student has no session on the chapter")
     reviewed = await _reviews(database).reviewed([s.id for s in sessions])
-    return teacher_view.student_detail(chapter, student_id, sessions, today, reviewed)
+    view = teacher_view.student_detail(chapter, student_id, sessions, today, reviewed)
+    if english_report.is_english(chapter):  # ENG-7b: Mathematics never comes here
+        view = english_report.student(view, chapter, progress.fold(chapter, sessions), today)
+    return view
 
 
 def _reviews(database: Any) -> SafetyReviewRepository:
@@ -1844,6 +1934,12 @@ def register(app: FastAPI) -> None:
         )
     )
     app.include_router(voice_api.build_router(student_identity, lambda: _shared_router(), voice_sessions))
+    # ENG-7b: the teacher hears a spoken turn of the school again (rule F5); the folder is read per request
+    app.include_router(
+        voice_replay.build_router(
+            get_database, teacher_identity, service.DEMO_SCHOOL_ID, lambda: voice_api._storage()
+        )
+    )
     published = [Depends(published_chapters)]  # INGEST-4: the teacher's published plans
     app.include_router(router, dependencies=published)
     app.include_router(students, dependencies=published)

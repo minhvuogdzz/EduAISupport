@@ -21,7 +21,7 @@ export interface SubjectProfile {
   ChapterName: (title: string) => string;
   /** The framework a method note cites before its section number: "khung Toán §46". */
   framework: string;
-  /** The chapter the English pages ask for until the server lists its units (ENG-7b). */
+  /** The unit the English pages ask for when none is picked: the first one the server teaches. */
   defaultChapter?: string;
   /** The seven dimensions C R A T I S D with the meaning they have in this subject (teacher only). */
   dimensionLabel: Record<Dimension, string>;

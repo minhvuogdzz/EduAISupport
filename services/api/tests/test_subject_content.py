@@ -197,12 +197,15 @@ async def client(monkeypatch):
 
 
 def test_a_session_or_a_view_cannot_open_the_english_unit_through_mathematics(client):
-    """Until the English session (ENG-5) the unit is not reachable from a student or parent route at all."""
+    """Until the English session (ENG-5b) no session of the unit starts; a view of it is always English."""
     created = client.post("/v1/sessions", json={"lesson_id": FAMILY}, headers=STUDENT)
     assert created.status_code == 404
     for lesson_id in ENGLISH_LESSONS:
         assert client.post("/v1/sessions", json={"lesson_id": lesson_id}, headers=STUDENT).status_code == 404
-    assert client.get(f"/v1/students/me/overview?chapter={FAMILY}", headers=STUDENT).status_code == 404
+    # ENG-7b (ADR-067): a report view of the unit opens, but as English (its package's subject), never as a
+    # Mathematics chapter: its chapters to pick are the English units only.
+    unit = client.get(f"/v1/students/me/overview?chapter={FAMILY}", headers=STUDENT).json()
+    assert unit["chapter"]["subject"] == "english" and [c["chapter_id"] for c in unit["chapters"]] == [FAMILY]
     taught = client.get("/v1/teachers/taught-chapters", headers=TEACHER).json()
     assert [c["chapter_id"] for c in taught] == [MATH]
     overview = client.get("/v1/students/me/overview", headers=STUDENT).json()
