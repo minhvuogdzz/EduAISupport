@@ -63,7 +63,7 @@ PROMPT_SETS: dict[str, PromptSet] = {
     ),
     "english": PromptSet(
         "english",
-        "constitution-en.v1.md",
+        "constitution-en.v2.md",
         "english_g5.v1.md",
         "listener-en.v1.md",
         "curriculum-check-en.v1.md",

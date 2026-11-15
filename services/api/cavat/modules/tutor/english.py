@@ -50,7 +50,9 @@ from cavat.modules.tutor.prompt_builder import (
 )
 
 ENGLISH = "english"
-PROMPT_VERSION_EN = "tutor-prompt-en.v2"  # v2 (ENG-5c, DI-149): the L1_ASK_ENGLISH task
+# v3 (ENG-5g, DI-162/163): the RETEACH task, the hint and CONFIRM_ADVANCE tasks stay on the item
+# ENG-5g also: constitution-en.v2 (DI-164)
+PROMPT_VERSION_EN = "tutor-prompt-en.v3"
 HINT_LADDER_VERSION = "hint-ladder-en/1"  # DI-112 words, DI-136
 MAX_UNIT_WORDS_CHARS = 600
 
@@ -72,7 +74,9 @@ HINT_LADDER_EN: dict[int, str] = {
 TASKS_EN: dict[Move, str] = {
     Move.PROBE: "Hỏi nhẹ con đã nghĩ thế nào khi nói câu đó, nhắc đúng điều con vừa nói; không tự sửa câu, "
     "không khen cách làm con chưa nói. Một câu hỏi, ở cuối.",
-    Move.HINT: "Gợi ý đúng [MỨC GỢI Ý] để con tự nói được; không làm thay, không nói câu đích. "
+    Move.HINT: "Gợi ý đúng [MỨC GỢI Ý] để con tự nói được; không làm thay, không nói câu đích. Chỉ gợi ý về "
+    "đúng câu đang làm, dựa vào [CĂN CỨ ĐÃ DUYỆT] (gợi ý đã duyệt của câu này); không dạy mẫu câu khác "
+    "của bài. "
     "Kết thúc bằng một câu hỏi.",
     Move.COGNITIVE_CONFLICT: "Đặt một câu tiếng Anh đối chiếu cạnh câu của con để con tự thấy chỗ khác, "
     "không nói thẳng là sai. Kết thúc bằng một câu hỏi.",
@@ -86,9 +90,12 @@ TASKS_EN: dict[Move, str] = {
     Move.WORKED_GUIDANCE: "Cùng làm (H6): cô nói nửa đầu câu đích, mời con nói tiếp nửa còn lại; không nói "
     "nửa sau. Kết thúc bằng một câu hỏi.",
     Move.TEACH_BACK: "Mời con tự nói lại bằng lời của mình vì sao câu được nói như vậy. Một câu hỏi.",
-    Move.VERIFY: "Con đã trả lời đúng. Hỏi con vì sao lại nói như vậy, nhắc đúng câu con vừa nói. "
+    Move.VERIFY: "Con đã trả lời đúng. Mừng cùng con bằng một lời riêng cho đúng câu con vừa nói, rồi "
+    "dịu dàng hỏi con vì sao lại nói như vậy (hỏi theo cách khác mỗi lần, không dùng câu hỏi mẫu). "
     "Một câu hỏi, ở cuối.",
-    Move.CONFIRM_ADVANCE: "Khen cụ thể điều con nói đúng, rồi báo sẽ sang câu sau. Không đặt câu hỏi.",
+    Move.CONFIRM_ADVANCE: "Vui cùng con một cách ngọt ngào và cụ thể về điều con vừa nói đúng ở câu đang làm "
+    "(nhắc đúng một chi tiết trong lời con, không nhắc câu của bài khác; nếu con phải thử nhiều lần thì ghi "
+    "nhận sự cố gắng), rồi nhẹ nhàng báo sẽ sang câu sau. Không đặt câu hỏi.",
     Move.OFFER_CHOICE: "Hỏi con muốn cô gợi ý thêm hay muốn tự thử lại một lần nữa; phải nói đủ cả hai. "
     "Một câu hỏi.",
     Move.FULL_EXPLANATION: "Đọc mẫu (H7): giảng ngắn vì sao câu nói như vậy, đọc nguyên câu mẫu sau câu dẫn "
@@ -99,6 +106,14 @@ TASKS_EN: dict[Move, str] = {
 SAY_AFTER_ME_TASK = (
     "Nói theo cô (DI-108): nói ngắn câu này dùng khi nào, đọc nguyên câu mẫu sau câu dẫn có dấu hai chấm "
     "và mời con nói theo. Kết thúc bằng một câu hỏi hoặc lời mời con nói."
+)
+# ENG-5g (DI-162): the child asked to be taught again in a theory or retell wait ("con chưa hiểu", "souvenirs
+# là gì?"). Short, on what was asked, from the node's material; the question that waits is said after it.
+RETEACH_TASK_EN = (
+    "Con vừa xin cô giảng lại hoặc hỏi nghĩa một từ. Giảng lại thật ngắn (1–2 câu) đúng điều con hỏi, bằng "
+    "tiếng Việt đơn giản kèm một ví dụ tiếng Anh của bài, dựa vào [CĂN CỨ ĐÃ DUYỆT]. Không nhắc lại cả "
+    "đoạn lý thuyết, "
+    "không nói câu đích của câu đang chờ. Kết thúc bằng đúng câu hỏi đang chờ."
 )
 OFF_TOPIC_TASK = (
     "Con vừa hỏi chuyện ngoài bài Tiếng Anh: không trả lời và không giảng nội dung đó; nói nhẹ nhàng rằng "
@@ -180,9 +195,16 @@ def _unit_line(words: Sequence[str]) -> str:
 # ---------------------------------------------------------------------------------------------- the turn
 
 
-def english_system_prompt() -> str:
-    """L1 + L2 of the English tutor: ``constitution-en`` and the grade 5 English module (cache-friendly)."""
-    return tutor_system_prompt(ENGLISH)
+CONSTITUTION_EN_STRICT = "constitution-en.v1.md"  # ENGLISH_ALLOW_TUTOR_KNOWLEDGE=false: the unit's words only
+
+
+def english_system_prompt(knowledge: bool = True) -> str:
+    """L1 + L2 of the English tutor: ``constitution-en`` and the grade 5 English module (cache-friendly).
+    ``knowledge`` False (DI-164): the strict v1 constitution, the unit's own words only."""
+    if knowledge:
+        return tutor_system_prompt(ENGLISH)
+    chosen = prompt_set(ENGLISH)
+    return "\n\n".join((_prompt_file(CONSTITUTION_EN_STRICT), _prompt_file(chosen.subject_module)))
 
 
 def _plain(text: str, limit: int) -> str:
@@ -200,7 +222,7 @@ def _lines(
 ) -> str:
     address = f'[XƯNG HÔ] Gia sư xưng "{pack.tutor_self}", gọi học sinh là "{pack.student_address}".'
     if pack.name:
-        address += f" Tên gọi của học sinh: {pack.name}."
+        address += f" Tên gọi của học sinh: {pack.name} (viết đúng từng chữ, không thêm dấu)."
     lines = [address]
     if pack.lesson:
         lines.append(f"[BÀI] {pack.lesson}")
@@ -245,6 +267,9 @@ _RETRY_NOTES = {
     "INTELLIGENCE_PRAISE": "khen trí thông minh",
     "FOREIGN_TEXT": "có chữ không phải tiếng Việt hay tiếng Anh của bài",
     "EMPTY": "message trống",
+    # ENG-5g (DI-163)
+    "INVENTED_QUOTE": "trích lời con mà con không nói: chỉ nhắc đúng lời con vừa nói",
+    "OFF_ITEM_ENGLISH": "dạy câu tiếng Anh không thuộc câu đang làm: chỉ gợi ý về câu đang làm",
 }
 
 
@@ -259,10 +284,11 @@ def build_english_request(
     hint_level: int | None = None,
     max_tokens: int = MAX_PROMPT_TOKENS_BRAIN,
     schema_name: str = "tutor_turn_en",
+    knowledge: bool = True,
 ) -> ChatRequest:
     """One TUTOR_REASONING request of an English session. Over the budget, the oldest turn goes first,
     then the last ground, as in the Math brain (``brain.build_request``)."""
-    system = ChatMessage("system", english_system_prompt())
+    system = ChatMessage("system", english_system_prompt(knowledge))
     turns, grounds = list(pack.recent)[-RECENT_TURNS:], list(pack.grounds)
     while True:
         request = ChatRequest(

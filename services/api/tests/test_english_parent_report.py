@@ -31,7 +31,7 @@ LINH_WRONG = {
     "U11-VO-PR-01": "B",
     "U11-VO-CP-01": "We took a bot trip around the bay.",
 }
-LINH_TURNS = 15
+LINH_TURNS = 12  # 15 before ENG-5g: a right "vì sao" now counts (DI-160), so VOCAB is reached sooner
 
 
 @pytest.fixture

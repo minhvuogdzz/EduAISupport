@@ -106,6 +106,27 @@ BASE_WORDS = frozenset(
     what when where who why how which there here some any very too please thank thanks hello hi goodbye bye
     good great well done can could will would let let's""".split()
 )
+# ENG-5g (DI-164): everyday English of a grade 5 child (Global Success 1-5) that the tutor may use in an
+# example or an explanation beyond the unit's own words, when ``ENGLISH_ALLOW_TUTOR_KNOWLEDGE`` is on. Not
+# targets of the unit and never a way round the leak check (the answer's words are checked apart).
+STANDARD_WORDS = frozenset(
+    """family mother father mom dad brother sister grandmother grandfather grandma grandpa parents friend
+    friends
+    teacher school class home house park zoo farm garden market shop store city village town street room
+    beach sea sand sun water boat ship bus car train plane bike trip holiday vacation weekend week day night
+    morning afternoon evening today tomorrow yesterday last next year month summer winter spring autumn
+    monday tuesday wednesday thursday friday saturday sunday breakfast lunch dinner food fruit rice fish
+    chicken egg milk juice cake bread apple banana orange ice cream picture photo photos camera book story
+    letter card gift present toy ball game music song dance draw paint read write play watch look listen
+    walk run jump swim fly ride drive visit stay go went come came eat ate drink drank buy bought take took
+    see saw make made have had get got give gave find found meet met sing sang sleep slept sit sat stand
+    like love want need help ask answer say said tell told know knew think thought remember forget learn
+    big small little long short new old good bad nice beautiful happy sad tired hungry fun great
+    fantastic wonderful delicious interesting famous favourite favorite many much lot lots few
+    one two three four five six seven eight nine ten first second third then after before again also
+    always never often sometimes now later soon again together with without around near far next
+    sentence word verb past present tense question example again correct right wrong try""".split()
+)
 # Words a Vietnamese sentence writes without any diacritic: never taken as English by themselves.
 VI_ASCII = frozenset(
     """con cho theo anh em khi hay trong sang sau sai an do no to la va ma ban nha tranh nghe che chi thi gi

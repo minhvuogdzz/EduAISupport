@@ -102,6 +102,9 @@ from cavat.modules.tutor.validator import singles_out_choice, validate_message
 # 0.6.0: REFORM-5 (DI-77), a few unreadable letters at a theory question or a retell are asked about once
 # 0.5.0: DI-53 hint from the earlier node; 0.4.0: DI-52
 TEMPLATES_VERSION = "teaching-templates/0.19.0"  # ADR-055: one wait notice per recovery
+# ENG-5g (DI-156, DI-157): the teaching templates an English session says (PHRASES with PHRASES_EN over them).
+# A Mathematics session records TEMPLATES_VERSION exactly as before.
+EN_TEMPLATES_VERSION = "teaching-templates-en/0.1.0"
 
 RECALL = "RECALL"  # the ref of a recall wait (DI-52)
 RECALL_HINT = "RECALL_HINT"  # the ref of the reminder of an earlier node after a wrong answer (DI-53)
@@ -234,6 +237,38 @@ PHRASES: dict[str, str] = {
 }
 
 
+# ENG-5g (drafted for the owner's review): the words an English session says in place of the shared ones.
+# Mathematics never reads this table (``_phrase`` picks it by the chapter's subject). Each entry has several
+# wordings where the shared one was said word for word again and again in the live run (L-11).
+PHRASES_EN: dict[str, tuple[str, ...]] = {
+    # DI-156: a retell with some of the ideas: say which one is missing, never only "đúng ý rồi"
+    "retell_partial": ("{S} nói đúng một phần rồi. Còn một ý {s} chưa nói: {part}",),
+    "retell_missing": (
+        "Lần này {s} nói thêm giúp {t} ý còn thiếu nhé: {part} {S} nói lại ý đó bằng lời của {s}, "
+        "kèm một câu "
+        "ví dụ tiếng Anh được không?",
+    ),
+    "retell_full_again": ("Lần trước {s} đã nói đủ ý rồi. {S} nói lại một lần nữa cho chắc nhé: {prompt}",),
+    # DI-157: a feeling is not "phần này hơi khó" (the child said "con buồn", not "khó")
+    "theory_affect": (
+        "{T} nghe {s} nói rồi, {t} ở đây cùng {s}. Mình đi chậm thôi nhé: {reply}",
+        "Không sao đâu, {s} cứ từ từ. {T} nói lại nhé: {reply}",
+    ),
+    "off_subject": (
+        "{T} nghe rồi, nhưng câu đó không thuộc bài «{lesson}» mình đang học, mình để lúc khác nhé.",
+        "Câu đó là của môn khác rồi {s} ạ. Giờ mình đang ôn «{lesson}», {s} hỏi thầy cô môn đó sau nhé.",
+        "{T} biết {s} còn lo bài khác. Mình làm xong phần tiếng Anh này rồi {s} ôn tiếp nhé.",
+    ),
+    "off_subject_back": (
+        "Bây giờ {s} trả lời giúp {t} câu này nhé: {question}",
+        "Mình quay lại câu này nhé: {question}",
+    ),
+    # DI-162: the child asked to be taught again; when no model may speak, a short sentence of the node's
+    # own material on what was asked, a different one each time
+    "reteach_lead": ("{T} nói ngắn lại nhé:", "Mình xem cách nói này nhé:", "{T} giảng lại chỗ đó nhé:"),
+    "reteach_ask": ("{S} thử trả lời lại giúp {t} nhé: {ask}",),
+}
+
 # "Con nói lại giúp cô: ..." asks for a retell; for a recall only the question after it is kept (DI-52).
 _RETELL_LEAD = re.compile(
     r"^[^:?]{0,40}\b(?:nói lại|kể lại|nhắc lại|giải thích lại)\b[^:?]{0,30}:\s*", re.IGNORECASE
@@ -323,6 +358,38 @@ class TeachTurn:
     prompt: str | None = None  # the question of a THEORY_REPLY or RETELL wait
 
 
+# DI-162: a sentence ends after ".", "!" or "?", and after a quote ending with one ("…: 'We eat seafood.'").
+_SENTENCES = re.compile(r"(?<=[.!?])\s+|(?<=[.!?]['\"’”])\s+")
+# DI-162: words of a request to be taught again that say nothing of what is asked about.
+_RETEACH_STOP = frozenset(
+    "con chua hieu co giang lai giup voi la gi a nua khong noi the nao sao cai nay day nghia em minh di "
+    "ca chu tu".split()
+)
+
+
+def _covering_sentence(said: str, sentences: Sequence[str]) -> str | None:
+    """DI-162: the sentence that shares the most content words with what the child asked ("souvenirs là
+    gì?" -> the one with "souvenirs"); an English word counts three times. None when nothing is shared."""
+    from cavat.core.vi_text import fold
+
+    def words(text: str) -> set[str]:
+        return {w for w in re.findall(r"\w+", fold(text.lower())) if len(w) >= 2 and w not in _RETEACH_STOP}
+
+    asked = words(said)
+    if not asked:
+        return None
+    english = {w.lower() for w in re.findall(r"[A-Za-z]{3,}", said) if w.isascii()}
+    best, best_score = None, 0
+    for sentence in sentences:
+        shared = asked & words(sentence)
+        score = len(shared) + 2 * len(english & shared)
+        # "souvenirs là quà lưu niệm": the sentence that says what the word asked about is
+        score += 2 * sum(bool(re.search(rf"\b{w}\b\W*\s+là\b", sentence, re.IGNORECASE)) for w in english)
+        if score > best_score:
+            best, best_score = sentence, score
+    return best
+
+
 class TeachingLoop:
     """Call ``start`` once (or ``resume``), then ``on_student`` / ``on_hint_request`` per input."""
 
@@ -343,6 +410,9 @@ class TeachingLoop:
         echo_stop: int | None = None,
     ) -> None:
         self.chapter, self.session_id = chapter, session_id
+        # ENG-5g: the English branches below (PHRASES_EN, DI-156…162); False leaves every Mathematics path
+        # as it was
+        self._english = chapter.package.subject == "english"
         # ENG-5c (L-4, DI-151): after this many messages in a row that only repeat the tutor's words, the
         # period stops with its reason (N-ECHO). None (Mathematics) leaves every path as it was.
         self.echo_stop = echo_stop
@@ -655,8 +725,14 @@ class TeachingLoop:
             return self._advance(now, messages, events)
         if judged.score >= self.config.retell_pass:
             said = self._phrase("retell_good")
+            if self._english and len(judged.ideas_found) < judged.ideas_total:
+                # DI-156 (L-2): enough to go on, not every idea: the child hears which one is missing instead
+                # of "đúng ý rồi" and the same question again
+                said = self._phrase("retell_partial", part=self._rule_part(node, judged.ideas_found))
         else:
             said = self._phrase("retell_partial" if judged.ideas_found else "retell_none")
+            if self._english and judged.ideas_found:
+                said = self._phrase("retell_partial", part=self._rule_part(node, judged.ideas_found))
             if closing:  # taught again once already: the right idea is said, then the step goes on
                 said = f"{said} {self._phrase('retell_close', idea=self._idea(node))}"
         self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, node_id))
@@ -848,6 +924,11 @@ class TeachingLoop:
                 accept.search(x) for x in (normalize_text(t), expand_short_forms(t))
             )
 
+        if self._english:
+            # DI-162 (L-8): what the child asked ("souvenirs là gì"), taught again short: the English brain's
+            # words when it may speak (checked), else one sentence of the node's material on it
+            spoken = self._english_reteach(text, node, self._prompt or variant.ask, reveals=reveals)
+            return self._hold(now, spoken.text, spoken.source, spoken, messages, events)
         others = [t.text.strip() for t in node.theory if t.id != variant.id]
         pieces = [p for p in (*others, node.method.rule.strip()) if p and not reveals(p)]
         material = pieces[0] if pieces else variant.text.strip()
@@ -860,6 +941,72 @@ class TeachingLoop:
         if spoken is not None:
             self._flag(now, events, spoken, f"{self._node}:{self._ref}")
         return self._hold(now, f"{lead} {asked}", source, spoken, messages, events)
+
+    def _node_sentences(self, node: Node, reveals: Callable[[str], bool] | None = None) -> list[str]:
+        """DI-162: the statements of a node's approved material (theory, replies, rule, worked steps), in
+        order, once each; never a question, never one that gives away the answer that waits."""
+        current = next((t for t in node.theory if t.id == self._ref), None)
+        # the approved explanation of what waits first (the reply of the theory asked, the rule), then others
+        texts = [current.reply if current else "", node.method.rule]
+        texts += [*(t.reply for t in node.theory if t.reply), *(t.text for t in node.theory)]
+        texts += [step for w in node.worked_examples for step in w.steps]
+        out: list[str] = []
+        for text in texts:
+            for sentence in _SENTENCES.split(" ".join((text or "").split())):
+                sentence = sentence.strip()
+                if (
+                    len(sentence.split()) >= 4
+                    and not sentence.endswith("?")
+                    and sentence not in out
+                    and not (reveals and reveals(sentence))
+                ):
+                    out.append(sentence)
+        return out
+
+    def _english_reteach(
+        self, text: str, node: Node, asked: str, *, reveals: Callable[[str], bool] | None = None
+    ) -> Spoken:
+        """DI-162 (L-8): the child asked to be taught again ("con chưa hiểu, cô giảng lại", "souvenirs là
+        gì?"). The English brain says it short, on what was asked, with the node's material as ground and its
+        validator as the net (``EnglishRenderer.explain_again``). Without a model, or when its words fail the
+        checks: the sentence of the material that shares the most words with what was asked, else the first
+        one the child has not heard in the last turns; then the question that waits. Never "cô chưa thể giải
+        thích", never the whole theory again."""
+        from cavat.modules.tutor.dialogue import question_tail
+
+        ask = question_tail(asked) or asked
+        variant = next((t for t in node.theory if t.id == self._ref), None)
+        if reveals is None and self.awaiting == Awaiting.THEORY_REPLY and variant and variant.accept:
+            accept = phrase_regex(variant.accept)
+
+            def reveals(t: str) -> bool:  # the theory question's own answer is not taught "again"
+                return any(accept.search(x) for x in (normalize_text(t), expand_short_forms(t)))
+
+        material = self._node_sentences(node, reveals)
+        covering = _covering_sentence(text, material)
+        rejected: tuple[tuple[str, ...], ...] = ()
+        explain = getattr(self.item_renderer, "explain_again", None)
+        anchor = next(iter((*node.checks, *node.completion, *node.practice)), None)
+        if callable(explain) and anchor is not None:
+            grounds = tuple(dict.fromkeys(g for g in (covering, self._idea(node), *material[:2]) if g))
+            said = explain(
+                student_text=text,
+                asked=ask,
+                grounds=grounds,
+                recent=self._recent(6),
+                item=self.chapter.item(anchor),  # the validator's leak check: the node's own check item
+                package=self.chapter.lesson_of(anchor),
+            )
+            if said is not None and said.text and not (reveals and reveals(said.text)):
+                return said
+            rejected = said.rejected if said is not None else ()
+        heard = " ".join(t for role, t in self._recent(10, include_last=True) if role == "tutor")
+        fresh = [m for m in material if m not in heard]
+        sentence = (
+            covering if covering and covering not in heard else (fresh or material or [self._idea(node)])[0]
+        )
+        back = self._phrase("reteach_ask", ask=ask) if ask else ""
+        return Spoken(f"{self._phrase('reteach_lead')} {sentence} {back}".strip(), "TEMPLATE", (), rejected)
 
     def _idea(self, node: Node) -> str:
         """An actual explanation, never a goal such as 'Con xác định đúng…' read out as teaching."""
@@ -939,6 +1086,17 @@ class TeachingLoop:
         if spoken is not None:
             self._flag(now, events, spoken, f"{self._node}:RETELL")
         return self._hold(now, f"{lead} {self._phrase('hold_retell_ask')}", source, spoken, messages, events)
+
+    def _last_retell(self, node_id: str) -> RetellJudged | None:
+        """DI-156: the last retell of ``node_id`` judged in this session (not a recall of it)."""
+        for e in reversed(self.events):
+            if (
+                e.event_type == EventType.RETELL_JUDGED
+                and e.payload.get("node_id") == node_id
+                and e.payload.get("purpose", "RETELL") != RECALL
+            ):
+                return RetellJudged.model_validate(e.payload)
+        return None
 
     def _rule_part(self, node: Node, found: Sequence[int]) -> str:
         """The sentence of the rule that says the first idea not said yet (else the first sentence)."""
@@ -1207,6 +1365,16 @@ class TeachingLoop:
                 else f"Ừ, mình thử nhé. {self._prompt}",
                 "TEMPLATE",
             )
+        elif self._english and reading.label == "REPAIR":
+            # DI-162 (L-8): "con chưa hiểu, cô giảng lại giúp con" in an English lesson is taught again short;
+            # the grounded speaker has no model in an English session (DI-140) and said "cô chưa thể giải
+            # thích"
+            asked = (
+                self._pending_question(self._prompt or "")
+                if self.awaiting == Awaiting.RETELL
+                else self._prompt or ""
+            )
+            spoken = self._english_reteach(text, node, asked)
         else:
             ground = next((t.reply for t in node.theory if t.id == self._ref), "") or node.method.rule
             spoken = self.speaker.conversation_reply(
@@ -1225,6 +1393,7 @@ class TeachingLoop:
             self.awaiting == Awaiting.THEORY_REPLY
             and reading.label in ("CONTINUE", "REPAIR", "REACTION")
             and spoken.source == "LLM"
+            and not self._english  # DI-162: the English reteach ends with the question that waits, unchanged
         ):
             from cavat.modules.tutor.dialogue import question_tail
 
@@ -1424,6 +1593,21 @@ class TeachingLoop:
         else:
             pending, node_id = self._prompt or "", self._node
         back = self._phrase("off_subject", lesson=self.chapter.package.title)
+        if pending and self._english:
+            from cavat.modules.tutor.renderer import visible_stem
+
+            # DI-157 (L-11): a long reading passage is not printed again whole, and from the second question
+            # of another subject in a row only the question that waits is asked again
+            asked_before = any(
+                e.event_type == EventType.TEACH_MESSAGE_SENT and e.payload.get("ref") == OFF_SUBJECT_REF
+                for e in self.events[-8:-1]
+            )
+            if asked_before:
+                from cavat.modules.tutor.dialogue import question_tail
+
+                pending = question_tail(pending) or visible_stem(pending)
+            elif len(pending.split()) > 60:
+                pending = visible_stem(pending)
         if pending:
             back = f"{back} {self._phrase('off_subject_back', question=pending)}"
         self._say(
@@ -1659,6 +1843,16 @@ class TeachingLoop:
             self._flag(now, events, invite, f"{node_id}:RETELL")
             if invite.text:
                 prompt = invite.text  # BRAIN-1: said for what the child has just done; this is what waits
+            elif (
+                "EXPLANATION_MISSING" in d.reason_codes
+                and self._english
+                and (last := self._last_retell(node_id))
+            ):
+                # DI-156 (L-2): asked again, the retell says what the last one lacked, not the same words
+                if len(last.ideas_found) < last.ideas_total:
+                    prompt = self._phrase("retell_missing", part=self._rule_part(node, last.ideas_found))
+                else:
+                    prompt = self._phrase("retell_full_again", prompt=prompt)
             elif "EXPLANATION_MISSING" in d.reason_codes:
                 prompt = f"{self._phrase('retell_again')} {prompt}"
             say(
@@ -2095,7 +2289,7 @@ class TeachingLoop:
             text=message.text,
             node_id=message.node_id,
             ref=message.ref,
-            templates_version=TEMPLATES_VERSION,
+            templates_version=EN_TEMPLATES_VERSION if self._english else TEMPLATES_VERSION,
             source=message.source,  # type: ignore[arg-type]
             sources=list(message.sources),
             rejected=[list(codes) for codes in message.rejected],
@@ -2120,6 +2314,12 @@ class TeachingLoop:
         return next((k for k in kcs if any(n.id == k for n in self.chapter.nodes)), None)
 
     def _phrase(self, key: str, **values: str) -> str:
+        variants = PHRASES_EN.get(key) if self._english else None
+        if variants:
+            # DI-157: the next wording each time the key is said in this session (replayable: counted on
+            # events)
+            said = sum(1 for e in self.events if e.event_type == EventType.TEACH_MESSAGE_SENT)
+            return variants[said % len(variants)].format(**self._persona, **values)
         return PHRASES[key].format(**self._persona, **values)
 
     def _bridged(

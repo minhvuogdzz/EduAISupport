@@ -22,7 +22,7 @@
 # - Item "nói theo cô" là item cùng làm (completion), không tính thành công (DI-108).
 
 lesson_id: eng-g5-u11-l1
-version: 0.3.0
+version: 0.3.1
 status: DRAFT
 subject: english
 grade: 5
@@ -378,7 +378,8 @@ items:
     answer:
       type: phrase
       accept: ["I bought some souvenirs.", "I bought souvenirs."]
-      required: [["i bought"], ["souvenirs"]]
+      # ENG-5g (DI-161, chờ chủ dự án duyệt): kể đúng món quà trong đề (móc khóa, mũ) cũng là câu đúng.
+      required: [["i bought"], ["souvenirs", "keychain", "key ring", "keyring", "hat"]]
       wrong_answers: {"i buy souvenirs": ENG5-U11-M04}
     hints:
       - {target: TASK, level: 1, text: "Con trả tiền rồi mang móc khóa, mũ len về làm quà. Vậy con đã mua, đã ăn hay đã chụp ảnh?"}
@@ -408,7 +409,8 @@ items:
     answer:
       type: phrase
       accept: ["We took lots of photos."]
-      required: [["we took lots of photos", "we took photos", "we took some photos"]]
+      # ENG-5g (DI-161, chờ chủ dự án duyệt): thêm "many photos", "a lot of photos" (cùng nghĩa, đúng ngữ pháp).
+      required: [["we took lots of photos", "we took photos", "we took some photos", "we took many photos", "we took a lot of photos"]]
       wrong_answers: {"we take lots of photos": ENG5-U11-M04}
     hints:
       - {target: TASK, level: 1, text: "Nhà Hoa cầm máy ảnh làm gì ở chùa Vàng?"}
