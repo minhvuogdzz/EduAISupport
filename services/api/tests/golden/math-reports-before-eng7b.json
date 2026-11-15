@@ -1,0 +1,6911 @@
+{
+ "chapters": [],
+ "database": {
+  "classes": [],
+  "documents": [],
+  "enrollments": [],
+  "events": [],
+  "evidence": [],
+  "figures": [],
+  "item_banks": [],
+  "learning_sessions": [
+   {
+    "_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+    "contract_id": null,
+    "created_at": {
+     "$date": "2026-11-15T02:19:50.764000+00:00"
+    },
+    "end_reason": null,
+    "ended_at": null,
+    "events": [
+     {
+      "activity_id": null,
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f88f-77fc-b7a4-4e107bf72d20",
+      "event_type": "SESSION_STARTED",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.799000+00:00"
+      },
+      "payload": {
+       "lesson_id": "math-g5-decimals"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.799000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 1,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f88f-77fd-a9f8-0ac5d4b08e2a",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.798000+00:00"
+      },
+      "payload": {
+       "action": "ENTER_NODE",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "UNLOCKED"
+       ],
+       "ref": null,
+       "rule_ids": [
+        "N-NEXT"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.799000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 2,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f88f-77fe-b8e1-998e3e4d7327",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.798000+00:00"
+      },
+      "payload": {
+       "kind": "NODE",
+       "node_id": "KC-DEC-FRAC",
+       "ref": "GREETING_ONLY",
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Cô chào Minh! Hôm nay cô và con cùng ôn tập: Phân số thập phân. Trước khi làm bài, mình nhắc lại kiến thức cần dùng nhé."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.799000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 3,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f88f-77ff-91cf-a50752aa818a",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.798000+00:00"
+      },
+      "payload": {
+       "action": "TEACH_THEORY",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "T1",
+       "rule_ids": [
+        "N-TEACH"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.799000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 4,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f88f-7800-929a-466e7e57250d",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.798000+00:00"
+      },
+      "payload": {
+       "kind": "THEORY",
+       "node_id": "KC-DEC-FRAC",
+       "ref": "T1",
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Cô chia một hình vuông thành 10 phần bằng nhau và tô màu 1 phần: phần tô màu là 1/10 hình vuông, viết là 0,1. Nếu chia hình vuông thành 100 ô bằng nhau và tô 1 ô thì phần tô màu là 1/100, viết là 0,01. Những phân số có mẫu số là 10, 100, 1000... gọi là phân số thập phân. Nếu tô màu 4 ô trong 100 ô thì phần tô màu là phân số nào?"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.799000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 5,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "2"
+      },
+      "event_id": "01a1dd00-f89a-74eb-a235-cdc61c411acd",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p0",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.805000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 1,
+       "item_id": "KC-DEC-FRAC:T1",
+       "kind": "MESSAGE",
+       "modality": "TEXT",
+       "seconds": 0.006,
+       "text": "4/100"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.810000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 6,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f89a-74ec-8fc7-921f8605e345",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p0",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.805000+00:00"
+      },
+      "payload": {
+       "kind": "FEEDBACK",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Đúng rồi!"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.810000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 7,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f89a-74ed-9b5f-61706ba8f310",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p0",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.805000+00:00"
+      },
+      "payload": {
+       "action": "CHECK_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "TP-CC-01",
+       "rule_ids": [
+        "N-CHECK"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.810000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 8,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f89a-74ee-b69c-570adb116939",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "p0",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.805000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "CONCEPT_CHECK",
+       "cognitive_level": "A",
+       "difficulty": 0.2,
+       "isomorphic_group": null,
+       "item_id": "TP-CC-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "CONCEPT_CHECK",
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.810000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 9,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f89a-74ef-99f7-3ad4b204d963",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p0",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.805000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CC-01",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.810000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 10,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f89a-74f0-9d5e-0ee8e16eb7eb",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p0",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.805000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CC-01",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Phân số nào dưới đây là phân số thập phân: 3/7, 7/10 hay 10/3?",
+       "words": 14
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.810000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 11,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "3"
+      },
+      "event_id": "01a1dd00-f8a6-720b-a97c-92812dcae0d6",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p1",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.820000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CC-01",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.01,
+       "text": "B"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.822000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 12,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8a6-720c-97a6-46f34689d7a9",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "p1",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.820000+00:00"
+      },
+      "payload": {
+       "answer_changes": 0,
+       "attempt_no": 1,
+       "error_class": null,
+       "item_id": "TP-CC-01",
+       "latency_ms": 10,
+       "misconception_confidence": 0.0,
+       "misconception_id": null,
+       "modality": "TEXT",
+       "normalized": "B",
+       "outcome": "CORRECT",
+       "raw_text": "B"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.822000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 13,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8a6-720d-a64d-a76e4cd36faa",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p1",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.820000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CC-01",
+       "misconception_id": null,
+       "move": "VERIFY",
+       "reason_codes": [
+        "CORRECT",
+        "FIRST_ON_KC"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.822000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 14,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8a6-720e-9d48-22b77cef2104",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p1",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.820000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CC-01",
+       "model": null,
+       "move": "VERIFY",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con giải thích cho cô vì sao con làm như vậy được không?",
+       "words": 15
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.822000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 15,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "4"
+      },
+      "event_id": "01a1dd00-f8b6-748b-88b1-a8ff887f1779",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p2",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.832000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CC-01",
+       "kind": "EXPLANATION",
+       "modality": "TEXT",
+       "seconds": 0.01,
+       "text": "Phân số thập phân có mẫu số là 10, 100, 1000... Trong ba phân số, chỉ 7/10 có mẫu số 10 nên 7/10 là phân số thập phân."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.838000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 16,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8b6-748c-b362-7600e6a73c70",
+      "event_type": "EXPLANATION_SUBMITTED",
+      "idempotency_key": "p2",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.832000+00:00"
+      },
+      "payload": {
+       "guessed": false,
+       "item_id": "TP-CC-01",
+       "label_confidence": 1.0,
+       "label_source": "RUBRIC_RULE",
+       "modality": "TEXT",
+       "reasoning_quality": 1.0,
+       "text": "Phân số thập phân có mẫu số là 10, 100, 1000... Trong ba phân số, chỉ 7/10 có mẫu số 10 nên 7/10 là phân số thập phân."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.838000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 17,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8b6-748d-8e01-d3cbd5ce0e26",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p2",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.832000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CC-01",
+       "misconception_id": null,
+       "move": "CONFIRM_ADVANCE",
+       "reason_codes": [
+        "EXPLANATION_RECEIVED"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.838000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 18,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8b6-748e-bca4-768f65ef6dd8",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p2",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.832000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CC-01",
+       "model": null,
+       "move": "CONFIRM_ADVANCE",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
+       "words": 18
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.838000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 19,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8b6-748f-a004-611398ad9ee8",
+      "event_type": "ITEM_RESOLVED",
+      "idempotency_key": "p2",
+      "item_attempt_id": "01a1dd00-f89a-74ea-b6e0-f27f8b8cdbac",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.832000+00:00"
+      },
+      "payload": {
+       "asr_confidence": null,
+       "attempts": 1,
+       "cognitive_level": "A",
+       "difficulty": 0.2,
+       "explained": true,
+       "final_error_class": null,
+       "guessed": false,
+       "hints_count": 0,
+       "item_id": "TP-CC-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "max_hint_level": 0,
+       "misconception_ids": [],
+       "modality": "TEXT",
+       "purpose": "CONCEPT_CHECK",
+       "resolution": "INDEPENDENT",
+       "time_s": 0.02,
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.838000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 20,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8b6-7490-bf91-461eb33ef2df",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p2",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.832000+00:00"
+      },
+      "payload": {
+       "action": "ASK_RETELL",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": null,
+       "rule_ids": [
+        "N-CHECK"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.838000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 21,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8b6-7491-a1c6-3fd2709feb89",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p2",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.832000+00:00"
+      },
+      "payload": {
+       "kind": "RETELL_PROMPT",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Con nói lại giúp cô: phân số thập phân là phân số thế nào, và viết nó thành số thập phân ra sao?"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.838000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 22,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "5"
+      },
+      "event_id": "01a1dd00-f8c4-7782-ac05-6318c04105cb",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 1,
+       "item_id": "KC-DEC-FRAC:RETELL",
+       "kind": "EXPLANATION",
+       "modality": "TEXT",
+       "seconds": 0.011,
+       "text": "mẫu số là 10. bao nhiêu chữ số 0. thêm chữ số 0"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 23,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-7783-9beb-75fcc956792f",
+      "event_type": "RETELL_JUDGED",
+      "idempotency_key": "p3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "ideas_found": [
+        0,
+        1,
+        2
+       ],
+       "ideas_total": 3,
+       "label_confidence": 1.0,
+       "label_source": "RUBRIC_RULE",
+       "modality": "TEXT",
+       "model_ideas": [],
+       "node_id": "KC-DEC-FRAC",
+       "purpose": "RETELL",
+       "quotes": [],
+       "score": 1.0,
+       "text": "mẫu số là 10. bao nhiêu chữ số 0. thêm chữ số 0"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 24,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-7784-88c3-d7bb383a3c2e",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "kind": "FEEDBACK",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Con nói đúng ý rồi."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 25,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-7785-ae0a-59c66d6ca96e",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "action": "SHOW_WORKED_EXAMPLE",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "W1",
+       "rule_ids": [
+        "N-METHOD"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 26,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-7786-b163-453885299df6",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "kind": "EXAMPLE",
+       "node_id": "KC-DEC-FRAC",
+       "ref": "W1",
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Cô làm mẫu cho con xem nhé.\nBài: Viết 6/100 dưới dạng số thập phân.\nBước 1: Mẫu số 100 có hai chữ số 0, nên phần thập phân có hai chữ số.\nBước 2: Tử số 6 bé hơn 100, nên phần nguyên là 0.\nBước 3: Tử số 6 chỉ có một chữ số, nên thêm chữ số 0 ngay sau dấu phẩy: 0,06.\nĐáp số: 0,06."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 27,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-7787-a896-ec1c454f9d1a",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "action": "COMPLETION_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "TP-CP-01",
+       "rule_ids": [
+        "N-METHOD"
+       ],
+       "support": "ASK_WHY"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 28,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-7788-bb51-3241660363eb",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "p3",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "GUIDED_PRACTICE",
+       "cognitive_level": "B",
+       "difficulty": 0.35,
+       "isomorphic_group": null,
+       "item_id": "TP-CP-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "PRACTICE",
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 29,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-7789-87bd-5602b67a1dae",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p3",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CP-01",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 30,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8c4-778a-8285-9f61f481effb",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p3",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.849000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CP-01",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Cô làm cùng con: 7/100 có mẫu số 100 nên phần thập phân có hai chữ số; tử số 7 mới có một chữ số nên phải thêm chữ số 0 vào bên trái. Con viết 7/100 thành số thập phân giúp cô?",
+       "words": 43
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.852000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 31,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "6"
+      },
+      "event_id": "01a1dd00-f8d3-7446-9c27-a0892fc8d905",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p4",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.864000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CP-01",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.012,
+       "text": "0,07"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.867000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 32,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8d3-7447-b4aa-9d04f4e722a8",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "p4",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.864000+00:00"
+      },
+      "payload": {
+       "answer_changes": 0,
+       "attempt_no": 1,
+       "error_class": null,
+       "item_id": "TP-CP-01",
+       "latency_ms": 12,
+       "misconception_confidence": 0.0,
+       "misconception_id": null,
+       "modality": "TEXT",
+       "normalized": "0,07",
+       "outcome": "CORRECT",
+       "raw_text": "0,07"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.867000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 33,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8d3-7448-ac8c-fd841a310f0d",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p4",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.864000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CP-01",
+       "misconception_id": null,
+       "move": "VERIFY",
+       "reason_codes": [
+        "CORRECT",
+        "VERIFY_SAMPLED"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.867000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 34,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8d3-7449-ba7b-6af929933fc1",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p4",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.864000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CP-01",
+       "model": null,
+       "move": "VERIFY",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con giải thích cho cô vì sao con làm như vậy được không?",
+       "words": 15
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.867000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 35,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "7"
+      },
+      "event_id": "01a1dd00-f8e7-757d-854c-dad25aadf637",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CP-01",
+       "kind": "EXPLANATION",
+       "modality": "TEXT",
+       "seconds": 0.013,
+       "text": "Mẫu số 100 cho biết phần thập phân có hai chữ số. Tử số 7 chỉ có một chữ số nên ta thêm chữ số 0 vào bên trái: 7/100 = 0,07."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 36,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-757e-b203-29f99afa6892",
+      "event_type": "EXPLANATION_SUBMITTED",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "guessed": false,
+       "item_id": "TP-CP-01",
+       "label_confidence": 1.0,
+       "label_source": "RUBRIC_RULE",
+       "modality": "TEXT",
+       "reasoning_quality": 1.0,
+       "text": "Mẫu số 100 cho biết phần thập phân có hai chữ số. Tử số 7 chỉ có một chữ số nên ta thêm chữ số 0 vào bên trái: 7/100 = 0,07."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 37,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-757f-9bf5-5a0343f63243",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CP-01",
+       "misconception_id": null,
+       "move": "CONFIRM_ADVANCE",
+       "reason_codes": [
+        "EXPLANATION_RECEIVED"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 38,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-7580-9d63-a1bf490df096",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CP-01",
+       "model": null,
+       "move": "CONFIRM_ADVANCE",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
+       "words": 18
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 39,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-7581-838a-87eec8eb919b",
+      "event_type": "ITEM_RESOLVED",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8c4-7781-ae09-6190754efb3b",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "asr_confidence": null,
+       "attempts": 1,
+       "cognitive_level": "B",
+       "difficulty": 0.35,
+       "explained": true,
+       "final_error_class": null,
+       "guessed": false,
+       "hints_count": 0,
+       "item_id": "TP-CP-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "max_hint_level": 0,
+       "misconception_ids": [],
+       "modality": "TEXT",
+       "purpose": "PRACTICE",
+       "resolution": "INDEPENDENT",
+       "time_s": 0.025,
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 40,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-7582-88a5-288aa6e893fb",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p5",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "action": "PRACTICE_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "APPLICATION",
+        "MASTERY",
+        "UNDERSTOOD"
+       ],
+       "ref": "TP-PR-01",
+       "rule_ids": [
+        "N-PRACTICE"
+       ],
+       "support": "ASK_WHY"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 41,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-7583-96a5-c09f760cf0f5",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "GUIDED_PRACTICE",
+       "cognitive_level": "B",
+       "difficulty": 0.3,
+       "isomorphic_group": null,
+       "item_id": "TP-PR-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "PRACTICE",
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 42,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-7584-ab0e-929a65fb5e62",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-PR-01",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 43,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8e7-7585-99a3-0dc2a411afc6",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p5",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.880000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-PR-01",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Viết phân số 9/10 dưới dạng số thập phân.",
+       "words": 9
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.887000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 44,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "8"
+      },
+      "event_id": "01a1dd00-f8fb-7402-9d19-31de171453af",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-PR-01",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.015,
+       "text": "0,9"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 45,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-7403-bfce-7352eb1cad43",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "answer_changes": 0,
+       "attempt_no": 1,
+       "error_class": null,
+       "item_id": "TP-PR-01",
+       "latency_ms": 15,
+       "misconception_confidence": 0.0,
+       "misconception_id": null,
+       "modality": "TEXT",
+       "normalized": "0,9",
+       "outcome": "CORRECT",
+       "raw_text": "0,9"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 46,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-7404-b86e-e3975c894acb",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-PR-01",
+       "misconception_id": null,
+       "move": "CONFIRM_ADVANCE",
+       "reason_codes": [
+        "CORRECT",
+        "ALREADY_EXPLAINED_KC"
+       ],
+       "rule_ids": [
+        "R-CORRECT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 47,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-7405-9926-6b70576ab8b6",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-PR-01",
+       "model": null,
+       "move": "CONFIRM_ADVANCE",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
+       "words": 18
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 48,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-7406-823d-8966063e7e9d",
+      "event_type": "ITEM_RESOLVED",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8e7-757c-bdc4-5c5b899d1c40",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "asr_confidence": null,
+       "attempts": 1,
+       "cognitive_level": "B",
+       "difficulty": 0.3,
+       "explained": null,
+       "final_error_class": null,
+       "guessed": false,
+       "hints_count": 0,
+       "item_id": "TP-PR-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "max_hint_level": 0,
+       "misconception_ids": [],
+       "modality": "TEXT",
+       "purpose": "PRACTICE",
+       "resolution": "INDEPENDENT",
+       "time_s": 0.015,
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 49,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-7407-9964-af7f19a70c30",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p6",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "action": "PRACTICE_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "APPLICATION",
+        "UNDERSTOOD"
+       ],
+       "ref": "TP-PR-02",
+       "rule_ids": [
+        "N-PRACTICE"
+       ],
+       "support": "TRANSFER"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 50,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-7408-b67a-04831db1f288",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "GUIDED_PRACTICE",
+       "cognitive_level": "B",
+       "difficulty": 0.4,
+       "isomorphic_group": null,
+       "item_id": "TP-PR-02",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "PRACTICE",
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 51,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-7409-b358-cc5940ffa5fc",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-PR-02",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 52,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f8fb-740a-9c55-3ddfbc20cb98",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p6",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.902000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-PR-02",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Số 0,07 viết thành phân số thập phân nào: 7/10, 7/100 hay 7/1000?",
+       "words": 13
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.907000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 53,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "9"
+      },
+      "event_id": "01a1dd00-f90f-74a1-9ca1-f24e83c527d0",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-PR-02",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.015,
+       "text": "B"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 54,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a2-8318-f1c26917083a",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "answer_changes": 0,
+       "attempt_no": 1,
+       "error_class": null,
+       "item_id": "TP-PR-02",
+       "latency_ms": 15,
+       "misconception_confidence": 0.0,
+       "misconception_id": null,
+       "modality": "TEXT",
+       "normalized": "B",
+       "outcome": "CORRECT",
+       "raw_text": "B"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 55,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a3-91fe-aa082e841929",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-PR-02",
+       "misconception_id": null,
+       "move": "CONFIRM_ADVANCE",
+       "reason_codes": [
+        "CORRECT"
+       ],
+       "rule_ids": [
+        "R-CORRECT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 56,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a4-898b-4054acfb66f3",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-PR-02",
+       "model": null,
+       "move": "CONFIRM_ADVANCE",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
+       "words": 18
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 57,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a5-b07b-f777729748eb",
+      "event_type": "ITEM_RESOLVED",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f8fb-7401-9313-36b28a0124ca",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "asr_confidence": null,
+       "attempts": 1,
+       "cognitive_level": "B",
+       "difficulty": 0.4,
+       "explained": null,
+       "final_error_class": null,
+       "guessed": false,
+       "hints_count": 0,
+       "item_id": "TP-PR-02",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "max_hint_level": 0,
+       "misconception_ids": [],
+       "modality": "TEXT",
+       "purpose": "PRACTICE",
+       "resolution": "INDEPENDENT",
+       "time_s": 0.015,
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 58,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a6-b2d2-f0de7df7dc0c",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p7",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "action": "TRANSFER_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "APPLICATION"
+       ],
+       "ref": "TP-TR-01",
+       "rule_ids": [
+        "N-TRANSFER"
+       ],
+       "support": "TRANSFER"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 59,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a7-81c6-4745064073e3",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p7",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "kind": "NODE",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Bây giờ con thử một bài vận dụng nhé."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 60,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a8-ac0f-938425ab9483",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "INDEPENDENT_PRACTICE",
+       "cognitive_level": "D",
+       "difficulty": 0.45,
+       "isomorphic_group": null,
+       "item_id": "TP-TR-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "PRACTICE",
+       "transfer": "near"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 61,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74a9-b54c-bc6b19cfaa7a",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-TR-01",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 62,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f90f-74aa-a728-6420e0696ab1",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p7",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.922000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-TR-01",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Mẹ cắt một chiếc bánh thành 10 phần bằng nhau, Lan ăn 3 phần. Viết số phần bánh Lan đã ăn dưới dạng số thập phân.",
+       "words": 26
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.927000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 63,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "10"
+      },
+      "event_id": "01a1dd00-f925-7645-a77e-8139afdf7636",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "p8",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-TR-01",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.016,
+       "text": "0,3"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 64,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "minh",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-7646-8534-d9a2af43e45e",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "p8",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "answer_changes": 0,
+       "attempt_no": 1,
+       "error_class": null,
+       "item_id": "TP-TR-01",
+       "latency_ms": 16,
+       "misconception_confidence": 0.0,
+       "misconception_id": null,
+       "modality": "TEXT",
+       "normalized": "0,3",
+       "outcome": "CORRECT",
+       "raw_text": "0,3"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 65,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-7647-a212-7ac81d5adf62",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "p8",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-TR-01",
+       "misconception_id": null,
+       "move": "CONFIRM_ADVANCE",
+       "reason_codes": [
+        "CORRECT"
+       ],
+       "rule_ids": [
+        "R-CORRECT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 66,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-7648-957a-a1b8729c40e0",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "p8",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-TR-01",
+       "model": null,
+       "move": "CONFIRM_ADVANCE",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
+       "words": 18
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 67,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-7649-87da-861dfc47c120",
+      "event_type": "ITEM_RESOLVED",
+      "idempotency_key": "p8",
+      "item_attempt_id": "01a1dd00-f90f-74a0-9a91-bccb7773129c",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "asr_confidence": null,
+       "attempts": 1,
+       "cognitive_level": "D",
+       "difficulty": 0.45,
+       "explained": null,
+       "final_error_class": null,
+       "guessed": false,
+       "hints_count": 0,
+       "item_id": "TP-TR-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "max_hint_level": 0,
+       "misconception_ids": [],
+       "modality": "TEXT",
+       "purpose": "PRACTICE",
+       "resolution": "INDEPENDENT",
+       "time_s": 0.016,
+       "transfer": "near"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 68,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-764a-8e75-79b227d717ce",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p8",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "action": "PASS_NODE",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": null,
+       "rule_ids": [
+        "N-PASS"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 69,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-764b-8f02-0351d3d02ff1",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p8",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "kind": "PASS",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Con đã hiểu bài Phân số thập phân rồi. Giỏi lắm!"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 70,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-CONCEPT",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-764c-83d9-a366dc383eb7",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p8",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "action": "ENTER_NODE",
+       "node_id": "KC-DEC-CONCEPT",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "UNLOCKED"
+       ],
+       "ref": null,
+       "rule_ids": [
+        "N-NEXT"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 71,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-CONCEPT",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-764d-849d-18a721eb72a5",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p8",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "kind": "NODE",
+       "node_id": "KC-DEC-CONCEPT",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Hôm nay cô và con cùng ôn tập: Khái niệm số thập phân. Trước khi làm bài, mình nhắc lại kiến thức cần dùng nhé."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 72,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-CONCEPT",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-764e-9106-c9a24fef4d4e",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "p8",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "action": "RECALL_PRIOR",
+       "node_id": "KC-DEC-CONCEPT",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "AT_ENTRY"
+       ],
+       "ref": "KC-DEC-FRAC",
+       "rule_ids": [
+        "N-RECALL"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 73,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     },
+     {
+      "activity_id": "KC-DEC-CONCEPT",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f925-764f-8668-9cf95a384a56",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "p8",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.943000+00:00"
+      },
+      "payload": {
+       "kind": "RETELL_PROMPT",
+       "node_id": "KC-DEC-FRAC",
+       "ref": "RECALL",
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Bài Khái niệm số thập phân dùng tới bài Phân số thập phân mình đã học. Con nhớ lại giúp cô nhé: phân số thập phân là phân số thế nào, và viết nó thành số thập phân ra sao?"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.949000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 74,
+      "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+      "student_id": "minh"
+     }
+    ],
+    "events_copied_upto": 0,
+    "kind": "LESSON",
+    "lesson_id": "math-g5-decimals",
+    "lesson_version": "0.1.1",
+    "next_sequence_no": 75,
+    "schedule_id": null,
+    "school_id": "demo-school",
+    "started_at": {
+     "$date": "2026-11-15T02:19:50.798000+00:00"
+    },
+    "state": {
+     "activity": {
+      "awaiting": "RETELL",
+      "chapter_id": "math-g5-decimals",
+      "llm_calls": 0,
+      "mode": "CHAPTER",
+      "node_id": "KC-DEC-FRAC",
+      "prompt": "phân số thập phân là phân số thế nào, và viết nó thành số thập phân ra sao?",
+      "step": 1,
+      "step_scheme": 2
+     },
+     "item": {
+      "activity": "WARMUP_REVIEW",
+      "activity_id": "KC-DEC-FRAC:1",
+      "choice_open": false,
+      "item_attempt_id": "01a1dd00-f925-7644-8c0c-7363ec9acc69",
+      "item_id": null,
+      "phase": null,
+      "position": null
+     },
+     "lifecycle": "ACTIVE"
+    },
+    "state_version": 10,
+    "student_display_name": "Minh",
+    "student_id": "minh",
+    "updated_at": {
+     "$date": "2026-11-15T02:19:50.949000+00:00"
+    }
+   },
+   {
+    "_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+    "contract_id": null,
+    "created_at": {
+     "$date": "2026-11-15T02:19:50.964000+00:00"
+    },
+    "end_reason": null,
+    "ended_at": null,
+    "events": [
+     {
+      "activity_id": null,
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f938-721a-b529-9fb4fc523660",
+      "event_type": "SESSION_STARTED",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.968000+00:00"
+      },
+      "payload": {
+       "lesson_id": "math-g5-decimals"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.968000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 1,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f938-721b-9000-220220ab382f",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.967000+00:00"
+      },
+      "payload": {
+       "action": "ENTER_NODE",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "UNLOCKED"
+       ],
+       "ref": null,
+       "rule_ids": [
+        "N-NEXT"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.968000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 2,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f938-721c-bec6-665887fcce82",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.967000+00:00"
+      },
+      "payload": {
+       "kind": "NODE",
+       "node_id": "KC-DEC-FRAC",
+       "ref": "GREETING_ONLY",
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Cô chào Lan! Hôm nay cô và con cùng ôn tập: Phân số thập phân. Trước khi làm bài, mình nhắc lại kiến thức cần dùng nhé."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.968000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 3,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f938-721d-9430-aa9e0b664c4c",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.967000+00:00"
+      },
+      "payload": {
+       "action": "TEACH_THEORY",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "T1",
+       "rule_ids": [
+        "N-TEACH"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.968000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 4,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f938-721e-a992-76334b90e723",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": null,
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.967000+00:00"
+      },
+      "payload": {
+       "kind": "THEORY",
+       "node_id": "KC-DEC-FRAC",
+       "ref": "T1",
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Cô chia một hình vuông thành 10 phần bằng nhau và tô màu 1 phần: phần tô màu là 1/10 hình vuông, viết là 0,1. Nếu chia hình vuông thành 100 ô bằng nhau và tô 1 ô thì phần tô màu là 1/100, viết là 0,01. Những phân số có mẫu số là 10, 100, 1000... gọi là phân số thập phân. Nếu tô màu 4 ô trong 100 ô thì phần tô màu là phân số nào?"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.968000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 5,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "2"
+      },
+      "event_id": "01a1dd00-f940-71cf-b46c-0a1022b23991",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "lan-0",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.974000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 1,
+       "item_id": "KC-DEC-FRAC:T1",
+       "kind": "MESSAGE",
+       "modality": "TEXT",
+       "seconds": 0.006,
+       "text": "4/100"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.976000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 6,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f940-71d0-b1c8-23d815119107",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "lan-0",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.974000+00:00"
+      },
+      "payload": {
+       "kind": "FEEDBACK",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Đúng rồi!"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.976000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 7,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f940-71d1-8374-bb15ea9a3065",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "lan-0",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.974000+00:00"
+      },
+      "payload": {
+       "action": "CHECK_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "TP-CC-01",
+       "rule_ids": [
+        "N-CHECK"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.976000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 8,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f940-71d2-8bbf-3f88e4a7e407",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "lan-0",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.974000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "CONCEPT_CHECK",
+       "cognitive_level": "A",
+       "difficulty": 0.2,
+       "isomorphic_group": null,
+       "item_id": "TP-CC-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "CONCEPT_CHECK",
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.976000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 9,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f940-71d3-bafb-ac4b0e500e5c",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-0",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.974000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CC-01",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.976000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 10,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f940-71d4-8a5e-f0cd071626ca",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-0",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.974000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CC-01",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Phân số nào dưới đây là phân số thập phân: 3/7, 7/10 hay 10/3?",
+       "words": 14
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.976000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 11,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "3"
+      },
+      "event_id": "01a1dd00-f94b-74ba-a5ff-f9f5ffd3b454",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "lan-1",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.985000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CC-01",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.009,
+       "text": "B"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.987000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 12,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f94b-74bb-aa86-7cfa2c6d4dce",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "lan-1",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.985000+00:00"
+      },
+      "payload": {
+       "answer_changes": 0,
+       "attempt_no": 1,
+       "error_class": null,
+       "item_id": "TP-CC-01",
+       "latency_ms": 9,
+       "misconception_confidence": 0.0,
+       "misconception_id": null,
+       "modality": "TEXT",
+       "normalized": "B",
+       "outcome": "CORRECT",
+       "raw_text": "B"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.987000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 13,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f94b-74bc-be6a-fed83130607c",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-1",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.985000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CC-01",
+       "misconception_id": null,
+       "move": "VERIFY",
+       "reason_codes": [
+        "CORRECT",
+        "FIRST_ON_KC"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.987000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 14,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f94b-74bd-9a25-c32dea53e38f",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-1",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.985000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CC-01",
+       "model": null,
+       "move": "VERIFY",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con giải thích cho cô vì sao con làm như vậy được không?",
+       "words": 15
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:50.987000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 15,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "4"
+      },
+      "event_id": "01a1dd00-f959-708d-8f2a-ddd5fce0c8d8",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "lan-2",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.997000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CC-01",
+       "kind": "EXPLANATION",
+       "modality": "TEXT",
+       "seconds": 0.01,
+       "text": "Phân số thập phân có mẫu số là 10, 100, 1000... Trong ba phân số, chỉ 7/10 có mẫu số 10 nên 7/10 là phân số thập phân."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.001000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 16,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f959-708e-99ed-d014399b3671",
+      "event_type": "EXPLANATION_SUBMITTED",
+      "idempotency_key": "lan-2",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.997000+00:00"
+      },
+      "payload": {
+       "guessed": false,
+       "item_id": "TP-CC-01",
+       "label_confidence": 1.0,
+       "label_source": "RUBRIC_RULE",
+       "modality": "TEXT",
+       "reasoning_quality": 1.0,
+       "text": "Phân số thập phân có mẫu số là 10, 100, 1000... Trong ba phân số, chỉ 7/10 có mẫu số 10 nên 7/10 là phân số thập phân."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.001000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 17,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f959-708f-992a-0c3aaeb9694c",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-2",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.997000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CC-01",
+       "misconception_id": null,
+       "move": "CONFIRM_ADVANCE",
+       "reason_codes": [
+        "EXPLANATION_RECEIVED"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.001000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 18,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f959-7090-8ec1-4ce53ea2b5f1",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-2",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.997000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CC-01",
+       "model": null,
+       "move": "CONFIRM_ADVANCE",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
+       "words": 18
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.001000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 19,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f959-7091-8719-15849900ab71",
+      "event_type": "ITEM_RESOLVED",
+      "idempotency_key": "lan-2",
+      "item_attempt_id": "01a1dd00-f93f-7443-aab9-eeaa3c7e96e2",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.997000+00:00"
+      },
+      "payload": {
+       "asr_confidence": null,
+       "attempts": 1,
+       "cognitive_level": "A",
+       "difficulty": 0.2,
+       "explained": true,
+       "final_error_class": null,
+       "guessed": false,
+       "hints_count": 0,
+       "item_id": "TP-CC-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "max_hint_level": 0,
+       "misconception_ids": [],
+       "modality": "TEXT",
+       "purpose": "CONCEPT_CHECK",
+       "resolution": "INDEPENDENT",
+       "time_s": 0.019,
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.001000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 20,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f959-7092-86ec-5c4f0109a0db",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "lan-2",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.997000+00:00"
+      },
+      "payload": {
+       "action": "ASK_RETELL",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": null,
+       "rule_ids": [
+        "N-CHECK"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.001000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 21,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f959-7093-9a18-bd7dffe8a42d",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "lan-2",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:50.997000+00:00"
+      },
+      "payload": {
+       "kind": "RETELL_PROMPT",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Con nói lại giúp cô: phân số thập phân là phân số thế nào, và viết nó thành số thập phân ra sao?"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.001000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 22,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "5"
+      },
+      "event_id": "01a1dd00-f967-709b-96c9-12c5ead0868b",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 1,
+       "item_id": "KC-DEC-FRAC:RETELL",
+       "kind": "EXPLANATION",
+       "modality": "TEXT",
+       "seconds": 0.011,
+       "text": "mẫu số là 10. bao nhiêu chữ số 0. thêm chữ số 0"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 23,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-709c-b94c-82aa783cbbba",
+      "event_type": "RETELL_JUDGED",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "ideas_found": [
+        0,
+        1,
+        2
+       ],
+       "ideas_total": 3,
+       "label_confidence": 1.0,
+       "label_source": "RUBRIC_RULE",
+       "modality": "TEXT",
+       "model_ideas": [],
+       "node_id": "KC-DEC-FRAC",
+       "purpose": "RETELL",
+       "quotes": [],
+       "score": 1.0,
+       "text": "mẫu số là 10. bao nhiêu chữ số 0. thêm chữ số 0"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 24,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-709d-a385-9319340f477d",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "kind": "FEEDBACK",
+       "node_id": "KC-DEC-FRAC",
+       "ref": null,
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Con nói đúng ý rồi."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 25,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-709e-8c55-f6659ce65373",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "action": "SHOW_WORKED_EXAMPLE",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "W1",
+       "rule_ids": [
+        "N-METHOD"
+       ],
+       "support": null
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 26,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-709f-a470-689b7e40a290",
+      "event_type": "TEACH_MESSAGE_SENT",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "kind": "EXAMPLE",
+       "node_id": "KC-DEC-FRAC",
+       "ref": "W1",
+       "rejected": [],
+       "source": "TEMPLATE",
+       "sources": [],
+       "templates_version": "teaching-templates/0.19.0",
+       "text": "Cô làm mẫu cho con xem nhé.\nBài: Viết 6/100 dưới dạng số thập phân.\nBước 1: Mẫu số 100 có hai chữ số 0, nên phần thập phân có hai chữ số.\nBước 2: Tử số 6 bé hơn 100, nên phần nguyên là 0.\nBước 3: Tử số 6 chỉ có một chữ số, nên thêm chữ số 0 ngay sau dấu phẩy: 0,06.\nĐáp số: 0,06."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 27,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-70a0-842d-9d1db0e7bc70",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "action": "COMPLETION_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [],
+       "ref": "TP-CP-01",
+       "rule_ids": [
+        "N-METHOD"
+       ],
+       "support": "ASK_WHY"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 28,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-70a1-8696-a4e2ce8b1d48",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "GUIDED_PRACTICE",
+       "cognitive_level": "B",
+       "difficulty": 0.35,
+       "isomorphic_group": null,
+       "item_id": "TP-CP-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "PRACTICE",
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 29,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-70a2-aae2-0120de4263c4",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CP-01",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 30,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f967-70a3-8d0b-fdb156f77d1e",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-3",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.012000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CP-01",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Cô làm cùng con: 7/100 có mẫu số 100 nên phần thập phân có hai chữ số; tử số 7 mới có một chữ số nên phải thêm chữ số 0 vào bên trái. Con viết 7/100 thành số thập phân giúp cô?",
+       "words": 43
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.015000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 31,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "6"
+      },
+      "event_id": "01a1dd00-f976-7284-89eb-49c19341ed46",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "lan-4",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.026000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CP-01",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.011,
+       "text": "0,7"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.030000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 32,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f976-7285-9de2-86d21d3732c0",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "lan-4",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.026000+00:00"
+      },
+      "payload": {
+       "answer_changes": 0,
+       "attempt_no": 1,
+       "error_class": "CONCEPTUAL",
+       "item_id": "TP-CP-01",
+       "latency_ms": 11,
+       "misconception_confidence": 0.8,
+       "misconception_id": "FRAC-M01",
+       "modality": "TEXT",
+       "normalized": "0,7",
+       "outcome": "WRONG",
+       "raw_text": "0,7"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.030000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 33,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f976-7286-9444-b26475c13153",
+      "event_type": "MISCONCEPTION_DETECTED",
+      "idempotency_key": "lan-4",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.026000+00:00"
+      },
+      "payload": {
+       "confidence": 0.8,
+       "item_id": "TP-CP-01",
+       "misconception_id": "FRAC-M01",
+       "source": "NUMERIC"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.030000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 34,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f976-7287-beb5-83af07d0b421",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-4",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.026000+00:00"
+      },
+      "payload": {
+       "hint_level": 2,
+       "hint_target": "CONCEPT",
+       "item_id": "TP-CP-01",
+       "misconception_id": "FRAC-M01",
+       "move": "COGNITIVE_CONFLICT",
+       "reason_codes": [
+        "MISCONCEPTION_HIGH",
+        "COUNTEREXAMPLE"
+       ],
+       "rule_ids": [
+        "R-MISC-HIGH"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.030000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 35,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f976-7288-8b57-c4090583338e",
+      "event_type": "HINT_DELIVERED",
+      "idempotency_key": "lan-4",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.026000+00:00"
+      },
+      "payload": {
+       "hint_level": 2,
+       "hint_target": "CONCEPT",
+       "item_id": "TP-CP-01",
+       "source": "TEMPLATE",
+       "template_ref": "FRAC-M01:COUNTER:2"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.030000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 36,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f976-7289-ad46-c35ec2344b7b",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-4",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.026000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CP-01",
+       "model": null,
+       "move": "COGNITIVE_CONFLICT",
+       "source": "TEMPLATE",
+       "text": "Cô lấy một ví dụ để con so sánh với bài này nhé. 1 mét có 100 xăng-ti-mét. 7 xăng-ti-mét là 7/100 mét, còn 0,7 mét là 70 xăng-ti-mét. Hai độ dài đó có bằng nhau không?",
+       "words": 37
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.030000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 37,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "7"
+      },
+      "event_id": "01a1dd00-f986-77cf-953c-ea1342114423",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "lan-5",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.042000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CP-01",
+       "kind": "ANSWER",
+       "modality": "TEXT",
+       "seconds": 0.012,
+       "text": "0,07"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.046000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 38,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f986-77d0-97a6-2c8fee5c03cb",
+      "event_type": "ANSWER_SUBMITTED",
+      "idempotency_key": "lan-5",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.042000+00:00"
+      },
+      "payload": {
+       "answer_changes": 1,
+       "attempt_no": 2,
+       "error_class": null,
+       "item_id": "TP-CP-01",
+       "latency_ms": 12,
+       "misconception_confidence": 0.0,
+       "misconception_id": null,
+       "modality": "TEXT",
+       "normalized": "0,07",
+       "outcome": "CORRECT",
+       "raw_text": "0,07"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.046000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 39,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f986-77d1-8915-839e987eb249",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-5",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.042000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CP-01",
+       "misconception_id": null,
+       "move": "VERIFY",
+       "reason_codes": [
+        "CORRECT",
+        "VERIFY_SAMPLED"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.046000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 40,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f986-77d2-ac3b-470295891be3",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-5",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.042000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CP-01",
+       "model": null,
+       "move": "VERIFY",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con giải thích cho cô vì sao con làm như vậy được không?",
+       "words": 15
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.046000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 41,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {
+       "state_version": "8"
+      },
+      "event_id": "01a1dd00-f99a-728f-8543-1638db1f6246",
+      "event_type": "STUDENT_MESSAGE",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "dialogue_version": 3,
+       "item_id": "TP-CP-01",
+       "kind": "EXPLANATION",
+       "modality": "TEXT",
+       "seconds": 0.012,
+       "text": "Mẫu số 100 cho biết phần thập phân có hai chữ số. Tử số 7 chỉ có một chữ số nên ta thêm chữ số 0 vào bên trái: 7/100 = 0,07."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 42,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": "lan",
+       "type": "student"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7290-8b4a-a1e043557df2",
+      "event_type": "EXPLANATION_SUBMITTED",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "guessed": false,
+       "item_id": "TP-CP-01",
+       "label_confidence": 1.0,
+       "label_source": "RUBRIC_RULE",
+       "modality": "TEXT",
+       "reasoning_quality": 1.0,
+       "text": "Mẫu số 100 cho biết phần thập phân có hai chữ số. Tử số 7 chỉ có một chữ số nên ta thêm chữ số 0 vào bên trái: 7/100 = 0,07."
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 43,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7291-ac84-ec99c1ab4c04",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-CP-01",
+       "misconception_id": null,
+       "move": "CONFIRM_ADVANCE",
+       "reason_codes": [
+        "EXPLANATION_RECEIVED"
+       ],
+       "rule_ids": [
+        "R-VERIFY"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 44,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7292-a287-cbafe173fb18",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-CP-01",
+       "model": null,
+       "move": "CONFIRM_ADVANCE",
+       "source": "TEMPLATE",
+       "text": "Đúng rồi! Con đã suy nghĩ và kiểm tra rất cẩn thận. Mình sang câu tiếp theo nhé.",
+       "words": 18
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 45,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7293-9aa5-4e643aed86fe",
+      "event_type": "ITEM_RESOLVED",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f967-709a-86ee-505100b5ae52",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "asr_confidence": null,
+       "attempts": 2,
+       "cognitive_level": "B",
+       "difficulty": 0.35,
+       "explained": true,
+       "final_error_class": null,
+       "guessed": false,
+       "hints_count": 1,
+       "item_id": "TP-CP-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "max_hint_level": 2,
+       "misconception_ids": [
+        "FRAC-M01"
+       ],
+       "modality": "TEXT",
+       "purpose": "PRACTICE",
+       "resolution": "SUPPORTED",
+       "time_s": 0.035,
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 46,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7294-a516-439c7c3bad9a",
+      "event_type": "NODE_DECISION",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": null,
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "action": "PRACTICE_ITEM",
+       "node_id": "KC-DEC-FRAC",
+       "policy_version": "node-policy/0.5.0",
+       "reason_codes": [
+        "APPLICATION",
+        "MASTERY",
+        "MISCONCEPTION",
+        "UNDERSTOOD"
+       ],
+       "ref": "TP-PR-01",
+       "rule_ids": [
+        "N-PRACTICE"
+       ],
+       "support": "ASK_WHY"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 47,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7295-b0b1-fb9db188c69d",
+      "event_type": "QUESTION_SHOWN",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f99a-728e-9698-09cfb0e96a66",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "activity_id": null,
+       "activity_type": "GUIDED_PRACTICE",
+       "cognitive_level": "B",
+       "difficulty": 0.3,
+       "isomorphic_group": null,
+       "item_id": "TP-PR-01",
+       "kc_ids": [
+        "KC-DEC-FRAC"
+       ],
+       "purpose": "PRACTICE",
+       "transfer": "none"
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 48,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "system"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7296-bc01-8c5397d89f33",
+      "event_type": "POLICY_DECISION",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f99a-728e-9698-09cfb0e96a66",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "hint_level": null,
+       "hint_target": null,
+       "item_id": "TP-PR-01",
+       "misconception_id": null,
+       "move": "PRESENT",
+       "reason_codes": [
+        "ITEM_START"
+       ],
+       "rule_ids": [
+        "R-PRESENT"
+       ]
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 49,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     },
+     {
+      "activity_id": "KC-DEC-FRAC",
+      "actor": {
+       "id": null,
+       "type": "tutor"
+      },
+      "contract_id": null,
+      "correlation": {},
+      "event_id": "01a1dd00-f99a-7297-b5dd-7a1813975a83",
+      "event_type": "TUTOR_MESSAGE_SENT",
+      "idempotency_key": "lan-6",
+      "item_attempt_id": "01a1dd00-f99a-728e-9698-09cfb0e96a66",
+      "occurred_at": {
+       "$date": "2026-11-15T02:19:51.058000+00:00"
+      },
+      "payload": {
+       "attempts_to_pass_validator": 1,
+       "item_id": "TP-PR-01",
+       "model": null,
+       "move": "PRESENT",
+       "source": "TEMPLATE",
+       "text": "Viết phân số 9/10 dưới dạng số thập phân.",
+       "words": 9
+      },
+      "recorded_at": {
+       "$date": "2026-11-15T02:19:51.066000+00:00"
+      },
+      "schema_version": 1,
+      "school_id": "demo-school",
+      "sequence_no": 50,
+      "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+      "student_id": "lan"
+     }
+    ],
+    "events_copied_upto": 0,
+    "kind": "LESSON",
+    "lesson_id": "math-g5-decimals",
+    "lesson_version": "0.1.1",
+    "next_sequence_no": 51,
+    "schedule_id": null,
+    "school_id": "demo-school",
+    "started_at": {
+     "$date": "2026-11-15T02:19:50.967000+00:00"
+    },
+    "state": {
+     "activity": {
+      "awaiting": "ANSWER",
+      "chapter_id": "math-g5-decimals",
+      "llm_calls": 0,
+      "mode": "CHAPTER",
+      "node_id": "KC-DEC-FRAC",
+      "prompt": null,
+      "step": 4,
+      "step_scheme": 2
+     },
+     "item": {
+      "activity": "GUIDED_PRACTICE",
+      "activity_id": "KC-DEC-FRAC:4",
+      "choice_open": false,
+      "item_attempt_id": "01a1dd00-f99a-728e-9698-09cfb0e96a66",
+      "item_id": "TP-PR-01",
+      "phase": "AWAITING",
+      "position": 3
+     },
+     "lifecycle": "ACTIVE"
+    },
+    "state_version": 8,
+    "student_display_name": "Lan",
+    "student_id": "lan",
+    "updated_at": {
+     "$date": "2026-11-15T02:19:51.066000+00:00"
+    }
+   }
+  ],
+  "lessons": [],
+  "safety_reviews": [],
+  "schedules": [],
+  "schools": [],
+  "student_kc_states": [],
+  "teaching_plans": [],
+  "users": []
+ },
+ "responses": {
+  "class": {
+   "by_node": [
+    {
+     "mean_mastery": 75.5,
+     "node_id": "KC-DEC-FRAC",
+     "passed": 1,
+     "students": 2
+    },
+    {
+     "mean_mastery": null,
+     "node_id": "KC-DEC-CONCEPT",
+     "passed": 0,
+     "students": 0
+    },
+    {
+     "mean_mastery": null,
+     "node_id": "KC-DEC-PLACE",
+     "passed": 0,
+     "students": 0
+    },
+    {
+     "mean_mastery": null,
+     "node_id": "KC-DEC-EQ",
+     "passed": 0,
+     "students": 0
+    },
+    {
+     "mean_mastery": null,
+     "node_id": "KC-DEC-CMP",
+     "passed": 0,
+     "students": 0
+    },
+    {
+     "mean_mastery": null,
+     "node_id": "KC-DEC-ORDER",
+     "passed": 0,
+     "students": 0
+    },
+    {
+     "mean_mastery": null,
+     "node_id": "KC-DEC-APPLY",
+     "passed": 0,
+     "students": 0
+    }
+   ],
+   "chapter": {
+    "chapter_id": "math-g5-decimals",
+    "title": "Số thập phân"
+   },
+   "kpis": {
+    "active_this_week": 2,
+    "attention": 1,
+    "cells": 14,
+    "mean_mastery": 75.5,
+    "minutes": 0,
+    "passed": 1,
+    "sessions": 2,
+    "students": 2
+   },
+   "misconceptions": [
+    {
+     "active_students": 1,
+     "count": 1,
+     "id": "FRAC-M01",
+     "name": "Quên chữ số 0 giữ chỗ khi viết phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "recent": 1,
+     "severity": "CRITICAL",
+     "share": 100.0,
+     "students": 1
+    }
+   ],
+   "nodes": [
+    {
+     "layer": "BASIC",
+     "min_mastery": 75.0,
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "order": 0
+    },
+    {
+     "layer": "BASIC",
+     "min_mastery": 75.0,
+     "name": "Khái niệm số thập phân",
+     "node_id": "KC-DEC-CONCEPT",
+     "order": 1
+    },
+    {
+     "layer": "BASIC",
+     "min_mastery": 75.0,
+     "name": "Giá trị theo hàng của số thập phân",
+     "node_id": "KC-DEC-PLACE",
+     "order": 2
+    },
+    {
+     "layer": "BASIC",
+     "min_mastery": 75.0,
+     "name": "Số thập phân bằng nhau",
+     "node_id": "KC-DEC-EQ",
+     "order": 3
+    },
+    {
+     "layer": "IMPLEMENT",
+     "min_mastery": 75.0,
+     "name": "So sánh hai số thập phân",
+     "node_id": "KC-DEC-CMP",
+     "order": 4
+    },
+    {
+     "layer": "IMPLEMENT",
+     "min_mastery": 75.0,
+     "name": "Sắp xếp thứ tự các số thập phân",
+     "node_id": "KC-DEC-ORDER",
+     "order": 5
+    },
+    {
+     "layer": "IMPLEMENT",
+     "min_mastery": 75.0,
+     "name": "Vận dụng so sánh số thập phân",
+     "node_id": "KC-DEC-APPLY",
+     "order": 6
+    }
+   ],
+   "students": [
+    {
+     "attention": [
+      {
+       "at": null,
+       "count": 1,
+       "days": null,
+       "kind": "MISCONCEPTION",
+       "mastery": null,
+       "misconception_id": "FRAC-M01",
+       "node_id": "KC-DEC-FRAC",
+       "session_id": null
+      }
+     ],
+     "cells": [
+      {
+       "active_misconceptions": 1,
+       "confidence": 19.3,
+       "insufficient_data": true,
+       "level": 3,
+       "mastery": 72.4,
+       "node_id": "KC-DEC-FRAC",
+       "passed": false,
+       "state": "CONCEPTUAL",
+       "status": "CURRENT"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-CONCEPT",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-PLACE",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-EQ",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-CMP",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-ORDER",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-APPLY",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      }
+     ],
+     "display_name": "Lan",
+     "last_active_at": "2026-11-15T02:19:51.058000Z",
+     "overall": {
+      "confidence": 19.3,
+      "coverage": 14.3,
+      "level": 3,
+      "mastery": 72.4
+     },
+     "passed": 0,
+     "sessions": {
+      "completed": 0,
+      "minutes": 0,
+      "total": 1,
+      "unfinished": 1
+     },
+     "student_id": "lan"
+    },
+    {
+     "attention": [],
+     "cells": [
+      {
+       "active_misconceptions": 0,
+       "confidence": 36.8,
+       "insufficient_data": false,
+       "level": 4,
+       "mastery": 78.6,
+       "node_id": "KC-DEC-FRAC",
+       "passed": true,
+       "state": "APPLIED",
+       "status": "PASSED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-CONCEPT",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "CURRENT"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-PLACE",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-EQ",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-CMP",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-ORDER",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      },
+      {
+       "active_misconceptions": 0,
+       "confidence": 0.0,
+       "insufficient_data": true,
+       "level": 0,
+       "mastery": null,
+       "node_id": "KC-DEC-APPLY",
+       "passed": false,
+       "state": "NOT_LEARNED",
+       "status": "LOCKED"
+      }
+     ],
+     "display_name": "Minh",
+     "last_active_at": "2026-11-15T02:19:50.943000Z",
+     "overall": {
+      "confidence": 36.8,
+      "coverage": 14.3,
+      "level": 4,
+      "mastery": 78.6
+     },
+     "passed": 1,
+     "sessions": {
+      "completed": 0,
+      "minutes": 0,
+      "total": 1,
+      "unfinished": 1
+     },
+     "student_id": "minh"
+    }
+   ]
+  },
+  "parent_child_minh": {
+   "chapter": {
+    "chapter_id": "math-g5-decimals",
+    "title": "Số thập phân"
+   },
+   "chapters": [
+    {
+     "chapter_id": "math-g5-decimals",
+     "title": "Số thập phân"
+    }
+   ],
+   "current_session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+   "going_well": [
+    {
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "quality": "INDEPENDENT",
+     "reason": null
+    }
+   ],
+   "home_tips": [
+    {
+     "name": "Khái niệm số thập phân",
+     "node_id": "KC-DEC-CONCEPT",
+     "tip": "Đo chiều cao của con bằng thước mét rồi cùng viết thành số thập phân, ví dụ 1 m 35 cm là 1,35 m, và nhờ con đọc to số đó."
+    }
+   ],
+   "last_session_at": "2026-11-15T02:19:50.949000Z",
+   "nodes": [
+    {
+     "layer": "BASIC",
+     "level": 4,
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "order": 0,
+     "passed": true,
+     "quality": "INDEPENDENT",
+     "status": "PASSED"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Khái niệm số thập phân",
+     "node_id": "KC-DEC-CONCEPT",
+     "order": 1,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "CURRENT"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Giá trị theo hàng của số thập phân",
+     "node_id": "KC-DEC-PLACE",
+     "order": 2,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Số thập phân bằng nhau",
+     "node_id": "KC-DEC-EQ",
+     "order": 3,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "So sánh hai số thập phân",
+     "node_id": "KC-DEC-CMP",
+     "order": 4,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "Sắp xếp thứ tự các số thập phân",
+     "node_id": "KC-DEC-ORDER",
+     "order": 5,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "Vận dụng so sánh số thập phân",
+     "node_id": "KC-DEC-APPLY",
+     "order": 6,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    }
+   ],
+   "parent_code": "BE9688",
+   "passed": 1,
+   "relations": [
+    {
+     "source": "KC-DEC-FRAC",
+     "target": "KC-DEC-CONCEPT",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-PLACE",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-EQ",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-EQ",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-ORDER",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-ORDER",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-APPLY",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-APPLY",
+     "type": "APPLICATION"
+    }
+   ],
+   "session_list": [
+    {
+     "lifecycle_state": "ACTIVE",
+     "minutes": 0,
+     "passed_names": [
+      "Phân số thập phân"
+     ],
+     "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+     "started_at": "2026-11-15T02:19:50.798000Z"
+    }
+   ],
+   "sessions": {
+    "completed": 0,
+    "minutes": 0,
+    "total": 1,
+    "unfinished": 1
+   },
+   "streak": 1,
+   "student_display_name": "Minh",
+   "study_days": [
+    "2026-11-15"
+   ],
+   "this_week": {
+    "passed": 1,
+    "study_days": 1
+   },
+   "to_practise": [],
+   "total": 7,
+   "trend": [
+    {
+     "date": "2026-10-19",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-20",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-21",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-22",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-23",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-24",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-25",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-26",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-27",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-28",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-29",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-30",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-10-31",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-01",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-02",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-03",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-04",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-05",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-06",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-07",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-08",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-09",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-10",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-11",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-12",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-13",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-14",
+     "passed": 0,
+     "started": 0,
+     "studied": false
+    },
+    {
+     "date": "2026-11-15",
+     "passed": 1,
+     "started": 1,
+     "studied": true
+    }
+   ]
+  },
+  "student_overview_lan": {
+   "chapter": {
+    "chapter_id": "math-g5-decimals",
+    "title": "Số thập phân"
+   },
+   "chapters": [
+    {
+     "chapter_id": "math-g5-decimals",
+     "title": "Số thập phân"
+    }
+   ],
+   "current_session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+   "going_well": [],
+   "last_session_at": "2026-11-15T02:19:51.066000Z",
+   "nodes": [
+    {
+     "layer": "BASIC",
+     "level": 3,
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "order": 0,
+     "passed": false,
+     "quality": "INSUFFICIENT_DATA",
+     "status": "CURRENT"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Khái niệm số thập phân",
+     "node_id": "KC-DEC-CONCEPT",
+     "order": 1,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Giá trị theo hàng của số thập phân",
+     "node_id": "KC-DEC-PLACE",
+     "order": 2,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Số thập phân bằng nhau",
+     "node_id": "KC-DEC-EQ",
+     "order": 3,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "So sánh hai số thập phân",
+     "node_id": "KC-DEC-CMP",
+     "order": 4,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "Sắp xếp thứ tự các số thập phân",
+     "node_id": "KC-DEC-ORDER",
+     "order": 5,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "Vận dụng so sánh số thập phân",
+     "node_id": "KC-DEC-APPLY",
+     "order": 6,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    }
+   ],
+   "parent_code": "094A36",
+   "passed": 0,
+   "relations": [
+    {
+     "source": "KC-DEC-FRAC",
+     "target": "KC-DEC-CONCEPT",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-PLACE",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-EQ",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-EQ",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-ORDER",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-ORDER",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-APPLY",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-APPLY",
+     "type": "APPLICATION"
+    }
+   ],
+   "sessions": {
+    "completed": 0,
+    "minutes": 0,
+    "total": 1,
+    "unfinished": 1
+   },
+   "streak": 1,
+   "student_display_name": "Lan",
+   "study_days": [
+    "2026-11-15"
+   ],
+   "this_week": {
+    "passed": 0,
+    "study_days": 1
+   },
+   "to_practise": [
+    {
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "quality": "INSUFFICIENT_DATA",
+     "reason": "Còn hay nhầm: Quên chữ số 0 giữ chỗ khi viết phân số thập phân"
+    }
+   ],
+   "total": 7
+  },
+  "student_overview_minh": {
+   "chapter": {
+    "chapter_id": "math-g5-decimals",
+    "title": "Số thập phân"
+   },
+   "chapters": [
+    {
+     "chapter_id": "math-g5-decimals",
+     "title": "Số thập phân"
+    }
+   ],
+   "current_session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+   "going_well": [
+    {
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "quality": "INDEPENDENT",
+     "reason": null
+    }
+   ],
+   "last_session_at": "2026-11-15T02:19:50.949000Z",
+   "nodes": [
+    {
+     "layer": "BASIC",
+     "level": 4,
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "order": 0,
+     "passed": true,
+     "quality": "INDEPENDENT",
+     "status": "PASSED"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Khái niệm số thập phân",
+     "node_id": "KC-DEC-CONCEPT",
+     "order": 1,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "CURRENT"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Giá trị theo hàng của số thập phân",
+     "node_id": "KC-DEC-PLACE",
+     "order": 2,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "BASIC",
+     "level": null,
+     "name": "Số thập phân bằng nhau",
+     "node_id": "KC-DEC-EQ",
+     "order": 3,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "So sánh hai số thập phân",
+     "node_id": "KC-DEC-CMP",
+     "order": 4,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "Sắp xếp thứ tự các số thập phân",
+     "node_id": "KC-DEC-ORDER",
+     "order": 5,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    },
+    {
+     "layer": "IMPLEMENT",
+     "level": null,
+     "name": "Vận dụng so sánh số thập phân",
+     "node_id": "KC-DEC-APPLY",
+     "order": 6,
+     "passed": false,
+     "quality": "NOT_STARTED",
+     "status": "LOCKED"
+    }
+   ],
+   "parent_code": "BE9688",
+   "passed": 1,
+   "relations": [
+    {
+     "source": "KC-DEC-FRAC",
+     "target": "KC-DEC-CONCEPT",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-PLACE",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-EQ",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-EQ",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-ORDER",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-ORDER",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-APPLY",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-APPLY",
+     "type": "APPLICATION"
+    }
+   ],
+   "sessions": {
+    "completed": 0,
+    "minutes": 0,
+    "total": 1,
+    "unfinished": 1
+   },
+   "streak": 1,
+   "student_display_name": "Minh",
+   "study_days": [
+    "2026-11-15"
+   ],
+   "this_week": {
+    "passed": 1,
+    "study_days": 1
+   },
+   "to_practise": [],
+   "total": 7
+  },
+  "taught_chapters": [
+   {
+    "chapter_id": "math-g5-decimals",
+    "title": "Số thập phân"
+   }
+  ],
+  "teacher_student_lan": {
+   "activity": [
+    {
+     "date": "2026-11-15",
+     "hints": 1,
+     "independent": 1,
+     "passed": 0,
+     "supported": 1,
+     "unresolved": 0,
+     "worked": 0
+    }
+   ],
+   "attention": [
+    {
+     "at": null,
+     "count": 1,
+     "days": null,
+     "kind": "MISCONCEPTION",
+     "mastery": null,
+     "misconception_id": "FRAC-M01",
+     "node_id": "KC-DEC-FRAC",
+     "session_id": null
+    }
+   ],
+   "chapter": {
+    "chapter_id": "math-g5-decimals",
+    "title": "Số thập phân"
+   },
+   "conversation": {
+    "hint_button": 0,
+    "intents": {},
+    "messages": 7,
+    "parked": 0,
+    "questions": 0,
+    "safety": 0,
+    "signals": {}
+   },
+   "curve": [
+    {
+     "at": "2026-11-15T02:19:50.997000Z",
+     "mastery": 9.5,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 66.7,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:51.012000Z",
+     "mastery": 10.0,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 69.8,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:51.058000Z",
+     "mastery": 10.3,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 72.2,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:51.058000Z",
+     "mastery": 10.3,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 72.4,
+     "passed": null
+    }
+   ],
+   "dimensions": {
+    "A": {
+     "n_eff": 0.0,
+     "value": null
+    },
+    "C": {
+     "n_eff": 0.0,
+     "value": null
+    },
+    "D": {
+     "n_eff": 0.0,
+     "value": null
+    },
+    "I": {
+     "n_eff": 1.5,
+     "value": 67.1
+    },
+    "R": {
+     "n_eff": 2.0,
+     "value": 75.0
+    },
+    "S": {
+     "n_eff": 0.0,
+     "value": null
+    },
+    "T": {
+     "n_eff": 0.0,
+     "value": null
+    }
+   },
+   "display_name": "Lan",
+   "journey": [
+    {
+     "at": "2026-11-15T02:19:50.997000Z",
+     "attempts": 1,
+     "hints": 0,
+     "item_id": "TP-CC-01",
+     "node_id": "KC-DEC-FRAC",
+     "resolution": "INDEPENDENT"
+    },
+    {
+     "at": "2026-11-15T02:19:51.058000Z",
+     "attempts": 2,
+     "hints": 1,
+     "item_id": "TP-CP-01",
+     "node_id": "KC-DEC-FRAC",
+     "resolution": "SUPPORTED"
+    }
+   ],
+   "last_active_at": "2026-11-15T02:19:51.058000Z",
+   "nodes": [
+    {
+     "active_misconceptions": 1,
+     "attempts": 3,
+     "confidence": 19.3,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 1.0,
+       "value": 66.6
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": true,
+       "n_eff": 1.5,
+       "value": 67.1
+      },
+      "R": {
+       "in_mastery": true,
+       "n_eff": 2.0,
+       "value": 75.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": "UP",
+     "group": "INSUFFICIENT",
+     "hints": 1,
+     "insufficient_data": true,
+     "items": 2,
+     "layer": "BASIC",
+     "level": 3,
+     "mastery": 72.4,
+     "min_mastery": 75.0,
+     "misconceptions": [
+      {
+       "count": 1,
+       "id": "FRAC-M01",
+       "name": "Quên chữ số 0 giữ chỗ khi viết phân số thập phân",
+       "severity": "CRITICAL",
+       "status": "ACTIVE"
+      }
+     ],
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "order": 0,
+     "passed": false,
+     "recommendation": "PRACTICE",
+     "seconds": 0,
+     "solved": 2,
+     "state": "CONCEPTUAL",
+     "status": "CURRENT",
+     "trend": [
+      {
+       "at": "2026-11-15T02:19:50.997000Z",
+       "mastery": 66.7
+      },
+      {
+       "at": "2026-11-15T02:19:51.012000Z",
+       "mastery": 69.8
+      },
+      {
+       "at": "2026-11-15T02:19:51.058000Z",
+       "mastery": 72.2
+      },
+      {
+       "at": "2026-11-15T02:19:51.058000Z",
+       "mastery": 72.4
+      }
+     ]
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 72.4
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 72.4
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 72.4
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 72.4
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 72.4
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 72.4
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 72.4
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "BASIC",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Khái niệm số thập phân",
+     "node_id": "KC-DEC-CONCEPT",
+     "order": 1,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "BASIC",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Giá trị theo hàng của số thập phân",
+     "node_id": "KC-DEC-PLACE",
+     "order": 2,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "BASIC",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Số thập phân bằng nhau",
+     "node_id": "KC-DEC-EQ",
+     "order": 3,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "IMPLEMENT",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "So sánh hai số thập phân",
+     "node_id": "KC-DEC-CMP",
+     "order": 4,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "IMPLEMENT",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Sắp xếp thứ tự các số thập phân",
+     "node_id": "KC-DEC-ORDER",
+     "order": 5,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "IMPLEMENT",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Vận dụng so sánh số thập phân",
+     "node_id": "KC-DEC-APPLY",
+     "order": 6,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    }
+   ],
+   "overall": {
+    "confidence": 19.3,
+    "coverage": 14.3,
+    "level": 3,
+    "mastery": 72.4,
+    "passed": 0,
+    "total": 7
+   },
+   "relations": [
+    {
+     "source": "KC-DEC-FRAC",
+     "target": "KC-DEC-CONCEPT",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-PLACE",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-EQ",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-EQ",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-ORDER",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-ORDER",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-APPLY",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-APPLY",
+     "type": "APPLICATION"
+    }
+   ],
+   "session_list": [
+    {
+     "lifecycle_state": "ACTIVE",
+     "minutes": 0,
+     "passed_names": [],
+     "session_id": "01a1dd00-f934-774c-b334-b8bc9ffa2c40",
+     "started_at": "2026-11-15T02:19:50.967000Z"
+    }
+   ],
+   "sessions": {
+    "completed": 0,
+    "minutes": 0,
+    "total": 1,
+    "unfinished": 1
+   },
+   "strengths": [
+    "R"
+   ],
+   "student_id": "lan",
+   "timeline": [
+    {
+     "date": "2026-11-15",
+     "mastery": 72.4
+    }
+   ],
+   "velocity": null,
+   "weaknesses": []
+  },
+  "teacher_student_minh": {
+   "activity": [
+    {
+     "date": "2026-11-15",
+     "hints": 0,
+     "independent": 5,
+     "passed": 1,
+     "supported": 0,
+     "unresolved": 0,
+     "worked": 0
+    }
+   ],
+   "attention": [],
+   "chapter": {
+    "chapter_id": "math-g5-decimals",
+    "title": "Số thập phân"
+   },
+   "conversation": {
+    "hint_button": 0,
+    "intents": {},
+    "messages": 9,
+    "parked": 0,
+    "questions": 0,
+    "safety": 0,
+    "signals": {}
+   },
+   "curve": [
+    {
+     "at": "2026-11-15T02:19:50.832000Z",
+     "mastery": 9.5,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 66.7,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:50.849000Z",
+     "mastery": 10.0,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 69.8,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:50.880000Z",
+     "mastery": 10.3,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 72.2,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:50.880000Z",
+     "mastery": 10.2,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 71.5,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:50.902000Z",
+     "mastery": 10.8,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 75.4,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:50.922000Z",
+     "mastery": 11.2,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 78.1,
+     "passed": null
+    },
+    {
+     "at": "2026-11-15T02:19:50.943000Z",
+     "mastery": 11.2,
+     "node_id": "KC-DEC-FRAC",
+     "node_mastery": 78.6,
+     "passed": "KC-DEC-FRAC"
+    }
+   ],
+   "dimensions": {
+    "A": {
+     "n_eff": 0.0,
+     "value": null
+    },
+    "C": {
+     "n_eff": 2.83,
+     "value": 79.3
+    },
+    "D": {
+     "n_eff": 0.0,
+     "value": null
+    },
+    "I": {
+     "n_eff": 4.5,
+     "value": 84.6
+    },
+    "R": {
+     "n_eff": 2.0,
+     "value": 75.0
+    },
+    "S": {
+     "n_eff": 0.0,
+     "value": null
+    },
+    "T": {
+     "n_eff": 0.0,
+     "value": null
+    }
+   },
+   "display_name": "Minh",
+   "journey": [
+    {
+     "at": "2026-11-15T02:19:50.832000Z",
+     "attempts": 1,
+     "hints": 0,
+     "item_id": "TP-CC-01",
+     "node_id": "KC-DEC-FRAC",
+     "resolution": "INDEPENDENT"
+    },
+    {
+     "at": "2026-11-15T02:19:50.880000Z",
+     "attempts": 1,
+     "hints": 0,
+     "item_id": "TP-CP-01",
+     "node_id": "KC-DEC-FRAC",
+     "resolution": "INDEPENDENT"
+    },
+    {
+     "at": "2026-11-15T02:19:50.902000Z",
+     "attempts": 1,
+     "hints": 0,
+     "item_id": "TP-PR-01",
+     "node_id": "KC-DEC-FRAC",
+     "resolution": "INDEPENDENT"
+    },
+    {
+     "at": "2026-11-15T02:19:50.922000Z",
+     "attempts": 1,
+     "hints": 0,
+     "item_id": "TP-PR-02",
+     "node_id": "KC-DEC-FRAC",
+     "resolution": "INDEPENDENT"
+    },
+    {
+     "at": "2026-11-15T02:19:50.943000Z",
+     "attempts": 1,
+     "hints": 0,
+     "item_id": "TP-TR-01",
+     "node_id": "KC-DEC-FRAC",
+     "resolution": "INDEPENDENT"
+    }
+   ],
+   "last_active_at": "2026-11-15T02:19:50.943000Z",
+   "nodes": [
+    {
+     "active_misconceptions": 0,
+     "attempts": 5,
+     "confidence": 36.8,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.95,
+       "value": 66.1
+      },
+      "C": {
+       "in_mastery": true,
+       "n_eff": 2.83,
+       "value": 79.3
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": true,
+       "n_eff": 4.5,
+       "value": 84.6
+      },
+      "R": {
+       "in_mastery": true,
+       "n_eff": 2.0,
+       "value": 75.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": "UP",
+     "group": "PASSED",
+     "hints": 0,
+     "insufficient_data": false,
+     "items": 5,
+     "layer": "BASIC",
+     "level": 4,
+     "mastery": 78.6,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Phân số thập phân",
+     "node_id": "KC-DEC-FRAC",
+     "order": 0,
+     "passed": true,
+     "recommendation": "TRANSFER",
+     "seconds": 0,
+     "solved": 5,
+     "state": "APPLIED",
+     "status": "PASSED",
+     "trend": [
+      {
+       "at": "2026-11-15T02:19:50.832000Z",
+       "mastery": 66.7
+      },
+      {
+       "at": "2026-11-15T02:19:50.849000Z",
+       "mastery": 69.8
+      },
+      {
+       "at": "2026-11-15T02:19:50.880000Z",
+       "mastery": 72.2
+      },
+      {
+       "at": "2026-11-15T02:19:50.880000Z",
+       "mastery": 71.5
+      },
+      {
+       "at": "2026-11-15T02:19:50.902000Z",
+       "mastery": 75.4
+      },
+      {
+       "at": "2026-11-15T02:19:50.922000Z",
+       "mastery": 78.1
+      },
+      {
+       "at": "2026-11-15T02:19:50.943000Z",
+       "mastery": 78.6
+      }
+     ]
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 78.6
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 78.6
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 78.6
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 78.6
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 78.6
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 78.6
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 78.6
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "BASIC",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Khái niệm số thập phân",
+     "node_id": "KC-DEC-CONCEPT",
+     "order": 1,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "CURRENT",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "BASIC",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Giá trị theo hàng của số thập phân",
+     "node_id": "KC-DEC-PLACE",
+     "order": 2,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "BASIC",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Số thập phân bằng nhau",
+     "node_id": "KC-DEC-EQ",
+     "order": 3,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "IMPLEMENT",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "So sánh hai số thập phân",
+     "node_id": "KC-DEC-CMP",
+     "order": 4,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "IMPLEMENT",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Sắp xếp thứ tự các số thập phân",
+     "node_id": "KC-DEC-ORDER",
+     "order": 5,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    },
+    {
+     "active_misconceptions": 0,
+     "attempts": 0,
+     "confidence": 0.0,
+     "dimensions": {
+      "A": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "C": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "D": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "I": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "R": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "S": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      },
+      "T": {
+       "in_mastery": false,
+       "n_eff": 0.0,
+       "value": 50.0
+      }
+     },
+     "direction": null,
+     "group": "NOT_STARTED",
+     "hints": 0,
+     "insufficient_data": true,
+     "items": 0,
+     "layer": "IMPLEMENT",
+     "level": 0,
+     "mastery": null,
+     "min_mastery": 75.0,
+     "misconceptions": [],
+     "name": "Vận dụng so sánh số thập phân",
+     "node_id": "KC-DEC-APPLY",
+     "order": 6,
+     "passed": false,
+     "recommendation": "DIAGNOSE",
+     "seconds": null,
+     "solved": 0,
+     "state": "NOT_LEARNED",
+     "status": "LOCKED",
+     "trend": []
+    }
+   ],
+   "overall": {
+    "confidence": 36.8,
+    "coverage": 14.3,
+    "level": 4,
+    "mastery": 78.6,
+    "passed": 1,
+    "total": 7
+   },
+   "relations": [
+    {
+     "source": "KC-DEC-FRAC",
+     "target": "KC-DEC-CONCEPT",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-PLACE",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-EQ",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-EQ",
+     "target": "KC-DEC-CMP",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-ORDER",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-PLACE",
+     "target": "KC-DEC-ORDER",
+     "type": "APPLICATION"
+    },
+    {
+     "source": "KC-DEC-CMP",
+     "target": "KC-DEC-APPLY",
+     "type": "PREREQUISITE"
+    },
+    {
+     "source": "KC-DEC-CONCEPT",
+     "target": "KC-DEC-APPLY",
+     "type": "APPLICATION"
+    }
+   ],
+   "session_list": [
+    {
+     "lifecycle_state": "ACTIVE",
+     "minutes": 0,
+     "passed_names": [
+      "Phân số thập phân"
+     ],
+     "session_id": "01a1dd00-f86c-7332-b462-4761a8f5714a",
+     "started_at": "2026-11-15T02:19:50.798000Z"
+    }
+   ],
+   "sessions": {
+    "completed": 0,
+    "minutes": 0,
+    "total": 1,
+    "unfinished": 1
+   },
+   "strengths": [
+    "I",
+    "C"
+   ],
+   "student_id": "minh",
+   "timeline": [
+    {
+     "date": "2026-11-15",
+     "mastery": 78.6
+    }
+   ],
+   "velocity": null,
+   "weaknesses": []
+  }
+ },
+ "today": "2026-11-15"
+}
