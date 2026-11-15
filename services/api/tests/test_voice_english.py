@@ -257,7 +257,11 @@ def english_chapter():
 @pytest.fixture
 def english(monkeypatch):
     chapter = english_chapter()
-    monkeypatch.setattr(session_api, "_chapter", lambda chapter_id, version=None: chapter)
+    monkeypatch.setattr(session_api, "_chapter", lambda chapter_id, version=None, subject="math": chapter)
+    # ENG-5b: the teaching loop of this relabelled Mathematics chapter stays the Mathematics one (its words
+    # are Mathematics; the English validator and off-topic rule would read them as another subject). Only the
+    # voice is under test here; the real English unit runs end to end in test_english_session.py.
+    monkeypatch.setattr(session_api.chapter_service, "_loop_options", lambda chapter: {})
     return chapter
 
 

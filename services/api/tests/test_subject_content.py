@@ -197,9 +197,10 @@ async def client(monkeypatch):
 
 
 def test_a_session_or_a_view_cannot_open_the_english_unit_through_mathematics(client):
-    """Until the English session (ENG-5b) no session of the unit starts; a view of it is always English."""
+    """The unit opens as an English session (ENG-5b) and as an English report view (ENG-7b); no
+    Mathematics route or view serves it, and its lessons are not sessions of their own."""
     created = client.post("/v1/sessions", json={"lesson_id": FAMILY}, headers=STUDENT)
-    assert created.status_code == 404
+    assert created.status_code == 201 and created.json()["subject"] == "english"
     for lesson_id in ENGLISH_LESSONS:
         assert client.post("/v1/sessions", json={"lesson_id": lesson_id}, headers=STUDENT).status_code == 404
     # ENG-7b (ADR-067): a report view of the unit opens, but as English (its package's subject), never as a

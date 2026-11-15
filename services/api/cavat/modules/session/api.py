@@ -32,6 +32,7 @@ from cavat import db
 from cavat.config import get_settings
 from cavat.core.events import EventType
 from cavat.core.repository import utc_now
+from cavat.core.subjects import SUBJECTS
 from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE, MODEL_WAIT_MESSAGES
 from cavat.modules.ai_gateway.router import AIRouter, RecordingRouter, build_router
 from cavat.modules.content.chapter_package import Chapter
@@ -62,6 +63,7 @@ from cavat.modules.teaching.grounded import GroundedSpeaker
 from cavat.modules.tutor.bandit import BanditChooser
 from cavat.modules.tutor.bandit_store import BanditRepository
 from cavat.modules.tutor.chooser import ModelChooser
+from cavat.modules.tutor.english_session import EnglishLiveReader
 from cavat.modules.tutor.reader import LiveReader, ModelReader
 from cavat.modules.voice import api as voice_api
 from cavat.modules.voice import replay as voice_replay
@@ -146,7 +148,8 @@ class CurrentItem(BaseModel):
     item_attempt_id: str
     item_id: str
     stem: str
-    answer_format: Literal["compare", "order", "numeric", "choice", "boolean", "open"]
+    # ENG-5b: "phrase", "word_order" are the English answer types (ADR-062); the Math ones are unchanged
+    answer_format: Literal["compare", "order", "numeric", "choice", "boolean", "open", "phrase", "word_order"]
     options: list[ItemOption]
     expecting: Literal["ANSWER", "EXPLANATION"]
     position: int
@@ -252,6 +255,7 @@ class SessionStateView(BaseModel):
     teaching: TeachingView | None = None
     tutor_recovery: dict[str, Any] | None = None
     voice: VoiceView | None = None
+    subject: Literal["math", "english"] | None = None  # ENG-5b: set by the backend from the package
 
 
 class SessionSummaryView(BaseModel):
@@ -265,6 +269,15 @@ class SessionSummaryView(BaseModel):
     misconception_ids: list[str]
     engine: Literal["mock", "live"]
     mode: Literal["LESSON", "CHAPTER"] = "LESSON"  # CHAPTER: GET /{id}/report explains the teaching
+    subject: Literal["math", "english"] | None = None  # ENG-5b: the session's subject, from its document
+
+
+class TeachableChapterView(BaseModel):
+    """ENG-5b: a chapter or unit a student can open a session on (``POST /v1/sessions`` with its id)."""
+
+    chapter_id: str
+    title: str
+    subject: Literal["math", "english"]
 
 
 class MoveChosenView(BaseModel):
@@ -954,16 +967,28 @@ def _package(lesson_id: str) -> LessonPackage:
     return pkg
 
 
-def _chapter(chapter_id: str, version: str | None = None) -> Chapter:
-    """A chapter for a new session (``version`` None), or the one a session started with (INGEST-4)."""
+def _chapter(
+    chapter_id: str, version: str | None = None, subject: str = chapter_service.DEFAULT_SUBJECT
+) -> Chapter:
+    """A chapter for a new session (``version`` None), or the one a session started with (INGEST-4), of
+    ``subject`` (Mathematics unless the session's own document says otherwise, ENG-5b)."""
     chapter = (
-        chapter_service.chapter_for(chapter_id, version)
+        chapter_service.chapter_for(chapter_id, version, subject)  # type: ignore[arg-type]
         if version
-        else chapter_service.chapters().get(chapter_id)
+        else chapter_service.chapters(subject).get(chapter_id)  # type: ignore[arg-type]
     )
     if chapter is None:
         raise ApiError(404, "NOT_FOUND", f"chapter {chapter_id!r} not found")
     return chapter
+
+
+def _session_chapter(session: LearningSession) -> Chapter:
+    """The chapter (or unit) a chapter session runs, of the subject its document records (rule S1)."""
+    return _chapter(session.lesson_id, session.lesson_version, chapter_service.subject_of(session))
+
+
+def _is_english(session: LearningSession) -> bool:
+    return chapter_service.is_chapter(session) and chapter_service.subject_of(session) == "english"
 
 
 async def published_chapters(database: Database) -> None:
@@ -997,9 +1022,7 @@ async def _history(database: Any, session: LearningSession) -> list[Any]:
 async def _view(database: Any, session: LearningSession) -> dict[str, Any]:
     if chapter_service.is_chapter(session):
         history = await _history(database, session)
-        view = chapter_service.student_view(
-            _chapter(session.lesson_id, session.lesson_version), session, history
-        )
+        view = chapter_service.student_view(_session_chapter(session), session, history)
     else:
         view = service.student_view(_package(session.lesson_id), session)
     pending = (session.state.activity or {}).get("tutor_recovery")
@@ -1007,15 +1030,15 @@ async def _view(database: Any, session: LearningSession) -> dict[str, Any]:
         {k: pending[k] for k in ("status", "attempts", "retry_after_ms", "reason")} if pending else None
     )
     view["voice"] = voice_view(_session_voice(session))
+    # ENG-5b: the subject of the session, set by the backend from the package it runs (for the web's labels).
+    view["subject"] = chapter_service.subject_of(session) if chapter_service.is_chapter(session) else "math"
     return view
 
 
 def _session_voice(session: LearningSession) -> voice_api.SessionVoice:
     """ENG-6: the voice of a session, from the package it runs (rule S1) and what it waits for (DI-132)."""
     content: Any = (
-        _chapter(session.lesson_id, session.lesson_version)
-        if chapter_service.is_chapter(session)
-        else _package(session.lesson_id)
+        _session_chapter(session) if chapter_service.is_chapter(session) else _package(session.lesson_id)
     )
     return session_voice(session, content)
 
@@ -1031,18 +1054,24 @@ def voice_sessions(database: Database, student: Student) -> voice_api.SessionVoi
 
 
 def _summaries(sessions: list[LearningSession]) -> list[dict[str, Any]]:
-    """Summaries of a list of sessions; chapter progress counts what the student passed before too."""
-    packages, chapters = service.lesson_packages(), chapter_service.chapters()
-    return [
-        chapter_service.summary(
-            chapter_service.chapter_for(s.lesson_id, s.lesson_version) or chapters[s.lesson_id],
-            s,
-            _earlier(sessions, s),
-        )
-        if chapter_service.is_chapter(s) and s.lesson_id in chapters
-        else service.summary(packages.get(s.lesson_id), s)
-        for s in sessions
-    ]
+    """Summaries of a list of sessions; chapter progress counts what the student passed before too. Each one
+    names its subject (ENG-5b), read from the session's own document."""
+    packages = service.lesson_packages()
+    by_subject = {subject: chapter_service.chapters(subject) for subject in SUBJECTS}
+    out = []
+    for s in sessions:
+        subject = chapter_service.subject_of(s) if chapter_service.is_chapter(s) else "math"
+        chapters = by_subject[subject]
+        if chapter_service.is_chapter(s) and s.lesson_id in chapters:
+            row = chapter_service.summary(
+                chapter_service.chapter_for(s.lesson_id, s.lesson_version, subject) or chapters[s.lesson_id],
+                s,
+                _earlier(sessions, s),
+            )
+        else:
+            row = service.summary(packages.get(s.lesson_id), s)
+        out.append({**row, "subject": subject})
+    return out
 
 
 async def _load(database: Any, session_id: str, student: str) -> LearningSession:
@@ -1068,19 +1097,22 @@ def _ack_for_key(session: LearningSession, key: str) -> CommandAck | None:
     )
 
 
-def _web_source() -> Any:
-    """WEB-1 (DI-51): the trusted source a question the documents do not answer may be looked up in."""
+def _web_source(subject: str = chapter_service.DEFAULT_SUBJECT) -> Any:
+    """WEB-1 (DI-51): the trusted source a question the documents do not answer may be looked up in.
+    ENG-5b (rule C1, DI-143): an English session reads ``ENGLISH_WEB_LOOKUP`` (off by default), never
+    ``WEB_LOOKUP``; a Mathematics session reads ``WEB_LOOKUP`` exactly as before."""
     settings = get_settings()
-    if settings.web_lookup == "off":
+    lookup = settings.english_web_lookup if subject == "english" else settings.web_lookup
+    if lookup == "off":
         return None
-    if settings.web_lookup == "search":
+    if lookup == "search":
         from cavat.modules.teaching.search_web import SearchEducation
 
         return SearchEducation(
             cache_dir=settings.storage_dir / "web",
             api_key=settings.tavily_api_key.get_secret_value() if settings.tavily_api_key else None,
         )
-    if settings.web_lookup == "official":
+    if lookup == "official":
         from cavat.modules.teaching.official_web import OfficialEducation
 
         return OfficialEducation(cache_dir=settings.storage_dir / "web")
@@ -1093,15 +1125,21 @@ async def _chapter_speaker(database, content, session, router):
     persona = content.package.persona
     # ENG-2: the subject is the one of the chapter (or unit) package the session runs, which the backend
     # loaded from the session's own lesson_id and version; no request field can name another one.
+    subject = content.package.subject
+    if subject != chapter_service.DEFAULT_SUBJECT:
+        # ENG-5b (DI-140): the grounded speaker's prompts and checks are the Math ones (grounded.v3, the
+        # constitution, its arithmetic net). An English session's speaker answers from the English index
+        # with approved passages and template leads, and never calls a model with them.
+        router = None
     return GroundedSpeaker(
-        await _rag_service.current(database, content.package.subject),
+        await _rag_service.current(database, subject),
         router,
         tutor_self=persona.tutor_self,
         student_address=persona.student_address,
         student_name=session.student_display_name,
         calls_used=(session.state.activity or {}).get("llm_calls", 0),
         order=content.topological_order(),
-        web=_web_source(),
+        web=_web_source() if subject == chapter_service.DEFAULT_SUBJECT else _web_source(subject),
         allow_knowledge=get_settings().allow_tutor_knowledge,
         recovery_codes=((session.state.activity or {}).get("tutor_recovery") or {}).get("retry_codes", ()),
     )
@@ -1255,6 +1293,34 @@ def _hold_for_unavailable_models(session, step, recording, text="", modality="TE
     return service.Step(state, events, fields)
 
 
+def _chapter_cap(session: LearningSession) -> int:
+    """The model calls a chapter session may spend: ``MAX_LLM_CALLS_PER_CHAPTER`` for Mathematics as before,
+    ``ENGLISH_MAX_LLM_CALLS_PER_UNIT`` for an English unit (rule C2; each session counts its own calls)."""
+    settings = get_settings()
+    return (
+        settings.english_max_llm_calls_per_unit
+        if _is_english(session)
+        else settings.max_llm_calls_per_chapter
+    )
+
+
+def _live_renderer(session: LearningSession, content: Any, router: Any) -> Any:
+    """The renderer of the live turn: the Math brain (``service.llm_renderer``) for every session but an
+    English one, which gets the English brain (ADR-065, ENG-5b)."""
+    if not _is_english(session):
+        return service.llm_renderer(session, router)
+    from cavat.modules.tutor.english_session import english_renderer
+
+    return english_renderer(
+        content,
+        router,
+        student_name=session.student_display_name,
+        calls_used=(session.state.activity or {}).get("llm_calls", 0),
+        history=service.item_history(session),
+        history_item=(session.state.item or {}).get("item_id"),
+    )
+
+
 async def _command(
     database: Any,
     session_id: str,
@@ -1285,25 +1351,30 @@ async def _command(
 
     shared = tutor_router()
     if shared is not None and isinstance(shared, AIRouter) and chapter_service.is_chapter(session):
-        shared = shared.with_session_cap(get_settings().max_llm_calls_per_chapter)
+        shared = shared.with_session_cap(_chapter_cap(session))
     # CFG-2: the model calls of this command, written down with its events (MODEL_CALLED, MODEL_FALLBACK)
     router = RecordingRouter(shared) if shared is not None else None
     bandit_store: BanditRepository | None = None
     if chapter_service.is_chapter(session):
-        content: Any = _chapter(session.lesson_id, session.lesson_version)
+        content: Any = _session_chapter(session)
         # RAG-2: the child's questions are answered from the index of this moment (rebuilt when the
         # teacher's documents changed); without TUTOR_RENDERER=llm the answers are passages word for word.
         speaker = await _chapter_speaker(database, content, session, router)
         # CTX-1: an unclear item message is read in context: by Qwen when it may be called, else by rule.
         calls = (session.state.activity or {}).get("llm_calls", 0)
-        reader = LiveReader(
+        reader_class = EnglishLiveReader if _is_english(session) else LiveReader
+        reader = reader_class(
             ModelReader(router, calls_used=calls) if router is not None else None, semantic=True
         )
         # AUTO-1: Qwen picks one of the moves the policy allows, within the first half of the call budget.
         settings = get_settings()
         choosing = router is not None and settings.tutor_chooser == "llm"
         chooser: Any = ModelChooser(router, calls_used=calls) if choosing else None
-        if settings.tutor_chooser == "bandit":
+        if _is_english(session):
+            # ENG-5b (DI-140): the chooser's prompt is a Mathematics teacher's and the bandit learns from
+            # Mathematics answers; an English session plays the policy's own move (TUTOR_CHOOSER=policy).
+            chooser = None
+        elif settings.tutor_chooser == "bandit":
             # BANDIT-1 (ADR-058): the school's bandit, learned from the answers after earlier picks; the
             # model reads only the menus the bandit does not learn from (a "vì sao" after a right answer).
             bandit_store = BanditRepository(database, service.DEMO_SCHOOL_ID)
@@ -1323,7 +1394,7 @@ async def _command(
     else:
         content, command_fn = _package(session.lesson_id), service.apply_command
     try:
-        live = service.llm_renderer(session, router) if router is not None else None
+        live = _live_renderer(session, content, router) if router is not None else None
         apply = partial(command_fn, content, session, command, utc_now(), live_renderer=live)
         step = await run_in_threadpool(apply, **kwargs)  # the model call blocks; keep the event loop free
     except service.CommandNotAllowed as exc:
@@ -1503,7 +1574,9 @@ async def create_session(body: CreateSession, database: Database, student: Stude
     """
     target = body.lesson_id or chapter_service.DEFAULT_CHAPTER_ID
     display_name = name or body.student_display_name
-    chapter = chapter_service.chapters().get(target)
+    # ENG-5b (rule S1): the subject is the one of the package ``lesson_id`` names; nothing the client sends
+    # chooses it (the body has no "subject" field: one sent is a 422, the model forbids extra fields).
+    chapter = chapter_service.teachable_chapter(target)
     if chapter is not None:
         session = chapter_service.new_session(chapter, service.DEMO_SCHOOL_ID, student, display_name)
     else:
@@ -1517,6 +1590,13 @@ async def create_session(body: CreateSession, database: Database, student: Stude
 async def list_sessions(database: Database, teacher: Teacher):
     """Teacher: the school's latest sessions, newest first."""
     return _summaries(await _repo(database).list_recent())
+
+
+@router.get("/chapters", response_model=list[TeachableChapterView])
+async def teachable_chapters(student: Student):
+    """Student: the chapters and units the tutor teaches, each with its subject (ENG-5b). Open one with
+    ``POST /v1/sessions`` and ``lesson_id`` = its ``chapter_id``; the backend takes the subject from it."""
+    return chapter_service.teachable_chapters()
 
 
 @router.get("/mine", response_model=list[SessionSummaryView])
@@ -1535,10 +1615,12 @@ async def get_transcript(session_id: str, database: Database, teacher: Teacher):
         raise ApiError(404, "NOT_FOUND", "session not found")
     if chapter_service.is_chapter(session):
         history = await _history(database, session)
-        return chapter_service.teacher_transcript(
-            _chapter(session.lesson_id, session.lesson_version), session, history
-        )
-    return service.teacher_transcript(_package(session.lesson_id), session)
+        out = chapter_service.teacher_transcript(_session_chapter(session), session, history)
+    else:
+        out = service.teacher_transcript(_package(session.lesson_id), session)
+    # ENG-5b: the session row says its subject, as in the list of sessions (one optional field)
+    subject = chapter_service.subject_of(session) if chapter_service.is_chapter(session) else "math"
+    return {**out, "session": {**out["session"], "subject": subject}}
 
 
 @router.get("/{session_id}/report", response_model=TeachingReportView)
@@ -1548,7 +1630,7 @@ async def get_report(session_id: str, database: Database, teacher: Teacher):
     if session is None or not chapter_service.is_chapter(session):
         raise ApiError(404, "NOT_FOUND", "no teaching report for this session")
     history = await _history(database, session)
-    return chapter_service.report(_chapter(session.lesson_id, session.lesson_version), session, history)
+    return chapter_service.report(_session_chapter(session), session, history)
 
 
 @router.post("/{session_id}/join", response_model=SessionStateView)
@@ -1558,10 +1640,10 @@ async def join_session(session_id: str, database: Database, student: Student):
     if session.state.lifecycle == LifecycleState.READY:
         if chapter_service.is_chapter(session):
             history = await _history(database, session)
-            chapter = _chapter(session.lesson_id, session.lesson_version)
+            chapter = _session_chapter(session)
             shared = tutor_router()
             if isinstance(shared, AIRouter):
-                shared = shared.with_session_cap(get_settings().max_llm_calls_per_chapter)
+                shared = shared.with_session_cap(_chapter_cap(session))
             recording = RecordingRouter(shared) if shared is not None else None
             speaker = await _chapter_speaker(database, chapter, session, recording)
             step = await run_in_threadpool(
@@ -1582,7 +1664,7 @@ async def join_session(session_id: str, database: Database, student: Student):
         except StateVersionConflict:  # joined from another tab at the same moment
             session = await _load(database, session_id, student)
     elif session.state.lifecycle == LifecycleState.ACTIVE and chapter_service.is_chapter(session):
-        chapter = _chapter(session.lesson_id, session.lesson_version)
+        chapter = _session_chapter(session)
         node_id = (session.state.activity or {}).get("node_id")
         name = chapter.node(node_id).name if node_id else chapter.package.title
         address = session.student_display_name or chapter.package.persona.student_address
