@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiError, type SessionApi } from "../../api/client";
-import type { AuthUser, ParentChildView, StudentOverview } from "../../api/contract";
+import type { AuthUser, ChildSubject, ParentChildView, StudentOverview } from "../../api/contract";
 import { renderApp, testApi } from "../../test/renderApp";
 
 const DECIMALS = { chapter_id: "math-g5-decimals", title: "Số thập phân" };
@@ -218,6 +218,110 @@ describe("parent pages (PART 27.1)", () => {
       "status",
     );
     expect(screen.getByRole("link", { name: "Nhập lại mã" })).toHaveAttribute("href", "/parent");
+  });
+});
+
+const UNIT = {
+  chapter_id: "eng-g5-u11-family-time",
+  title: "Unit 11: Family time",
+  subject: "english" as const,
+};
+const ENGLISH_CHILD: ParentChildView = {
+  ...CHILD,
+  chapter: UNIT,
+  chapters: [UNIT],
+  to_practise: [
+    {
+      node_id: "ENG5-U11-VOCAB",
+      name: "Cụm từ hoạt động gia đình",
+      quality: "WITH_SUPPORT",
+      reason: "Có lúc nhầm: kể chuyện đã qua bằng động từ nguyên mẫu, ví dụ eat → ate",
+      mistakes: [
+        { label: "Kể chuyện đã qua bằng động từ nguyên mẫu", count: 1, examples: ["eat → ate"] },
+        {
+          label: "Viết hoặc nói sai chính tả một từ",
+          count: 2,
+          examples: ["bot → boat", "seafod → seafood"],
+        },
+      ],
+    },
+  ],
+};
+const STUDIED: ChildSubject[] = [
+  {
+    subject: "english",
+    chapter_id: UNIT.chapter_id,
+    title: UNIT.title,
+    sessions: 1,
+    last_session_at: "2026-11-15T08:00:00Z",
+  },
+  {
+    subject: "math",
+    chapter_id: DECIMALS.chapter_id,
+    title: DECIMALS.title,
+    sessions: 2,
+    last_session_at: "2026-10-06T08:30:00Z",
+  },
+];
+
+function bothSubjectsApi(studied: ChildSubject[] = STUDIED) {
+  const getChildOverview = vi.fn((code: string, chapter?: string) =>
+    code === CHILD.parent_code
+      ? Promise.resolve(chapter === UNIT.chapter_id ? ENGLISH_CHILD : CHILD)
+      : Promise.reject(new ApiError(404, "NOT_FOUND", "unknown code")),
+  );
+  const getChildSubjects = vi.fn(() => Promise.resolve(studied));
+  const api = progressApi({ getChildOverview, getChildSubjects, englishDemo: undefined }); // the real API
+  return { api, getChildOverview, getChildSubjects };
+}
+
+describe("a parent sees both subjects (ENG-7c)", () => {
+  it("opens on English when English is what the child studied last", async () => {
+    const { api, getChildOverview, getChildSubjects } = bothSubjectsApi();
+    renderApp("/parent/4ACA86", api);
+    expect(await screen.findByText(/Tiếng Anh · Unit 11: Family time/)).toBeInTheDocument();
+    expect(getChildSubjects).toHaveBeenCalledWith("4ACA86");
+    expect(getChildOverview).toHaveBeenCalledWith("4ACA86", UNIT.chapter_id);
+    expect(getChildOverview).not.toHaveBeenCalledWith("4ACA86", undefined); // no flash of the math page
+    const tiles = screen.getByRole("navigation", { name: "Chọn môn học" });
+    expect(within(tiles).getByRole("link", { name: /Tiếng Anh/ })).toHaveTextContent("Vừa học");
+  });
+
+  it("stays on math when the parent picks the math tile", async () => {
+    const { api } = bothSubjectsApi();
+    const { user } = renderApp("/parent/4ACA86", api);
+    await screen.findByText(/Tiếng Anh · Unit 11: Family time/);
+    await user.click(screen.getByRole("link", { name: /Toán/ }));
+    expect(await screen.findByText(/Chương Số thập phân/)).toBeInTheDocument();
+    expect(screen.queryByText(/Tiếng Anh · Unit 11/)).not.toBeInTheDocument();
+  });
+
+  it("stays on math when math is what the child studied last", async () => {
+    const { api } = bothSubjectsApi([...STUDIED].reverse());
+    renderApp("/parent/4ACA86", api);
+    expect(await screen.findByText(/Chương Số thập phân/)).toBeInTheDocument();
+    const tiles = screen.getByRole("navigation", { name: "Chọn môn học" });
+    expect(within(tiles).getByRole("link", { name: /Toán/ })).toHaveTextContent("Vừa học");
+  });
+
+  it("names the typical mistakes with short examples under what to practise", async () => {
+    const { api } = bothSubjectsApi();
+    renderApp("/parent/english/4ACA86", api);
+    const practise = await screen.findByRole("region", { name: "Con cần luyện thêm" });
+    expect(practise).toHaveTextContent(
+      "Có lúc nhầm: kể chuyện đã qua bằng động từ nguyên mẫu, ví dụ eat → ate",
+    );
+    const items = within(practise).getAllByRole("listitem").slice(1);
+    expect(items[0]).toHaveTextContent("Kể chuyện đã qua bằng động từ nguyên mẫu1 lầneat → ate");
+    expect(items[1]).toHaveTextContent("2 lần");
+    expect(items[1]).toHaveTextContent("seafod → seafood");
+    expect(practise).not.toHaveTextContent(/%|điểm/);
+  });
+
+  it("shows no mistake list for math", async () => {
+    renderApp("/parent/4ACA86", progressApi());
+    const practise = await screen.findByRole("region", { name: "Con cần luyện thêm" });
+    expect(practise).not.toHaveTextContent("Lỗi con hay gặp");
   });
 });
 

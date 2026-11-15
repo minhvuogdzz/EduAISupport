@@ -582,6 +582,27 @@ export interface ProgressTopic {
   reason?: string | null;
   /** English (ADR-060 §9.3): the target pattern, shown with the name ("Did you …?"). */
   pattern?: string | null;
+  /** English (ENG-7c, DI-153): the child's typical mistakes on a topic to practise, the most frequent first. */
+  mistakes?: TypicalMistake[] | null;
+}
+
+/**
+ * English (ENG-7c, DI-153): one kind of mistake, in Vietnamese, how many graded answers showed it and short
+ * examples ("eat → ate"), never the child's whole sentence.
+ */
+export interface TypicalMistake {
+  label: string;
+  count: number;
+  examples: string[];
+}
+
+/** GET /v1/parents/…/subjects (ENG-7c): a chapter or unit the child studied, the latest first. */
+export interface ChildSubject {
+  subject: Subject;
+  chapter_id: string;
+  title: string;
+  sessions: number;
+  last_session_at: string;
 }
 
 /** A chapter the tutor teaches, by the id the API takes in `?chapter=`. */
@@ -753,6 +774,8 @@ export interface TeacherNodeDetail extends TeacherNode, Omit<MasteryCell, "node_
   trend: { at: string; mastery: number }[];
   direction: "UP" | "FLAT" | "DOWN" | null;
   recommendation: Recommendation;
+  /** English (ENG-7c, DI-153): the typical mistakes on this node; absent when none (and for math). */
+  mistakes?: TypicalMistake[] | null;
 }
 
 /** GET /v1/teachers/students/{id}. */

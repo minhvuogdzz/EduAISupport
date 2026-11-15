@@ -496,14 +496,24 @@ class ProgressNode(_OmitNone):
     pattern: str | None = None  # English: the target pattern beside the name (DI-144)
 
 
+class TypicalMistake(BaseModel):
+    """English (ENG-7c, DI-153): one kind of mistake the child made on a node, in Vietnamese, with how many
+    graded answers showed it and short examples ("eat → ate"), never the child's whole sentence."""
+
+    label: str
+    count: int
+    examples: list[str]
+
+
 class ProgressTopic(_OmitNone):
-    _omit_none = ("pattern",)
+    _omit_none = ("pattern", "mistakes")
 
     node_id: str
     name: str
     quality: str
     reason: str | None = None
     pattern: str | None = None  # English (DI-144)
+    mistakes: list[TypicalMistake] | None = None  # English: the typical mistakes of a node to practise
 
 
 class SessionCounts(BaseModel):
@@ -556,6 +566,16 @@ class HomeTip(_OmitNone):
     name: str
     tip: str
     example: str | None = None  # English: the sentence to say at home, quoted from the tip (DI-144)
+
+
+class ChildSubject(BaseModel):
+    """ENG-7c: a chapter or unit the child has studied, for the parent to open the latest one first."""
+
+    subject: Literal["math", "english"]
+    chapter_id: str
+    title: str
+    sessions: int
+    last_session_at: datetime
 
 
 class ParentSession(BaseModel):
@@ -710,8 +730,10 @@ class NodeMisconception(BaseModel):
     status: str
 
 
-class TeacherNodeDetail(TeacherNode, MasteryCell):
+class TeacherNodeDetail(TeacherNode, MasteryCell, _OmitNone):
     """§57: one KC of one student."""
+
+    _omit_none = ("mistakes",)
 
     group: Literal["PASSED", "UNSTABLE", "WEAK", "INSUFFICIENT", "NOT_STARTED"]
     dimensions: dict[str, NodeDimension]
@@ -724,6 +746,7 @@ class TeacherNodeDetail(TeacherNode, MasteryCell):
     trend: list[TrendPoint]
     direction: Literal["UP", "FLAT", "DOWN"] | None
     recommendation: Literal["DIAGNOSE", "EXPLAIN", "GUIDED", "PRACTICE", "TRANSFER", "CHALLENGE"]
+    mistakes: list[TypicalMistake] | None = None  # English (ENG-7c, DI-153)
 
 
 class StudentOverall(OverallView):
@@ -1859,6 +1882,45 @@ async def child_overview(
     if student_id is None:
         raise ApiError(404, "NOT_FOUND", "no student has this code")
     return await _child_view(database, student_id, today, named)
+
+
+def _child_subjects(sessions: list[LearningSession]) -> list[dict[str, Any]]:
+    """ENG-7c: every chapter (Mathematics) and unit (English) the child has a session on, the one studied
+    last first. It only says where to look: each view stays the one its ``?chapter=`` asks for, so the
+    Mathematics responses are unchanged (english-module-rules F1)."""
+    out = []
+    for subject in ("math", english_report.ENGLISH):
+        for cid, chapter in chapter_service.chapters(subject).items():
+            mine = progress.chapter_sessions(chapter, sessions)
+            if mine:
+                last = max(s.updated_at for s in mine)
+                out.append(
+                    {
+                        "subject": subject,
+                        "chapter_id": cid,
+                        "title": chapter.package.title,
+                        "sessions": len(mine),
+                        "last_session_at": last,
+                    }
+                )
+    return sorted(out, key=lambda c: c["last_session_at"], reverse=True)
+
+
+@parents.get("/me/child/subjects", response_model=list[ChildSubject])
+async def my_child_subjects(database: Database, child: LinkedChild):
+    """Parent account: the chapters and units the linked child has studied, the latest first (ENG-7c)."""
+    return _child_subjects(await _repo(database).list_for_student(child))
+
+
+@parents.get("/children/{code}/subjects", response_model=list[ChildSubject])
+async def child_subjects(code: str, database: Database, parent: Parent):
+    """Parent: the chapters and units the child of this code has studied, the latest first (ENG-7c)."""
+    repo = _repo(database)
+    wanted = code.strip().upper()
+    student_id = next((s for s in await repo.student_ids() if progress.parent_code(s) == wanted), None)
+    if student_id is None:
+        raise ApiError(404, "NOT_FOUND", "no student has this code")
+    return _child_subjects(await repo.list_for_student(student_id))
 
 
 async def _child_view(database: Any, student_id: str, today: date, chapter: Chapter) -> dict[str, Any]:

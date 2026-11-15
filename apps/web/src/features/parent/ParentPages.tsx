@@ -1,11 +1,12 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
 import { ApiError } from "../../api/client";
 import type { ParentChildView, Quality } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
+import { MistakeList } from "../english/Mistakes";
 import { SubjectSwitch } from "../english/SubjectSwitch";
 import {
   BookIcon,
@@ -54,20 +55,49 @@ export function ParentPage() {
   return <CodePage />;
 }
 
+/**
+ * ENG-7c: the subject the child studied last, from the server's list of what the child studied, and whether
+ * the parent should be taken there. A parent who opens the math page without picking it (the landing after
+ * login) lands on English when English is what the child did last; a tile or a chapter picked by hand stays.
+ */
+function useLatestSubject(code?: string) {
+  const api = useApi();
+  const subject = useSubject();
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const subjects = useQuery({
+    queryKey: ["child-subjects", code ?? null],
+    queryFn: () => api.getChildSubjects!(code),
+    enabled: api.getChildSubjects !== undefined,
+    retry: false,
+  });
+  const latest = subjects.data?.[0]?.subject ?? null;
+  const picked = Boolean((location.state as { picked?: boolean } | null)?.picked) || params.has("chapter");
+  const free = subject.id === "math" && !picked && api.getChildSubjects !== undefined;
+  return {
+    latest,
+    deciding: free && subjects.isPending,
+    toEnglish: free && latest === "english",
+  };
+}
+
 /** The parent account (ACC-1): the linked child at once, no code to type. */
 function MyChildPage() {
   const api = useApi();
   const subject = useSubject();
   const [params] = useSearchParams();
   const chapter = params.get("chapter") ?? undefined;
+  const { latest, deciding, toEnglish } = useLatestSubject();
   const child = useQuery({
     queryKey: ["my-child", subject.id, chapter],
     queryFn: () => api.getMyChild!(chapter),
+    enabled: !deciding && !toEnglish,
     placeholderData: keepPreviousData, // the page stays while another chapter loads
     retry: false,
   });
+  if (toEnglish) return <Navigate to="/parent/english" replace />;
   let body: ReactNode;
-  if (child.isPending) {
+  if (deciding || child.isPending) {
     body = <Notice>Đang tải tình hình học của con…</Notice>;
   } else if (child.isError) {
     const missing = child.error instanceof ApiError && child.error.code === "NOT_FOUND";
@@ -85,7 +115,7 @@ function MyChildPage() {
     <AppShell>
       <title>Tình hình học của con · Monkey Edu</title>
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <SubjectSwitch current={subject.id} mathTo="/parent" englishTo="/parent/english" />
+        <SubjectSwitch current={subject.id} mathTo="/parent" englishTo="/parent/english" latest={latest} />
         {body}
       </div>
     </AppShell>
@@ -152,18 +182,20 @@ export function ParentChildPage() {
   const { code = "" } = useParams();
   const [params] = useSearchParams();
   const chapter = params.get("chapter") ?? undefined;
+  const { latest, deciding, toEnglish } = useLatestSubject(code);
   const child = useQuery({
     queryKey: ["child", subject.id, code, chapter],
     queryFn: () => api.getChildOverview!(code, chapter),
-    enabled: api.getChildOverview !== undefined,
+    enabled: api.getChildOverview !== undefined && !deciding && !toEnglish,
     placeholderData: keepPreviousData, // the page stays while another chapter loads
     retry: false,
   });
+  if (toEnglish) return <Navigate to={`/parent/english/${code}`} replace />;
 
   let body: ReactNode;
   if (!api.getChildOverview) {
     body = <Notice>Trang phụ huynh cần máy chủ thật. Hãy chạy bản demo bằng lệnh make demo.</Notice>;
-  } else if (child.isPending) {
+  } else if (deciding || child.isPending) {
     body = <Notice>Đang tải tình hình học của con…</Notice>;
   } else if (child.isError) {
     const missing = child.error instanceof ApiError && child.error.code === "NOT_FOUND";
@@ -186,6 +218,7 @@ export function ParentChildPage() {
           current={subject.id}
           mathTo={`/parent/${code}`}
           englishTo={subject.id === "math" ? `/parent/english?code=${code}` : `/parent/english/${code}`}
+          latest={latest}
         />
         {body}
       </div>
@@ -342,6 +375,7 @@ function ChildView({ view }: { view: ParentChildView }) {
                   <li key={t.node_id}>
                     <p className="font-semibold text-amber-950">{t.name}</p>
                     <p className="text-sm text-amber-950/80">{t.reason}</p>
+                    <MistakeList mistakes={t.mistakes} />
                   </li>
                 ))}
               </ul>

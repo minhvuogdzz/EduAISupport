@@ -1,6 +1,7 @@
 import type {
   ApiErrorCode,
   AccountKind,
+  ChildSubject,
   AuthConfig,
   TeachingPlanReview,
   FigureView,
@@ -94,6 +95,11 @@ export interface SessionApi {
   };
   /** Parent account: the linked child, on a chapter (real API only). */
   getMyChild?: (chapterId?: string) => Promise<ParentChildView>;
+  /**
+   * Parent (ENG-7c): the chapters and units the child studied, the latest first; without a code, the linked
+   * child of the parent account. Says which subject to open first, never what a view contains.
+   */
+  getChildSubjects?: (code?: string) => Promise<ChildSubject[]>;
   /** Teacher library (DOC-1, real API only): the documents the teacher uploads, the RAG's sources. */
   library?: {
     list(): Promise<TeacherDocument[]>;
