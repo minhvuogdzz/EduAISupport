@@ -101,6 +101,12 @@ def with_voice_turn(
             item_attempt_id=message.item_attempt_id if message is not None else None,
         )
         events.insert(said + 1 if said is not None else len(events), recorded)
+    if modality == "VOICE":
+        # ENG-5c (L-3, DI-150): the attempts of a spoken turn say so, as its STUDENT_MESSAGE does (the loop
+        # writes them with the TEXT default). Grading and mastery do not read this field.
+        for i, e in enumerate(events):
+            if e.event_type in (EventType.ANSWER_SUBMITTED, EventType.EXPLANATION_SUBMITTED):
+                events[i] = e.model_copy(update={"payload": {**e.payload, "modality": "VOICE"}})
     for i, e in enumerate(events):
         if e.event_type != EventType.ITEM_RESOLVED:
             continue

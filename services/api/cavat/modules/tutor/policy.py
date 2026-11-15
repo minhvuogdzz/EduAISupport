@@ -52,6 +52,7 @@ _TARGET_FOR_ERROR: dict[ErrorClass, HintTarget] = {
     ErrorClass.REASONING: HintTarget.STRATEGY,
     ErrorClass.FORMAT: HintTarget.FORMAT,
     ErrorClass.UNKNOWN: HintTarget.STEP,
+    ErrorClass.L1: HintTarget.FORMAT,  # ENG-5c (DI-149): English only; the Mathematics checker never sets L1
 }
 
 # Outcomes (besides the HINT_REQUEST trigger) that show no progress after worked guidance (R-FULL).
@@ -346,6 +347,15 @@ def _base(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecisi
         return full
     if time_up:
         return _close("R-TIME", "TIME_UP", "MOVE_TO_ASSESSMENT")
+    if outcome == Outcome.UNPARSEABLE and chk is not None and chk.error_class == ErrorClass.L1:
+        # ENG-5c (L-2, DI-107/129/149): the first answer in Vietnamese to an item that wants English is not
+        # graded; the tutor asks for it in English. Only the English checker reports L1.
+        return PolicyDecision(
+            move=Move.REDIRECT,
+            target=HintTarget.TASK,
+            reason_codes=("L1_ASK_ENGLISH", "NOT_COUNTED_AS_WRONG"),
+            rule_ids=("R-L1",),
+        )
     not_an_attempt = _not_an_attempt(st, outcome, facts, cfg)
     if not_an_attempt is not None:
         return not_an_attempt
@@ -679,6 +689,12 @@ def _wrong(inp: PolicyInput, facts: ItemFacts, cfg: PolicyConfig) -> PolicyDecis
         if mis in facts.counterexamples:
             move = Move.COGNITIVE_CONFLICT
             reasons.append("COUNTEREXAMPLE")
+    elif chk.error_class == ErrorClass.L1:
+        # ENG-5c (DI-149): Vietnamese again, now graded (L1). No "con đã làm thế nào" (there is no method
+        # to tell): the next rung of the item's hints, asked for in English.
+        target, level = HintTarget.FORMAT, max(HintLevel.H1, st.max_hint_level)
+        rules.append("R-L1")
+        reasons.append("L1_ASK_ENGLISH")
     elif mis and first and _weak_prior(inp, facts, cfg):
         target, level = HintTarget.CONCEPT, HintLevel.H2
         rules.append("R-WEAK-PRIOR")

@@ -1147,6 +1147,12 @@ async def _chapter_speaker(database, content, session, router):
 
 def _hold_for_unavailable_models(session, step, recording, text="", modality="TEXT"):
     """An outage may log input and model attempts, but cannot teach or advance the learner."""
+    if _is_english(session):
+        # ENG-5c (L-0, DI-148): an English session speaks the unit's approved words when no model may
+        # (DI-140: its grounded speaker is template-only, its item brain falls back to the template). The
+        # model-only gate of the live router is the Mathematics rule; applied here it held every English
+        # turn on MODEL_WAIT before any model was called. Mathematics never takes this branch.
+        return step
     calls = recording.calls
     assessment = (session.state.item or {}).get("activity") == "EXIT_ASSESSMENT"
     if getattr(recording, "model_only_speech", False):

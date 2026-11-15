@@ -49,12 +49,14 @@ from cavat.modules.tutor.prompt_builder import Turn, clean_text
 from cavat.modules.tutor.reader import LiveReader, Reading, rule_reading
 from cavat.modules.tutor.renderer import TemplateRenderer
 
-ENGLISH_SESSION_VERSION = "english-session/1.0.0"
+ENGLISH_SESSION_VERSION = "english-session/1.1.0"  # 1.1.0 (ENG-5c): DI-148–151
 RECENT_TURNS_EN = 6
 MAX_ATTEMPTS_EN = 2  # one request, then once more with the rejection codes (as the Math brain)
 # DI-140: the moves an English turn may spend a model call on. The others keep the approved template words
 # (PRESENT, test items, CONFIRM_ADVANCE without words to answer: ``llm_renderer._template_only``).
 _REVEAL_MOVES = frozenset({Move.FULL_EXPLANATION})
+# DI-151 (ENG-5c, L-4): messages in a row that only repeat the tutor before the period stops (N-ECHO).
+ECHO_STOP_EN = 4
 
 
 @dataclass(frozen=True)
@@ -111,6 +113,7 @@ def loop_options(chapter: Chapter) -> dict[str, Any]:
     return {
         "validator": session_validator(english_tools(chapter).lexicon),
         "off_topic": english_off_topic,
+        "echo_stop": ECHO_STOP_EN,
     }
 
 

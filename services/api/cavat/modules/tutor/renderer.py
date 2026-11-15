@@ -84,6 +84,12 @@ LEADS: dict[str, tuple[str, ...]] = {
     ),
     "ASKED_HINT": ("{T} gợi ý nhé.", "{T} gợi ý thêm nhé."),
     "HELP_REQUEST": ("Không sao đâu, mình cùng nghĩ từng bước nhé.", "Mình thử thêm một bước nữa nhé."),
+    # ENG-5c (DI-149, drafted for the owner's review): an English item answered in Vietnamese. Only the
+    # English checker sets L1, so a Mathematics turn never says these.
+    "L1_ASK_ENGLISH": (
+        "{T} nghe {s} nói bằng tiếng Việt rồi. Câu này {s} nói bằng tiếng Anh giúp {t} nhé.",
+        "Mình đang luyện nói tiếng Anh, {s} trả lời bằng tiếng Anh nhé.",
+    ),
     "OFF_TOPIC": (
         "Chuyện đó để lúc nghỉ mình nói nhé!",
         "{T} rất muốn nghe, nhưng mình làm xong câu này đã nhé!",
@@ -99,8 +105,10 @@ _LEAD_COUNTER = {
     "ASKED_HINT": "help_requests",
     "HELP_REQUEST": "help_requests",
     "OFF_TOPIC": "off_topic_turns",
+    "L1_ASK_ENGLISH": "unproductive_turns",
 }
 _LEAD_ORDER = (
+    "L1_ASK_ENGLISH",
     "STEP_PRAISE",
     "ANSWER_DEMAND",
     "NEGATIVE_AFFECT",

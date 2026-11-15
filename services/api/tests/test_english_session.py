@@ -252,6 +252,12 @@ async def test_a_student_goes_through_unit_11_typing_and_speaking(client, memory
             assert kinds[at - 1] == EventType.STUDENT_MESSAGE
     voiced = [r for r in resolved if r.modality == "VOICE"]
     assert voiced and all(r.asr_confidence == 0.9 for r in voiced)
+    # L-3 (DI-150): the attempt of a spoken turn is a VOICE attempt, as its STUDENT_MESSAGE
+    for at, e in enumerate(events):
+        if e.event_type == EventType.ANSWER_SUBMITTED:
+            said = next(m for m in reversed(events[:at]) if m.event_type == EventType.STUDENT_MESSAGE)
+            assert e.payload["modality"] == said.payload["modality"], (e.payload, said.payload)
+    assert any(a["modality"] == "VOICE" for a in answers)
     # the projection is the English policy's, every node an English one (no mastery on a Mathematics node)
     projection = project_chapter(events, ch)
     assert projection.policy_version == ENGLISH_POLICY.version != MASTERY_POLICY_VERSION
@@ -309,6 +315,8 @@ async def test_a_mathematics_question_in_the_english_session_is_brought_back_to_
     new = (await stored(memory, sid)).events[before:]
     kinds = [e.event_type for e in new]
     assert new[0].payload["item_id"].endswith(":OFF_TOPIC")
+    back = [e.payload["text"] for e in new if e.event_type == EventType.TEACH_MESSAGE_SENT]
+    assert back and unit().item(state["item"]["item_id"]).stem in back[-1]  # L-6: the whole question
     assert not {
         EventType.ANSWER_SUBMITTED,
         EventType.HINT_DELIVERED,
@@ -498,3 +506,161 @@ def test_the_session_validator_trusts_approved_words_but_not_the_models():
     assert "OUT_OF_UNIT_ENGLISH" in validate("Con nói thử nhé: We visited the museum yesterday?", model).codes
     assert "MATH_TERM" in validate("Con tính diện tích hình tam giác nhé?", ctx).codes
     assert "MATH_TERM" in validate("Con tính diện tích hình tam giác nhé?", model).codes
+
+
+# --------------------------------------------------------------------------- ENG-5c: the deployed router
+
+
+class QuotaProvider:
+    """A provider whose every model is out of quota (the free tier at a busy minute)."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def chat(self, request, model):
+        from cavat.modules.ai_gateway.base import QuotaExceeded
+
+        self.calls += 1
+        raise QuotaExceeded("429", model=model)
+
+
+def deployed_router(provider) -> AIRouter:
+    """The router of a deployment (``build_router``): model-only speech for Mathematics, a real chain."""
+    from cavat.modules.ai_gateway.base import ModelClass
+
+    chain = ("model-a", "model-b")
+    chains = {c: chain for c in (ModelClass.TUTOR_REASONING, ModelClass.INTENT_AGENT, ModelClass.LIGHTWEIGHT)}
+    return AIRouter(chat_provider=provider, chains=chains, model_only_speech=True)
+
+
+@pytest.mark.parametrize("provider_class", [EnglishOnlyProvider, QuotaProvider])
+async def test_an_english_session_runs_with_the_deployed_router(client, memory, monkeypatch, provider_class):
+    """L-0 (DI-148): with the deployed router (``model_only_speech=True``) an English session was held on
+    "Con chờ cô một chút nhé…" from its first theory line, with no model call. It must go on: the model's
+    words when a model answers, the unit's approved words when every model is busy (DI-140)."""
+    from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
+
+    provider = provider_class()
+    router = deployed_router(provider)
+    monkeypatch.setattr(session_api, "tutor_router", lambda: router)
+    state = open_unit(client)
+    sid = state["session_id"]
+    assert state["teaching"]["prompt"], "the opening waits on no question"
+    steps = {state["teaching"]["step"]}
+    for n in range(60):
+        if state["lifecycle_state"] == "COMPLETED":
+            break
+        state = send(client, state, english_reply(state), f"dep{n}")
+        steps.add(state["teaching"]["step"])
+    events = (await stored(memory, sid)).events
+    said = [e.payload for e in events if e.event_type == EventType.TEACH_MESSAGE_SENT]
+    assert not [p for p in said if p.get("text") == MODEL_WAIT_MESSAGE or p.get("ref") == "MODEL_WAIT"]
+    assert {1, 2} <= steps, steps  # past the opening theory line, into the items
+    assert any(e.event_type == EventType.ANSWER_SUBMITTED for e in events)
+    assert provider_class is QuotaProvider or provider.requests  # the model is used when it answers
+    if provider_class is EnglishOnlyProvider:
+        tutor = [e.payload for e in events if e.event_type == EventType.TUTOR_MESSAGE_SENT]
+        assert any(p.get("source") == "LLM" for p in tutor)
+
+
+def test_the_deployed_router_still_holds_a_mathematics_session_on_model_wait(client, monkeypatch):
+    """The Mathematics rule is unchanged: with every model out of quota, the deployed router holds a
+    Mathematics chapter session on MODEL_WAIT rather than speaking an unchecked template."""
+    from cavat.modules.ai_gateway.base import MODEL_WAIT_MESSAGE
+    from test_chapter_session_api import MINH
+
+    monkeypatch.setattr(session_api, "tutor_router", lambda: deployed_router(QuotaProvider()))
+    created = client.post(
+        "/v1/sessions", json={"lesson_id": chapter_service.DEFAULT_CHAPTER_ID}, headers=MINH
+    )
+    assert created.status_code == 201, created.text
+    joined = client.post(f"/v1/sessions/{created.json()['session_id']}/join", headers=MINH).json()
+    assert joined["transcript"][-1]["text"] == MODEL_WAIT_MESSAGE
+
+
+async def test_an_answer_in_vietnamese_is_asked_again_in_english_then_graded_l1(client, memory):
+    """L-2 (DI-107/129/149): Vietnamese to an English phrase item is not "không đọc được". The first time
+    is not graded and the tutor asks for English (R-L1); the next is graded WRONG with the class L1; an
+    English answer after it is graded as usual."""
+    state = open_unit(client)
+    sid = state["session_id"]
+    for n in range(80):
+        item = state["item"]
+        if (
+            item
+            and item["expecting"] == "ANSWER"
+            and state["voice"]["language"] == "en"
+            and unit().item(item["item_id"]).answer.type == "phrase"
+            and unit().item(item["item_id"]).kind != "say_after_me"
+        ):
+            break
+        state = send(client, state, english_reply(state), f"v{n}")
+    else:
+        pytest.fail("no English phrase item reached")
+    item_id, reply = state["item"]["item_id"], english_reply(state)
+
+    before = len((await stored(memory, sid)).events)
+    state = send(client, state, "Nhà con đi ăn hải sản ạ.", "vi1")
+    first = (await stored(memory, sid)).events[before:]
+    decisions = [e.payload for e in first if e.event_type == EventType.POLICY_DECISION]
+    assert decisions and decisions[-1]["rule_ids"] == ["R-L1"], decisions
+    assert "UNREADABLE" not in decisions[-1]["reason_codes"]
+    assert not [e for e in first if e.event_type == EventType.ANSWER_SUBMITTED]
+    said = [e.payload["text"] for e in first if e.event_type == EventType.TUTOR_MESSAGE_SENT]
+    assert said and "tiếng Anh" in said[-1]
+    assert state["item"]["item_id"] == item_id
+
+    before = len((await stored(memory, sid)).events)
+    state = send(client, state, "Nhà con đi ăn hải sản ạ.", "vi2")
+    second = (await stored(memory, sid)).events[before:]
+    graded = [e.payload for e in second if e.event_type == EventType.ANSWER_SUBMITTED]
+    assert len(graded) == 1 and graded[0]["outcome"] == "WRONG" and graded[0]["error_class"] == "L1"
+    decision = next(e.payload for e in second if e.event_type == EventType.POLICY_DECISION)
+    assert decision["move"] != "PROBE" and "R-L1" in decision["rule_ids"]
+
+    if state["item"] and state["item"]["item_id"] == item_id and state["item"]["expecting"] == "ANSWER":
+        before = len((await stored(memory, sid)).events)
+        send(client, state, reply, "en1")
+        after = (await stored(memory, sid)).events[before:]
+        graded = [e.payload for e in after if e.event_type == EventType.ANSWER_SUBMITTED]
+        assert graded and graded[0]["outcome"] == "CORRECT"
+
+
+def _last_tutor_sentence(state: dict) -> str:
+    import re
+
+    tutor = [t["text"] for t in state["transcript"] if t["actor"] == "tutor" and t.get("text")]
+    parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", tutor[-1]) if p.strip()]
+    return parts[-1] if parts else tutor[-1]
+
+
+async def test_a_student_who_only_repeats_the_tutor_ends_the_unit_without_passing(client, memory):
+    """L-4 (DI-151): a child who only repeats the tutor's last sentence used to turn on to the turn cap.
+    Each period now stops with its reason (STOP_NODE, N-ECHO) and the session ends; no node is passed."""
+    state = open_unit(client)
+    sid = state["session_id"]
+    for n in range(200):
+        if state["lifecycle_state"] == "COMPLETED":
+            break
+        state = send(client, state, _last_tutor_sentence(state), f"echo{n}")
+    assert state["lifecycle_state"] == "COMPLETED", n
+    assert not [x for x in state["teaching"]["nodes"] if x["status"] == "PASSED"]
+    events = (await stored(memory, sid)).events
+    echo_stops = [
+        e.payload
+        for e in events
+        if e.event_type == EventType.NODE_DECISION and e.payload["rule_ids"] == ["N-ECHO"]
+    ]
+    assert echo_stops and all(p["action"] == "STOP_NODE" for p in echo_stops)
+    # the session replays to the same state from its events (the rule reads only stored events)
+    replayed = chapter_service.TeachingLoop.resume(
+        unit(), sid, [], (await stored(memory, sid)).events, **chapter_service._loop_options(unit())
+    )
+    assert replayed.awaiting.value == "NOTHING"
+
+
+def test_the_echo_rule_is_english_only():
+    from cavat.modules.tutor.english_session import ECHO_STOP_EN, loop_options
+
+    assert "echo_stop" not in chapter_service._loop_options(MATH)
+    assert loop_options(unit())["echo_stop"] == ECHO_STOP_EN

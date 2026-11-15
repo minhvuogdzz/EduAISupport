@@ -184,6 +184,11 @@ PHRASES: dict[str, str] = {
         "{T} nghe rồi, nhưng câu đó không thuộc bài «{lesson}» mình đang học, mình để lúc khác nhé."
     ),
     "off_subject_back": "Bây giờ {s} trả lời giúp {t} câu này nhé: {question}",
+    # ENG-5c (DI-151, drafted for the owner's review): the child only repeated the tutor's words several
+    # times. Only a session built with ``echo_stop`` (English) says it; Mathematics never does.
+    "echo_stop": (
+        "{S} đang nhắc lại lời của {t} rồi. Mình tạm dừng phần này ở đây, {t} sẽ cùng {s} học lại sau nhé."
+    ),
     # REFORM-5 (DI-77, drafted for the owner's review): the same two questions as the item loop's, for a
     # theory question or a retell that waits.
     "confirm_typo": "{T} đoán {s} muốn nói là {s} {meaning}, đúng không, hay {s} định gõ ý khác?",
@@ -335,8 +340,12 @@ class TeachingLoop:
         item_reader: ContextReader | None = None,
         item_chooser: MoveChooser | None = None,
         off_topic: Callable[[str], str | None] | None = None,
+        echo_stop: int | None = None,
     ) -> None:
         self.chapter, self.session_id = chapter, session_id
+        # ENG-5c (L-4, DI-151): after this many messages in a row that only repeat the tutor's words, the
+        # period stops with its reason (N-ECHO). None (Mathematics) leaves every path as it was.
+        self.echo_stop = echo_stop
         # ENG-5b (DI-139, rule P4): a question of another subject, read by the subject's own rule before any
         # other path; None (Mathematics) leaves every path as it was.
         self.off_topic = off_topic
@@ -454,6 +463,8 @@ class TeachingLoop:
             )
         if self.off_topic is not None and self.off_topic(text):
             return self._off_subject(text, now, seconds, modality)
+        if self.echo_stop is not None and self._echo_streak(text) >= self.echo_stop:
+            return self._stop_for_echo(text, now, seconds, modality)
         if self.awaiting != Awaiting.ANSWER:
             # An undelivered opening is not a question the child can answer. Retry teaching first,
             # including after restoring an existing session whose opening failed.
@@ -1405,6 +1416,10 @@ class TeachingLoop:
 
             # the question the child was last asked on the item ("vì sao…?"), else the item itself
             pending = question_tail(self.tutor.last_tutor or "") or self.tutor.item.stem
+            if pending in self.tutor.item.stem:
+                # ENG-5c (L-6): the item's own question is asked again whole, not its last sentence ("Nếu
+                # chưa, con sửa giúp bạn nhé?" lost what was to be corrected).
+                pending = self.tutor.item.stem
             node_id = self._item_node(self.tutor.item.id)
         else:
             pending, node_id = self._prompt or "", self._node
@@ -1419,6 +1434,53 @@ class TeachingLoop:
         return TeachTurn(
             tuple(messages), tuple(events), self.awaiting, node_id=self._node, prompt=self._prompt
         )
+
+    def _echo_streak(self, text: str) -> int:
+        """ENG-5c (DI-151): how many student messages in a row, ``text`` the last, only repeat words the
+        tutor said just before them. A graded right or partly right answer ends the run: repeating the
+        tutor's model sentence is what a "nói theo cô" item asks for."""
+        streak, last_tutor = 0, ""
+        for e in self.events:
+            if e.event_type in (EventType.TEACH_MESSAGE_SENT, EventType.TUTOR_MESSAGE_SENT):
+                last_tutor = e.payload.get("text") or last_tutor
+            elif e.event_type == EventType.STUDENT_MESSAGE:
+                streak = streak + 1 if _echoes(e.payload.get("text", ""), last_tutor) else 0
+            elif e.event_type == EventType.ANSWER_SUBMITTED and e.payload.get("outcome") in (
+                Outcome.CORRECT,
+                Outcome.PARTIAL,
+            ):
+                streak = 0
+            elif e.event_type == EventType.NODE_DECISION and e.payload.get("action") == TeachAction.STOP_NODE:
+                streak = 0
+        return streak + 1 if _echoes(text, last_tutor) else 0
+
+    def _stop_for_echo(self, text: str, now: datetime, seconds: float, modality: str) -> TeachTurn:
+        """ENG-5c (L-4, DI-151): the child only repeats the tutor. The period stops with its reason
+        (STOP_NODE, N-ECHO, "cần học lại" in the report) instead of turning on to the turn cap; the node
+        policy then goes on as after any stopped period. ``:ECHO`` keeps the message out of the item's
+        replay: the open item is left unresolved, nothing is graded."""
+        state = teaching_state(self.events, self.config)
+        ref = self.tutor.item.id if self.awaiting == Awaiting.ANSWER and self.tutor else self._node
+        said = StudentMessage(
+            item_id=f"{ref}:ECHO", kind="MESSAGE", text=text, seconds=seconds, modality=modality
+        )
+        events = [self._record(now, EventType.STUDENT_MESSAGE, said)]
+        messages: list[TeachMessage] = []
+        node_id = state.current.node_id if state.current is not None else self._node
+        self._say(
+            now, messages, events, TeachMessage(MessageKind.FEEDBACK, self._phrase("echo_stop"), node_id)
+        )
+        decision = NodeDecisionMade(
+            action=TeachAction.STOP_NODE,
+            node_id=node_id,
+            rule_ids=["N-ECHO"],
+            reason_codes=["ECHO_ONLY"],
+            policy_version=self.config.version,
+        )
+        events.append(self._record(now, EventType.NODE_DECISION, decision))
+        self.tutor, self.awaiting = None, None
+        self._carry_out(decision, now, messages, events)
+        return self._advance(now, messages, events)
 
     def _replies_since_decision(self) -> int:
         """Student messages since the last teaching decision, the current one included."""
@@ -2096,3 +2158,16 @@ class TeachingLoop:
             parts.append(self._phrase("summary_review", names=names(stopped)))
         parts.append(self._phrase("summary_end") if state.passed else self._phrase("summary_none"))
         return " ".join(parts)
+
+
+_ECHO_MIN_WORDS = 3  # DI-151: "Dạ", "Yes" or a short answer are not a repetition of the tutor
+
+
+def _echoes(said: str, tutor: str) -> bool:
+    """DI-151: the message is words the tutor just said, nothing of the child's own (three words or more,
+    the whole message found in the tutor's message)."""
+    words = re.sub(r"[^\w\s]", " ", normalize_text(said)).split()
+    if len(words) < _ECHO_MIN_WORDS or not tutor:
+        return False
+    heard = re.sub(r"[^\w\s]", " ", normalize_text(tutor)).split()
+    return f" {' '.join(words)} " in f" {' '.join(heard)} "

@@ -50,7 +50,7 @@ from cavat.modules.tutor.prompt_builder import (
 )
 
 ENGLISH = "english"
-PROMPT_VERSION_EN = "tutor-prompt-en.v1"
+PROMPT_VERSION_EN = "tutor-prompt-en.v2"  # v2 (ENG-5c, DI-149): the L1_ASK_ENGLISH task
 HINT_LADDER_VERSION = "hint-ladder-en/1"  # DI-112 words, DI-136
 MAX_UNIT_WORDS_CHARS = 600
 
@@ -122,6 +122,12 @@ def task_for_en(
     """The turn's job in words. The policy picked the move and the level; the brain only words it."""
     if "OFF_TOPIC" in reasons:
         return OFF_TOPIC_TASK
+    if "L1_ASK_ENGLISH" in reasons:  # ENG-5c (DI-149): the child answered this English item in Vietnamese
+        task = (
+            "Con vừa trả lời bằng tiếng Việt. Nhẹ nhàng mời con nói lại bằng tiếng Anh, không khen hay chê ý "
+            "con nói (chưa ai kiểm), không nói câu tiếng Anh đáp án. Kết thúc bằng một câu hỏi."
+        )
+        return f"{task} Mức H{level}." if level is not None and move == Move.HINT else task
     if say_after_me:
         return SAY_AFTER_ME_TASK
     task = TASKS_EN[move].format(asks=f" ({asks})" if asks else "")
