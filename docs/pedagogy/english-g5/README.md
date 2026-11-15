@@ -1,6 +1,6 @@
 # Nội dung dạy Tiếng Anh lớp 5 (ENG-3)
 
-Ngày: 12/11/2026, cập nhật 13/11/2026 (ENG-3b) · Trạng thái: **DRAFT, chủ dự án duyệt mặc định ngày 12/11/2026; 20 câu soạn thêm được chủ dự án duyệt ngày 13/11/2026** (sửa bất kỳ lúc nào; ghi vào mục Lịch sử).
+Ngày: 12/11/2026, cập nhật 13/11/2026 (ENG-3b), 15/11/2026 (ENG-3c) · Trạng thái: **DRAFT, chủ dự án duyệt mặc định ngày 12/11/2026; 20 câu soạn thêm được chủ dự án duyệt ngày 13/11/2026; phần thêm của ENG-3c chủ dự án duyệt mặc định ngày 15/11/2026** (sửa bất kỳ lúc nào; ghi vào mục Lịch sử).
 
 Thư mục này chứa dữ liệu dạy học của môn Tiếng Anh, theo đúng khuôn của môn Toán (`docs/pedagogy/math-g5/`):
 một file chương (`ChapterPackage`) cho đồ thị tri thức của unit và các file bài (`LessonPackage`) chứa mục tiêu,
@@ -26,7 +26,7 @@ english-g5/
     ├── lesson-1-did-you/lesson.yaml                  LessonPackage: VOCAB, PAST, DIDYOU (SGK tr.6–7)
     ├── lesson-2-what-did-your-family-do/lesson.yaml  LessonPackage: WHATDID (SGK tr.8–9)
     ├── lesson-3-family-trip/lesson.yaml              LessonPackage: STRESS, TRIP (SGK tr.10–11)
-    └── sources.yaml                                  mọi bài tập của sách (kể cả bài không thành câu) và bảng tổng hợp 47 câu
+    └── sources.yaml                                  mọi bài tập của sách (kể cả bài không thành câu) và bảng tổng hợp 51 câu
 ```
 
 ## 2. Nguồn và cách trích
@@ -58,6 +58,7 @@ english-g5/
 - **Gợi ý** theo thang DI-112: H1 câu hỏi định hướng, H2 nhắc khái niệm, H4 cho một phần (bắt buộc cho câu PRACTICE như Toán), H3 chiến lược khi cần.
 - **Câu "nói theo cô"** có `kind: say_after_me`, trả lời bằng `en`, và chỉ được nằm trong `completion` của nút: được ghi bằng chứng nhưng không tính thành công (DI-108; `validate_chapter` kiểm).
 - **Nút BASIC VOCAB, PAST, STRESS** có `require_application: false` như nút cơ bản của Toán (DI-6); bằng chứng vận dụng nằm ở DIDYOU, WHATDID, TRIP. Mọi nút vẫn `require_explanation: true` (DI-111): mỗi nút có ít nhất một câu mức C và một câu "con nói lại".
+- **Đủ bằng chứng để qua nút (ENG-3c):** M của nút là trung bình có trọng số của các chiều đã có ít nhất 1 đơn vị evidence, mỗi chiều bắt đầu từ prior khối 2 (DI-12, DI-16). VOCAB là nút đầu nên prior là 0,5; một chiều chỉ có **một** câu đúng dừng ở khoảng 0,67, kéo M xuống. Vì vậy VOCAB có **hai** câu mức D (chiều A) và **hai** câu chuyển (chiều T), không phải một. Không đổi công thức hay ngưỡng nào (`node-mastery-en/0.1.0`).
 
 ## 4. Unit 11: đồ thị và nội dung
 
@@ -77,23 +78,34 @@ VOCAB ──PRE──▶ PAST ──PRE──▶ DIDYOU ──APP──┐
 | `ENG5-U11-STRESS` | BASIC | Rhythm: 'When did you 'go to 'London? / 'What did they 'do in 'Finland? | l3 |
 | `ENG5-U11-TRIP` | IMPLEMENT | Kể và hỏi đáp về chuyến đi của gia đình; đọc hiểu đoạn kể ngắn | l3 |
 
-**Ngân hàng câu: 47 câu**, 27 từ sách (SGK/SGV) và 20 câu soạn thêm.
+**Ngân hàng câu: 51 câu**, 30 từ sách (SGK/SGV) và 21 câu soạn thêm (ENG-3c thêm 4 câu cho VOCAB: 3 từ sách, 1 soạn thêm).
 
 | Mức | A | B | C | D | E | DIAG | Tổng |
 |---|---|---|---|---|---|---|---|
-| Số câu | 8 | 23 | 7 | 3 | 1 | 5 | 47 |
+| Số câu | 8 | 24 | 7 | 5 | 2 | 5 | 51 |
 
 | Nút | Kiểm tra hiểu | Cùng làm | Luyện tập | Vận dụng | Mức có |
 |---|---|---|---|---|---|
-| VOCAB | 1 | 1 | 4 | 0 | A, B, C, DIAG |
+| VOCAB | 1 | 1 | 4 | 4 | A, B, C, D, DIAG, E |
 | PAST | 1 | 1 | 6 | 0 | A, B, C, DIAG |
 | DIDYOU | 1 | 1 | 5 | 1 | A, B, C, D, DIAG |
 | WHATDID | 1 | 1 | 7 | 1 | A, B, C, D, DIAG |
 | STRESS | 1 | 0 | 5 | 0 | A, B, C |
 | TRIP | 1 | 1 | 5 | 2 | B, C, D, DIAG, E |
 
-**Trạng thái đáp án** (trường `answer_status` của câu; tổng hợp ở `sources.yaml`): 24 câu `VERIFIED_SGV`, 3 câu `FROM_TEXT`, 20 câu `AUTHORED` (đã duyệt 13/11/2026).
-**Kiểu đáp án** (ENG-3b): 23 `phrase`, 17 `choice`, 5 `open` (mức C tiếng Việt), 2 `boolean`.
+**Trạng thái đáp án** (trường `answer_status` của câu; tổng hợp ở `sources.yaml`): 26 câu `VERIFIED_SGV`, 4 câu `FROM_TEXT`, 21 câu `AUTHORED` (20 câu duyệt 13/11/2026, `U11-VO-TR-03` duyệt mặc định 15/11/2026).
+**Kiểu đáp án** (ENG-3b, ENG-3c): 27 `phrase`, 17 `choice`, 5 `open` (mức C tiếng Việt), 2 `boolean`.
+
+**Câu vận dụng và chuyển của VOCAB (ENG-3c):**
+
+| Mã | Mức | Chiều | Nguồn | Đáp án |
+|---|---|---|---|---|
+| `U11-VO-TR-01` | D, transfer near | A | SGK tr.9 L2 Ex4 câu 1, bài nghe chuyển thành tình huống đọc (như `U11-VO-PR-01`) | `VERIFIED_SGV`, Key SGV tr.186 "took a boat trip" |
+| `U11-VO-TR-02` | D, transfer near | A | SGK tr.8 L2 Ex3 Let's talk, tranh bãi biển Đồ Sơn | `VERIFIED_SGV`, Suggested answers SGV tr.185 "swam in the sea" |
+| `U11-VO-TR-03` | E, transfer near | T | Soạn thêm: chợ đêm Đà Lạt (bối cảnh không có trong sách) | `AUTHORED`; câu mẫu chỉ dùng cách nói đã có trong SGV (bought souvenirs tr.252, bought some souvenirs tr.187) |
+| `U11-VO-TR-04` | B, transfer near | T | SGK tr.7 L1 Ex5 câu 4, câu in sẵn "We took lots of photos." | `FROM_TEXT`; "took photos" (SGV tr.180), "took some photos" (SGV tr.190) là cách nói tương đương đã có trong sách |
+
+Kiểm DI-106 (mỗi nút có ít nhất hai mức trong A–D và một câu C; nút IMPLEMENT có câu D): cả 6 nút đạt (bảng trên). Chỉ VOCAB không qua được vì thiếu bằng chứng (lỗi L-1 của ENG-9a); PAST và STRESS có đủ câu và có prior từ nút trước nên qua được mà không cần câu D/E.
 Bài của sách không thành câu chấm điểm: 5 bài `NO_ANSWER` (L2 Ex6 trò chơi, L3 Ex3 chant, L3 Ex5 viết mở, L3 Ex6 Project, Review 3 Ex5 viết mở) và 3 bài `NEEDS_AUDIO` (L1 Ex4, L1 Ex6, L2 Ex4: SGV có đáp án nhưng cần file nghe; L1 Ex4 câu 4 và L1 Ex6 chỗ (3) được chuyển thành câu đọc).
 
 **Lỗi hay gặp** (misconceptions; trường `error_class` theo mã lỗi DI-107 của ADR-060 mục 5, DI-127):
@@ -155,9 +167,10 @@ Không phải khoảng trống: `HintLevel` H0–H7 dùng chung được với t
 
 1. **Đáp án đọc qua ảnh.** Mọi đáp án `VERIFIED_SGV` đọc từ ảnh trang SGV. Nên liếc lại nhất là: SGV tr.182 (Key L1 Ex4, Ex5, Ex6), tr.186–187 (Key L2 Ex4, Ex5), tr.189–190 (Key L3 Ex2, Ex4), tr.252–253 (Key Review 3).
 2. **"Sa Pa" hay "Fansipan"** (SGK tr.9 Ex5 câu 2): tranh ghi "FANSIPAN MOUNTAIN", SGV ghi "Sa Pa". Ngân hàng chưa dùng chỗ trống này; nếu dùng, cần quyết định có nhận "Fansipan" không.
-3. **20 câu soạn thêm** (`AUTHORED`): **chủ dự án đã duyệt ngày 13/11/2026** (trường `review` của từng câu). Khi chạy thật vẫn nên theo dõi các câu mức C (lời giải thích tiếng Việt chấm bằng `facts.phrases`) và câu E `U11-TR-TR-02` (bài mở, chỉ kiểm "went to" và "last").
+3. **20 câu soạn thêm** (`AUTHORED`): **chủ dự án đã duyệt ngày 13/11/2026** (trường `review` của từng câu). Câu thứ 21, `U11-VO-TR-03` (ENG-3c), được duyệt mặc định ngày 15/11/2026; nên liếc lại bối cảnh "chợ đêm Đà Lạt" và việc nhận "I bought souvenirs" / "I bought some souvenirs". Khi chạy thật vẫn nên theo dõi các câu mức C (lời giải thích tiếng Việt chấm bằng `facts.phrases`) và câu E `U11-TR-TR-02` (bài mở, chỉ kiểm "went to" và "last").
 4. **Đoạn tóm tắt bài đọc** tr.11 (lesson-3, C3): đã viết lại bằng lời khác; xem có đủ khác bản gốc không.
 5. **Tên nút và ranh giới nút** (6 nút; "When did you go …?" gộp vào WHATDID).
+6. **ENG-3c, `U11-VO-TR-01`:** tình huống "cả nhà đi thuyền ở Phú Quốc" được dựng từ Key SGV tr.186 của một bài nghe (L2 Ex4 câu 1), giống cách `U11-VO-PR-01` dùng audio script L1 Ex4. Nếu cô muốn chỉ dùng bài đọc, thay bằng tranh Sydney của L2 Ex3 (trùng nội dung với `U11-WD-PR-02`).
 
 ## 8. Lịch sử
 
@@ -167,3 +180,4 @@ Không phải khoảng trống: `HintLevel` H0–H7 dùng chung được với t
 | 13/11/2026 | Chủ dự án duyệt toàn bộ 20 câu soạn thêm (`AUTHORED`). | chủ dự án |
 | 13/11/2026 | ENG-3b (ADR-062): đổi tên về `chapter.yaml` + `lesson-N-*/lesson.yaml`; bộ nạp theo môn; 23 câu `open` tiếng Anh chuyển sang `phrase` (accept = câu mẫu đã duyệt, required = các nhóm `facts.phrases` cũ, không thêm biến thể); ghi `source`, `answer_source`, `origin`, `answer_status`, `review` (20 câu duyệt 13/11/2026), `response_language`, `kind: say_after_me` vào từng câu; `error_class` cho M01–M12 theo bảng DI-107 (tinh hơn cột "gần nhất" cũ: M03 `EN_SHORT_ANSWER`, M04/M07/M11 `EN_TENSE`, M05 `EN_VERB_FORM`, M10 `EN_STRUCTURE`). Version chương và bài 0.1.0 → 0.2.0. | phiên Claude Code ENG-3b |
 | 15/11/2026 | ENG-7b (ADR-067, DI-144): thêm trường `pattern` (mẫu câu đích hiện cạnh tên bài ở trang học sinh, phụ huynh, giáo viên) cho 6 nút, lấy nguyên từ `name`/`description` đã duyệt, không thêm câu hay đáp án mới. Version chương 0.2.0 → 0.2.1 (bài giữ 0.2.0). Chủ dự án duyệt mặc định. | phiên Claude Code ENG-7b |
+| 15/11/2026 | ENG-3c (sửa lỗi L-1, L-7, L-8 của học sinh mô phỏng ENG-9a, PR #149): VOCAB thêm 4 câu `phrase` (`U11-VO-TR-01`, `-02` mức D từ SGK/SGV; `-03` mức E soạn thêm; `-04` mức B chuyển gần, `FROM_TEXT`), nên nút VOCAB qua được khi con làm đúng (trước đó M tối đa 72,7, `NO_ITEMS_LEFT`). `U11-PA-PR-04`: `required` từ `[["bought"]]` thành parents + bought + souvenirs, đề xin con nói cả câu (câu nghe sai "his the bought some souvenirs" thôi không được chấm đúng). Ghi chú: `english_leak` chỉ báo lộ khi lời cô có đủ mọi nhóm `required`, nên với câu này cô nói riêng "bought" không còn bị bắt là lộ đáp án; đề xuất sửa validator (việc code, ngoài ENG-3c). `U11-DY-PR-04`: phương án C "Do you swam …?" (M01 + M02) thay bằng "You swam …?" (chỉ M01). `U11-WD-PR-03`: điền "swim" ở chỗ (2) ghi M07. ADR-060 thêm mục Revision: mã hiểu lầm ở §5, §8, §10 theo mã của nội dung ("Yes, I do" là M03). Version chương 0.2.1 → 0.3.0, lesson-1 0.2.0 → 0.3.0, lesson-2 0.2.0 → 0.2.1. Chủ dự án duyệt mặc định. | phiên Claude Code ENG-3c |

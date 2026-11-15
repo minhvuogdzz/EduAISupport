@@ -17,10 +17,12 @@
 #                                   └──PRE──▶ STRESS
 # Nút BASIC VOCAB, PAST, STRESS không đòi bằng chứng vận dụng (require_application: false), như các nút cơ bản
 # của Toán (DI-6, 2026-10-12): phần vận dụng nằm ở DIDYOU, WHATDID và TRIP.
+# ENG-3c (15/11/2026): VOCAB vẫn không đòi vận dụng, nhưng có 2 câu mức D và 2 câu chuyển (transfer) để M đạt 75
+# khi con làm đúng: VOCAB là nút đầu (prior 0,5), trước đó chỉ có 6 câu nên M dừng ở 72,7 (lỗi L-1 của ENG-9a).
 # key_ideas: mỗi ý liệt kê các cách nói được tính là có ý đó (so khớp sau chuẩn hóa chữ thường; DI tạm như Toán).
 
 chapter_id: eng-g5-u11-family-time
-version: 0.2.1
+version: 0.3.0
 status: DRAFT
 subject: english
 grade: 5
@@ -88,7 +90,7 @@ nodes:
     checks: [U11-VO-CC-01]
     completion: [U11-VO-CP-01]
     practice: [U11-VO-PR-01, U11-VO-PR-02, U11-VO-PR-03, U11-VO-PR-04]
-    transfer: []
+    transfer: [U11-VO-TR-01, U11-VO-TR-02, U11-VO-TR-03, U11-VO-TR-04]
     pass_rule:
       require_application: false
     verify_prompt: "Đúng rồi! Con chỉ cho cô chỗ nào trong tranh giúp con chọn được cụm đó không?"

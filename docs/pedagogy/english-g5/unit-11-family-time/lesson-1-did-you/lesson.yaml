@@ -2,7 +2,8 @@
 # TRẠNG THÁI: DRAFT — phiên ENG-3 soạn từ SGK/SGV ngày 12/11/2026; chủ dự án duyệt mặc định ngày 12/11/2026
 # (sửa bất kỳ lúc nào); 20 câu soạn thêm được chủ dự án duyệt ngày 13/11/2026. ENG-3b (ADR-062): mỗi câu ghi
 # nguồn, nguồn gốc, trạng thái đáp án, trạng thái duyệt và ngôn ngữ trả lời ngay trong câu; sources.yaml giữ
-# bảng tổng hợp (một test kiểm hai nơi khớp nhau).
+# bảng tổng hợp (một test kiểm hai nơi khớp nhau). ENG-3c (15/11/2026, chủ dự án duyệt mặc định): thêm 4 câu vận
+# dụng/chuyển cho VOCAB (U11-VO-TR-01..04), siết U11-PA-PR-04, tách phương án C của U11-DY-PR-04.
 #
 # Nội dung: cụm từ hoạt động kỳ nghỉ, dạng quá khứ của động từ, mẫu "Did you …? – Yes, I did. I … / No, I didn't."
 # SGK tr.6–7 (Lesson 1), một phần tr.8 (cụm từ Lesson 2), Review 3 tr.37. SGV tr.178–182, 253.
@@ -21,7 +22,7 @@
 # - Item "nói theo cô" là item cùng làm (completion), không tính thành công (DI-108).
 
 lesson_id: eng-g5-u11-l1
-version: 0.2.0
+version: 0.3.0
 status: DRAFT
 subject: english
 grade: 5
@@ -299,6 +300,126 @@ items:
       - "Câu đúng: They collected seashells."
     explanation: "Bạn Nam nói chưa đúng. Hai bạn đang nhặt vỏ sò, nên câu đúng là 'They collected seashells.'"
 
+  # [SGK tr.9 L2 Ex4 câu 1 — chuyển bài nghe thành tình huống đọc; SGV tr.186 Key: took a boat trip] Vận dụng (mức D,
+  # ENG-3c): chọn cụm hợp với tình huống của bài (đi thuyền hay chụp ảnh đều bắt đầu bằng took).
+  - id: U11-VO-TR-01
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: D
+    difficulty: 0.5
+    transfer: near
+    expected_time_s: 60
+    stem: "Cuối tuần trước, bạn Nam đi Phú Quốc cùng gia đình. Cả nhà ngồi trên một chiếc thuyền, đi một vòng ngắm biển và các hòn đảo nhỏ. Bạn hỏi Nam: 'What did your family do there?' Con nói cả câu trả lời của Nam, bắt đầu bằng: We took …"
+    source: {doc: SGK, page: "9", ref: "L2 Ex4 câu 1, chuyển bài nghe thành tình huống đọc"}
+    answer_source: {doc: SGV, page: "186", ref: "Key L2 Ex4 câu 1: took a boat trip"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
+    answer:
+      type: phrase
+      accept: ["We took a boat trip."]
+      required: [["we took a boat trip"]]
+      wrong_answers: {"we take a boat trip": ENG5-U11-M04}
+    hints:
+      - {target: TASK, level: 1, text: "Cả nhà Nam ngồi trên gì để đi một vòng ngắm biển? Việc đó là chụp ảnh hay đi thuyền?"}
+      - {target: CONCEPT, level: 2, text: "Đi thuyền là take a boat trip. Took là dạng đã qua của take, nên cả nhà Nam đã đi thuyền thì nói: We took a …"}
+      - {target: STEP, level: 4, text: "Câu bắt đầu là We took a … Con thêm hai từ chỉ chuyến đi bằng thuyền nhé: a b… trip."}
+    worked_solution:
+      - "Cả nhà Nam ngồi thuyền đi một vòng: việc đó là đi thuyền, không phải chụp ảnh."
+      - "Đi thuyền là take a boat trip; chuyện cuối tuần trước đã qua nên take thành took."
+      - "Câu trả lời: We took a boat trip."
+    explanation: "Cả nhà Nam đã đi thuyền ngắm biển ở Phú Quốc, nên Nam trả lời: We took a boat trip."
+
+  # [SGK tr.8 L2 Ex3 Let's talk, tranh bãi biển Đồ Sơn; SGV tr.185 Suggested answers: Do Son Beach – swam in the sea]
+  # Vận dụng (mức D, ENG-3c): trả lời câu hỏi của bạn theo tình huống trong tranh.
+  - id: U11-VO-TR-02
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: D
+    difficulty: 0.5
+    transfer: near
+    expected_time_s: 60
+    stem: "Trong tranh, biển hiệu ghi 'WELCOME TO DO SON BEACH'. Chủ nhật tuần trước, cả nhà bạn Mai mặc đồ bơi và xuống nước bơi rất lâu. Bạn hỏi Mai: 'What did your family do there?' Con giúp Mai trả lời bằng một câu bắt đầu bằng We nhé."
+    source: {doc: SGK, page: "8", ref: "L2 Ex3 Let's talk, tranh bãi biển Đồ Sơn, tả tranh bằng lời"}
+    answer_source: {doc: SGV, page: "185", ref: "Suggested answers L2 Ex3: Do Son Beach – swam in the sea"}
+    origin: BOOK
+    answer_status: VERIFIED_SGV
+    response_language: en
+    answer:
+      type: phrase
+      accept: ["We swam in the sea."]
+      required: [["we swam"], ["in the sea"]]
+      wrong_answers: {"we swim in the sea": ENG5-U11-M04}
+    hints:
+      - {target: TASK, level: 1, text: "Cả nhà Mai mặc đồ bơi và xuống nước làm gì?"}
+      - {target: CONCEPT, level: 2, text: "Bơi là swim; bơi ở biển là swim in the sea. Chuyện Chủ nhật tuần trước đã qua, nên swim đổi sang dạng riêng của nó."}
+      - {target: STEP, level: 4, text: "Swim thành sw…m. Con nói cả câu nhé: We sw… in the sea."}
+    worked_solution:
+      - "Cả nhà Mai mặc đồ bơi, xuống nước bơi: việc đó là swim in the sea."
+      - "Chuyện Chủ nhật tuần trước đã qua, swim có dạng quá khứ riêng là swam."
+      - "Câu trả lời: We swam in the sea."
+    explanation: "Cả nhà Mai đã bơi ở biển Đồ Sơn, nên Mai trả lời: We swam in the sea."
+
+  # [SOẠN THÊM, ENG-3c] Bối cảnh mới (mức E, chiều T): tình huống không có trong sách, con tự nhận ra đồ mua mang về
+  # làm quà là souvenirs. Câu mẫu dùng hai cách nói đã có trong sách (bought souvenirs: SGV tr.252; bought some
+  # souvenirs: SGV tr.187).
+  - id: U11-VO-TR-03
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: E
+    difficulty: 0.6
+    transfer: near
+    expected_time_s: 75
+    stem: "Đây là một chuyện mới, không có trong sách: hôm qua con đi chợ đêm Đà Lạt với bố mẹ. Con chọn mua một chiếc móc khóa và một chiếc mũ len nhỏ để mang về làm quà tặng bạn. Về nhà, bạn hỏi: 'What did you do in Da Lat?' Con kể bằng một câu tiếng Anh, bắt đầu bằng I nhé."
+    origin: AUTHORED
+    answer_status: AUTHORED
+    review: {status: APPROVED, reviewed_by: "chủ dự án (duyệt mặc định)", reviewed_on: 2026-11-15}
+    response_language: en
+    answer:
+      type: phrase
+      accept: ["I bought some souvenirs.", "I bought souvenirs."]
+      required: [["i bought"], ["souvenirs"]]
+      wrong_answers: {"i buy souvenirs": ENG5-U11-M04}
+    hints:
+      - {target: TASK, level: 1, text: "Con trả tiền rồi mang móc khóa, mũ len về làm quà. Vậy con đã mua, đã ăn hay đã chụp ảnh?"}
+      - {target: CONCEPT, level: 2, text: "Đồ mình mua mang về làm kỷ niệm gọi là souvenirs. Mua là buy, và buy có dạng quá khứ riêng."}
+      - {target: STEP, level: 4, text: "Buy thành b…ght. Con nói cả câu nhé: I bought s…"}
+    worked_solution:
+      - "Móc khóa, mũ len mua mang về làm quà là quà lưu niệm: souvenirs."
+      - "Mua là buy; chuyện hôm qua đã qua nên buy thành bought."
+      - "Câu kể: I bought some souvenirs."
+    explanation: "Móc khóa và mũ len con mua mang về làm quà là souvenirs (quà lưu niệm). Hôm qua đã qua, nên con kể: I bought some souvenirs."
+
+  # [SGK tr.7 L1 Ex5 câu 4, câu in sẵn 'We took lots of photos.'] Chuyển gần (mức B, transfer near, chiều T; ENG-3c):
+  # cụm take photos trong bối cảnh khác tranh bãi biển (chùa Vàng ở Thái Lan, câu hỏi về bưu thiếp). Đáp án đọc thẳng
+  # từ chữ in trong sách; hai cách nói khác (took photos, took some photos) có trong SGV tr.180, tr.190.
+  - id: U11-VO-TR-04
+    purpose: PRACTICE
+    kc_ids: [ENG5-U11-VOCAB]
+    cognitive_level: B
+    difficulty: 0.4
+    transfer: near
+    expected_time_s: 60
+    stem: "Mùa hè năm ngoái, gia đình bạn Hoa ở chùa Vàng (Golden Pagoda) bên Thái Lan. Bạn hỏi: 'Did you buy some postcards there?' Nhà Hoa không mua bưu thiếp, mà cầm máy ảnh chụp rất nhiều tấm. Hoa đáp 'No, we didn't.' rồi kể tiếp một câu. Con nói câu kể đó, bắt đầu bằng We nhé."
+    source: {doc: SGK, page: "7", ref: "L1 Ex5 câu 4, câu in sẵn 'We took lots of photos.'"}
+    origin: BOOK
+    answer_status: FROM_TEXT
+    response_language: en
+    answer:
+      type: phrase
+      accept: ["We took lots of photos."]
+      required: [["we took lots of photos", "we took photos", "we took some photos"]]
+      wrong_answers: {"we take lots of photos": ENG5-U11-M04}
+    hints:
+      - {target: TASK, level: 1, text: "Nhà Hoa cầm máy ảnh làm gì ở chùa Vàng?"}
+      - {target: CONCEPT, level: 2, text: "Chụp ảnh là take photos; chụp rất nhiều ảnh là take lots of photos. Chuyện mùa hè năm ngoái đã qua, nên take đổi sang dạng riêng."}
+      - {target: STEP, level: 4, text: "Take thành took. Con nói cả câu nhé: We took lots of …"}
+    worked_solution:
+      - "Nhà Hoa cầm máy ảnh chụp nhiều tấm: việc đó là take photos (chụp rất nhiều: take lots of photos)."
+      - "Chuyện mùa hè năm ngoái đã qua, take có dạng quá khứ riêng là took."
+      - "Câu kể: We took lots of photos."
+    explanation: "Nhà Hoa không mua bưu thiếp mà chụp rất nhiều ảnh, nên Hoa kể: We took lots of photos."
+
   # ================================================================ ENG5-U11-PAST
   # [SOẠN THÊM] Nhận biết dạng quá khứ riêng (mức A).
   - id: U11-PA-CC-01
@@ -443,7 +564,7 @@ items:
     cognitive_level: B
     difficulty: 0.4
     expected_time_s: 45
-    stem: "Gia đình Ben đi chơi cuối tuần trước. Trong tranh, bố mẹ Ben đang chọn đồ ở một quầy quà lưu niệm. Con điền động từ: 'His parents … some souvenirs.'"
+    stem: "Gia đình Ben đi chơi cuối tuần trước. Trong tranh, bố mẹ Ben đang chọn đồ ở một quầy quà lưu niệm. Con điền động từ rồi nói cả câu nhé: 'His parents … some souvenirs.'"
     source: {doc: SGK, page: "9", ref: "L2 Ex5 câu 2, chỗ trống 2, tả tranh bằng lời"}
     answer_source: {doc: SGV, page: "187", ref: "Key L2 Ex5 câu 2: bought"}
     origin: BOOK
@@ -451,13 +572,16 @@ items:
     response_language: en
     answer:
       type: phrase
+      # ENG-3c: required siết từ [["bought"]] thành ba ý (parents, bought, souvenirs) để câu nghe sai như
+      # "his the bought some souvenirs" không còn được chấm đúng; đề vì thế xin con nói cả câu. Không thêm
+      # "bought" một từ vào accept: validator rò rỉ (english_leak) bỏ qua câu mẫu một từ, nên test rò rỉ đỏ.
       accept: ["His parents bought some souvenirs."]
-      required: [["bought"]]
+      required: [["parents"], ["bought"], ["souvenirs"]]
       wrong_answers: {"buyed": ENG5-U11-M05}
     hints:
       - {target: TASK, level: 1, text: "Bố mẹ Ben đang làm gì ở quầy quà lưu niệm: mua, bán hay ngắm?"}
       - {target: CONCEPT, level: 2, text: "Mua là buy. Chuyện cuối tuần trước đã qua, nên buy phải đổi sang quá khứ; buy có dạng riêng."}
-      - {target: STEP, level: 4, text: "Buy thành b…ght. Con điền nốt nhé: His parents … some souvenirs."}
+      - {target: STEP, level: 4, text: "Buy thành b…ght. Con nói cả câu nhé: His parents b… some souvenirs."}
     worked_solution:
       - "Bố mẹ Ben đang mua quà lưu niệm: mua là buy."
       - "Chuyện cuối tuần trước đã qua, buy có dạng quá khứ riêng là bought."
@@ -672,7 +796,9 @@ items:
       options:
         - {id: A, text: "Did you swim with your mother last Sunday?", correct: true, aliases: ["did you swim with your mother last sunday"]}
         - {id: B, text: "Did you swam with your mother last Sunday?", aliases: ["did you swam with your mother last sunday"], misconceptions: [ENG5-U11-M02]}
-        - {id: C, text: "Do you swam with your mother last Sunday?", aliases: ["do you swam with your mother last sunday"], misconceptions: [ENG5-U11-M01, ENG5-U11-M02]}
+        # ENG-3c: phương án C cũ "Do you swam …?" mang hai hiểu lầm (M01, M02) nên bộ chấm không ghi được hiểu lầm nào;
+        # thay bằng câu bỏ did mà mô tả M01 tự nêu ("You swam yesterday?"), mỗi phương án sai một hiểu lầm.
+        - {id: C, text: "You swam with your mother last Sunday?", aliases: ["you swam with your mother last sunday"], misconceptions: [ENG5-U11-M01]}
     hints:
       - {target: TASK, level: 1, text: "Lan hỏi về Chủ nhật tuần trước. Câu hỏi về chuyện đã qua mở đầu bằng Do hay Did?"}
       - {target: CONCEPT, level: 2, text: "Câu hỏi về chuyện đã qua: Did + you + động từ giữ nguyên."}

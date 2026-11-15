@@ -281,7 +281,7 @@ def grade(item_id, text):
 
 
 def test_unit_11_has_english_sentences_to_check():
-    assert len(UNIT_ITEMS) == 23 and UNIT.package.subject == "english"
+    assert len(UNIT_ITEMS) == 27 and UNIT.package.subject == "english"  # ENG-3c: + 4 VOCAB items
 
 
 @pytest.mark.parametrize("item_id", UNIT_ITEMS)
