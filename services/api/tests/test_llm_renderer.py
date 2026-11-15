@@ -147,7 +147,7 @@ def test_429_uses_the_template_at_once():
     assert renderer.render(ctx) == TEMPLATE.render(ctx)
     assert [model for model, _ in fake.calls] == list(CHAIN)  # the router's chain, no retry after it
     assert renderer.last_trace.fallback_reason == "quota_exceeded"
-    assert renderer.calls_used == len(CHAIN)
+    assert renderer.calls_used == 0  # DI-153: refusals do not spend the session's cap
 
 
 def test_known_exhausted_quota_uses_the_template_without_any_call():

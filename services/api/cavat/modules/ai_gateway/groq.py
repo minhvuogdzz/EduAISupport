@@ -222,7 +222,7 @@ class GroqClient:
         if status == 400 and _error_code(response) == "json_validate_failed":
             raise InvalidModelOutput(f"output failed schema: {_error_text(response)}", model=model)
         if status >= 400:
-            raise ModelUnavailable(f"HTTP {status}: {_error_text(response)}", model=model)
+            raise ModelUnavailable(f"HTTP {status}: {_error_text(response)}", model=model, status=status)
         try:
             payload = response.json()
         except ValueError as exc:

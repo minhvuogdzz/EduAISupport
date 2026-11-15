@@ -141,7 +141,12 @@ class QuotaExceeded(AIGatewayError):
 
 
 class ModelUnavailable(AIGatewayError):
-    """Network error, timeout, 5xx, auth or unknown model: try the next model in the chain."""
+    """Network error, timeout, 5xx, auth or unknown model: try the next model in the chain. ``status``: the
+    HTTP status the provider answered, None for a network error or timeout (ENG-5f, DI-154)."""
+
+    def __init__(self, message: str, *, model: str | None = None, status: int | None = None) -> None:
+        super().__init__(message, model=model)
+        self.status = status
 
 
 class InvalidModelOutput(AIGatewayError):

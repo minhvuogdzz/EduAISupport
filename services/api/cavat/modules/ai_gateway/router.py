@@ -60,6 +60,10 @@ MAX_UNAVAILABLE_REST = timedelta(minutes=5)
 # instead of showing the child a wait notice. Daily limits and long rests still return at once.
 TRANSIENT_WAIT_S = 15.0
 COMMAND_WAIT_BUDGET_S = 20.0
+# DI-154 (ENG-5f): a model that refused the request itself (HTTP 4xx other than 408/409/429: bad request,
+# unknown model, auth) rests the longest rest at once instead of 30 s first; a refusal like that seldom
+# clears in seconds (Gemini 2.5 Flash "use api version v1beta", the live run of 15/11/2026).
+CLIENT_ERROR_TRANSIENT = frozenset({408, 409, 429})
 
 
 def parse_models(value: str) -> tuple[str, ...]:
@@ -112,7 +116,10 @@ class Attempt:
 class ChatOutcome:
     result: ChatResult | None
     fallback_reason: FallbackReason | None
-    # Requests actually sent to a provider; the caller adds this to the session's counter.
+    # What the call costs the session's model-call cap; the caller adds this to the session's counter.
+    # DI-153 (ENG-5f): 1 when a model answered, 0 when none did, however many models of the chain were
+    # tried. Before, every request sent counted, a 429 and a 4xx too: the English live run of 15/11/2026
+    # spent 45 of its 160 calls on refusals and lost the model's voice for its last third.
     calls_made: int
     attempts: tuple[Attempt, ...] = ()
     waited_s: float = 0.0  # seconds slept for a per-minute limit before the retry (DI-100)
@@ -120,6 +127,11 @@ class ChatOutcome:
     @property
     def use_template(self) -> bool:
         return self.result is None
+
+    @property
+    def calls_sent(self) -> int:
+        """Requests that actually reached a provider, answered or not (observability, CFG-2)."""
+        return sum(1 for attempt in self.attempts if attempt.sent)
 
 
 _REASON_BY_ERROR: dict[type[AIGatewayError], FallbackReason] = {
@@ -236,11 +248,10 @@ class AIRouter:
         if self._chat is None:
             return ChatOutcome(None, FallbackReason.NO_PROVIDER, 0)
         attempts: list[Attempt] = []
-        calls_made = 0
+        if calls_used >= self.max_calls_per_session:
+            return ChatOutcome(None, FallbackReason.SESSION_CAP, 0)
         reason = FallbackReason.QUOTA_EXCEEDED
         for model in chain:
-            if calls_used + calls_made >= self.max_calls_per_session:
-                return ChatOutcome(None, FallbackReason.SESSION_CAP, calls_made, tuple(attempts))
             if self.quota.is_exhausted(model, self._clock()):
                 wait = _seconds_until(self.quota.reset_at(model), self._clock())
                 attempts.append(Attempt(model, sent=False, error=QuotaExceeded.__name__, retry_after_s=wait))
@@ -265,9 +276,8 @@ class AIRouter:
                 attempts.append(
                     Attempt(model, sent=False, error=PromptTooLong.__name__, detail=error_detail(str(exc)))
                 )
-                return ChatOutcome(None, FallbackReason.PROMPT_TOO_LONG, calls_made, tuple(attempts))
+                return ChatOutcome(None, FallbackReason.PROMPT_TOO_LONG, 0, tuple(attempts))
             except (QuotaExceeded, ModelUnavailable, InvalidModelOutput) as exc:
-                calls_made += 1
                 limit = exc.limit if isinstance(exc, QuotaExceeded) else None
                 reset = exc.reset_at if isinstance(exc, QuotaExceeded) else None
                 if isinstance(exc, QuotaExceeded):
@@ -280,6 +290,9 @@ class AIRouter:
                     strikes = self._unavailable_strikes.get(model, 0) + 1
                     self._unavailable_strikes[model] = strikes
                     rest = min(UNAVAILABLE_REST * 2 ** (strikes - 1), MAX_UNAVAILABLE_REST)
+                    status = getattr(exc, "status", None)
+                    if status is not None and 400 <= status < 500 and status not in CLIENT_ERROR_TRANSIENT:
+                        rest = MAX_UNAVAILABLE_REST  # DI-154
                     self._unavailable_until[model] = self._clock() + rest
                 attempts.append(
                     Attempt(
@@ -293,11 +306,10 @@ class AIRouter:
                 )
                 reason = _REASON_BY_ERROR[type(exc)]
                 continue
-            calls_made += 1
             self._unavailable_strikes.pop(model, None)
             attempts.append(Attempt(model, sent=True))
-            return ChatOutcome(result, None, calls_made, tuple(attempts))
-        return ChatOutcome(None, reason, calls_made, tuple(attempts))
+            return ChatOutcome(result, None, 1, tuple(attempts))
+        return ChatOutcome(None, reason, 0, tuple(attempts))
 
     @traced("model")
     def transcribe(

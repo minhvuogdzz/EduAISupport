@@ -341,7 +341,7 @@ def test_429_falls_back_to_gpt_oss():
     assert outcome.result is not None and outcome.result.model == GPT_OSS
     assert outcome.result.data == {"utterance": "Thử lại nhé."}
     assert rec.models_sent() == [QWEN, GPT_OSS]
-    assert outcome.calls_made == 2
+    assert outcome.calls_made == 1 and outcome.calls_sent == 2  # DI-153: one answer, one call of the cap
 
 
 def test_429_on_whole_chain_tells_caller_to_use_template():
@@ -393,13 +393,15 @@ def test_session_cap_stops_llm_calls():
     assert fake.calls == []
 
 
-def test_session_cap_reached_mid_chain():
+def test_the_last_call_under_the_cap_still_walks_the_chain():
+    """DI-153 (ENG-5f): a refusal does not spend the cap, so the last call walks the chain to an answer."""
     fake = FakeChatModel({QWEN: [QuotaExceeded("429", model=QWEN)], GPT_OSS: [{"utterance": "b"}]})
     outcome = AIRouter(chat_provider=fake, max_calls_per_session=15, chains=TWO_MODELS).chat(
         ModelClass.TUTOR_REASONING, _request(), calls_used=14
     )
-    assert outcome.fallback_reason is FallbackReason.SESSION_CAP
-    assert [m for m, _ in fake.calls] == [QWEN]
+    assert outcome.result is not None and outcome.result.model == GPT_OSS
+    assert outcome.calls_made == 1 and outcome.calls_sent == 2
+    assert [m for m, _ in fake.calls] == [QWEN, GPT_OSS]
 
 
 def test_no_api_key_means_template_only_mode():

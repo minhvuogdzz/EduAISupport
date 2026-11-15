@@ -90,7 +90,9 @@ class GeminiVision:
         except errors.APIError as exc:
             if exc.code == 429:
                 raise QuotaExceeded("Gemini rate limited", model=model, reset_at=None) from exc
-            raise ModelUnavailable(f"Gemini HTTP {exc.code}: {_api_message(exc)}", model=model) from exc
+            raise ModelUnavailable(
+                f"Gemini HTTP {exc.code}: {_api_message(exc)}", model=model, status=exc.code
+            ) from exc
         except Exception as exc:  # network errors from the SDK transport
             raise ModelUnavailable(f"Gemini call failed: {type(exc).__name__}", model=model) from exc
         text = (getattr(response, "text", None) or "").strip()
@@ -171,7 +173,9 @@ class GeminiChat:
         except errors.APIError as exc:
             if exc.code == 429:
                 raise _chat_quota_error(exc, model) from exc
-            raise ModelUnavailable(f"Gemini HTTP {exc.code}: {_api_message(exc)}", model=model) from exc
+            raise ModelUnavailable(
+                f"Gemini HTTP {exc.code}: {_api_message(exc)}", model=model, status=exc.code
+            ) from exc
         except Exception as exc:  # network errors from the SDK transport
             raise ModelUnavailable(f"Gemini call failed: {type(exc).__name__}", model=model) from exc
         candidates = getattr(response, "candidates", None)

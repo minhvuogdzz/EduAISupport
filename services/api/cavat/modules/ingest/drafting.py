@@ -226,7 +226,8 @@ class Drafter:
             temperature=0.2,
         )
         outcome = self.router.chat(ModelClass.TUTOR_REASONING, request, calls_used=0)
-        self.calls += outcome.calls_made
+        # DI-153: the requests sent (paced by the minute limit), not what the call costs a session
+        self.calls += getattr(outcome, "calls_sent", outcome.calls_made)
         if outcome.result is None or outcome.result.data is None:
             return {}, ""
         self.cache.mkdir(parents=True, exist_ok=True)
