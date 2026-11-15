@@ -288,6 +288,7 @@ class ItemTutor:
         # message being answered, and what the guess asks of the tutor if the child says yes.
         self._known = known_words(item.stem, item.rephrase or "", *_option_words(item))
         self._intent_reads = 0
+        self._l1_asked = 0  # ENG-5c (DI-149): answers in Vietnamese to this English item already asked again
         self._clarification: str | None = None
         self._guess: str | None = None
         self._guess_intent: Outcome | None = None
@@ -382,6 +383,16 @@ class ItemTutor:
             return self._on_reason(text, seconds)
 
         check = self._check(text)
+        if check.error_class == ErrorClass.L1 and check.outcome == Outcome.UNPARSEABLE:
+            # ENG-5c (L-2, DI-107/129/149): an answer in Vietnamese to an item that wants English (only the
+            # English checker says L1). The first is not graded: the policy asks for it in English
+            # (R-L1). The next ones are graded WRONG with the class L1, so an item closed in Vietnamese
+            # scores 0.3 (node-mastery-en). Never read as "không đọc được" by the reader.
+            self._l1_asked += 1
+            if self._l1_asked > 1:
+                check = replace(check, outcome=Outcome.WRONG)
+            self._record_answer(check, text, seconds)
+            return self._act(self._decide("ANSWER", check), text)
         if self._ambiguous(text, check):
             return self._on_unclear(text, "ANSWER")
         if self._step_candidate(check):

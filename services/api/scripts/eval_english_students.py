@@ -506,7 +506,9 @@ def run_child(
                 if turn.item_id:
                     item = ch.item(turn.item_id)
                     again = check_answer(item, sent_text, ch.lesson_of(turn.item_id))
-                    assert again.outcome.value == turn.outcome if hasattr(again.outcome, "value") else True
+                    # ENG-5c (DI-149): a second answer in Vietnamese is recorded WRONG with the class L1
+                    l1_graded = again.outcome.value == "UNPARSEABLE" and turn.error_class == "L1"
+                    assert l1_graded or again.outcome.value == turn.outcome
                     turn.en_code = (again.detail or {}).get("en_code")
         if turn.kind == "MATH":
             off = [
