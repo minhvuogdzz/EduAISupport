@@ -24,7 +24,7 @@ Tài liệu này là **hướng đi** của module Tiếng Anh. **Luật bắt b
 | E12 | **Nguồn nội dung làm như Toán** (ADR-020/023/024/025): chủ dự án cung cấp ấn phẩm công khai (SGK/sách giáo viên Tiếng Anh 5, giáo án, bài tập kèm đáp án) | Không tự bịa item hay đáp án |
 | E13 | **Giáo viên duyệt:** nội dung soạn trong quá trình làm được chấp nhận mặc định | Ghi rõ "chủ dự án duyệt mặc định ngày 12/11/2026" trên mỗi artifact |
 | E14 | **Giọng nói:** VieNeu-TTS v3 Turbo dùng được cho Tiếng Anh nếu từ đích luôn nằm trong một câu; Whisper chọn ngôn ngữ theo bước (`en`/`vi`), không tự nhận dạng; chưa chấm phát âm theo âm vị (POC PR #139) | Mốc ENG-6 |
-| E15 | **Thứ tự làm:** dữ liệu unit và RAG tách môn → bộ chấm và ánh xạ projector → giọng nói → giao diện nối API thật → unit thứ hai chỉ bằng dữ liệu → eval chéo và regression Toán | Mục 8 |
+| E15 | **Thứ tự làm:** dữ liệu unit và RAG tách môn → bộ chấm và ánh xạ projector → giọng nói → giao diện nối API thật → eval chéo và regression Toán | Mục 8 |
 
 ## 2. Quy tắc bắt buộc
 
@@ -142,8 +142,8 @@ Toàn bộ ở ADR-060. Tóm tắt cho phiên sau:
 | ENG-5 | Vòng dạy và prompt tiếng Anh | Bộ prompt tiếng Anh, thang gợi ý DI-112, validator lộ đáp án hai thứ tiếng, `WEB_LOOKUP` cho tiếng Anh, buổi học chạy trong `make teach`/API | ENG-4 |
 | ENG-6 | Giọng nói | Whisper theo bước (`en`/`vi`), q (DI-109), sự kiện lượt nói mới có `audio_ref`, từ đích luôn trong câu khi gửi TTS, đo tỉ lệ nhận nhầm khi `en` dịch tiếng Việt (POC VieNeu đã có ở PR #139) | ENG-5 |
 | ENG-7 | Giao diện nối API thật | Trang học sinh tiếng Anh thật; trang giáo viên/phụ huynh theo môn; transcript + audio + ASR; bỏ dữ liệu minh họa của unit | ENG-6 |
-| ENG-8 | Unit thứ hai chỉ bằng dữ liệu | Thêm một unit khác của SGK lớp 5 do chủ dự án chọn, không sửa code | ENG-7, tài liệu |
-| ENG-9 | Eval chéo, tập vàng, regression Toán | Tập vàng DI-115/116, hiệu chỉnh ngưỡng ASR, học sinh mô phỏng, eval rò rỉ hai môn, regression Toán; số liệu cho luận văn | ENG-8, chủ dự án chấm tay |
+| ENG-8 | ~~Unit thứ hai chỉ bằng dữ liệu~~ **Bỏ** (chủ dự án quyết 15/11/2026: chỉ kiểm thử một unit, như Toán) | Không làm; khả năng mở rộng sang unit khác là hướng phát triển | — |
+| ENG-9 | Eval chéo, tập vàng, regression Toán | Tập vàng DI-115/116, hiệu chỉnh ngưỡng ASR, học sinh mô phỏng, eval rò rỉ hai môn, regression Toán; số liệu cho luận văn | ENG-7, chủ dự án chấm tay |
 
 ## 9. Câu hỏi còn mở [OPEN]
 
@@ -154,7 +154,7 @@ Toàn bộ ở ADR-060. Tóm tắt cho phiên sau:
 | Q-E3 | Chỗ trống "in …" của "What did your family do in …?" dùng địa danh hay thời điểm nào trong SGK; unit có thêm mẫu ở Lesson 3/Project không | Theo SGK | ENG-3 |
 | Q-E4 | ~~VieNeu đọc câu trộn được không~~ Đã đo (PR #139): được nếu từ đích nằm trong câu. Còn mở: bộ lọc im lặng VOICE-3 có bỏ nhầm câu trả lời một từ tiếng Anh không | POC/ENG-6 | ENG-6 |
 | Q-E5 | Công thức q và ngưỡng 0,6 của DI-109 có khớp giọng trẻ em Việt nói tiếng Anh không | Tập vàng ENG-9 | ENG-9 |
-| Q-E6 | Unit thứ hai để chứng minh mở rộng là unit nào | Chủ dự án | ENG-8 |
+| Q-E6 | ~~Unit thứ hai để chứng minh mở rộng~~ **Đóng** (15/11/2026): không làm unit thứ hai | Chủ dự án | — |
 | Q-E7 | Trang chủ học sinh: chọn môn thế nào khi có hai môn thật (giữ `SubjectSwitch` hiện có?) | Chủ dự án, khi duyệt ENG-7 | ENG-7 |
 
 ## 10. Rủi ro
