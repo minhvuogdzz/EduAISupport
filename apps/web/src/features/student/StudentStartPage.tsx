@@ -19,6 +19,7 @@ import {
 import { LIFECYCLE_LABEL, minutesText, QUALITY_TONE, studentWords } from "../../components/labels";
 import { Mascot } from "../../components/Mascot";
 import { formatViDateTime } from "../../lib/viNumber";
+import { MistakeList } from "../english/Mistakes";
 import { SubjectSwitch } from "../english/SubjectSwitch";
 import { ChapterPicker } from "../teaching/ChapterPicker";
 import { KnowledgeMap } from "../teaching/KnowledgeMap";
@@ -266,6 +267,7 @@ function Dashboard({ overview }: { overview: StudentOverview }) {
                   <li key={topic.node_id}>
                     <p className="text-lg font-semibold text-amber-950">{topic.name}</p>
                     <p className="text-amber-950/80">{topic.reason}</p>
+                    <MistakeList mistakes={topic.mistakes} title="Lỗi con hay gặp" />
                   </li>
                 ))}
               </ul>

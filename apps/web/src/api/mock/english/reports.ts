@@ -18,6 +18,7 @@ import type {
   ParentChildView,
   ProgressNode,
   ProgressTopic,
+  TypicalMistake,
   Quality,
   Recommendation,
   StudentOverview,
@@ -580,10 +581,36 @@ function topics(s: DemoStudent) {
         reason: open
           ? (MISCONCEPTIONS.find((m) => m.id === open.id)?.parent ?? null)
           : "Con làm được khi có gợi ý của cô; mình ôn thêm để con tự nói được.",
+        mistakes: mistakes(d),
       });
     }
   }
   return { going_well, to_practise };
+}
+
+// ENG-7c (DI-153): a short example of each misconception, as the server draws one from an answer.
+const EXAMPLES: Record<string, string> = {
+  "ENG5-U11-M01": "do → did",
+  "ENG5-U11-M02": "swam → swim",
+  "ENG5-U11-M03": "do → did",
+  "ENG5-U11-M04": "eat → ate",
+  "ENG5-U11-M05": "taked → took",
+  "ENG5-U11-M06": "chọn “mua quà lưu niệm” thay vì “nhặt vỏ sò”",
+  "ENG5-U11-M07": "eat → ate",
+  "ENG5-U11-M08": "thiếu “did”",
+};
+
+/** ENG-7c (DI-153): the typical mistakes of a node, the most frequent first; null when none. */
+function mistakes(d: DemoNode): TypicalMistake[] | null {
+  const found = [...(d.mis ?? [])]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
+    .map((m) => ({
+      label: misName(m.id),
+      count: m.count,
+      examples: EXAMPLES[m.id] ? [EXAMPLES[m.id]] : [],
+    }));
+  return found.length ? found : null;
 }
 
 export function studentOverview(s: DemoStudent, now: Date): StudentOverview {
@@ -794,6 +821,7 @@ export function studentReport(studentId: string, now: Date): TeacherStudentView 
       trend,
       direction: d.m === null ? null : "UP",
       recommendation: recommendation(n.node_id, d),
+      mistakes: mistakes(d),
     };
   });
   const dimensions = Object.fromEntries(
