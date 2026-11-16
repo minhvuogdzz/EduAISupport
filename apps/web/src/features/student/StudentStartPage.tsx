@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { useApi } from "../../api/apiContext";
+import { ApiError } from "../../api/client";
 import { DEMO_STUDENT_NAME } from "../../api/http/httpApi";
 import type { SessionSummary, StudentOverview } from "../../api/contract";
 import { AppShell } from "../../components/AppShell";
@@ -140,6 +141,7 @@ export function StudentStartPage() {
                 knownName={name}
                 pending={start.isPending}
                 failed={start.isError}
+                done={unitDone(start.error)}
                 onStart={(studentName) => start.mutate(studentName)}
               />
             </div>
@@ -157,15 +159,22 @@ export function StudentStartPage() {
   );
 }
 
+/** ENG-5i (DI-185): the server's own words when every lesson of the unit is passed already (no new session). */
+function unitDone(error: unknown): string | null {
+  return error instanceof ApiError && error.details.reason === "UNIT_COMPLETED" ? error.message : null;
+}
+
 function StartForm({
   knownName,
   pending,
   failed,
+  done,
   onStart,
 }: {
   knownName: string;
   pending: boolean;
   failed: boolean;
+  done?: string | null;
   onStart: (name: string) => void;
 }) {
   return (
@@ -179,10 +188,16 @@ function StartForm({
         <span>Bắt đầu buổi mới</span>
         <ArrowRightIcon className="size-5" />
       </button>
-      {failed && (
-        <p role="alert" className="text-lg text-red-700">
-          Chưa tạo được buổi học. Con thử lại nhé.
+      {done ? (
+        <p role="status" className="text-lg font-semibold text-teal-800">
+          {done}
         </p>
+      ) : (
+        failed && (
+          <p role="alert" className="text-lg text-red-700">
+            Chưa tạo được buổi học. Con thử lại nhé.
+          </p>
+        )
       )}
     </div>
   );

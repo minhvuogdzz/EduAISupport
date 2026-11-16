@@ -64,14 +64,17 @@ def linh_parent(client) -> dict:
 def test_to_practise_names_the_typical_mistakes_with_a_short_example(client):
     view = linh_parent(client)
     [vocab] = [t for t in view["to_practise"] if t["node_id"] == VOCAB]
-    assert vocab["reason"] == "Có lúc nhầm: kể chuyện đã qua bằng động từ nguyên mẫu, ví dụ eat → ate"
+    # ENG-5i (DI-186): the example says what the child said, then the right word
+    assert vocab["reason"] == (
+        "Có lúc nhầm: kể chuyện đã qua bằng động từ nguyên mẫu, ví dụ con nói “eat”, đúng là “ate”"
+    )
     labels = {m["label"]: m for m in vocab["mistakes"]}
     # the lesson's approved misconception names (lesson-1-did-you: M04, M06), then a DI-153 word
-    assert labels["Kể chuyện đã qua bằng động từ nguyên mẫu"]["examples"] == ["eat → ate"]
+    assert labels["Kể chuyện đã qua bằng động từ nguyên mẫu"]["examples"] == ["con nói “eat”, đúng là “ate”"]
     assert labels["Nhầm nghĩa giữa các cụm hoạt động"]["examples"] == [
         "chọn “đi thuyền quanh đảo” thay vì “đi dạo trên bãi biển”"
     ]
-    assert labels[report.MISTAKE_LABEL["EN_SLIP"]]["examples"] == ["bot → boat"]
+    assert labels[report.MISTAKE_LABEL["EN_SLIP"]]["examples"] == ["con nói “bot”, đúng là “boat”"]
     assert all(m["count"] == 1 for m in vocab["mistakes"])
 
 

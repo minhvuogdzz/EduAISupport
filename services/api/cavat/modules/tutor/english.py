@@ -54,7 +54,7 @@ ENGLISH = "english"
 # ENG-5g also: constitution-en.v2 (DI-164)
 # v4 (ENG-5h, DI-165/169/170): a feeling answered first, the "say after me" hints climb the ladder, the
 # move's own task on a "say after me" item outside its hints, CONFIRM_ADVANCE never tells the next question
-PROMPT_VERSION_EN = "tutor-prompt-en.v4"
+PROMPT_VERSION_EN = "tutor-prompt-en.v5"  # v5 (ENG-5i): LEAD_TASKS_EN, DI-180–183
 HINT_LADDER_VERSION = "hint-ladder-en/1"  # DI-112 words, DI-136
 MAX_UNIT_WORDS_CHARS = 600
 
@@ -141,6 +141,51 @@ RETEACH_TASK_EN = (
     "đoạn lý thuyết, "
     "không nói câu đích của câu đang chờ. Kết thúc bằng đúng câu hỏi đang chờ."
 )
+# ENG-5i (DI-180): the tutor's own words around the approved text of the teaching loop (a theory reply, a
+# retell, a recall, a question of another subject, talk outside the lesson), as the Mathematics tutor's
+# ``bridge`` does (BRAIN-1, DI-81): the model says the lead on what the child said, the approved text (the
+# reply, the missing idea, the question that waits) follows word for word. The lead never asks a question:
+# the question the loop waits for is said after it.
+_LEAD_END = (
+    " Chỉ 1–2 câu kể, không đặt câu hỏi nào (cô sẽ nói tiếp phần đã duyệt ngay sau câu của bạn), không nhắc "
+    "lại phần đó, không trích từ tiếng Anh con không nói."
+)
+LEAD_TASKS_EN: dict[str, str] = {
+    "theory_right": "Con vừa trả lời đúng câu hỏi của cô. Vui cùng con, khen đúng một chi tiết thật trong "
+    "lời con (không khen chung chung).",
+    "theory_check": "Con vừa trả lời nhưng chưa đúng ý. Ghi nhận nhẹ nhàng điều con đã thử, không chê, "
+    "không nói đáp án (cô sẽ giải thích ngay sau).",
+    "theory_ack": "Con vừa trả lời câu hỏi của cô. Đáp lại đúng điều con nói, ấm áp, không chấm đúng sai.",
+    "theory_explain": "Con chưa trả lời được hoặc nói chưa biết. Động viên ngắn, ấm áp, cho con thấy không "
+    "sao cả (cô sẽ giải thích ngay sau).",
+    "theory_affect": "Con vừa nói cảm xúc hoặc thấy nản. Đáp lại đúng chữ con nói, dịu dàng, ở bên con "
+    "(cô sẽ giải thích chậm lại ngay sau).",
+    "retell_good": "Con vừa nói lại đúng ý chính của bài. Khen cụ thể đúng điều con nói.",
+    "retell_partial": "Con nói lại được một phần ý. Khen phần con nói đúng, nhắc đúng chi tiết trong lời "
+    "con (cô sẽ nêu ý còn thiếu ngay sau).",
+    "retell_none": "Con chưa nói được ý chính. Ghi nhận con đã cố gắng, không chê (cô sẽ nhắc ý đúng ngay "
+    "sau).",
+    "retell_help": "Con chưa biết nói lại thế nào. Động viên ngắn, ấm áp (cô sẽ nhắc ý chính ngay sau).",
+    "retell_affect": "Con vừa nói cảm xúc hoặc thấy nản. Đáp lại đúng chữ con nói, dịu dàng (cô sẽ nhắc "
+    "ý chính ngay sau).",
+    "hold_retell": "Con chưa nói đủ ý. Nói một câu giúp con hiểu ý ở [CĂN CỨ ĐÃ DUYỆT] bằng tiếng Việt "
+    "đơn giản (cô sẽ nêu ý đó và mời con nói lại ngay sau).",
+    "recall_good": "Con nhớ đúng bài cũ. Khen cụ thể điều con nhớ.",
+    "recall_partial": "Con nhớ được một phần bài cũ. Khen phần con nhớ đúng (cô sẽ nhắc phần còn lại "
+    "ngay sau).",
+    "recall_help": "Con chưa nhớ bài cũ. Động viên ngắn (cô sẽ nhắc lại ý chính ngay sau).",
+    "off_topic": "Con vừa nói chuyện ngoài bài. Đáp lại một câu như cô giáo thật, nhắc đúng điều con nói, "
+    "không giảng nội dung đó, rồi nói nhẹ là mình quay lại bài.",
+    "off_subject": "Con vừa hỏi một câu môn Toán trong giờ Tiếng Anh. Không trả lời, không nhắc số hay "
+    "từ Toán nào; ghi nhận nhẹ nhàng con đang nghĩ tới bài Toán, hẹn để sau, rồi nói mình quay lại câu "
+    "tiếng Anh.",
+}
+
+
+def lead_task_en(key: str) -> str:
+    return LEAD_TASKS_EN[key] + _LEAD_END
+
+
 OFF_TOPIC_TASK = (
     "Con vừa hỏi chuyện ngoài bài Tiếng Anh: không trả lời và không giảng nội dung đó; nói nhẹ nhàng rằng "
     "giờ này mình ôn Tiếng Anh, rồi hỏi lại đúng câu đang làm. Một câu hỏi."
@@ -313,6 +358,10 @@ _RETRY_NOTES = {
     "REPEATS_EARLIER": "lặp gần nguyên lời cô đã nói trước: nói theo cách mới",
     "MISSES_WORD_ORDER": "chưa nói lỗi trật tự từ của câu con sửa",
     "MISSES_SLIP": "chưa nói chữ con viết sai chính tả",
+    # ENG-5i (DI-177, DI-180–182)
+    "INVENTED_WORD": "khen hay nhắc một từ tiếng Anh con không nói: chỉ nhắc đúng từ trong lời con",
+    "ADDRESSES_BAN": "gọi con là 'bạn': luôn gọi là con",
+    "ASKS_IN_LEAD": "có câu hỏi: lượt này chỉ là câu kể, câu hỏi do cô nói sau",
 }
 
 

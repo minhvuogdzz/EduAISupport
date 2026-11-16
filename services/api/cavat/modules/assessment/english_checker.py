@@ -429,17 +429,72 @@ def _one_edit(a: str, b: str) -> bool:
     return any(long_[:i] + long_[i + 1 :] == short for i in range(len(long_)))
 
 
+_VOWELS = frozenset("aeiou")
+# ENG-5i (DI-178): words of a primary class that a four-letter word of the item is one vowel away from and
+# that are words of their own ("bat", "hat", "sea"...): said, they are a choice of word, never a slip.
+_SHORT_WORDS = frozenset(
+    "bat bet bit but hat hot hut cat cut cot pet pot put net not nut sea see tea ten ton tan sun son "
+    "fun fan fin red rod rid bed bad bid big bag bug dog dig sit sat set got get let lot".split()
+)
+
+
+def _vowel_slip(word: str, target: str) -> bool:
+    """ENG-5i (DI-178): a four-letter word of the item written with one vowel left out or added ("bot" for
+    "boat", "tok" for "took"): the slip of a child who writes as they hear. A consonant changed ("look" for
+    "took") is another word, never repaired."""
+    if len(target) != 4 or abs(len(word) - len(target)) != 1 or word in _SHORT_WORDS:
+        return False
+    short, long_ = (word, target) if len(word) < len(target) else (target, word)
+    return any(long_[i] in _VOWELS and long_[:i] + long_[i + 1 :] == short for i in range(len(long_)))
+
+
 def _repair(answer: str, vocabulary: set[str]) -> str:
     """DI-110 EN_SLIP: each word one letter away from an expected word of five letters or more becomes
-    that word ("mothr" -> "mother"); a word the item expects, or a wrong -ed form, stays as it is."""
+    that word ("mothr" -> "mother"); a word the item expects, or a wrong -ed form, stays as it is. ENG-5i
+    (DI-178): a four-letter word of the item with one vowel left out or added too ("bot" -> "boat")."""
     out = []
     for word in answer.split():
-        if word in vocabulary or word in WRONG_ED:
+        if (
+            word in vocabulary
+            or word in WRONG_ED
+            or word in IRREGULAR_PAST
+            or word in IRREGULAR_PAST.values()
+        ):
             out.append(word)
             continue
-        fix = sorted(v for v in vocabulary if len(v) >= 5 and _one_edit(word, v))
+        fix = sorted(v for v in vocabulary if (len(v) >= 5 and _one_edit(word, v)) or _vowel_slip(word, v))
         out.append(fix[0] if len(fix) == 1 else word)
     return " ".join(out)
+
+
+def _lcs(a: Sequence[str], b: Sequence[str]) -> int:
+    """The length of the longest common subsequence of two word lists."""
+    row = [0] * (len(b) + 1)
+    for x in a:
+        prev = 0
+        for j, y in enumerate(b, 1):
+            prev, row[j] = row[j], prev + 1 if x == y else max(row[j], row[j - 1])
+    return row[-1]
+
+
+def _scrambled(answer: str, forms: Sequence[_Form], groups: Sequence[Sequence[str]]) -> str | None:
+    """ENG-5i (DI-177): "We around the bay took a boat trip." holds every word of the accepted sentence and
+    every required group, in a wrong order. Returns the accepted sentence it scrambles, else None. A group
+    of the end said first ("Around the bay, we took a boat trip.") is English and is not scrambled."""
+    said = answer.split()
+    for form in forms:
+        words = form.text.split()
+        if len(words) < 3 or sorted(said) != sorted(words) or said == words:
+            continue
+        fronted = False
+        for group in groups:
+            for phrase in group:
+                tail = phrase.split()
+                if words[-len(tail) :] == tail and said == tail + words[: -len(tail)]:
+                    fronted = True
+        if not fronted and _lcs(said, words) < len(words):
+            return form.text
+    return None
 
 
 def _slips(answer: str, repaired: str) -> dict[str, Any]:
@@ -571,6 +626,12 @@ def check_phrase(spec: PhraseSpec, text: str, ctx: EnglishContext = NO_CONTEXT) 
     if codes and not (quoting and set(codes) <= quoted_codes):
         return _diagnosed(codes, ctx, answer, correct)
     if right(answer):
+        if (order := _scrambled(answer, forms, groups)) is not None:
+            # DI-177: every word, in a wrong order: the sentence is not said yet (the structure, DI-107)
+            return _wrong(
+                EnCode.STRUCTURE, ctx, answer, correct, codes=[EnCode.STRUCTURE],
+                extra={"scrambled": True, "right_order": correct or order},
+            )  # fmt: skip
         return CheckResult(Outcome.CORRECT, normalized=answer, correct_answer=correct)
     if repaired != answer and right(repaired):
         return _wrong(EnCode.SLIP, ctx, answer, correct, codes=[EnCode.SLIP], extra=_slips(answer, repaired))
