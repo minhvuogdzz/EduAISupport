@@ -23,7 +23,7 @@ from cavat.modules.tutor.english import (
     HINT_LADDER_EN,
     OFF_TOPIC_STUDENT,
     OFF_TOPIC_TASK,
-    SAY_AFTER_ME_TASK,
+    SAY_AFTER_ME_LADDER,
     TASKS_EN,
     build_english_request,
     check_request_en,
@@ -137,7 +137,11 @@ def test_every_move_has_an_english_task():
     for move in TASKS_EN:
         task = task_for_en(move, level=3, asks="nghĩa của souvenirs")
         assert math_terms_in(task) == [] and "toán" not in task.lower()
-    assert task_for_en(Move.HINT, say_after_me=True) == SAY_AFTER_ME_TASK
+    # ENG-5h (DI-170): a "say after me" hint climbs with the level; the closing moves keep their own task
+    assert task_for_en(Move.HINT, say_after_me=True).startswith(SAY_AFTER_ME_LADDER[1])
+    assert task_for_en(Move.HINT, level=2, say_after_me=True).startswith(SAY_AFTER_ME_LADDER[2])
+    assert task_for_en(Move.FULL_EXPLANATION, say_after_me=True).startswith(SAY_AFTER_ME_LADDER[7])
+    assert task_for_en(Move.CONFIRM_ADVANCE, say_after_me=True) == TASKS_EN[Move.CONFIRM_ADVANCE]
     assert task_for_en(Move.HINT, reasons=("OFF_TOPIC",)) == OFF_TOPIC_TASK
 
 

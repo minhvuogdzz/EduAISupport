@@ -169,5 +169,11 @@ def test_math_session_identical_to_before_eng5b(memory):
             wanted = want[key] if key == "last_view" else want[key][0]
             have = got[key] if key == "last_view" else got[key][0]
             assert {k: have.get(k) for k in wanted} == wanted, key
+        elif key == "overview":
+            # ``study_days`` holds the day the test runs (the server's clock), recorded 15/11/2026 in the
+            # golden; every other field is compared as it is, and the number of days too (ENG-5h)
+            have, wanted = dict(got[key]), dict(want[key])
+            assert len(have.pop("study_days")) == len(wanted.pop("study_days"))
+            assert have == wanted, key
         else:
             assert got[key] == want[key], key

@@ -147,7 +147,8 @@ def test_the_report_counts_tokens_models_and_the_limit_of_each_429():
     assert (one["calls"], one["prompt_tokens"], one["completion_tokens"]) == (3, 3000, 150)
     assert one["by_model"] == {QWEN: 3} and one["refused"] == {}
     assert two["by_model"] == {GPT_OSS: 2} and two["refused"] == {"ITPM": 1} and two["skipped"] == 1
-    assert two["fallbacks"] == {f"{QWEN} -> {GPT_OSS} (QUOTA)": 2}
+    # ENG-5h (DI-175): the second call skipped Qwen without sending it (``skipped``): no step down the chain
+    assert two["fallbacks"] == {f"{QWEN} -> {GPT_OSS} (QUOTA)": 1}
     total = summary["total"]
     assert total["sessions"] == 2 and total["calls"] == 5 and total["refused"] == {"ITPM": 1}
     assert total["qwen_tokens_per_session"] == 3150 and total["sessions_per_day"] == 63

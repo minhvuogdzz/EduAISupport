@@ -350,14 +350,18 @@ function ChildView({ view }: { view: ParentChildView }) {
             ) : (
               <ul className="mt-2 flex flex-col gap-2">
                 {view.going_well.map((t) => (
-                  <li key={t.node_id} className="flex items-center gap-2 font-semibold text-emerald-950">
-                    <SparklesIcon className="size-5 text-emerald-600" />
-                    {t.name}
-                    {t.pattern && !t.name.includes(t.pattern) && (
-                      <span lang="en" className="text-sm font-normal">
-                        ({t.pattern})
-                      </span>
-                    )}
+                  <li key={t.node_id}>
+                    <p className="flex items-center gap-2 font-semibold text-emerald-950">
+                      <SparklesIcon className="size-5 text-emerald-600" />
+                      {t.name}
+                      {t.pattern && !t.name.includes(t.pattern) && (
+                        <span lang="en" className="text-sm font-normal">
+                          ({t.pattern})
+                        </span>
+                      )}
+                    </p>
+                    {/* ENG-5h (DI-176): a topic passed after many mistakes still shows them (English only) */}
+                    <MistakeList mistakes={t.mistakes} title="Lỗi con từng gặp" />
                   </li>
                 ))}
               </ul>

@@ -29,13 +29,14 @@ from datetime import date, datetime, timedelta
 from difflib import SequenceMatcher
 from typing import Any
 
-from cavat.core.en_text import normalize_answer
+from cavat.core.en_text import IRREGULAR_PAST, normalize_answer
 from cavat.core.events import EventType, NodeDecisionMade
 from cavat.core.pedagogy import ErrorClass, Outcome, TeachAction
 from cavat.modules.assessment.answer_check import check_answer, is_english_answer
 from cavat.modules.content.chapter_package import Chapter
 from cavat.modules.session.chapter_service import STEP_OF, chapters
-from cavat.modules.session.progress import Folded, local_day
+from cavat.modules.session.progress import STUDENT_EVENTS, Folded, learning_seconds, local_day
+from cavat.modules.session.repository import LifecycleState
 
 ENGLISH = "english"
 LOW_Q = 0.6  # DI-109: below it the listener was not sure; "nghe chưa rõ (không trừ điểm)" (DI-114 item 2)
@@ -274,7 +275,25 @@ def _example(item: Any, payload: Mapping[str, Any]) -> str | None:
     if not said or not candidates:
         return None
     ratio, nearest = max(candidates, key=lambda c: c[0])
-    return _pair(said, nearest) if ratio >= NEAR else None
+    return (_pair(said, nearest) if ratio >= NEAR else None) or _wrong_form(said)
+
+
+def _wrong_ed() -> dict[str, str]:
+    out: dict[str, str] = {}
+    for past, base in IRREGULAR_PAST.items():  # past -> base
+        for wrong in (f"{base}ed", f"{base}{base[-1]}ed", f"{base}d", f"{past}ed"):
+            if wrong != past:
+                out.setdefault(wrong, past)
+    return out
+
+
+_WRONG_ED = _wrong_ed()
+
+
+def _wrong_form(said: str) -> str | None:
+    """ENG-5h (DI-176): a wrong past form in an answer too short to compare with a whole sentence ("eated"
+    for "Yesterday we … seafood"): the example is the form and the right one ("eated → ate"), not []."""
+    return next((f"{w} → {_WRONG_ED[w]}" for w in said.split() if w in _WRONG_ED), None)
 
 
 def _slip(example: str | None) -> bool:
@@ -381,23 +400,53 @@ def _to_practise(chapter: Chapter, folded: Folded, rows: Sequence[Mapping[str, A
     return out
 
 
+def studied(session: Any) -> bool:
+    """ENG-5h (DI-176): a session in which the child said, asked or chose something. A session opened when
+    every part was passed already ("mình dừng ở đây"), or opened and left without a word, is no study."""
+    return any(e.event_type in STUDENT_EVENTS for e in session.events)
+
+
+def sessions_count(folded: Folded) -> dict[str, int]:
+    """The ``sessions`` block of an English view, counting only the sessions studied (DI-176)."""
+    mine = [s for s in folded.sessions if studied(s)]
+    return {
+        "total": len(mine),
+        "completed": sum(1 for s in mine if s.state.lifecycle == LifecycleState.COMPLETED),
+        "unfinished": sum(1 for s in folded.unfinished if studied(s)),
+        "minutes": round(sum(learning_seconds(s) for s in mine) / 60),
+    }
+
+
 def overview(view: Mapping[str, Any], chapter: Chapter, folded: Folded) -> dict[str, Any]:
     """The student's (and the parent's) overview of an English unit: the subject, the patterns, the step,
-    the typical mistakes of what to practise."""
+    the typical mistakes of what to practise and of every node (DI-176: a node passed after many mistakes
+    still shows them), the sessions studied."""
     return {
         **view,
         "chapter": chapter_ref(chapter),
         "chapters": chapter_refs(),
-        "nodes": _with_patterns(chapter, view["nodes"]),
-        "going_well": _with_patterns(chapter, view["going_well"]),
+        "sessions": sessions_count(folded),
+        "nodes": [
+            {**n, "mistakes": mistakes(chapter, folded, n["node_id"]) or None}
+            for n in _with_patterns(chapter, view["nodes"])
+        ],
+        "going_well": [
+            {**n, "mistakes": mistakes(chapter, folded, n["node_id"]) or None}
+            for n in _with_patterns(chapter, view["going_well"])
+        ],
         "to_practise": _to_practise(chapter, folded, view["to_practise"]),
         "current_step": current_step(folded),
     }
 
 
-def parent(view: Mapping[str, Any]) -> dict[str, Any]:
-    """The parent's view of an English unit: each home tip with its sentence to say at home (DI-144)."""
-    return {**view, "home_tips": [{**t, "example": home_example(t["tip"])} for t in view["home_tips"]]}
+def parent(view: Mapping[str, Any], folded: Folded | None = None) -> dict[str, Any]:
+    """The parent's view of an English unit: each home tip with its sentence to say at home (DI-144); the
+    list of sessions without the ones the child did not study in (DI-176)."""
+    out = {**view, "home_tips": [{**t, "example": home_example(t["tip"])} for t in view["home_tips"]]}
+    if folded is not None and "session_list" in view:
+        kept = {s.id for s in folded.sessions if studied(s)}
+        out["session_list"] = [r for r in view["session_list"] if r["session_id"] in kept]
+    return out
 
 
 def _attention(reasons: Sequence[Mapping[str, Any]], folded: Folded, today: date) -> list[dict[str, Any]]:

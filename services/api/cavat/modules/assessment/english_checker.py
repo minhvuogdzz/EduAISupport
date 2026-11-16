@@ -442,6 +442,12 @@ def _repair(answer: str, vocabulary: set[str]) -> str:
     return " ".join(out)
 
 
+def _slips(answer: str, repaired: str) -> dict[str, Any]:
+    """ENG-5h (DI-166): the words of a slip, as the child wrote them ("seafod"): the tutor names the word to
+    look at again, never its right spelling (the whole sentence is the answer)."""
+    return {"slips": [a for a, b in zip(answer.split(), repaired.split(), strict=False) if a != b]}
+
+
 _VI_LETTERS = re.compile(r"[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]")
 # Vietnamese syllables a child types without marks that are not English words of a primary class.
 _VI_PLAIN = frozenset(
@@ -473,11 +479,13 @@ def _wrong(
     mis: str | None = None,
     confidence: float = 0.0,
     codes: Sequence[EnCode] = (),
+    extra: dict[str, Any] | None = None,
 ) -> CheckResult:
     error = error_class_of(code, ctx) if code is not None else None
     detail: dict[str, Any] = {"en_code": None if code is None else str(code)}
     if codes:
         detail["en_codes"] = [str(c) for c in codes]
+    detail.update(extra or {})
     return CheckResult(
         Outcome.WRONG,
         normalized=answer,
@@ -565,7 +573,7 @@ def check_phrase(spec: PhraseSpec, text: str, ctx: EnglishContext = NO_CONTEXT) 
     if right(answer):
         return CheckResult(Outcome.CORRECT, normalized=answer, correct_answer=correct)
     if repaired != answer and right(repaired):
-        return _wrong(EnCode.SLIP, ctx, answer, correct, codes=[EnCode.SLIP])
+        return _wrong(EnCode.SLIP, ctx, answer, correct, codes=[EnCode.SLIP], extra=_slips(answer, repaired))
     target_words = {w for g in groups for p in g for w in p.split()} - spec.given
     if (
         len(answer.split()) <= 2
@@ -610,7 +618,7 @@ def check_word_order(spec: WordOrderSpec, text: str, ctx: EnglishContext = NO_CO
     if codes:
         return _diagnosed(codes, ctx, answer, correct)
     if repaired != answer and repaired in orders:
-        return _wrong(EnCode.SLIP, ctx, answer, correct, codes=[EnCode.SLIP])
+        return _wrong(EnCode.SLIP, ctx, answer, correct, codes=[EnCode.SLIP], extra=_slips(answer, repaired))
     if looks_vietnamese(answer):
         return _l1(answer, correct)
     return _wrong(None, ctx, answer, correct)
@@ -686,3 +694,33 @@ def english_intent(text: str, item: Any) -> Outcome | None:
     if not stripped.strip(" .,!?…:;'\"") or len(re.findall(r"\w+", stripped)) < 2:
         return read_intent(text)
     return read_intent(stripped)
+
+
+# --------------------------------------------------------------------------- the correction of a sentence
+
+MIN_ORDER_WORDS = 3  # DI-167: a correction of three words or more is compared word for word
+
+
+def correction_order(item: Any, text: str) -> str | None:
+    """ENG-5h (DI-167): a true/false item that asks to correct a sentence ("Bạn Nam nói đúng chưa? Nếu chưa,
+    con sửa giúp bạn nhé?"), answered "Chưa đúng. They seashells collected.": the judgment is right, the
+    correction has the right words in a wrong order. Returns the right sentence of the item's approved
+    solution that the child's English holds in another order, else None. The grade is not changed (the item
+    grades the judgment); the tutor names the word order instead of praising the sentence."""
+    stem = normalize_answer(_field(item, "stem", "") or "")
+    sources = [_field(item, "explanation", "") or "", *(_field(item, "worked_solution", ()) or ())]
+    rights = []
+    for src in sources:
+        for run in _EN_RUN.findall(src):
+            words = normalize_answer(run).split()
+            if len(words) >= MIN_ORDER_WORDS and not contains_words(stem, " ".join(words)):
+                rights.append(run.strip(" ,"))
+    for run in _EN_RUN.findall(text):
+        said = normalize_answer(run).split()
+        if len(said) < MIN_ORDER_WORDS:
+            continue
+        for right in rights:
+            target = normalize_answer(right).split()
+            if sorted(said) == sorted(target) and said != target:
+                return right.rstrip(".") + "."
+    return None

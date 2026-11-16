@@ -25,6 +25,21 @@ from .base import (
 )
 
 DEFAULT_VISION_MODEL = "gemini-3.8-flash"
+# ENG-5h (DI-174): the API version is named, never left to the SDK. google-genai 3.x builds its client on
+# "v1", where a system instruction ("Developer instruction") and a JSON schema are refused with HTTP 400
+# "Developer instruction is not enabled for api version v1"; 2.x built it on "v1beta". A server installed
+# without ``constraints.txt`` got 3.x and every Gemini tutor turn failed (live run 2, 15/11/2026).
+GEMINI_API_VERSION = "v1beta"
+
+
+def _client(key: str, timeout_ms: int | None = None) -> Any:
+    from google import genai
+    from google.genai import types
+
+    options = types.HttpOptions(api_version=GEMINI_API_VERSION)
+    if timeout_ms is not None:
+        options = types.HttpOptions(api_version=GEMINI_API_VERSION, timeout=timeout_ms)
+    return genai.Client(api_key=key, http_options=options)
 
 
 class GeminiVision:
@@ -47,9 +62,7 @@ class GeminiVision:
             key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
             if not key:
                 raise ValueError("Gemini API key is empty")
-            from google import genai
-
-            client = genai.Client(api_key=key)
+            client = _client(key)
         self._client = client
 
     def __repr__(self) -> str:
@@ -117,14 +130,9 @@ class GeminiChat:
     ) -> None:
         self.models = models
         if client is None:
-            from google import genai
-            from google.genai import types
-
             key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
             # a tutor turn waits for this call: a Gemini that hangs must fail, and the chain goes on
-            client = genai.Client(
-                api_key=key, http_options=types.HttpOptions(timeout=max(10_000, int(timeout_s * 1000)))
-            )
+            client = _client(key, max(10_000, int(timeout_s * 1000)))
         self._client = client
 
     def chat(self, request: ChatRequest) -> ChatResult:
@@ -283,9 +291,7 @@ class GeminiEmbeddings:
             key = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
             if not key:
                 raise ValueError("Gemini API key is empty")
-            from google import genai
-
-            client = genai.Client(api_key=key)
+            client = _client(key)
         self._client = client
 
     def embed(self, texts: list[str], *, task: str) -> list[list[float]]:
