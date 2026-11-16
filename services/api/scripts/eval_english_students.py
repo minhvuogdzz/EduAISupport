@@ -456,6 +456,7 @@ def run_child(
     profile: Profile,
     seed: int,
     max_turns: int,
+    pace: float = 0.0,
 ) -> dict:
     ch = unit()
     sid_name = f"sim-{profile.key.replace('_', '-')}"
@@ -470,6 +471,10 @@ def run_child(
     for _ in range(max_turns):
         if state["lifecycle_state"] == "COMPLETED":
             break
+        if pace:  # ENG-5i: a live run at a child's pace (the free tier's per-minute quota, ADR-069)
+            import time
+
+            time.sleep(pace)
         turn = decide(child, state, ch)
         before = (state["teaching"]["awaiting"], state["teaching"]["input_id"], state["teaching"]["prompt"])
         item_open = state["item"] is not None and state["item"]["expecting"] == "ANSWER"
@@ -816,6 +821,41 @@ def measure(run: dict, ch: Any) -> dict:
             Counter(e.payload.get("reason") for e in events if e.event_type == "MODEL_FALLBACK")
         ),
         "rejected_codes": [e.payload.get("issue_codes") for e in events if e.event_type == "OUTPUT_REJECTED"],
+        "dialogue_sources": dialogue_sources(events),
+    }
+
+
+# ENG-5i: the tutor's turns that answer the child (the report of the third live run counts these): every
+# tutor message but the lesson's own words (a question shown, theory, example, node, retell prompt, pass,
+# summary). Its source says who worded it: the model (LLM) or the approved words (TEMPLATE, GENERIC).
+_LESSON_KINDS = frozenset({"THEORY", "EXAMPLE", "NODE", "RETELL_PROMPT", "PASS", "SUMMARY", "STOP"})
+
+
+def dialogue_sources(events: list) -> dict:
+    by_source: Counter = Counter()
+    template_moves: Counter = Counter()
+    for e in events:
+        p = e.payload
+        if e.event_type == "TUTOR_MESSAGE_SENT":
+            if p.get("move") == "PRESENT":
+                continue
+            label = p.get("move") or "?"
+        elif e.event_type == "TEACH_MESSAGE_SENT":
+            if p.get("kind") in _LESSON_KINDS:
+                continue
+            label = p.get("kind") or "?"
+        else:
+            continue
+        source = p.get("source") or "TEMPLATE"
+        by_source[source] += 1
+        if source != "LLM":
+            template_moves[label] += 1
+    total = sum(by_source.values())
+    return {
+        "total": total,
+        "by_source": dict(by_source),
+        "llm_share": round(by_source["LLM"] / total, 3) if total else None,
+        "not_llm_by_move": dict(template_moves),
     }
 
 
@@ -1069,6 +1109,9 @@ def main() -> None:
         "mode, not the deployed one, where every line must come from a model",
     )
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument(
+        "--pace", type=float, default=0.0, help="with --live: seconds between the child's turns (ENG-5i)"
+    )
     parser.add_argument("--skip-math", action="store_true")
     args = parser.parse_args()
 
@@ -1098,7 +1141,7 @@ def main() -> None:
     ch = unit()
     runs = []
     for i, profile in enumerate(chosen):
-        run = run_child(client, database, stt, profile, args.seed + i, args.max_turns)
+        run = run_child(client, database, stt, profile, args.seed + i, args.max_turns, args.pace)
         runs.append(run)
         print(f"{profile.key}: {len(run['turns'])} lượt, {run['state']['lifecycle_state']}", flush=True)
     rows = [measure(r, ch) for r in runs]

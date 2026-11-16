@@ -28,6 +28,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
+from cavat.core.en_text import IRREGULAR_PAST
 from cavat.core.events import (
     ChoiceMade,
     EventType,
@@ -274,6 +275,11 @@ PHRASES_EN: dict[str, tuple[str, ...]] = {
 
 # ENG-5h (DI-173): the tutor's last line was an invitation ("Con thử nói theo cô nha?"), not a question to
 # answer: after a question of another subject, the item's own question is asked again instead.
+# ENG-5i (DI-183): an English past form read as its base, to find the phrase of a list an item is about
+_PAST_BASE = IRREGULAR_PAST
+_EN_GRAMMAR = frozenset("the and some you did was were are our your their with for".split())
+# ENG-5i (DI-183): a run of English words with its end mark, as a child quotes a sentence of the lesson
+_EN_QUOTE = re.compile(r"[A-Za-z][A-Za-z']*(?:[\s,]+[A-Za-z][A-Za-z']*)+\s*[?.!]?")
 _INVITATION = re.compile(r"(?i)\b(?:nói theo|nói lại|thử nói|đọc theo|thử đọc|nói cả câu)\b")
 # DI-173 (L-2): a sentence of the rule that lists every phrase ("…phần đi kèm: swim; take photos; …") is cut
 # to its idea and one example when a retell lacks that idea.
@@ -604,7 +610,7 @@ class TeachingLoop:
                 and node_id is not None
                 and self.tutor.state.activity
                 in (ActivityType.GUIDED_PRACTICE, ActivityType.INDEPENDENT_PRACTICE)
-                and self.speaker.is_question(text)
+                and (self._en_question(text) if self._english else self.speaker.is_question(text))
                 and scoped_query(text, self.speaker.index, node_id)
             ):
                 # A pure concept question in practice is not a failed numerical attempt. Assessment
@@ -659,7 +665,11 @@ class TeachingLoop:
             intent = Outcome.HELP_REQUEST
         if wants_other_question(text) and self._prompt:
             return self._another_way(text, now, node_id, messages, events)
-        if self.speaker is not None and intent not in _OWN_PATH and self.speaker.is_question(text):
+        if (
+            self.speaker is not None
+            and intent not in _OWN_PATH
+            and (self._en_question(text) if self._english else self.speaker.is_question(text))
+        ):
             return self._on_question(text, now, node_id, messages, events)
         if intent == Outcome.OFF_TOPIC and self._replies_since_decision() <= MAX_OFF_TOPIC_REDIRECTS:
             # ADR-019: talk outside the lesson is parked and the same question asked again (DI-38). BRAIN-1:
@@ -727,10 +737,13 @@ class TeachingLoop:
             # "Con không biết", "là sao ạ?", "chán quá": remind the main idea instead of only saying that
             # it was not heard; the node policy then asks again or moves on, as for any retell.
             key = "retell_affect" if intent == Outcome.NEGATIVE_AFFECT else "retell_help"
-            spoken = self._bridged(
-                key, "idea", self._idea(node), text, asked=node.explain.prompt, judged="chưa rõ"
-            )
+            idea = self._en_idea(node, text) if self._english else self._idea(node)  # DI-183: not the list
+            spoken = self._bridged(key, "idea", idea, text, asked=node.explain.prompt, judged="chưa rõ")
             self._flag(now, events, spoken, f"{node_id}:{self._ref or 'RETELL'}")
+            self._say(now, messages, events, self._feedback(spoken, node_id))
+            return self._advance(now, messages, events)
+        if self._english:  # ENG-5i (DI-180): the model's lead, the missing idea word for word after it
+            spoken = self._en_retell(judged, node, text, closing)
             self._say(now, messages, events, self._feedback(spoken, node_id))
             return self._advance(now, messages, events)
         if judged.score >= self.config.retell_pass:
@@ -747,6 +760,29 @@ class TeachingLoop:
                 said = f"{said} {self._phrase('retell_close', idea=self._idea(node))}"
         self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, said, node_id))
         return self._advance(now, messages, events)
+
+    def _en_retell(self, judged: RetellJudged, node: Node, text: str, closing: bool) -> Spoken:
+        """DI-180 (with DI-156): the judged retell of an English session. The lead is the model's on what the
+        child said; the idea still missing (or the right idea, closing) is the approved sentence after it."""
+        asked = self._prompt or node.explain.prompt
+        s = self._persona["s"]
+        if judged.score >= self.config.retell_pass and len(judged.ideas_found) >= judged.ideas_total:
+            return self._en_lead(
+                "retell_good", text, approved="", asked=asked, fallback=self._phrase("retell_good")
+            )
+        if judged.ideas_found:
+            part = self._rule_part(node, judged.ideas_found)
+            approved = f"Còn một ý {s} chưa nói: {part}"
+            fallback = self._phrase("retell_partial", part="\x00").partition("\x00")[0]
+            fallback = fallback.rsplit("Còn một ý", 1)[0].strip()
+            key = "retell_partial"
+        else:
+            approved, fallback, key = "", self._phrase("retell_none"), "retell_none"
+        if closing and judged.score < self.config.retell_pass:
+            approved = f"{approved} {self._phrase('retell_close', idea=self._en_idea(node, text))}".strip()
+        return self._en_lead(
+            key, text, approved=approved, asked=asked, fallback=fallback, ground=self._en_idea(node, text)
+        )
 
     # ------------------------------------------------------------------ REFORM-6: taught again, meaning
 
@@ -1018,6 +1054,34 @@ class TeachingLoop:
         back = self._phrase("reteach_ask", ask=ask) if ask else ""
         return Spoken(f"{self._phrase('reteach_lead')} {sentence} {back}".strip(), "TEMPLATE", (), rejected)
 
+    def _item_words(self, item_id: str) -> str:
+        item = self.chapter.item(item_id)
+        accept = getattr(item.answer, "accept", None) or ()
+        return " ".join([item.stem, *(str(a) for a in accept)])
+
+    def _en_idea(self, node: Node, about: str, *, strict: bool = False) -> str:
+        """ENG-5i (DI-183): the idea of an English node said for one question. A rule that lists every phrase
+        ("…: swim; take photos; collect seashells; …") is cut to its idea and the phrases that share an
+        English word with ``about`` (else the first one; with ``strict``, nothing at all)."""
+        rule = self._idea(node)
+        listed = _LISTED.match(rule.strip())
+        if not listed:
+            return rule
+        idea = listed.group("idea").strip()
+        phrases = [p.strip(" .") for p in rule.split(":", 1)[1].split(";") if p.strip(" .")]
+        if len(phrases) < 2:
+            phrases = [p.strip(" .") for p in rule.split(":", 1)[1].split(",") if p.strip(" .")]
+
+        def content(text: str) -> set[str]:
+            found = {w.lower() for w in re.findall(r"[A-Za-z]{3,}", text)} - _EN_GRAMMAR
+            return found | {_PAST_BASE.get(w, w) for w in found}
+
+        words = content(about)
+        scored = sorted(((len(content(p) & words), -i, p) for i, p in enumerate(phrases)), reverse=True)
+        if not scored or scored[0][0] == 0:
+            return "" if strict else f"{idea}, ví dụ: {phrases[0]}."
+        return f"{idea}, ví dụ: {scored[0][2]}."
+
     def _idea(self, node: Node) -> str:
         """An actual explanation, never a goal such as 'Con xác định đúng…' read out as teaching."""
         return node.method.rule or next((t.reply for t in node.theory if t.reply), "")
@@ -1076,6 +1140,18 @@ class TeachingLoop:
         """3.3: the retell stays; the part of the rule the child has not said is given and asked back in the
         child's own words (a small question instead of the sample said twice)."""
         part = self._rule_part(node, judged.ideas_found)
+        if self._english:
+            # ENG-5i (DI-180): the model's lead on what the child said, then the missing idea and the ask
+            approved = f"{self._persona['T']} nhắc ý này: {part} {self._phrase('hold_retell_ask')}"
+            fallback = self._phrase("hold_retell", part="\x00").partition("\x00")[0]
+            fallback = fallback.rsplit(f"{self._persona['T']} nhắc ý này", 1)[0].strip()
+            if judged.ideas_found:
+                fallback = f"Ý đó {self._persona['s']} nói đúng rồi. {fallback}"
+            spoken = self._en_lead(
+                "hold_retell", text, approved=approved, asked=self._prompt or node.explain.prompt,
+                fallback=fallback, ground=part,
+            )  # fmt: skip
+            return self._hold(now, spoken.text, spoken.source, spoken, messages, events)
         if self._model_teaching():
             spoken = self.speaker.conversation_reply(
                 text,
@@ -1248,14 +1324,34 @@ class TeachingLoop:
             self._say(now, messages, events, self._feedback(spoken, prior.id, RECALL))
             return self._advance(now, messages, events)
         name = self.chapter.node(self._for).name if self._for else prior.name
+        if self._english and (
+            judged.score >= self.config.retell_pass or (judged.ideas_found and intent is None)
+        ):
+            good = judged.score >= self.config.retell_pass
+            key = "recall_good" if good else "recall_partial"
+            tail = f"Mình dùng điều đó cho bài {name} nhé."
+            idea = self._en_idea(prior, text)
+            approved = tail if good else f"{self._persona['T']} nhắc lại nhé: {idea} {tail}"
+            cut = " Mình dùng" if good else f" {self._persona['T']} nhắc"
+            spoken = self._en_lead(
+                key,
+                text,
+                approved=approved,
+                asked=self._recall_ask(prior.id),
+                fallback=self._phrase(key, name=name, idea=idea).split(cut)[0],
+                ground=idea,
+            )
+            self._say(now, messages, events, self._feedback(spoken, prior.id, RECALL))
+            return self._advance(now, messages, events)
         if judged.score >= self.config.retell_pass:
             said = self._phrase("recall_good", name=name)
         elif judged.ideas_found and intent is None:
             said = self._phrase("recall_partial", idea=self._idea(prior), name=name)
         else:
             asked = self._recall_ask(prior.id)
+            idea = self._en_idea(prior, text) if self._english else self._idea(prior)  # DI-183: not the list
             spoken = self._bridged(
-                "recall_help", "idea", self._idea(prior), text, asked=asked, judged="chưa rõ", name=name
+                "recall_help", "idea", idea, text, asked=asked, judged="chưa rõ", name=name
             )
             self._flag(now, events, spoken, f"{prior.id}:{RECALL}")
             self._say(now, messages, events, self._feedback(spoken, prior.id, RECALL))
@@ -1290,6 +1386,11 @@ class TeachingLoop:
                 recent=self._recent(6, include_last=True),
             )
         if not variant.reply:
+            if self._english:  # DI-180
+                return self._en_lead(
+                    "theory_ack", text, approved="", asked=self._prompt or variant.ask,
+                    fallback=self._phrase("theory_ack"),
+                )  # fmt: skip
             return Spoken(self._phrase("theory_ack"), "TEMPLATE")
         reply = variant.reply
         if intent == Outcome.NEGATIVE_AFFECT:
@@ -1308,6 +1409,15 @@ class TeachingLoop:
                 "theory_right", "reply", reply, text, asked=self._prompt or variant.ask, judged="đúng"
             )
         judged, lead = ("chưa đúng", "theory_check_lead") if variant.accept else ("chưa rõ", "theory_ack")
+        if self._english:  # DI-180
+            key = "theory_check" if variant.accept else "theory_ack"
+            return self._en_lead(
+                key,
+                text,
+                approved=variant.reply,
+                asked=self._prompt or variant.ask,
+                fallback=self._phrase(lead),
+            )
         if self.speaker is None:
             return Spoken(f"{self._phrase(lead)} {variant.reply}", "TEMPLATE")
         return self.speaker.bridge(
@@ -1451,6 +1561,14 @@ class TeachingLoop:
             parked = QuestionParked(node_id=node_id, text=text, reason="LIMIT")
             events.append(self._record(now, EventType.QUESTION_PARKED, parked))
             said = TeachMessage(MessageKind.ANSWER, self._phrase("question_limit", ask=ask), node_id)
+        elif self._english and self.awaiting != Awaiting.ANSWER:
+            # ENG-5i (DI-180): a question in a theory or retell wait of an English session is answered by the
+            # English brain from the node's material (checked; DI-162), else by its closest sentence, then
+            # the question that waits; never "cô chưa tìm được câu trả lời chắc chắn trong tài liệu".
+            spoken = self._english_reteach(text, self.chapter.node(node_id), ask)
+            said = TeachMessage(
+                MessageKind.ANSWER, spoken.text, node_id, source=spoken.source, rejected=spoken.rejected
+            )
         else:
             hide = []
             if self.awaiting == Awaiting.THEORY_REPLY and self._ref is not None:
@@ -1605,6 +1723,10 @@ class TeachingLoop:
             pending = question_tail(self.tutor.last_tutor or "") or self.tutor.item.stem
             if self._english and _INVITATION.search(pending):
                 pending = self.tutor.item.stem  # DI-173: "trả lời giúp cô câu này: Con thử nói theo cô nha?"
+            if self._english and not self._item_question(pending):
+                # ENG-5i (DI-183): the last words of the tutor were not the item's question (a reply to a
+                # feeling: "…hay mình học tiếp thật nhẹ nhàng nhé?"): the question the item waits for
+                pending = self.tutor._resume_question()
             if pending in self.tutor.item.stem:
                 # ENG-5c (L-6): the item's own question is asked again whole, not its last sentence ("Nếu
                 # chưa, con sửa giúp bạn nhé?" lost what was to be corrected).
@@ -1613,6 +1735,7 @@ class TeachingLoop:
         else:
             pending, node_id = self._prompt or "", self._node
         back = self._phrase("off_subject", lesson=self.chapter.package.title)
+        source, rejected = "TEMPLATE", ()
         if pending and self._english:
             from cavat.modules.tutor.renderer import visible_stem
 
@@ -1628,10 +1751,23 @@ class TeachingLoop:
                 pending = question_tail(pending) or visible_stem(pending)
             elif len(pending.split()) > 60:
                 pending = visible_stem(pending)
-        if pending:
+        if pending and self._english:
+            # ENG-5i (DI-180): the model's words on it (never the other subject's content: the question
+            # itself does not reach it, DI-139), then the question that waits, word for word
+            spoken = self._en_lead(
+                "off_subject", text, approved=self._phrase("off_subject_back", question=pending),
+                asked=pending, fallback=back,
+            )  # fmt: skip
+            back, source, rejected = spoken.text, spoken.source, spoken.rejected
+        elif pending:
             back = f"{back} {self._phrase('off_subject_back', question=pending)}"
         self._say(
-            now, messages, events, TeachMessage(MessageKind.FEEDBACK, back, node_id, ref=OFF_SUBJECT_REF)
+            now,
+            messages,
+            events,
+            TeachMessage(
+                MessageKind.FEEDBACK, back, node_id, ref=OFF_SUBJECT_REF, source=source, rejected=rejected
+            ),
         )
         if self.awaiting == Awaiting.ANSWER:
             return self._waiting_for_item(messages, events)
@@ -1752,8 +1888,16 @@ class TeachingLoop:
             prior = self._hint_from_earlier(item_id, node_id, turn.events)
             if prior is not None and not self._model_teaching():
                 idea = self._idea(self.chapter.node(prior))
-                text = self._phrase("recall_hint", prior=self.chapter.node(prior).name, idea=idea)
-                self._say(now, messages, events, TeachMessage(MessageKind.FEEDBACK, text, prior, RECALL_HINT))
+                if self._english:
+                    # ENG-5i (DI-183): only what of the earlier lesson bears on this item, never its whole
+                    # list of phrases; nothing when none of it does
+                    about = self._item_words(item_id)
+                    idea = self._en_idea(self.chapter.node(prior), about, strict=True)
+                if idea:
+                    text = self._phrase("recall_hint", prior=self.chapter.node(prior).name, idea=idea)
+                    self._say(
+                        now, messages, events, TeachMessage(MessageKind.FEEDBACK, text, prior, RECALL_HINT)
+                    )
             return self._waiting_for_item(messages, events)
         self.tutor = None
         return self._advance(now, messages, events)
@@ -2342,6 +2486,73 @@ class TeachingLoop:
             return variants[said % len(variants)].format(**self._persona, **values)
         return PHRASES[key].format(**self._persona, **values)
 
+    # ------------------------------------------------------------------ ENG-5i: the model's lead (English)
+
+    def _anchor(self) -> tuple[Any, Any] | None:
+        """The item an English lead is checked against (its leak and on-item checks): the item that waits,
+        else the first check item of the node being taught (as ``_english_reteach``)."""
+        if self.awaiting == Awaiting.ANSWER and self.tutor is not None:
+            return self.tutor.item, self.tutor.package
+        if self._node is None:
+            return None
+        node = self.chapter.node(self._node)
+        anchor = next(iter((*node.checks, *node.completion, *node.practice)), None)
+        return (self.chapter.item(anchor), self.chapter.lesson_of(anchor)) if anchor else None
+
+    def _en_lead(
+        self, key: str, said: str, *, approved: str, asked: str, fallback: str, ground: str = ""
+    ) -> Spoken:
+        """ENG-5i (DI-180): an English session's lead before approved text, in the model's words when one may
+        speak (``EnglishRenderer.lead_en``: on what the child said, no question, checked), else the approved
+        lead. The approved part (a theory reply, the missing idea, the question that waits) follows word for
+        word either way, as the Mathematics ``bridge`` keeps it (DI-81). A replay has no model: templates."""
+        lead = getattr(self.item_renderer, "lead_en", None)
+        anchor = self._anchor()
+        rejected: tuple[tuple[str, ...], ...] = ()
+        if callable(lead) and anchor is not None:
+            spoken = lead(
+                key,
+                student_text=said,
+                asked=asked,
+                grounds=tuple(dict.fromkeys(g for g in (ground, approved) if g)),
+                recent=self._recent(6),
+                item=anchor[0],
+                package=anchor[1],
+            )
+            if spoken.text:
+                return Spoken(f"{spoken.text} {approved}".strip(), "LLM", (), spoken.rejected)
+            rejected = spoken.rejected
+        return Spoken(f"{fallback} {approved}".strip(), "TEMPLATE", (), rejected)
+
+    def _en_question(self, text: str) -> bool:
+        """ENG-5i (DI-183): an English session reads a question on the child's own words: an English sentence
+        of the lesson quoted with its "?" ("Con hỏi Did you swim? thì bạn trả lời Yes, I did.") is a quote,
+        not a question to the tutor."""
+        assert self.speaker is not None
+        from cavat.modules.tutor.english_session import english_tools
+
+        lexicon = english_tools(self.chapter).lexicon
+
+        def unquote(m: re.Match[str]) -> str:
+            words = [w.lower() for w in re.findall(r"[A-Za-z']+", m.group(0))]
+            return (
+                " " if len(words) >= 2 and sum(w in lexicon for w in words) * 2 >= len(words) else m.group(0)
+            )
+
+        return self.speaker.is_question(_EN_QUOTE.sub(unquote, text))
+
+    def _item_question(self, question: str) -> bool:
+        """DI-183: ``question`` is one the item asks (its stem, rephrase, hints, probes, the tutor's "vì
+        sao"), not a reply of the tutor to how the child feels or to talk outside the lesson."""
+        assert self.tutor is not None
+        from cavat.modules.tutor.renderer import feeling_of
+
+        if question in self.tutor.item.stem or question in (self.tutor.item.rephrase or ""):
+            return True
+        said = [e.payload.get("text", "") for e in self.events if e.event_type == EventType.STUDENT_MESSAGE]
+        before = said[-2] if len(said) >= 2 else ""  # the message the tutor's last words answered
+        return not (feeling_of(before) or feeling_of(question))
+
     def _bridged(
         self, key: str, slot: str, body: str, said: str, *, asked: str, judged: str, **values: str
     ) -> Spoken:
@@ -2351,6 +2562,8 @@ class TeachingLoop:
         mark = "\x00"
         lead, _, after = self._phrase(key, **{slot: mark}, **values).partition(mark)
         approved = f"{body}{after}"
+        if self._english:  # ENG-5i (DI-180): the English brain words the lead, the approved part follows
+            return self._en_lead(key, said, approved=approved, asked=asked, fallback=lead.strip())
         if self.speaker is None:
             return Spoken(f"{lead}{approved}", "TEMPLATE")
         return self.speaker.bridge(

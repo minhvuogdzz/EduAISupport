@@ -292,9 +292,35 @@ def _pick(
 
 
 def fitting_generic_hints(item: Item, package: LessonPackage) -> list[HintTemplate]:
-    """The lesson's generic hints that fit this kind of item (DI-37)."""
+    """The lesson's generic hints that fit this kind of item (DI-37). ENG-5i (DI-187): in an English lesson a
+    generic hint whose English belongs to other items ("Did you swim? – Yes, I did." on "We took a boat trip
+    around the bay.") does not fit; Mathematics is unchanged."""
     kind = item.answer.type
-    return [h for h in package.generic_hints if not h.answer_types or kind in h.answer_types]
+    fitting = [h for h in package.generic_hints if not h.answer_types or kind in h.answer_types]
+    if package.subject != "english":
+        return fitting
+    return [h for h in fitting if not _off_item_en(h.text, item, package)]
+
+
+def _english_words(text: str) -> set[str]:
+    return {w.lower() for w in re.findall(r"(?<![^\W\d_])[A-Za-z]+(?![^\W\d_])", text)}
+
+
+def _off_item_en(text: str, item: Item, package: LessonPackage) -> bool:
+    """DI-187: the English of ``text`` holds a word of the lesson's answers that this item never says."""
+    lesson = {
+        w
+        for other in package.items
+        for a in (getattr(other.answer, "accept", None) or ())
+        for w in _english_words(str(a))
+    }
+    own = " ".join(
+        [item.stem, item.explanation or "", *item.worked_solution, *(h.text for h in item.hints)]
+        + [str(a) for a in (getattr(item.answer, "accept", None) or ())]
+    )
+    return bool(
+        (_english_words(text) & lesson) - _english_words(own) - {"a", "the", "we", "i", "in", "on", "to"}
+    )
 
 
 def ladder_top(item: Item, package: LessonPackage) -> HintLevel:
@@ -704,6 +730,13 @@ WORD_ORDER_EN = (
     "{S} nhận ra câu đó chưa đúng rồi, giỏi lắm! Có điều câu {s} sửa bị đảo trật tự từ: trong tiếng Anh, "
     "việc làm đứng ngay sau người làm, nên mình nói: {right} {S} nói lại câu đó giúp {t} nhé?"
 )
+# ENG-5i (DI-177): every word of the sentence, in a wrong order ("We around the bay took a boat trip.").
+SCRAMBLED_EN = (
+    "{S} nói đủ các từ rồi, nhưng trật tự từ chưa đúng. Trong tiếng Anh mình nói ai trước, rồi làm gì, "
+    "rồi mới tới ở đâu. {S} sắp lại câu rồi nói lại giúp {t} nhé?",
+    "Các từ {s} chọn đúng hết rồi đó! Chỉ có thứ tự là bị đảo: người làm, rồi việc làm, rồi nơi chốn. "
+    "{S} thử nói lại theo thứ tự đó nhé?",
+)
 # DI-169: after the model sentence, the child's repeat that is not right yet: what to look at, then wait.
 SAY_AGAIN_EN = (
     "{S} nói gần đúng rồi! Chữ «{word}» chưa đúng, câu mẫu là: {right} {S} nói lại cả câu giúp {t} nhé?",
@@ -722,7 +755,11 @@ _FEELING_MOVES = frozenset(
         Move.ASK_CONFIRM,
     }
 )
-_SLIP_MOVES = frozenset({Move.HINT, Move.PROBE, Move.COGNITIVE_CONFLICT, Move.OFFER_CHOICE, Move.VERIFY})
+# ENG-5i (DI-179): WORKED_GUIDANCE too: "We ate seafod." was walked through "eat đổi thành ate" although the
+# child had said "ate"; only the spelling of "seafod" was owed.
+_SLIP_MOVES = frozenset(
+    {Move.HINT, Move.PROBE, Move.COGNITIVE_CONFLICT, Move.OFFER_CHOICE, Move.VERIFY, Move.WORKED_GUIDANCE}
+)
 
 
 def _fmt(ctx: RenderContext, template: str, **extra: str) -> str:
@@ -750,6 +787,9 @@ def english_special(ctx: RenderContext) -> RenderedMessage | None:
     if detail.get("en_code") == "EN_SLIP" and detail.get("slips") and d.move in _SLIP_MOVES:
         pick = SLIP_EN[ctx.state.attempt_no % len(SLIP_EN)]
         return _msg(_fmt(ctx, pick, word=detail["slips"][0]), "TEMPLATE", f"{ctx.item.id}:SLIP")
+    if detail.get("scrambled") and d.move in _SLIP_MOVES:
+        pick = SCRAMBLED_EN[ctx.state.attempt_no % len(SCRAMBLED_EN)]
+        return _msg(_fmt(ctx, pick), "TEMPLATE", f"{ctx.item.id}:SCRAMBLED")
     if detail.get("word_order") and d.move == Move.VERIFY:
         return _msg(_fmt(ctx, WORD_ORDER_EN, right=detail["word_order"]), "TEMPLATE", f"{ctx.item.id}:ORDER")
     return None

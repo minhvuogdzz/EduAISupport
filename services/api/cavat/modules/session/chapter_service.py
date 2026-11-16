@@ -340,6 +340,14 @@ def join(
     return Step(state, [started, *events], {"started_at": now})
 
 
+def nothing_left(chapter: Chapter, session: LearningSession, now: datetime, history: Sequence[Any]) -> bool:
+    """ENG-5i (DI-185): the student has passed every node of this unit already: a session opened now would
+    only say "Hôm nay mình dừng ở đây nhé" and close at 0 minutes. Read by starting the loop on the history
+    in memory (templates, no model, nothing stored)."""
+    loop = TeachingLoop(chapter, session.id, history, **_loop_options(chapter))
+    return loop.start(now).awaiting == Awaiting.NOTHING
+
+
 def allowed_commands(session: LearningSession) -> list[CommandType]:
     st = session.state
     if st.lifecycle != LifecycleState.ACTIVE:

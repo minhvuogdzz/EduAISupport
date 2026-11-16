@@ -37,6 +37,7 @@ from cavat.modules.tutor.english import (
     RETEACH_TASK_EN,
     build_english_request,
     english_off_topic,
+    lead_task_en,
     listen_request_en,
     task_for_en,
     unit_targets,
@@ -57,8 +58,9 @@ from cavat.modules.tutor.prompt_builder import Turn, clean_text
 from cavat.modules.tutor.reader import LiveReader, Reading, rule_reading
 from cavat.modules.tutor.renderer import TemplateRenderer, feeling_of
 
+# 1.4.0 (ENG-5i): DI-177–183 (the model's lead in the teaching loop, INVENTED_WORD, ADDRESSES_BAN);
 # 1.3.0 (ENG-5h): DI-165–172; 1.2.0 (ENG-5g): DI-156–163; 1.1.0 (ENG-5c): DI-148–151
-ENGLISH_SESSION_VERSION = "english-session/1.3.0"
+ENGLISH_SESSION_VERSION = "english-session/1.4.0"
 RECENT_TURNS_EN = 6
 # DI-164: the model is the way a turn is worded; a refused output is asked again twice with the refusal codes
 # (ENG-5g) before the approved words are said, so the fallback is the last resort, not the usual turn.
@@ -69,6 +71,23 @@ _REVEAL_MOVES = frozenset({Move.FULL_EXPLANATION})
 # DI-151 (ENG-5c, L-4): messages in a row that only repeat the tutor before the period stops (N-ECHO).
 ECHO_STOP_EN = 4
 RETEACH_MAX_WORDS = 55  # DI-162: a short teaching again, then the question that waits
+LEAD_MAX_WORDS = 35  # DI-180: the model's lead before the approved text of the teaching loop
+# ENG-5i (DI-181): a turn that says what the child said or remembered ("con nhớ chi tiết cụm bought và
+# souvenirs"): every English word of that sentence must be the child's own.
+# "Con nhớ câu: …" (an imperative: remember this) is not a claim; "khi con nhớ…", "con đã nói…", "con dùng
+# đúng…" are.
+_SAID_VERB = r"(?:nói|nhớ|dùng|chọn|viết|kể|nhắc|trả lời|đọc)"
+_CHILD_SAID = re.compile(
+    rf"(?i)(?:\b(?:khi|vì|rằng|thấy|nghe|cách)\s+con\s+(?:vừa\s+|đã\s+|cũng\s+)?{_SAID_VERB}\b"
+    rf"|\bcon\s+(?:vừa|đã)\s+{_SAID_VERB}\b"
+    rf"|\bcon\s+{_SAID_VERB}\s+(?:được|đúng|rất|chi tiết|cả|ra))"
+)
+# DI-182: the child is "con", never "bạn"; "bạn Nam", "hai bạn", "giúp bạn" (a character of the item) are
+# others, not the child.
+_BAN = re.compile(
+    r"(?<![\w])(?<!hai )(?<!các )(?<!những )(?<!một )(?<!giúp )(?<!cho )(?<!với )(?<!của )(?<!cùng )"
+    r"(?<!người )(?<!kết )[Bb]ạn(?![\w])(?!\s+(?:[A-ZĐ]|ấy|ý|bè|nhỏ|cùng|của|trong|học|nhà))"
+)
 # DI-163: what a model's turn says the child said, in English ("Con nói: [[en: Yes, I did.]]").
 _QUOTE = re.compile(r"(?i)\bcon\s+(?:vừa\s+|đã\s+)?nói(?:\s+là)?\s*:?\s*\[\[en:\s*([^\]]+?)\s*\]\]")
 
@@ -165,6 +184,8 @@ _MOVE_ON_WORDS = frozenset(
     phần""".split()
 )
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
+# ENG-5i (DI-179): a turn on a spelling slip that teaches the past form again ("eat đổi thành ate")
+_TENSE_TALK = re.compile(r"(?i)\b(?:đổi thành|đổi sang|dạng quá khứ|quá khứ của)\b")
 REPEAT_SIMILARITY = 0.7  # DI-170: word overlap with an earlier turn of the item from which a turn repeats it
 SENTENCE_REPEATS = 2  # DI-170: the item's model sentence said this often already is not read again
 
@@ -363,6 +384,7 @@ class EnglishRenderer:
         comprehension item of VOCAB). ENG-5h adds ``_turn_checks`` (DI-165–172)."""
         codes: list[str] = list(self._turn_checks(marked, ctx))
         said = normalize_en(ctx.student_text or "")
+        codes += self._child_words(marked, said)
         for quoted in _QUOTE.findall(marked):
             if normalize_en(quoted) and f" {normalize_en(quoted)} " not in f" {said} ":
                 codes.append("INVENTED_QUOTE")
@@ -376,6 +398,24 @@ class EnglishRenderer:
             if len(spoken - allowed - _COMMON_EN) >= 1 or ("did" in spoken and "did" not in allowed):
                 codes.append("OFF_ITEM_ENGLISH")
         return tuple(codes)
+
+    def _child_words(self, marked: str, said: str) -> list[str]:
+        """ENG-5i. INVENTED_WORD (DI-181): a sentence that tells what the child said or remembered quotes an
+        English word the child did not say ("con nhớ … souvenirs" after "keychain and a hat"). ADDRESSES_BAN
+        (DI-182): the child called "bạn"."""
+        codes: list[str] = []
+        heard = set(said.split())
+        for sentence in _SENTENCE.split(marked):
+            if not _CHILD_SAID.search(display_text(sentence)):
+                continue
+            words = {w for span in english_spans(sentence) for w in normalize_en(span).split()}
+            if {w for w in words - _COMMON_EN if len(w) >= 3} - heard:
+                codes.append("INVENTED_WORD")
+                break
+        vietnamese = re.sub(r"\[\[en:[^\]]*\]\]", " ", marked)
+        if _BAN.search(vietnamese):
+            codes.append("ADDRESSES_BAN")
+        return codes
 
     def _turn_checks(self, marked: str, ctx: RenderContext) -> tuple[str, ...]:
         """ENG-5h: what the second live run showed a model's turn may still do wrong (all deterministic).
@@ -429,13 +469,24 @@ class EnglishRenderer:
                 if said >= SENTENCE_REPEATS:
                     codes.append("REPEATS_EARLIER")
         detail = (ctx.check.detail or {}) if ctx.check is not None else {}
+        answering = _ANSWERING_MOVES
         if (
             detail.get("en_code") == "EN_SLIP"
             and detail.get("slips")
-            and move in (Move.HINT, Move.PROBE, Move.COGNITIVE_CONFLICT, Move.VERIFY, Move.OFFER_CHOICE)
+            and move in answering
             and not ("chính tả" in low or "đánh vần" in low or detail["slips"][0].lower() in low)
         ):
             codes.append("MISSES_SLIP")
+        if detail.get("en_code") == "EN_SLIP" and move in answering and _TENSE_TALK.search(low):
+            codes.append(
+                "MISSES_SLIP"
+            )  # DI-179: the verb was right; "eat đổi thành ate" teaches what was said
+        if (
+            detail.get("scrambled")
+            and move in answering
+            and not any(w in low for w in ("trật tự", "thứ tự", "đảo", "sắp lại", "sắp xếp"))
+        ):
+            codes.append("MISSES_WORD_ORDER")  # DI-177
         if (
             detail.get("word_order")
             and move == Move.VERIFY
@@ -507,6 +558,78 @@ class EnglishRenderer:
         self.calls_used += calls
         return Spoken("", "TEMPLATE", (), tuple(rejected))
 
+    def lead_en(
+        self,
+        key: str,
+        *,
+        student_text: str,
+        asked: str,
+        grounds: Sequence[str],
+        recent: Sequence[tuple[str, str]],
+        item: Any,
+        package: Any,
+    ) -> Any:
+        """ENG-5i (DI-180): the teaching loop's lead in the model's words (``LEAD_TASKS_EN[key]``), as the
+        Mathematics ``GroundedSpeaker.bridge`` words its lead: one or two sentences on what the child said,
+        no question; the loop says the approved text after it. Checked by the English validator (``item`` is
+        the leak anchor) and ``_own_checks``; asked again with the refusal codes, up to ``MAX_ATTEMPTS_EN``.
+        A ``Spoken`` with empty text when no model could say it (the caller says its approved lead)."""
+        from cavat.core.pedagogy import ActivityType
+        from cavat.modules.teaching.grounded import Spoken
+        from cavat.modules.tutor.contracts import ItemState, Persona, PolicyDecision
+
+        persona = package.persona
+        ctx = RenderContext(
+            decision=PolicyDecision(move=Move.EXPLAIN, reason_codes=("LEAD",)),
+            item=item,
+            package=package,
+            state=ItemState(item_id=item.id, activity=ActivityType.GUIDED_PRACTICE),
+            student_text=student_text,
+            persona=Persona(tutor_self=persona.tutor_self, student_address=persona.student_address),
+            max_words=LEAD_MAX_WORDS,
+        )
+        history = tuple(Turn(role, text) for role, text in recent)[-RECENT_TURNS_EN:]
+        calls, rejected = 0, []
+        for _ in range(MAX_ATTEMPTS_EN):
+            pack = BrainPack(
+                task=lead_task_en(key),
+                question=asked or item.stem,
+                student_text=student_text,
+                recent=history,
+                grounds=tuple(g for g in grounds if g),
+                tutor_self=persona.tutor_self,
+                student_address=persona.student_address,
+                name=self._student_name,
+                max_words=LEAD_MAX_WORDS,
+                lesson=package.title,
+                retry_codes=tuple(rejected[-1]) if rejected else (),
+            )
+            request = build_english_request(pack, unit_words=self._tools.targets, knowledge=self._knowledge)
+            outcome = self._router.chat(
+                ModelClass.TUTOR_REASONING, request, calls_used=self.calls_used + calls
+            )
+            calls += outcome.calls_made
+            if outcome.result is None:
+                break
+            text, _, _ = fields_of(outcome.result.data)
+            marked = mark_english(strip_emoji(self._named(text)), self._tools.lexicon)
+            # a lead on a question of Mathematics may name the subject ("bài Toán"); any of its content is
+            # still refused by ``english_off_topic`` below
+            checked = _SUBJECT_NAME.sub(" ", marked) if key == "off_subject" else marked
+            codes = tuple(
+                c for c in self._validator(checked, ctx).codes if c != "MISSING_QUESTION"
+            ) + self._own_checks(marked, ctx)  # a lead asks nothing: the question that waits follows it
+            if "?" in display_text(marked):
+                codes += ("ASKS_IN_LEAD",)
+            if key == "off_subject" and english_off_topic(display_text(checked)):
+                codes += ("MATH_TERM",)
+            if not codes:
+                self.calls_used += calls
+                return Spoken(display_text(marked), "LLM", (), tuple(rejected))
+            rejected.append(codes)
+        self.calls_used += calls
+        return Spoken("", "TEMPLATE", (), tuple(rejected))
+
     def _with_brain(self, ctx: RenderContext, fallback: RenderedMessage) -> RenderedMessage:
         move, calls, rejected = ctx.decision.move, 0, []
         level = int(ctx.decision.level) if ctx.decision.level is not None else None
@@ -529,7 +652,9 @@ class EnglishRenderer:
             text, flagged, feedback = fields_of(outcome.result.data)
             text = strip_emoji(self._named(text))
             marked = mark_english(text, self._tools.lexicon)
-            codes = tuple(self._validator(marked, ctx).codes) + self._own_checks(marked, ctx)
+            codes = tuple(self._validator(_without_slips(marked, ctx), ctx).codes) + self._own_checks(
+                marked, ctx
+            )
             if not codes:
                 self.calls_used += calls
                 self.last_trace = RenderTrace(
@@ -540,6 +665,29 @@ class EnglishRenderer:
         self.calls_used += calls
         self.last_trace = RenderTrace(move, fallback.source, calls, "validation", tuple(rejected))
         return fallback
+
+
+# DI-166, DI-177, DI-179: the moves that answer a graded sentence and must name its spelling slip or order
+_ANSWERING_MOVES = (
+    Move.HINT,
+    Move.PROBE,
+    Move.COGNITIVE_CONFLICT,
+    Move.VERIFY,
+    Move.OFFER_CHOICE,
+    Move.WORKED_GUIDANCE,
+)
+# DI-180: the name of the other subject in a lead that answers a question of it
+_SUBJECT_NAME = re.compile(r"(?i)\b(?:môn |bài )?toán\b")
+
+
+def _without_slips(marked: str, ctx: RenderContext) -> str:
+    """ENG-5i (DI-179): the misspelled word the turn must name ("seafod") is the child's, not English the
+    tutor teaches: it is left out of what the lexicon check reads (``OUT_OF_UNIT_ENGLISH``)."""
+    detail = (ctx.check.detail or {}) if ctx.check is not None else {}
+    out = marked
+    for slip in detail.get("slips") or ():
+        out = re.sub(rf"(?i)(?<![\w]){re.escape(slip)}(?![\w])", " ", out)
+    return out
 
 
 def _folded_words(text: str) -> set[str]:
@@ -567,6 +715,11 @@ def _verdict(ctx: RenderContext) -> str:
         verdict += (
             f" Câu của con đã đủ ý; con chỉ viết sai chính tả chữ «{check.detail['slips'][0]}». Chỉ nhắc con "
             "xem lại chữ đó, không đọc chính tả đúng, không bảo con nói cả câu."
+        )
+    if check.detail.get("scrambled"):  # DI-177
+        verdict += (
+            " Câu của con có đủ các từ nhưng sai trật tự từ. Phải nói rõ lỗi trật tự từ (ai, làm gì, ở đâu), "
+            "không khen câu đó là đúng, không nói con thiếu từ."
         )
     if check.detail.get("word_order"):  # DI-167
         verdict += (

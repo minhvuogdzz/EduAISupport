@@ -5,7 +5,6 @@ compresses what it sends, adds the light security headers and keeps /docs off un
 no CORS: the web app and the API share one origin, so a page of another site cannot read an answer.
 """
 
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -16,6 +15,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from cavat import __version__, db, webapp
 from cavat.config import get_settings
 from cavat.modules.session import api as session_api
+from cavat.revision import revision
 
 
 @asynccontextmanager
@@ -44,7 +44,7 @@ def create_app(*, web_dist: Path | None = None, api_docs: bool | None = None) ->
         return {
             "status": "ok",
             "version": __version__,
-            "revision": os.environ.get("CAVAT_REVISION", "development"),
+            "revision": revision(),
         }
 
     @app.get("/health/db")

@@ -1610,6 +1610,18 @@ async def create_session(body: CreateSession, database: Database, student: Stude
     chapter = chapter_service.teachable_chapter(target)
     if chapter is not None:
         session = chapter_service.new_session(chapter, service.DEMO_SCHOOL_ID, student, display_name)
+        if chapter.package.subject != chapter_service.DEFAULT_SUBJECT:
+            # ENG-5i (DI-185): every node of the unit is passed: no session that opens and closes at 0
+            # minutes (the third live run). Mathematics keeps its path (it reviews in a new session).
+            history = await _history(database, session)
+            if await run_in_threadpool(chapter_service.nothing_left, chapter, session, utc_now(), history):
+                raise ApiError(
+                    409,
+                    "INVALID_STATE",
+                    f"Con đã học xong cả «{chapter.package.title}» rồi, giỏi lắm! Hôm nay không còn bài mới "
+                    "để học; con xem lại lịch sử học bên dưới nhé.",
+                    {"reason": "UNIT_COMPLETED"},
+                )
     else:
         pkg = _package(target)
         session = service.new_session(pkg, service.DEMO_SCHOOL_ID, student, display_name)

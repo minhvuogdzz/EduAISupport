@@ -363,9 +363,23 @@ def mistakes(chapter: Chapter, folded: Folded, node_id: str) -> list[dict[str, A
             row["examples"] = [example, *(x for x in row["examples"] if x != example)]
     rows = sorted(found.values(), key=lambda r: (-r["count"], -_seconds(r["last"])))
     return [
-        {"label": r["label"], "count": r["count"], "examples": r["examples"][:EXAMPLES_SHOWN]}
+        {
+            "label": r["label"],
+            "count": r["count"],
+            "examples": [shown(x) for x in r["examples"][:EXAMPLES_SHOWN]],
+        }
         for r in rows[:MISTAKES_SHOWN]
     ]
+
+
+def shown(example: str) -> str:
+    """ENG-5i (DI-186): an example in the words a parent reads without guessing the direction: what the child
+    said, then the right words ("con nói “eat”, đúng là “ate”"). "eat → ate" read as the rule "eat becomes
+    ate" (the third live run's report), not as the child's mistake."""
+    if " → " not in example:
+        return example
+    said, right = example.split(" → ", 1)
+    return f"con nói “{said}”, đúng là “{right}”"
 
 
 def _seconds(moment: datetime) -> float:
@@ -434,9 +448,26 @@ def overview(view: Mapping[str, Any], chapter: Chapter, folded: Folded) -> dict[
             {**n, "mistakes": mistakes(chapter, folded, n["node_id"]) or None}
             for n in _with_patterns(chapter, view["going_well"])
         ],
-        "to_practise": _to_practise(chapter, folded, view["to_practise"]),
+        "to_practise": _to_practise(chapter, folded, view["to_practise"])
+        + _passed_with_mistakes(chapter, folded, view),
         "current_step": current_step(folded),
     }
+
+
+def _passed_with_mistakes(chapter: Chapter, folded: Folded, view: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """ENG-5i (DI-186): a node passed after mistakes is also said where the mistakes are ("Có lúc nhầm: …"),
+    after the nodes still to practise, so a parent reads them in one place (the third live run: VOCAB and PAST
+    passed with "seafod", "bot", "eated" and only the node being learnt was there)."""
+    listed = {r["node_id"] for r in view["to_practise"]}
+    out = []
+    for row in _with_patterns(chapter, view["nodes"]):
+        if not row.get("passed") or row["node_id"] in listed:
+            continue
+        found = mistakes(chapter, folded, row["node_id"])
+        if found:
+            topic = {k: row[k] for k in ("node_id", "name", "quality", "pattern") if k in row}
+            out.append({**topic, "reason": mistake_reason(found), "mistakes": found})
+    return out
 
 
 def parent(view: Mapping[str, Any], folded: Folded | None = None) -> dict[str, Any]:

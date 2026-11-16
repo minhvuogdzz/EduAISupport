@@ -1,0 +1,331 @@
+{
+ "task": "ENG-5i",
+ "date": "2026-11-16",
+ "note": "Học sinh mô phỏng (scripts/eval_english_students.py), không phải trẻ thật. Lượt hội thoại = mọi lời cô trừ câu hỏi của đề, lý thuyết, ví dụ, NODE, RETELL_PROMPT, PASS, SUMMARY, STOP.",
+ "live_paced_main_79404e4": {
+  "cmd": "--live --pace 8 --max-turns 40 --profiles yeu,hoi_toan,tieng_viet",
+  "profiles": {
+   "yeu": {
+    "dialogue_sources": {
+     "total": 42,
+     "by_source": {
+      "TEMPLATE": 21,
+      "LLM": 21
+     },
+     "llm_share": 0.5,
+     "not_llm_by_move": {
+      "FEEDBACK": 14,
+      "VERIFY": 1,
+      "REDIRECT": 2,
+      "COGNITIVE_CONFLICT": 1,
+      "EXPLAIN": 2,
+      "HINT": 1
+     }
+    },
+    "model_calls": 58,
+    "fallback_reasons": {
+     "QUOTA": 21,
+     "INVALID_OUTPUT": 12
+    }
+   },
+   "tieng_viet": {
+    "dialogue_sources": {
+     "total": 43,
+     "by_source": {
+      "TEMPLATE": 23,
+      "LLM": 19,
+      "GENERIC": 1
+     },
+     "llm_share": 0.442,
+     "not_llm_by_move": {
+      "FEEDBACK": 10,
+      "HINT": 1,
+      "WORKED_GUIDANCE": 2,
+      "TEACH_BACK": 4,
+      "REDIRECT": 2,
+      "CONFIRM_ADVANCE": 4,
+      "VERIFY": 1
+     }
+    },
+    "model_calls": 67,
+    "fallback_reasons": {
+     "INVALID_OUTPUT": 8,
+     "QUOTA": 28
+    }
+   },
+   "hoi_toan": {
+    "dialogue_sources": {
+     "total": 41,
+     "by_source": {
+      "TEMPLATE": 41
+     },
+     "llm_share": 0.0,
+     "not_llm_by_move": {
+      "FEEDBACK": 16,
+      "VERIFY": 7,
+      "CONFIRM_ADVANCE": 16,
+      "REDIRECT": 1,
+      "PROBE": 1
+     }
+    },
+    "model_calls": 31,
+    "fallback_reasons": {
+     "QUOTA": 2
+    }
+   }
+  }
+ },
+ "live_paced_branch": {
+  "cmd": "cùng lệnh; Groq đã hết quota trong ngày (QUOTA ở hầu hết lượt): không dùng để so sánh",
+  "profiles": {
+   "yeu": {
+    "dialogue_sources": {
+     "total": 42,
+     "by_source": {
+      "TEMPLATE": 40,
+      "LLM": 2
+     },
+     "llm_share": 0.048,
+     "not_llm_by_move": {
+      "FEEDBACK": 10,
+      "VERIFY": 8,
+      "CONFIRM_ADVANCE": 9,
+      "PROBE": 2,
+      "COGNITIVE_CONFLICT": 3,
+      "OFFER_CHOICE": 2,
+      "REDIRECT": 1,
+      "HINT": 3,
+      "WORKED_GUIDANCE": 1,
+      "TEACH_BACK": 1
+     }
+    },
+    "model_calls": 51,
+    "fallback_reasons": {
+     "QUOTA": 9,
+     "INVALID_OUTPUT": 1
+    }
+   },
+   "tieng_viet": {
+    "dialogue_sources": {
+     "total": 42,
+     "by_source": {
+      "TEMPLATE": 38,
+      "GENERIC": 3,
+      "LLM": 1
+     },
+     "llm_share": 0.024,
+     "not_llm_by_move": {
+      "FEEDBACK": 16,
+      "VERIFY": 4,
+      "CONFIRM_ADVANCE": 10,
+      "REDIRECT": 3,
+      "HINT": 3,
+      "WORKED_GUIDANCE": 3,
+      "TEACH_BACK": 1,
+      "FULL_EXPLANATION": 1
+     }
+    },
+    "model_calls": 52,
+    "fallback_reasons": {
+     "QUOTA": 2
+    }
+   },
+   "hoi_toan": {
+    "dialogue_sources": {
+     "total": 40,
+     "by_source": {
+      "TEMPLATE": 39,
+      "LLM": 1
+     },
+     "llm_share": 0.025,
+     "not_llm_by_move": {
+      "FEEDBACK": 15,
+      "VERIFY": 7,
+      "CONFIRM_ADVANCE": 15,
+      "REDIRECT": 1,
+      "PROBE": 1
+     }
+    },
+    "model_calls": 43,
+    "fallback_reasons": {
+     "QUOTA": 2
+    }
+   }
+  }
+ },
+ "coverage_compliant_model": {
+  "cmd": "model giả luôn trả lời hợp lệ (TUTOR_REASONING), 5 profile × 60 lượt",
+  "main_79404e4": {
+   "gioi": {
+    "dialogue_sources": {
+     "total": 61,
+     "by_source": {
+      "TEMPLATE": 20,
+      "LLM": 41
+     },
+     "llm_share": 0.672,
+     "not_llm_by_move": {
+      "FEEDBACK": 16,
+      "ANSWER": 4
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "yeu": {
+    "dialogue_sources": {
+     "total": 64,
+     "by_source": {
+      "TEMPLATE": 14,
+      "LLM": 50
+     },
+     "llm_share": 0.781,
+     "not_llm_by_move": {
+      "FEEDBACK": 14
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "tieng_viet": {
+    "dialogue_sources": {
+     "total": 63,
+     "by_source": {
+      "LLM": 43,
+      "TEMPLATE": 20
+     },
+     "llm_share": 0.683,
+     "not_llm_by_move": {
+      "FEEDBACK": 16,
+      "ANSWER": 4
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "doi_dap_an": {
+    "dialogue_sources": {
+     "total": 63,
+     "by_source": {
+      "LLM": 49,
+      "TEMPLATE": 14
+     },
+     "llm_share": 0.778,
+     "not_llm_by_move": {
+      "FEEDBACK": 14
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "hoi_toan": {
+    "dialogue_sources": {
+     "total": 64,
+     "by_source": {
+      "LLM": 42,
+      "TEMPLATE": 22
+     },
+     "llm_share": 0.656,
+     "not_llm_by_move": {
+      "FEEDBACK": 21,
+      "ANSWER": 1
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   }
+  },
+  "branch": {
+   "gioi": {
+    "dialogue_sources": {
+     "total": 60,
+     "by_source": {
+      "LLM": 58,
+      "TEMPLATE": 2
+     },
+     "llm_share": 0.967,
+     "not_llm_by_move": {
+      "FEEDBACK": 2
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "yeu": {
+    "dialogue_sources": {
+     "total": 63,
+     "by_source": {
+      "LLM": 59,
+      "TEMPLATE": 4
+     },
+     "llm_share": 0.937,
+     "not_llm_by_move": {
+      "FEEDBACK": 4
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "tieng_viet": {
+    "dialogue_sources": {
+     "total": 62,
+     "by_source": {
+      "LLM": 60,
+      "TEMPLATE": 2
+     },
+     "llm_share": 0.968,
+     "not_llm_by_move": {
+      "FEEDBACK": 2
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "doi_dap_an": {
+    "dialogue_sources": {
+     "total": 62,
+     "by_source": {
+      "LLM": 59,
+      "TEMPLATE": 3
+     },
+     "llm_share": 0.952,
+     "not_llm_by_move": {
+      "CLOSE_ITEM": 1,
+      "FEEDBACK": 2
+     }
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   },
+   "hoi_toan": {
+    "dialogue_sources": {
+     "total": 60,
+     "by_source": {
+      "LLM": 60
+     },
+     "llm_share": 1.0,
+     "not_llm_by_move": {}
+    },
+    "model_calls": 0,
+    "fallback_reasons": {}
+   }
+  },
+  "llm_share_main": 0.714,
+  "llm_share_branch": 0.964
+ },
+ "calls_full_session_compliant_model": {
+  "gioi": {
+   "turns": 80,
+   "calls": 89
+  },
+  "trung_binh": {
+   "turns": 113,
+   "calls": 126
+  },
+  "yeu": {
+   "turns": 178,
+   "calls": 189
+  },
+  "cap": 240
+ }
+}
