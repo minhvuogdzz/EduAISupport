@@ -6,6 +6,11 @@ homework done, is wrong and sure of it, guesses...) say the same things to three
 
 - B1 "chatbot": Gemini (the model behind a market chatbot) with the system prompt a parent would write;
 - B2 "prompted LLM": Qwen, the very model of CAVAT, with a careful Socratic prompt and nothing else;
+- B3 "prompted LLM + output check" (reviewer request, REV-ECIT 2026): B2 plus a filter on its draft with the
+  rules that need no policy (the answer said, more than one question, more than 60 words); a bad draft is
+  asked again once, then replaced by a fixed safe line. It separates what the output check brings from what
+  the deterministic policy brings (C). The leak rule is the one that scores the replies, so B3's leak count is
+  zero by construction there; what B3 shows is the price in quality of a check without a policy;
 - C "CAVAT": the item loop of the product (policy, validator, checker, Qwen phrasing within its cap).
 
 Every reply is measured by rules (the answer said, questions per turn, length) and scored by a judge of
@@ -67,6 +72,7 @@ SOCRATIC_PROMPT = " ".join(
         "Số thập phân viết bằng dấu phẩy.",
     ]
 )
+SAFE_LINE = "Con thử nghĩ thêm một bước nữa nhé. Con thấy mình nên bắt đầu từ đâu?"
 GRADE_PROMPT = " ".join(
     [
         "Bạn là giáo viên Toán lớp 5 ở Việt Nam. Với mỗi dòng (đề bài và câu trả lời của học sinh),",
@@ -126,6 +132,22 @@ def _remember(key: str, value) -> None:
     CACHE.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+def guarded(call, history, item, said: str) -> tuple[str, str]:
+    """B3: the draft of B2 passed through the output check; one new draft, then the safe line."""
+
+    def bad(text: str) -> bool:
+        return says_answer(item, text, said) or text.count("?") > 1 or len(text.split()) > MAX_WORDS
+
+    model, text = call(history)
+    if not bad(text):
+        return model, text
+    time.sleep(PAUSE_S)
+    model, text = call(history)
+    if not bad(text):
+        return f"{model} (second draft)", text
+    return f"{model} (safe line)", SAFE_LINE
+
+
 def chat_tutor(system: str, call) -> list[Reply]:
     """B1 / B2: the child pastes the problem with its first message, then the second message. ``call`` gives
     (model, text); a reply already obtained is read back from the cache, a quota error stops the system."""
@@ -141,7 +163,10 @@ def chat_tutor(system: str, call) -> list[Reply]:
             if cached is None:
                 time.sleep(GEMINI_PAUSE_S if system == "B1" else PAUSE_S)
                 try:
-                    model, text = call(tuple(history))
+                    if system == "B3":
+                        model, text = guarded(call, tuple(history), item, said)
+                    else:
+                        model, text = call(tuple(history))
                 except Exception as exc:  # a daily quota: the rest of this system waits for the next run
                     print(f"[{system}] dừng ở {role} lượt {k + 1}: {type(exc).__name__} {exc}", flush=True)
                     return out
@@ -259,6 +284,7 @@ def report(replies: list[Reply], graded: dict[str, list[bool]]) -> str:
     names = {
         "B1": f"B1 chatbot (Gemini: {', '.join(GEMINI_MODELS)})",
         "B2": "B2 Qwen + lời nhắc Socratic",
+        "B3": "B3 Qwen + lời nhắc Socratic + kiểm đầu ra",
         "C": "C CAVAT",
     }
     lines = [
@@ -272,7 +298,7 @@ def report(replies: list[Reply], graded: dict[str, list[bool]]) -> str:
         "Số chữ TB | Ý / Socratic / Hợp trẻ / Bám bài (1–5) |",
         "|---|---|---|---|---|---|---|---|",
     ]
-    for system in ("B1", "B2", "C"):
+    for system in ("B1", "B2", "B3", "C"):
         rs = [r for r in replies if r.system == system]
         if not rs:
             continue
@@ -335,10 +361,11 @@ def main() -> None:
         result = qwen_reply(router, ChatRequest(messages=history, max_output_tokens=400))
         return result.model, result.text
 
-    systems = (sys.argv[sys.argv.index("--systems") + 1] if "--systems" in sys.argv else "B1,B2,C").split(",")
+    systems = (sys.argv[sys.argv.index("--systems") + 1] if "--systems" in sys.argv else "B1,B2,B3,C").split(",")
     replies = [
         *(chat_tutor("B1", b1) if "B1" in systems else []),
         *(chat_tutor("B2", b2) if "B2" in systems else []),
+        *(chat_tutor("B3", b2) if "B3" in systems else []),
         *(cavat_tutor(router) if "C" in systems else []),
     ]
     chapter = load_chapter(CHAPTER)
