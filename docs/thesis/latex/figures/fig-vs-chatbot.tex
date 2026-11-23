@@ -1,0 +1,9 @@
+\begin{tikzpicture}
+\begin{axis}[ybar,width=0.98\linewidth,height=6.4cm,bar width=11pt,ymin=0,ymax=100,ytick={0,20,40,60,80,100},ymajorgrids,ylabel={tỉ lệ lượt vi phạm (\%), càng thấp càng tốt},xtick={1,2,3},xticklabels={{Tiết lộ đáp án},{Hơn một câu hỏi mỗi lượt},{Dài quá 60 từ}},xticklabel style={font=\footnotesize,text width=3cm,align=center},enlarge x limits=0.22,nodes near coords,nodes near coords style={font=\tiny,/pgf/number format/.cd,fixed,precision=0},tick label style={font=\footnotesize},label style={font=\small},legend style={font=\footnotesize,at={(0.5,-0.25)},anchor=north,legend columns=2,draw=none}]
+\addplot[fill=black,draw=black] coordinates {(1,58.1) (2,48.4) (3,87.1)};
+\addplot[fill=black!55,draw=black] coordinates {(1,3.2) (2,19.4) (3,0.0)};
+\addplot[fill=black!25,draw=black] coordinates {(1,0.0) (2,0.0) (3,0.0)};
+\addplot[fill=white,draw=black] coordinates {(1,9.7) (2,0.0) (3,0.0)};
+\legend{{Chatbot thường},{Chatbot Socratic},{Chatbot Socratic + bộ lọc},{Gia sư CAVAT}}
+\end{axis}
+\end{tikzpicture}

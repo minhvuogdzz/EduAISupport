@@ -1,21 +1,28 @@
 \begin{tikzpicture}[font=\footnotesize,
-  box/.style={draw=black,line width=0.5pt,fill=white,align=center,minimum height=13mm,text width=29mm,inner sep=2pt},
-  bnd/.style={box,fill=gray!30,dashed,line width=0.7pt},
-  store/.style={box,fill=gray!14},
+  term/.style={draw,rounded corners=7pt,fill=gray!25,align=center,minimum height=8mm,minimum width=22mm,inner sep=2pt},
+  proc/.style={draw,fill=white,align=center,minimum height=13mm,text width=27mm,inner sep=2pt},
+  det/.style={proc,fill=gray!12},
+  llm/.style={proc,fill=gray!35,dashed},
+  io/.style={draw,fill=white,align=center,minimum height=13mm,text width=24mm,inner sep=1pt,trapezium,trapezium left angle=72,trapezium right angle=108,trapezium stretches=true},
+  dec/.style={draw,diamond,aspect=2,fill=white,align=center,inner sep=0pt,text width=21mm,minimum height=14mm},
   arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
   lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
-\node[box] (menu) at (0,0) {\textbf{Chính sách}\\\scriptsize thực đơn tối đa ba nước đi};
-\node[bnd] (bandit) at (4.2,0) {\textbf{Bandit}\\\scriptsize ngữ cảnh $x$, điểm UCB, $\varepsilon$-tham lam};
-\node[box] (accept) at (8.4,0) {\textbf{Chính sách kiểm lại}\\\scriptsize chỉ chơi nước trong thực đơn};
-\node[box] (play) at (12.6,0) {\textbf{Nước đi được chơi}\\\scriptsize ghi \texttt{MOVE\_CHOSEN}};
-\node[box] (ans) at (12.6,-3.0) {\textbf{Câu trả lời có chấm kế tiếp}\\\scriptsize đúng, một phần, sai};
-\node[box] (rew) at (8.4,-3.0) {\textbf{Sự kiện}\\\scriptsize \texttt{BANDIT\_REWARD}};
-\node[store] (arms) at (4.2,-3.0) {\textbf{Kho \texttt{bandit\_arms}}\\\scriptsize $\sum xx^{\top}$, $\sum rx$, $n$};
-\draw[arr] (menu) -- node[lab,above]{các nước} (bandit);
-\draw[arr] (bandit) -- node[lab,above]{một nước} (accept);
-\draw[arr] (accept) -- (play);
-\draw[arr] (play) -- node[lab,right]{con trả lời} (ans);
-\draw[arr] (ans) -- node[lab,above]{thưởng} (rew);
-\draw[arr] (rew) -- node[lab,above]{$\$inc$} (arms);
-\draw[arr] (arms) -- node[lab,right]{trạng thái} (bandit);
+
+\tikzset{proc/.append style={text width=25mm},io/.append style={text width=22mm},dec/.append style={text width=22mm}}
+\node[term] (st) at (0,0) {Bắt đầu lượt};
+\node[io] (m) at (3.3,0) {Thực đơn nước đi do chính sách cho};
+\node[proc] (sc) at (6.9,0) {\textbf{Bandit} tính điểm từng nước theo ngữ cảnh $x$};
+\node[dec] (d) at (10.4,0) {Thăm dò (xác suất $\varepsilon$)?};
+\node[proc] (rn) at (10.4,2.6) {Chọn ngẫu nhiên một nước};
+\node[proc] (vf) at (13.9,0) {Lấy nước điểm cao nhất, chính sách kiểm lại};
+\node[proc] (pl) at (13.9,-3.2) {Chơi nước, ghi \rid{MOVE\_CHOSEN}};
+\node[io] (an) at (10.4,-3.2) {Học sinh trả lời, bộ chấm cho đúng--sai};
+\node[proc] (rw) at (6.9,-3.2) {Ghi \rid{BANDIT\_REWARD}};
+\node[proc,fill=gray!12] (up) at (3.3,-3.2) {Cập nhật \rid{bandit\_arms}};
+\node[term] (en) at (0,-3.2) {Kết thúc lượt};
+\draw[arr] (st) -- (m); \draw[arr] (m) -- (sc); \draw[arr] (sc) -- (d);
+\draw[arr] (d) -- node[lab,right]{có} (rn);
+\draw[arr] (rn.east) -| (vf.north);
+\draw[arr] (d) -- node[lab,above]{không} (vf);
+\draw[arr] (vf) -- (pl); \draw[arr] (pl) -- (an); \draw[arr] (an) -- (rw); \draw[arr] (rw) -- (up); \draw[arr] (up) -- (en);
 \end{tikzpicture}

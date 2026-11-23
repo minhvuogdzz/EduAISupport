@@ -1,0 +1,20 @@
+% Sinh bởi tools/paper_tex.py từ docs/paper/data; không sửa tay.
+\begin{table}[H]
+\centering
+\caption{Bỏ từng thành phần khỏi cấu hình sản phẩm: thay đổi MRR so cặp theo câu và $p$ của McNemar trên Hit@3. Số âm: thành phần có ích.}\label{tab:rag-components}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+ & \multicolumn{2}{c}{Bộ 2} & \multicolumn{2}{c}{Bộ 4} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Thành phần bị bỏ & $\Delta$MRR & $p$ & $\Delta$MRR & $p$ \\
+\midrule
+Định tuyến chủ đề & $-0{,}450$ & $0{,}002$ & $-0{,}550$ & $<0{,}001$ \\
+Vector (ngữ nghĩa) & $-0{,}224$ & $0{,}125$ & $-0{,}242$ & $0{,}070$ \\
+Phạm vi theo đồ thị tri thức & $-0{,}114$ & $1{,}000$ & $-0{,}193$ & $0{,}375$ \\
+Từ khóa & $-0{,}001$ & $1{,}000$ & $-0{,}023$ & $1{,}000$ \\
+Xếp hạng lại sư phạm & $0{,}000$ & $1{,}000$ & $0{,}000$ & $1{,}000$ \\
+Ưu tiên đoạn định nghĩa & $0{,}000$ & $1{,}000$ & $0{,}000$ & $1{,}000$ \\
+\bottomrule
+\end{tabular}
+\end{table}

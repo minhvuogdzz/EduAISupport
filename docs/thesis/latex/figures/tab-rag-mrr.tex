@@ -1,0 +1,17 @@
+% Sinh bởi tools/paper_tex.py từ docs/paper/data; không sửa tay.
+\begin{table}[H]
+\centering
+\caption{MRR của sáu cấu hình truy xuất trên các bộ câu hỏi trong bài. Dấu $^{*}$: bộ đã dùng để chỉnh thiết kế nên không phải bằng chứng độc lập. Đậm: MRR cao nhất của bộ.}\label{tab:rag-mrr}
+\footnotesize
+\begin{tabular}{lrrrrrrr}
+\toprule
+Tập & $n$ & Từ khóa & Vector & Lai & Không định tuyến & RAG phẳng & Sản phẩm \\
+\midrule
+Bộ 2 & 20 & $0{,}459$ & $0{,}449$ & $0{,}460$ & $0{,}504$ & $0{,}839$ & \textbf{$0{,}954$} \\
+Bộ 4 & 22 & $0{,}344$ & $0{,}332$ & $0{,}343$ & $0{,}384$ & $0{,}742$ & \textbf{$0{,}935$} \\
+Bộ 1$^{*}$ & 14 & $0{,}669$ & $0{,}668$ & $0{,}673$ & $0{,}679$ & $0{,}789$ & \textbf{$0{,}964$} \\
+Bộ 3$^{*}$ & 30 & $0{,}465$ & $0{,}458$ & $0{,}465$ & $0{,}583$ & $0{,}832$ & \textbf{$0{,}860$} \\
+Bộ chỉnh$^{*}$ & 18 & $0{,}608$ & $0{,}599$ & $0{,}609$ & $0{,}804$ & $0{,}880$ & \textbf{$0{,}944$} \\
+\bottomrule
+\end{tabular}
+\end{table}

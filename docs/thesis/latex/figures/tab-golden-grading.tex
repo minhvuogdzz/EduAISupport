@@ -1,0 +1,21 @@
+% Sinh bởi tools/db_tex.py từ bản sao lưu database; không sửa tay.
+\begin{table}[H]
+\centering
+\caption{Chấm các câu trả lời điển hình của trẻ, đã gán nhãn tay. Nhận nhầm: nhận một câu sai là đúng; bác nhầm: bác một câu đúng}\label{tab:golden-grading}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{6.5cm}rrrr}
+\toprule
+Hệ chấm & Chấm đúng & Tỉ lệ & Nhận nhầm & Bác nhầm \\
+\midrule
+\multicolumn{5}{l}{\emph{Bộ 1, đã xem trước khi sửa bộ chấm: 36 câu, trong đó 21 câu đúng}} \\
+\quad Bộ chấm tất định của CAVAT & $36$/$36$ & $100{,}0$\% & $0$ & $0$ \\
+\quad Chatbot thường & $25$/$36$ & $69{,}4$\% & $0$ & $11$ \\
+\quad Chatbot Socratic & $35$/$36$ & $97{,}2$\% & $0$ & $1$ \\
+\midrule
+\multicolumn{5}{l}{\emph{Bộ 2, giữ riêng: 35 câu, trong đó 23 câu đúng}} \\
+\quad Bộ chấm tất định của CAVAT & $35$/$35$ & $100{,}0$\% & $0$ & $0$ \\
+\quad Chatbot thường & $25$/$35$ & $71{,}4$\% & $0$ & $10$ \\
+\quad Chatbot Socratic & $35$/$35$ & $100{,}0$\% & $0$ & $0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
