@@ -108,7 +108,7 @@ thesis: ## Build the graduation thesis docs/thesis/latex/thesis.pdf (UET templat
 
 paper-data: ## Regenerate docs/paper/data/*.json (database read-only, no writes) and the tables and figures in docs/paper/gen
 	cd services/api && .venv/bin/python scripts/paper_corpus.py && .venv/bin/python scripts/paper_rag.py \
-		&& .venv/bin/python scripts/paper_student.py && .venv/bin/python scripts/paper_assessment.py \
+		&& .venv/bin/python scripts/paper_sensitivity.py && .venv/bin/python scripts/paper_student.py && .venv/bin/python scripts/paper_assessment.py \
 		&& .venv/bin/python scripts/paper_baselines.py && .venv/bin/python scripts/paper_figures.py
 
 eval-baselines: ## CAVAT against a market chatbot (Gemini) and a prompted LLM (Qwen): hard students and grading (free-tier quota)
