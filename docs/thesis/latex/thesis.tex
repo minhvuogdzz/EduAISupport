@@ -1,4 +1,6 @@
 \documentclass[a4paper,13pt]{report}
+\usepackage{indentfirst}       % Bắt buộc đoạn đầu tiên ngay dưới tiêu đề cũng phải thụt đầu dòng
+
 % \usepackage[utf8]{vietnam}
 \usepackage{iftex}
 \ifPDFTeX
@@ -44,6 +46,7 @@
 \usepackage{tabularx}
 \usepackage{float}
 \usepackage{pgfplots}
+\newcommand{\rid}[1]{\texttt{#1}}
 \pgfplotsset{compat=1.16}
 \usepgfplotslibrary{groupplots}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,shapes.geometric,decorations.pathreplacing}
@@ -82,7 +85,7 @@
 \setlength{\cftsubsecnumwidth}{3.8em}
 \AtBeginDocument{\addtolength\cftchapnumwidth{\widthof{\bfseries Chương }}}
 \setlength{\parskip}{0.4em}
-\setlength{\parindent}{0pt}
+\setlength{\parindent}{0.63cm}
 %
 \input{info}
 \title{\tendetai}
@@ -94,13 +97,12 @@
 \begin{document}
 \input{cover}\newpage\cleardoublepage
 
-% Acknowledgement
+% Lời cảm ơn
 \input{chapters/acknowledgement}\newpage\cleardoublepage
-% Assurance
-\input{chapters/assurance}\newpage\cleardoublepage
-% Abstract Vietnamese
-% \input{chapters/abtract_en}\newpage\cleardoublepage
+% Tóm tắt (tiếng Việt; hệ chuẩn không có bản tiếng Anh)
 \input{chapters/abtract_vi}\newpage\cleardoublepage
+% Lời cam đoan
+\input{chapters/assurance}\newpage\cleardoublepage
 
 \addcontentsline{toc}{chapter}{Mục lục}
 \tableofcontents\newpage\cleardoublepage
@@ -123,7 +125,7 @@
 \input{chapters/c2/c2_chapter}\newpage\cleardoublepage
 \input{chapters/c3/c3_chapter}\newpage\cleardoublepage
 \input{chapters/c4/c4_chapter}\newpage\cleardoublepage
-\input{chapters/c5/c5_chapter}\newpage\cleardoublepage
+\input{chapters/conclusion}\newpage\cleardoublepage
 
 \nocite{*}
 \phantomsection 

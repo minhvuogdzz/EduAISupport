@@ -1,0 +1,28 @@
+% Sinh bởi tools/db_tex.py từ bản sao lưu database; không sửa tay.
+\begin{table}[H]
+\centering
+\caption{Các mô hình ngôn ngữ được gọi: số lần gọi và số token trung bình mỗi lần}\label{tab:db-models}
+\begin{tabular}{lrrr}
+\toprule
+Mô hình & Số lần gọi & Token vào & Token ra \\
+\midrule
+\texttt{openai/gpt-oss-120b} & $337$ & $1723$ & $143$ \\
+\texttt{qwen/qwen3.8-27b} & $219$ & $1403$ & $68$ \\
+\texttt{openai/gpt-oss-20b} & $155$ & $1753$ & $133$ \\
+\texttt{gemini-2.5-flash} & $24$ & $1321$ & $80$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Lý do chuyển sang mô hình kế tiếp}\label{tab:db-fallback}
+\begin{tabular}{lrr}
+\toprule
+Lý do & Số lần & Tỉ lệ \\
+\midrule
+hết hạn mức & $1\,141$ & $71{,}1$\% \\
+mô hình không phản hồi & $447$ & $27{,}9$\% \\
+kết quả không hợp lệ & $16$ & $1{,}0$\% \\
+\bottomrule
+\end{tabular}
+\end{table}

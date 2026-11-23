@@ -1,0 +1,28 @@
+\begin{tikzpicture}[font=\footnotesize,
+  term/.style={draw,rounded corners=7pt,fill=gray!25,align=center,minimum height=8mm,minimum width=22mm,inner sep=2pt},
+  proc/.style={draw,fill=white,align=center,minimum height=13mm,text width=27mm,inner sep=2pt},
+  det/.style={proc,fill=gray!12},
+  llm/.style={proc,fill=gray!35,dashed},
+  io/.style={draw,fill=white,align=center,minimum height=13mm,text width=24mm,inner sep=1pt,trapezium,trapezium left angle=72,trapezium right angle=108,trapezium stretches=true},
+  dec/.style={draw,diamond,aspect=2,fill=white,align=center,inner sep=0pt,text width=21mm,minimum height=14mm},
+  arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
+  lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
+
+\node[term] (st) at (0,0) {Bắt đầu lượt};
+\node[io] (a) at (4,0) {Học sinh gửi phản hồi\\\scriptsize chữ hoặc giọng nói};
+\node[det] (b) at (8,0) {\textbf{Bộ đọc}\\\scriptsize nhận ý định, chấm đúng--sai};
+\node[det] (c) at (12,0) {\textbf{Chính sách}\\\scriptsize chọn nước đi, bậc gợi ý};
+\node[llm] (d) at (12,-3.2) {\textbf{Gia sư AI}\\\scriptsize soạn lời nháp};
+\node[dec] (e) at (8,-3.2) {Bộ kiểm chứng: lời nháp đạt?};
+\node[io] (f) at (4,-3.2) {Hiển thị phản hồi cho học sinh};
+\node[det] (g) at (0,-3.2) {\textbf{Ghi sổ sự kiện}\\\scriptsize cập nhật mức hiểu};
+\node[proc] (m) at (8,-6.4) {Dùng câu mẫu đã được giáo viên duyệt};
+\node[term] (en) at (0,-6.4) {Kết thúc lượt};
+\draw[arr] (st) -- (a); \draw[arr] (a) -- (b); \draw[arr] (b) -- (c); \draw[arr] (c) -- (d);
+\draw[arr] (d) -- (e);
+\draw[arr] (e) -- node[lab,above]{đạt} (f);
+\draw[arr] (e) -- node[lab,right]{không đạt} (m);
+\draw[arr] (m.west) -| (f.south);
+\draw[arr] (f) -- (g);
+\draw[arr] (g) -- (en);
+\end{tikzpicture}

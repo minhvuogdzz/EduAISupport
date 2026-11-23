@@ -1,0 +1,33 @@
+\section{Chấm câu trả lời của học sinh}\label{sec:eval-grading}
+
+Một gia sư phải biết câu trả lời của học sinh đúng hay sai, kể cả khi học sinh viết theo cách riêng của trẻ em Việt Nam như ``không phẩy chín'', ``0,9 ạ cô'' hay ``o,9''. Mục này dùng hai nguồn: các lần chấm thật của tài khoản Vuong, và một bộ câu trả lời điển hình của trẻ đã được gán nhãn đúng hoặc sai bằng tay để so với chatbot.
+
+\subsection{Các lần chấm trong buổi thử nghiệm}
+Tài khoản Vuong gửi $652$ câu trả lời ở hai chương Toán và $74$ câu ở Unit~11, tất cả bằng chữ gõ vì chế độ nói chưa được dùng trong đợt này. Bộ chấm ghi $452$ câu đúng ($69{,}3\%$) và $200$ câu sai ở Toán, và $50$ câu đúng ($67{,}6\%$), $21$ câu sai, $3$ câu đúng một phần ở Tiếng Anh. Bảng~\ref{tab:db-grading} phân loại các câu sai theo loại lỗi. Bộ chấm Tiếng Anh gán được loại lỗi cho $18$ trong $21$ câu sai ($85{,}7\%$), còn bộ chấm Toán chỉ gán được cho $37$ trong $200$ câu sai ($18{,}5\%$), toàn bộ là lỗi khái niệm, và $163$ câu ($81{,}5\%$) ở trạng thái chưa phân loại. Đây là điểm yếu rõ nhất của phần chấm trong dữ liệu thực tế: bộ chấm Toán xác định được câu sai nhưng chỉ gán loại lỗi khi câu khớp một lỗi đã khai báo trong tài liệu giáo viên hoặc một mẫu so sánh số đã biết, còn khi thiếu căn cứ thì không đoán, phù hợp với nguyên tắc không để mô hình tự ghi vào mức hiểu.
+
+\input{figures/tab-db-grading}
+
+Với câu hỏi ``vì sao'', Toán có $128$ câu trả lời được chấm: $72{,}7\%$ đạt $0{,}6$, $23{,}4\%$ đạt $0{,}2$ và chỉ $3{,}9\%$ đạt $1{,}0$; Tiếng Anh có $29$ câu, $51{,}7\%$ đạt $0{,}6$ và $41{,}4\%$ đạt $1{,}0$ (hai thang không so trực tiếp được). Phần kể lại ý chính có $157$ lượt ở Toán, cho $66{,}2\%$ đủ ý, $7{,}0\%$ một phần và $26{,}8\%$ không có ý nào; mọi điểm kể lại đều do bộ luật từ khóa chấm, không do mô hình.
+
+\subsection{So sánh chatbot trên bộ câu trả lời gán nhãn thủ công}
+Nhật ký thật không có nhãn đúng sai do người gán, nên độ chính xác của bộ chấm được đo trên hai bộ câu trả lời tiếng Việt điển hình của trẻ, gán nhãn tay: Bộ chấm 1 có $36$ câu ($21$ câu đúng) và Bộ chấm 2 có $35$ câu ($23$ câu đúng). Các câu gồm những cách viết thường gặp ở trẻ: dấu phẩy, số viết bằng chữ, từ đệm như ``$0{,}9$ ạ cô'', cách gõ tắt như ``o,9'' và phép so sánh diễn đạt bằng lời. Bộ chấm 1 đã được xem trước khi sửa bộ chấm nên không độc lập; Bộ chấm 2 được giữ riêng và chốt trước khi bộ chấm được cập nhật để đọc số viết bằng chữ. Chatbot thường và Chatbot Socratic (mục~\ref{sec:eval-socratic}) được yêu cầu chấm theo cùng đề bài, giá trị và định dạng. Bảng~\ref{tab:golden-grading} cho kết quả trên Bộ chấm 1, nơi cả ba hệ được đo cùng lúc.
+
+\begin{table}[H]
+\centering
+\caption{Chấm $36$ câu trả lời của Bộ chấm 1 ($21$ câu đúng, $15$ câu sai). Nhận nhầm: câu sai bị cho là đúng; bác nhầm: câu đúng bị cho là sai.}\label{tab:golden-grading}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Hệ chấm & Chấm đúng & Nhận nhầm & Bác nhầm \\
+\midrule
+Chatbot thường & $28/36$ ($78\%$) & $0$ & $8$ \\
+Chatbot Socratic & $26/36$ ($72\%$) & $0$ & $10$ \\
+Bộ chấm tất định của CAVAT & $36/36$ ($100\%$) & $0$ & $0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Hai chatbot không nhận nhầm câu sai nào nhưng bác nhầm $8$ và $10$ trong $21$ câu đúng ($38\%$ và $48\%$), chủ yếu là số viết bằng chữ, câu có từ đệm và phép so sánh diễn đạt bằng lời. Bác một câu đúng chỉ vì khác cách viết là sai sót sư phạm, vì học sinh có thể tưởng mình sai. Bộ chấm tất định chấm đúng cả $36$ câu của Bộ chấm 1 và $35/35$ câu của Bộ chấm 2 mà không nhận nhầm hay bác nhầm câu nào; ở Bộ chấm 2, phiên bản trước khi cập nhật chỉ đạt $26/35$ ($74\%$), nên $35/35$ là kết quả sau khi sửa trên bộ chưa dùng để hiệu chỉnh. Ngoài độ đúng, bộ chấm tất định có kết quả lặp lại từng bit và không tốn lượt gọi mô hình, trong khi kết quả của chatbot có thể đổi giữa các lần gọi và tiêu thụ hạn mức vốn là nút thắt ở mục~\ref{sec:eval-model}.
+
+\subsection{Giới hạn}
+Hai bộ chỉ có $71$ câu và được viết làm câu trả lời điển hình chứ không thu từ trẻ thật, nên $100\%$ không nên đọc là độ đúng trên trẻ em nói chung: bộ chấm đúng với các cách viết đã dự đoán và các cách viết chưa dự đoán là rủi ro chính. Việc chấm bằng giọng nói chưa có số liệu, và phần phân loại lỗi ở Toán còn thưa như Bảng~\ref{tab:db-grading} cho thấy.

@@ -1,0 +1,35 @@
+\begin{tikzpicture}[font=\footnotesize,
+  term/.style={draw,rounded corners=7pt,fill=gray!25,align=center,minimum height=8mm,minimum width=22mm,inner sep=2pt},
+  proc/.style={draw,fill=white,align=center,minimum height=13mm,text width=27mm,inner sep=2pt},
+  det/.style={proc,fill=gray!12},
+  llm/.style={proc,fill=gray!35,dashed},
+  io/.style={draw,fill=white,align=center,minimum height=13mm,text width=24mm,inner sep=1pt,trapezium,trapezium left angle=72,trapezium right angle=108,trapezium stretches=true},
+  dec/.style={draw,diamond,aspect=2,fill=white,align=center,inner sep=0pt,text width=21mm,minimum height=14mm},
+  arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
+  lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
+
+\tikzset{proc/.append style={text width=25mm},io/.append style={text width=22mm},dec/.append style={text width=22mm}}
+\node[term] (st) at (0,0) {Bắt đầu};
+\node[io] (a) at (3.3,0) {Câu hỏi của học sinh và bài đang học};
+\node[dec] (d1) at (6.8,0) {Có bài đã học gần câu hỏi hơn?};
+\node[proc] (r) at (6.8,2.6) {Định tuyến: coi bài đó là bài đang học};
+\node[proc] (sc) at (10.3,0) {Giới hạn: bài hiện tại và tiên quyết trong hai bước};
+\node[proc] (se) at (13.6,0) {Tìm song song: từ khóa và vector 768 chiều};
+\node[proc] (fu) at (13.6,-3.2) {Hợp nhất RRF, nhân $1/(1+d_G)$};
+\node[proc] (rk) at (10.3,-3.2) {Xếp hạng lại theo loại đoạn};
+\node[dec] (d2) at (6.8,-3.2) {Độ gần cosine lớn nhất $\ge 0{,}65$?};
+\node[proc] (ch) at (3.3,-3.2) {Chọn các đoạn đầu bảng};
+\node[io] (o) at (0,-3.2) {Đoạn dẫn cho Gia sư AI};
+\node[proc] (t) at (6.8,-6.2) {Giữ câu hỏi lại cho giáo viên};
+\node[term] (en) at (0,-6.2) {Kết thúc};
+\draw[arr] (st) -- (a); \draw[arr] (a) -- (d1);
+\draw[arr] (d1) -- node[lab,above]{không} (sc);
+\draw[arr] (d1) -- node[lab,right]{có} (r);
+\draw[arr] (r.east) -| (sc.north);
+\draw[arr] (sc) -- (se); \draw[arr] (se) -- (fu); \draw[arr] (fu) -- (rk); \draw[arr] (rk) -- (d2);
+\draw[arr] (d2) -- node[lab,above]{có} (ch);
+\draw[arr] (d2) -- node[lab,right]{không} (t);
+\draw[arr] (ch) -- (o);
+\draw[arr] (o) -- (en);
+\draw[arr] (t) -- (en);
+\end{tikzpicture}

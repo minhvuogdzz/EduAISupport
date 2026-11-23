@@ -1,3 +1,31 @@
-\section{Yêu cầu phi chức năng}\label{sec:nfr}
+\section{Yêu cầu và các bất biến thiết kế}\label{sec:nfr}
 
-\emph{(Đang biên soạn.)}
+\subsection{Yêu cầu}
+Hệ thống phục vụ ba loại người dùng: giáo viên cung cấp tài liệu, duyệt nội dung và xem báo cáo; học sinh học bằng văn bản hoặc giọng nói trên trang web dùng được cả ở điện thoại; phụ huynh xem tiến bộ qua tài khoản của con. Từ đó hệ thống có sáu chức năng: tạo gói giáo án từ tài liệu giáo viên và chỉ dùng nội dung đã duyệt; dạy từng bài theo vòng có thứ tự trên đồ thị tri thức, trong đó bài tập chỉ là một bước; tương tác theo phương pháp Socratic; chấm câu trả lời theo cách viết của trẻ em Việt Nam; ước lượng mức hiểu từ kết quả học; và trình bày kết quả qua ba trang báo cáo riêng. Phạm vi khóa ở hai chương Toán lớp 5 và một đơn vị Tiếng Anh lớp 5 (Unit~11), để mọi thành phần được kiểm chứng kỹ trên lượng nội dung nhỏ và để chủ dự án, vốn là giáo viên, duyệt được toàn bộ nội dung sư phạm.
+
+Các yêu cầu phi chức năng xuất phát từ hai ràng buộc: hệ thống dùng dịch vụ miễn phí nên hạn mức là ràng buộc thiết kế, và người học là trẻ em nên lỗi nội dung không được phép đi qua. Về hạn mức, lời nhắc không quá $3\,000$ token vì hạn mức $8\,000$ token mỗi phút, mỗi buổi và mỗi chương có trần số lệnh gọi mô hình, và mỗi nước đi có câu mẫu đã duyệt để buổi học không dừng khi nhà cung cấp lỗi. Về tái lập và kiểm toán, cùng một sổ sự kiện luôn cho cùng quyết định và cùng điểm, mỗi quyết định ghi mã luật và mỗi lệnh gọi mô hình ghi vào sổ. Về dữ liệu, mọi tài liệu người học mang mã trường và mọi truy vấn lọc theo mã đó vì MongoDB không có cô lập theo hàng; trạng thái và sự kiện của một buổi nằm trong một tài liệu ghi nguyên tử vì gói miễn phí không có giao dịch nhiều tài liệu; chỉ gửi ra ngoài dữ liệu tối thiểu (tên gọi, không họ); database kiểm thử, demo và dữ liệu thật tách hẳn nhau.
+
+\subsection{Sáu bất biến thiết kế}
+Từ các rủi ro ở Chương~\ref{chap:intro}, đồ án rút ra sáu bất biến mà hệ thống phải giữ bất kể mô hình ngôn ngữ nói gì. Bảng~\ref{tab:invariants} cho biết từng bất biến do thành phần nào bảo đảm, thuộc loại nào và được kiểm chứng ra sao. Hai loại bảo đảm khác nhau về bản chất. Bảo đảm \emph{theo cấu trúc} nghĩa là vi phạm là không thể, vì thành phần liên quan không có đường tới dữ liệu cấm: bộ dựng lời nhắc không có đáp án câu kiểm tra thì mô hình không thể nói ra đáp án đó từ ngữ cảnh. Bảo đảm \emph{kiểm sau khi sinh} nghĩa là mô hình có thể sinh lỗi nhưng bộ kiểm chứng chặn được, nên chỉ đúng ở mức bộ kiểm bắt được lỗi. Hai loại không có cùng độ chắc chắn, và Chương~\ref{chap:eval} báo cáo riêng từng loại.
+
+Bộ kiểm chứng sau khi sinh rà bốn lỗi: lộ đáp án, nhiều hơn một câu hỏi, quá dài, và số hoặc thuật ngữ không có nguồn. Lỗi lộ đáp án bảo vệ B1 ở đầu ra, lỗi không có nguồn bảo vệ B6, còn hai lỗi kia là quy tắc diễn đạt chứ không thuộc bất biến nào. Các bất biến B2 đến B5 do cấu trúc bảo đảm nên không cần bộ kiểm.
+
+\begin{table}[H]
+\centering
+\caption{Sáu bất biến thiết kế, thành phần bảo đảm và cách kiểm chứng}\label{tab:invariants}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.7cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.7cm}}
+\toprule
+Bất biến & Thành phần và cơ chế & Loại bảo đảm & Kiểm chứng (mục) \\
+\midrule
+B1. Đáp án câu kiểm tra không có trong ngữ cảnh gửi mô hình & Bộ dựng lời nhắc không đưa đáp án; kiểm tra chặn gợi ý ở bậc H1 & Cấu trúc, cộng kiểm sau sinh & Luật tất định trên lời nháp: số lượt chứa đáp án (\ref{sec:eval-socratic}) \\
+B2. Chính sách tất định chọn nước đi, mô hình chỉ diễn đạt & Hàm quyết định có phiên bản, mô hình chỉ được gọi cho một tập nước đi & Cấu trúc & So với lời nhắc Socratic có và không có bộ lọc (\ref{sec:eval-socratic}); chưa tách riêng được khỏi bộ lọc \\
+B3. Đúng sai Toán do bộ chấm tất định & Bộ chấm theo chuẩn viết số Việt Nam, không gọi mô hình & Cấu trúc & Độ đúng trên câu trả lời gán nhãn tay (\ref{sec:eval-grading}) \\
+B4. Mức hiểu là phép chiếu từ sổ sự kiện & Hàm gấp thuần túy; nhãn của mô hình chỉ là bằng chứng có trọng số & Cấu trúc & Phát lại $2\times500$ chuỗi, so với công thức viết thẳng (\ref{sec:eval-learner}) \\
+B5. Không dạy trước nội dung bài sau & Phạm vi truy xuất chỉ gồm bài đang học và tổ tiên trên đồ thị & Cấu trúc & Số đoạn bài sau trong kết quả đầu (\ref{sec:eval-rag}) \\
+B6. Mọi khẳng định có căn cứ & Kiểm số, thuật ngữ và từ so với nguồn; thử lại rồi dùng câu mẫu & Kiểm sau sinh & Số lời nháp lỗi bị chặn (\ref{sec:eval-model}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Hai nguyên tắc kỹ thuật đi kèm: ràng buộc của buổi học được thực thi ở máy chủ chứ không chỉ ẩn nút ở giao diện, và máy khách không bao giờ được chọn mô hình. Ngoài sáu bất biến, khi thêm môn Tiếng Anh thì hành vi, công thức, ngưỡng và lời nhắc của Toán không được đổi (mục~\ref{sec:english-design}), còn lời nhắc, chính sách và chính sách mức hiểu đều là hiện vật có phiên bản và mọi thay đổi chúng đòi chạy lại bộ đánh giá hồi quy. Công thức và ngưỡng không có trong khung đánh giá gốc được đánh dấu là diễn giải khai báo (DI), để người đọc phân biệt điều có nguồn với lựa chọn của đồ án.

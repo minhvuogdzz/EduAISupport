@@ -1,0 +1,10 @@
+% Sinh bởi tools/db_tex.py từ bản sao lưu database; không sửa tay.
+\begin{tikzpicture}
+\begin{axis}[xbar stacked,width=0.58\linewidth,height=5.4cm,yticklabel style={font=\footnotesize,text width=3.6cm,align=right},xmin=0,xmax=100,bar width=14pt,xlabel={tỉ lệ phản hồi của gia sư theo nguồn (\%)},ytick={0,1,2,3},yticklabels={{Toán, Vuong},{Toán, tài khoản khác},{Tiếng Anh, lần 1},{Tiếng Anh, lần 2}},y dir=reverse,tick label style={font=\footnotesize},label style={font=\small},xmajorgrids,legend style={font=\footnotesize,at={(0.5,-0.35)},anchor=north,legend columns=2,/tikz/every even column/.append style={column sep=0.4cm},draw=none}]
+\addplot[xbar stacked,fill=black!15,draw=black] coordinates {(2.1,0) (40.9,1) (34.8,2) (68.2,3)};
+\addplot[xbar stacked,fill=black!45,draw=black] coordinates {(85.6,0) (59.1,1) (64.5,2) (29.5,3)};
+\addplot[xbar stacked,fill=black!70,draw=black] coordinates {(12.3,0) (0.0,1) (0.0,2) (0.0,3)};
+\addplot[xbar stacked,fill=black!95,draw=black] coordinates {(0.0,0) (0.0,1) (0.7,2) (2.3,3)};
+\legend{{Mô hình ngôn ngữ viết},{Câu mẫu của giáo viên},{Dự phòng},{Câu chung}}
+\end{axis}
+\end{tikzpicture}

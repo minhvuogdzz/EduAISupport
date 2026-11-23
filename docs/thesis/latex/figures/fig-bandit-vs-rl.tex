@@ -1,0 +1,32 @@
+\begin{tikzpicture}[font=\footnotesize,
+  box/.style={draw=black,line width=0.5pt,fill=white,align=center,minimum height=10mm,text width=28mm,inner sep=2pt},
+  agent/.style={box,fill=gray!30,dashed,line width=0.7pt},
+  st/.style={circle,draw=black,line width=0.5pt,fill=white,minimum size=9mm,inner sep=0pt},
+  arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
+  lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
+% (a) bandit ngữ cảnh: mỗi lượt độc lập
+\node[box] (x) at (0,0) {\textbf{Ngữ cảnh} $x_t$\\\scriptsize và tập nước đi $\mathcal{A}_t$};
+\node[agent] (ag) at (4.9,0) {\textbf{Tác nhân}\\\scriptsize chính sách $\pi_t$};
+\node[box] (a) at (9.8,0) {\textbf{Nước đi} $a_t$\\\scriptsize một phần tử của $\mathcal{A}_t$};
+\node[box,text width=33mm] (r) at (9.8,-2.1) {\textbf{Phần thưởng} $r_t$\\\scriptsize chỉ của $a_t$};
+\node[box] (up) at (4.9,-2.1) {\textbf{Cập nhật}\\\scriptsize $A_a\!\leftarrow\!A_a+xx^{\top}$};
+\draw[arr] (x) -- (ag);
+\draw[arr] (ag) -- (a);
+\draw[arr] (a) -- (r);
+\draw[arr] (r) -- (up);
+\draw[arr] (up) -- (ag);
+\node[font=\small\itshape] at (5.6,-3.35) {(a) Bandit ngữ cảnh: lượt sau không phụ thuộc nước đi của lượt trước};
+% (b) học tăng cường: nước đi đổi trạng thái kế tiếp
+\node[st] (s0) at (0.6,-5.2) {$s_t$};
+\node[st] (s1) at (4.0,-5.2) {$s_{t+1}$};
+\node[st] (s2) at (7.4,-5.2) {$s_{t+2}$};
+\node[font=\small] (dots) at (9.4,-5.2) {$\cdots$};
+\node[box,minimum height=7mm,text width=24mm] (b0) at (2.3,-6.7) {$a_t$, $r_t$};
+\node[box,minimum height=7mm,text width=24mm] (b1) at (5.7,-6.7) {$a_{t+1}$, $r_{t+1}$};
+\draw[arr] (s0) -- node[lab,above]{$P(s'\!\mid\!s,a)$} (s1);
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (dots);
+\draw[arr] (b0.north) -- ++(0,0.0) -- (2.3,-5.2);
+\draw[arr] (b1.north) -- (5.7,-5.2);
+\node[font=\small\itshape] at (5.0,-7.8) {(b) Học tăng cường: nước đi làm đổi trạng thái kế tiếp, cần giá trị dài hạn};
+\end{tikzpicture}

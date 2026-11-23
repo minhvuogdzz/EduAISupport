@@ -1,0 +1,9 @@
+% Sinh bởi tools/db_learner.py từ bản sao lưu database; không sửa tay.
+\begin{tikzpicture}
+\begin{axis}[width=0.92\linewidth,height=6cm,xlabel={số buổi đã gấp vào phép chiếu},ylabel={điểm hiểu bài $M$ trung bình},ymin=60,ymax=100,xtick={1,...,6},ymajorgrids,tick label style={font=\footnotesize},label style={font=\small},legend style={font=\footnotesize,at={(0.5,-0.3)},anchor=north,legend columns=3,draw=none}]
+\addplot[black,solid,mark=*,line width=1pt] coordinates {(1,90.9) (2,91.2) (3,87.4) (4,86.9) (5,87.0)};
+\addplot[black!55,dashed,mark=square*,line width=1pt] coordinates {(1,76.5) (2,86.4) (3,84.7) (4,86.5)};
+\addplot[black!80,dotted,mark=triangle*,line width=1pt] coordinates {(1,81.8) (2,83.5)};
+\legend{{Số thập phân},{Diện tích},{Tiếng Anh, Unit 11}}
+\end{axis}
+\end{tikzpicture}

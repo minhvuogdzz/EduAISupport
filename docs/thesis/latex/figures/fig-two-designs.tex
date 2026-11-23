@@ -1,33 +1,30 @@
 \begin{tikzpicture}[font=\footnotesize,
-  box/.style={draw=black,line width=0.5pt,fill=white,align=center,minimum height=11mm,text width=40mm,inner sep=2pt},
-  llm/.style={box,fill=gray!30,dashed,line width=0.7pt},
-  big/.style={box,fill=gray!30,dashed,line width=0.7pt,text width=39mm,minimum height=30mm},
-  store/.style={box,fill=gray!14,text width=31mm},
-  side/.style={box,text width=31mm},
+  term/.style={draw,rounded corners=7pt,fill=gray!25,align=center,minimum height=8mm,minimum width=22mm,inner sep=2pt},
+  proc/.style={draw,fill=white,align=center,minimum height=13mm,text width=27mm,inner sep=2pt},
+  det/.style={proc,fill=gray!12},
+  llm/.style={proc,fill=gray!35,dashed},
+  io/.style={draw,fill=white,align=center,minimum height=13mm,text width=24mm,inner sep=1pt,trapezium,trapezium left angle=72,trapezium right angle=108,trapezium stretches=true},
+  dec/.style={draw,diamond,aspect=2,fill=white,align=center,inner sep=0pt,text width=21mm,minimum height=14mm},
   arr/.style={-{Stealth[length=2mm,width=1.6mm]},line width=0.6pt},
   lab/.style={font=\scriptsize\itshape,fill=white,inner sep=1pt}]
-% (a) mô hình ngôn ngữ giữ mọi quyết định
-\node[box,draw=none,fill=none,text width=20mm] (k1) at (0,0) {\textbf{Học sinh}};
-\node[big] (m1) at (0,-3.9) {\textbf{Mô hình ngôn ngữ}\\[3pt]\scriptsize chọn câu hỏi, chấm đáp án,\\ chọn mức gợi ý, nhớ mức\\ hiểu bài, viết lời};
-\draw[arr] ([xshift=-7mm]k1.south) -- node[lab,left]{lời con} ([xshift=-7mm]m1.north);
-\draw[arr] ([xshift=7mm]m1.north) -- node[lab,right]{lời đáp} ([xshift=7mm]k1.south);
-\node[font=\footnotesize\itshape,text width=48mm,align=center] at (0,-7.2) {(a) Mô hình giữ mọi quyết định};
-% (b) hệ thống quyết định, mô hình diễn đạt
-\node[box,draw=none,fill=none,text width=20mm] (k2) at (6.6,0) {\textbf{Học sinh}};
-\node[box] (c2) at (6.6,-1.9) {\textbf{Bộ điều phối}\\\scriptsize đọc ý định};
-\node[box] (p2) at (6.6,-3.8) {\textbf{Chính sách tất định}\\\scriptsize chọn nước đi};
-\node[llm] (m2) at (6.6,-5.7) {\textbf{Mô hình ngôn ngữ}\\\scriptsize chỉ diễn đạt};
-\node[box] (v2) at (6.6,-7.6) {\textbf{Bộ kiểm chứng}\\\scriptsize lộ đáp án, nguồn};
-\node[side] (g2) at (11.9,-1.9) {\textbf{Bộ chấm tất định}\\\scriptsize chuẩn vi-VN};
-\node[store] (s2) at (11.9,-3.8) {\textbf{Sổ sự kiện}\\\scriptsize mức hiểu bài};
-\draw[arr] (k2) -- node[lab,right]{lời con} (c2);
-\draw[arr] (c2) -- (p2);
-\draw[arr] (p2) -- node[lab,right]{nước đi} (m2);
-\draw[arr] (m2) -- node[lab,right]{lời nháp} (v2);
-\draw[arr] (c2.east) -- node[lab,above]{đáp án} (g2.west);
-\draw[arr] (g2.south) -- (s2.north);
-\draw[arr] (s2.west) -- node[lab,above]{trạng thái} (p2.east);
-\draw[arr] (v2.west) -- ++(-0.8,0) |- (k2.west);
-\node[lab,rotate=90] at (4.1,-4.0) {lời đã được duyệt};
-\node[font=\footnotesize\itshape,text width=80mm,align=center] at (9.0,-8.9) {(b) Hệ thống quyết định, mô hình chỉ diễn đạt};
+
+\tikzset{proc/.append style={text width=26mm,minimum height=12mm}}
+\node[font=\small\itshape,anchor=west] at (-1.2,1.5) {(a) Mô hình giữ mọi quyết định};
+\node[term] (a1) at (0,0) {Học sinh};
+\node[llm,text width=60mm,minimum height=14mm] (a2) at (6.4,0) {\textbf{Mô hình ngôn ngữ}\\\scriptsize chọn câu hỏi, chấm đáp án, chọn mức gợi ý, tạo phản hồi};
+\node[term] (a3) at (12.8,0) {Học sinh};
+\draw[arr] (a1) -- node[lab,above]{phản hồi} (a2);
+\draw[arr] (a2) -- node[lab,above]{câu trả lời} (a3);
+\node[font=\small\itshape,anchor=west] at (-1.2,-2.2) {(b) Hệ thống quyết định, mô hình chỉ tạo phản hồi};
+\node[term] (b1) at (0,-4.2) {Học sinh};
+\node[det] (b2) at (3.3,-4.2) {\textbf{Bộ điều phối}\\\scriptsize đọc ý định};
+\node[det] (b3) at (6.6,-4.2) {\textbf{Chính sách}\\\scriptsize chọn nước đi};
+\node[llm] (b4) at (9.9,-4.2) {\textbf{Mô hình ngôn ngữ}\\\scriptsize chỉ tạo phản hồi};
+\node[det] (b5) at (13.2,-4.2) {\textbf{Bộ kiểm chứng}\\\scriptsize đáp án, nguồn};
+\node[det] (b6) at (3.3,-6.6) {\textbf{Bộ chấm}\\\scriptsize tất định};
+\node[det] (b7) at (6.6,-6.6) {\textbf{Sổ sự kiện}\\\scriptsize mức hiểu};
+\node[term] (b8) at (13.2,-6.6) {Học sinh};
+\draw[arr] (b1) -- (b2); \draw[arr] (b2) -- (b3); \draw[arr,dashed] (b3) -- (b4); \draw[arr,dashed] (b4) -- (b5);
+\draw[arr] (b2) -- (b6); \draw[arr] (b6) -- (b7); \draw[arr] (b7) -- node[lab,right]{trạng thái} (b3);
+\draw[arr] (b5) -- node[lab,right]{phản hồi đã duyệt} (b8);
 \end{tikzpicture}

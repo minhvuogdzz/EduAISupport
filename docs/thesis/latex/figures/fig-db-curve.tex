@@ -1,0 +1,9 @@
+% Sinh bởi tools/db_tex.py từ bản sao lưu database; không sửa tay.
+\begin{tikzpicture}
+\begin{axis}[width=0.92\linewidth,height=6cm,xlabel={thứ tự buổi (theo ngày học, mỗi nội dung tính riêng)},ylabel={tỉ lệ câu tự làm (\%)},ymin=0,ymax=100,xtick={1,...,9},ymajorgrids,tick label style={font=\footnotesize},label style={font=\small},legend style={font=\footnotesize,at={(0.5,-0.3)},anchor=north,legend columns=3,draw=none}]
+\addplot[black,solid,mark=*,line width=1pt] coordinates {(1,25.0) (2,52.4) (3,59.4) (4,64.2) (5,66.7) (6,51.5)};
+\addplot[black!55,dashed,mark=square*,line width=1pt] coordinates {(1,41.7) (2,53.7) (3,70.7) (4,72.4)};
+\addplot[black!80,dotted,mark=triangle*,line width=1pt] coordinates {(1,78.0) (2,72.7)};
+\legend{{Toán, Số thập phân},{Toán, Diện tích},{Tiếng Anh, Unit 11}}
+\end{axis}
+\end{tikzpicture}

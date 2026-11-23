@@ -1,17 +1,16 @@
 \begin{center}
-\textbf{\large{Tóm tắt}	}
+{\fontsize{13}{16}\selectfont\bfseries TÓM TẮT}
 \end{center}
 
 \addcontentsline{toc}{chapter}{Tóm tắt}
 
-\begin{small}
-Mô hình ngôn ngữ lớn giúp việc xây dựng một gia sư biết trò chuyện trở nên rẻ và nhanh, nhưng đồng thời kéo theo những rủi ro sư phạm đã được ghi nhận: mô hình có xu hướng đưa ngay đáp án, đánh giá sai câu trả lời của học sinh và không biết học sinh đang ở đâu trong chương trình. Đồ án này nghiên cứu một hướng thiết kế khác, trong đó hệ thống học tập được xây dựng trước và mô hình ngôn ngữ chỉ giữ vai trò diễn đạt bên trong hệ thống đó.
+{\fontsize{12}{16}\selectfont
+\noindent\textbf{Tóm tắt:} Mô hình ngôn ngữ lớn giúp xây dựng gia sư có khả năng tương tác với chi phí thấp và thời gian ngắn, nhưng kéo theo các rủi ro sư phạm đã được ghi nhận: mô hình có xu hướng đưa ngay đáp án, chấm sai câu trả lời của học sinh và không xác định được vị trí học tập của học sinh trong chương trình. Đồ án nghiên cứu một hướng thiết kế khác, trong đó hệ thống học tập được dựng trước và mô hình ngôn ngữ chỉ giữ vai trò diễn đạt bên trong hệ thống.
 
-Đồ án hiện thực hướng thiết kế này trong CAVAT, một gia sư Toán lớp 5 tiếng Việt cho hai chương ``Số thập phân'' và ``Diện tích hình tam giác, hình thang'', vận hành dưới tên Monkey Edu. Một chính sách tất định có phiên bản chọn từng nước đi sư phạm theo phương pháp Socratic và thang gợi ý nhiều mức. Một bộ chấm tất định theo chuẩn viết số của Việt Nam quyết định đúng sai của đáp án. Mức hiểu bài là phép chiếu có phiên bản, phát lại được từ sổ sự kiện chỉ ghi thêm. Kiến thức của gia sư lấy từ tài liệu của giáo viên, được đọc, kiểm đáp án và dựng thành đồ thị tri thức, rồi truy xuất bằng phương pháp lai giữa từ khóa và vector có ràng buộc theo đồ thị. Mô hình ngôn ngữ chỉ diễn đạt lời gia sư, và mọi lời đều qua bộ kiểm chứng trước khi đến học sinh. Một bộ chọn bandit ngữ cảnh (LinUCB) chọn nước đi trong tập nước đi mà chính sách cho phép và học từ câu trả lời kế tiếp của học sinh.
+Hướng thiết kế này được hiện thực trong CAVAT, một gia sư Toán lớp 5 tiếng Việt cho hai chương Số thập phân và Diện tích hình tam giác, hình thang, mở rộng sang một đơn vị bài Tiếng Anh, vận hành dưới tên Monkey Edu. Một chính sách tất định có phiên bản chọn từng nước đi theo phương pháp Socratic và thang gợi ý tám bậc. Một bộ chấm tất định theo chuẩn viết số của Việt Nam quyết định đúng sai của đáp án. Mức hiểu bài là phép chiếu phát lại được từ sổ sự kiện chỉ ghi thêm. Kiến thức của gia sư lấy từ tài liệu của giáo viên, được dựng thành đồ thị tri thức và truy xuất bằng phương pháp lai giữa từ khóa và vector có ràng buộc theo đồ thị. Mô hình ngôn ngữ chỉ tạo phản hồi cho Gia sư AI; mỗi phản hồi đều qua bộ kiểm chứng trước khi gửi đến học sinh. Một bộ chọn bandit ngữ cảnh chọn nước đi trong tập nước đi mà chính sách cho phép.
 
-Thực nghiệm trên hai chương Toán lớp 5 cho thấy truy xuất lai theo đồ thị đạt độ chính xác ngang truy xuất phẳng nhưng không đưa kiến thức của bài sau vào các kết quả đầu, và bộ chọn bandit giảm hối tiếc tích lũy xuống dưới một phần chín so với nước mặc định của chính sách trên một môi trường mô phỏng khai báo. Trong các tình huống hội thoại mô phỏng, hệ thống không để lộ đáp án ở lượt nào, trong khi chatbot thương mại dùng lời nhắc thường để lộ đáp án ở phần lớn các lượt. Đồ án cũng trình bày các hạn chế, trong đó quan trọng nhất là chưa có đánh giá kết quả học tập với học sinh thật.
+Hệ thống được đánh giá trên nhật ký các buổi thử nghiệm thực tế bằng tài khoản học sinh thử nghiệm và trên các bộ câu hỏi đã đóng băng. Truy xuất lai theo đồ thị đạt MRR $0{,}954$ và $0{,}935$ trên hai bộ độc lập, so với $0{,}460$ và $0{,}343$ của truy xuất lai thuần, và không để đoạn của bài chưa học lọt vào kết quả đầu. Bộ chấm tất định chấm đúng toàn bộ $71$ câu trả lời điển hình của trẻ, trong khi hai chatbot chỉ đúng $28$ và $26$ trên $36$ câu ở bộ đầu. Trong $13$ kịch bản hội thoại ($31$ lượt mỗi hệ), chatbot thông thường tiết lộ đáp án ở $18$ lượt còn hệ thống ở $3$ lượt; tuy vậy hệ thống chưa vượt chatbot có lời nhắc Socratic kèm bộ lọc đầu ra ($0$ lượt), nên ưu thế của kiến trúc nằm ở truy xuất không dạy trước, bộ chấm và khả năng tái lập hơn là ở việc không lộ đáp án. Bộ chọn bandit giảm hối tiếc tích lũy xuống dưới một phần chín so với nước mặc định trên một môi trường mô phỏng. Đồ án nêu các hạn chế, quan trọng nhất là chưa có đánh giá kết quả học tập trên học sinh thật.
 
-\vspace*{1cm}
-\textbf{Từ khóa}: \textit{gia sư thông minh}, \textit{mô hình ngôn ngữ lớn}, \textit{phương pháp Socratic}, \textit{truy xuất tăng cường sinh}, \textit{đồ thị tri thức}, \textit{truy vết tri thức}, \textit{bandit ngữ cảnh}.
-
-\end{small}
+\vspace{6pt}
+\noindent\textbf{\textit{Từ khóa: gia sư thông minh, truy xuất tăng cường sinh, truy vết tri thức, bandit ngữ cảnh.}}
+}

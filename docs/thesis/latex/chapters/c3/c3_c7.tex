@@ -1,0 +1,41 @@
+\section{Bộ chấm và mô hình người học}\label{sec:learner-design}
+
+\subsection{Bộ chấm tất định}
+Đúng sai của câu trả lời Toán do bộ chấm tất định quyết định chứ không do mô hình. Bộ chấm theo quy ước viết số Việt Nam, vì bác một câu đúng chỉ do khác cách viết là sai sót sư phạm. Bộ chấm xử lý dấu phẩy thập phân, số viết bằng chữ (``không phẩy chín''), từ đệm (``$0{,}9$ ạ cô''), cách gõ không dấu và teencode (``o,9''), cùng các phép so sánh diễn đạt bằng ngôn ngữ tự nhiên. Bộ chấm kiểm cả định dạng yêu cầu: giá trị đúng nhưng viết phân số khi đề yêu cầu số thập phân được ghi là đúng giá trị nhưng sai định dạng. Với đáp án mở, bộ chấm kiểm các ý bắt buộc thay vì so khớp chuỗi. Mỗi lượt trả về đúng, đúng một phần hoặc sai, kèm loại lỗi (khái niệm, quy trình, cách viết hoặc tính) khi có đủ căn cứ.
+
+Lỗi quan niệm được nhận ra từ một danh mục mười bốn họ luật lỗi do tài liệu giáo viên gợi ý cùng một số mẫu so sánh số; chỉ câu sai trùng mẫu đã biết mới được gán loại lỗi, còn lại ghi là chưa phân loại thay vì bị đoán. Câu trả lời ``vì sao'' được chấm theo thang từ khóa ba mức $0{,}2$, $0{,}6$ và $1{,}0$ tùy học sinh có nêu thuật ngữ của bài, trích số của đề và nêu bước giải hay không; phần kể lại ý chính được chấm bằng tỉ lệ ý chính tìm thấy. Môn Tiếng Anh có bộ chấm riêng nhận biết đáp án nhiều biến thể, lỗi chính tả, lỗi trật tự từ, câu trả lời một từ và câu trả lời bằng tiếng Việt.
+
+\subsection{Bằng chứng và sổ sự kiện}
+Mức hiểu bài là một phép chiếu: hàm thuần túy từ sổ sự kiện đến trạng thái của mọi bài, cùng sổ luôn cho cùng kết quả và mô hình không bao giờ ghi điểm. Công thức, trọng số và ngưỡng lấy từ khung đánh giá Toán của dự án; chỗ khung không nêu được khai báo là DI. Mỗi bài có bảy chiều: đúng ($C$), lập luận ($R$), vận dụng ($A$), chuyển giao ($T$), độc lập ($I$), ghi nhớ ($S$) và chẩn đoán lỗi ($D$). Một bằng chứng là bộ ba gồm chiều, điểm $s\in[0,1]$ và trọng số $w\ge0$. Chiều mà một câu cung cấp bằng chứng suy từ mức nhận thức: mức A và B cho $C$, mức C cho $R$, mức D cho $A$, mức E hoặc câu chuyển giao cho $T$, câu chẩn đoán cho $D$. Chiều ghi nhớ $S$ chỉ đến từ bài kiểm tra trì hoãn sau nhiều ngày nên phiên bản hiện tại để trống.
+
+Bảng~\ref{tab:evidence} cho các loại bằng chứng chính. Một câu giải được mà không cần gợi ý có trọng số lớn; câu giải được sau giải thích đầy đủ vẫn mang trọng số nhỏ vì học sinh đã làm được điều gì đó, nhưng không bao giờ được tính là thành công của bài. Câu sai do cách viết hay tính toán vẫn mang điểm một phần vì học sinh hiểu phương pháp. Nhãn do mô hình đề xuất (lỗi quan niệm, lời giải thích) chỉ là bằng chứng có trọng số và đi qua bộ kiểm trước khi tính, nên mô hình người học vẫn tất định và tái lập dù lời của mô hình đổi giữa các lần chạy.
+
+\begin{table}[H]
+\centering
+\caption{Bằng chứng mà các sự kiện sinh ra. $\delta$: độ khó; $\iota_h$: trọng số độc lập của bậc gợi ý cao nhất; $\sigma=0{,}5$ cho câu cùng làm, nếu không $1$; $g=0{,}5$ nếu câu bị coi là đoán, nếu không $1$.}\label{tab:evidence}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{4.4cm}}
+\toprule
+Sự kiện & Chiều & Điểm $s$ & Trọng số $w$ \\
+\midrule
+Câu được giải & Chiều của câu & $1$ & $(0{,}5+\delta)\max(\iota_h,0{,}3)\,\sigma g$ \\
+ & $I$ & $\iota_h$ & $\sigma$ \\
+Câu chưa giải được & Chiều của câu & $0{,}5$ (tính), $0{,}7$ (cách viết) hoặc $0$ & $(1{,}5-\delta)\sigma$ \\
+Lời giải thích ``vì sao'' & $R$ & Chất lượng $q\in\{0{,}2;0{,}6;1\}$ & $0{,}5$; bỏ khi $q\le0{,}2$ \\
+Bài kể lại ý chính & $R$ & Tỉ lệ ý chính tìm thấy & $1$; $0{,}3$ nếu nhãn mô hình tin cậy dưới $0{,}6$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Cập nhật Beta, mức hiểu và quy tắc qua bài}
+Với mỗi bài $v$ và chiều $d$, hệ thống giữ một phân phối Beta và cập nhật theo công thức~\eqref{eq:beta}. Giá trị khởi đầu có khối lượng tiên nghiệm $2$ và điểm khởi đầu bằng trung bình mức thành thạo của các bài tiên quyết đã có điểm, hoặc $0{,}5$ nếu chưa có, vì học sinh nắm tốt bài tiên quyết thường bắt đầu bài sau ở mức cao hơn. Kỳ vọng của chiều là $\mu_{v,d}=\alpha_{v,d}/(\alpha_{v,d}+\beta_{v,d})$ và $n_{v,d}$ là tổng trọng số bằng chứng. Điểm hiểu bài lấy các chiều đã có đủ bằng chứng $\mathcal{A}_v=\{d:n_{v,d}\ge1\}$ và chuẩn hóa lại trọng số khung:
+\begin{equation}
+M_v=100\cdot\frac{\sum_{d\in\mathcal{A}_v}\omega_d\,\mu_{v,d}}{\sum_{d\in\mathcal{A}_v}\omega_d},
+\label{eq:mastery}
+\end{equation}
+trong đó trọng số khung là $\omega_C=\omega_R=0{,}20$, $\omega_A=\omega_T=0{,}15$ và $\omega_I=\omega_S=\omega_D=0{,}10$.
+Chuẩn hóa lại cho phép tính $M_v$ khi chưa đủ mọi chiều, và bài chưa có chiều nào đủ bằng chứng được ghi là chưa đủ dữ liệu thay vì gán một con số.
+
+Từ $M_v$ và các chiều, hệ thống suy ra sáu mức hiểu từ $0$ đến $5$ theo các dải $20$, $40$, $60$, $75$, $90$ kèm hai cổng: mức $3$ cần bằng chứng lập luận $R$, mức $4$ cần bằng chứng vận dụng $A$, và mức $5$ cần chiều ghi nhớ $S$ nên chưa đạt được. Độ tin cậy từ $0$ đến $100$ là tích bốn hệ số phản ánh lượng, độ đa dạng, độ trải và độ nhất quán của bằng chứng; dưới $30$ hệ thống hiển thị ``chưa đủ dữ liệu'' thay cho điểm. Một bài được coi là qua khi năm điều kiện cùng thỏa: điểm hiểu bài đạt ngưỡng, học sinh hiểu bài trên nhiều mức và nhiều dạng câu, đã có bằng chứng giải thích, đã có bằng chứng vận dụng và không còn lỗi quan niệm nghiêm trọng chưa giải quyết. Chính sách dạy đọc trực tiếp các điều kiện này để quyết định qua bài, dạy lại hay luyện thêm.
+
+Vì phép chiếu là hàm thuần túy của sổ và của bộ tham số có phiên bản, mọi báo cáo dựng lại được từ sự kiện: trang giáo viên hiển thị điểm từng bài, bảy chiều, các cổng còn thiếu và từng bằng chứng kèm lý do. Đồ án vì vậy phát lại được nhật ký thật qua đúng phép chiếu ấy (mục~\ref{sec:eval-learner}). Tiếng Anh dùng chính sách mức hiểu riêng và không đổi số nào của Toán (mục~\ref{sec:english-design}).

@@ -1,0 +1,6 @@
+# latexmk dùng XeLaTeX (phông Latin Modern OTF có chữ Việt) và tự chạy BibTeX
+$pdf_mode = 5;
+$xelatex = 'xelatex -synctex=1 -interaction=nonstopmode -file-line-error %O %S';
+$bibtex_use = 2;
+@default_files = ('thesis.tex');
+$clean_ext = 'bbl run.xml synctex.gz';

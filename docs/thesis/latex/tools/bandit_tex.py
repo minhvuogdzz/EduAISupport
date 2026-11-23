@@ -12,12 +12,12 @@ report = json.loads(DATA.read_text(encoding="utf-8"))
 policies = report["policies"]
 
 NAMES = {
-    "policy": "Nước của chính sách",
+    "policy": "Nước mặc định của chính sách",
     "random": "Ngẫu nhiên",
     "least-help": "Giúp ít nhất",
     "bandit": "Bandit ($\\varepsilon=0{,}1$)",
     "bandit-greedy": "Bandit ($\\varepsilon=0$)",
-    "oracle": "Oracle",
+    "oracle": "Lý tưởng (biết đáp án thật)",
 }
 
 
@@ -35,12 +35,12 @@ for key, label in NAMES.items():
     )
 table = (
     "% Sinh bởi tools/bandit_tex.py từ docs/thesis/data/bandit-eval.json; không sửa tay.\n"
-    "\\begin{table}[ht]\n\\centering\n"
+    "\\begin{table}[H]\n\\centering\n"
     "\\caption{Kết quả trên môi trường mô phỏng, $3\\,000$ lượt, $30$ hạt giống, trung bình $\\pm$ khoảng tin cậy "
     "$95\\%$. Hai cột cuối tính trên một phần tư số lượt cuối.}\n"
     "\\label{tab:bandit-results}\n\\small\n"
     "\\begin{tabularx}{\\linewidth}{@{}Xrrr@{}}\n\\toprule\n"
-    "Chính sách & Hối tiếc tích lũy & Chọn đúng nước tốt nhất & Phần thưởng \\\\\n\\midrule\n"
+    "Chính sách & Hối tiếc tích lũy (thấp là tốt) & Chọn đúng nước tốt nhất & Phần thưởng \\\\\n\\midrule\n"
     + "\n".join(rows)
     + "\n\\bottomrule\n\\end{tabularx}\n\\end{table}\n"
 )
@@ -54,7 +54,7 @@ styles = {
     "bandit-greedy": "black!45,solid,line width=0.9pt",
 }
 legend = {
-    "policy": "Nước của chính sách",
+    "policy": "Nước mặc định của chính sách",
     "random": "Ngẫu nhiên",
     "least-help": "Giúp ít nhất",
     "bandit": "Bandit ($\\varepsilon=0{,}1$)",

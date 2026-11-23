@@ -1,0 +1,8 @@
+% Sinh bởi tools/db_tex.py từ bản sao lưu database; không sửa tay.
+\begin{tikzpicture}
+\begin{axis}[ybar,width=0.92\linewidth,height=6cm,bar width=7pt,xlabel={bậc gợi ý},ylabel={tỉ lệ gợi ý đã đưa (\%)},xtick={1,...,7},ymin=0,ymajorgrids,enlarge x limits=0.1,tick label style={font=\footnotesize},label style={font=\small},legend style={font=\footnotesize,at={(0.97,0.95)},anchor=north east,draw=none}]
+\addplot[fill=black!25,draw=black] coordinates {(1,62.7) (2,19.7) (3,4.4) (4,0.0) (5,0.0) (6,11.5) (7,1.7)};
+\addplot[fill=black!70,draw=black] coordinates {(1,32.1) (2,42.9) (3,10.7) (4,3.6) (5,0.0) (6,7.1) (7,3.6)};
+\legend{Toán ($n=295$),Tiếng Anh ($n=28$)}
+\end{axis}
+\end{tikzpicture}

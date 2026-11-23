@@ -1,11 +1,136 @@
 \chapter{Cơ sở lý thuyết}\label{chap:theory}
-Chương này trình bày các cơ sở lý thuyết mà đồ án sử dụng. Phần đầu nêu khái niệm hệ thống gia sư thông minh, phương pháp Socratic, giàn giáo, tự giải thích và lỗi quan niệm, tức là những cơ sở sư phạm quyết định hành vi của gia sư. Phần tiếp theo giới thiệu mô hình ngôn ngữ lớn, các mô hình và hạ tầng suy luận được dùng cùng những giới hạn của chúng. Các phần sau trình bày truy xuất tăng cường, đồ thị tri thức, mô hình người học và truy vết tri thức, bandit ngữ cảnh cùng đánh giá ngoài chính sách, xử lý tiếng nói, phương pháp đánh giá và các kỹ thuật phần mềm nền. Mỗi phần kết thúc bằng điểm mà đồ án kế thừa hoặc điều chỉnh, để Chương~\ref{chap:design} có thể dẫn lại trực tiếp.
+Chương này trình bày các cơ sở mà đồ án dựa vào, theo thứ tự từ sư phạm đến kỹ thuật: hệ thống gia sư thông minh và phương pháp Socratic, mô hình ngôn ngữ lớn cùng giới hạn của nó, truy xuất tăng cường, đồ thị tri thức và mô hình người học, bandit ngữ cảnh. Mỗi mục kết thúc bằng điểm mà đồ án kế thừa, để Chương~\ref{chap:design} dẫn lại trực tiếp.
 
-\input{chapters/c2/c2_c1}
-\input{chapters/c2/c2_c2}
-\input{chapters/c2/c2_c3}
-\input{chapters/c2/c2_c4}
-\input{chapters/c2/c2_c5}
-\input{chapters/c2/c2_c6}
-\input{chapters/c2/c2_c6b}
-\input{chapters/c2/c2_c7}
+\section{Hệ thống gia sư thông minh và phương pháp Socratic}
+
+\subsection{Hệ thống gia sư thông minh}
+Hệ thống gia sư thông minh (ITS) là phần mềm dạy học mô phỏng một gia sư người: hệ thống theo dõi từng bước làm của học sinh, phản hồi và gợi ý đúng lúc, rồi điều chỉnh theo người học. Kiến trúc kinh điển gồm bốn mô-đun (Hình~\ref{fig:its-modules}). Mô-đun miền tri thức chứa kiến thức, lời giải và lỗi thường gặp. Mô-đun người học ước lượng học sinh đã biết gì và sai gì. Mô-đun sư phạm quyết định dạy gì tiếp theo và gợi ý ra sao. Mô-đun giao diện là nơi học sinh tương tác.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/pdf/fig-its-modules.pdf}
+\caption{Bốn mô-đun của hệ thống gia sư thông minh và vị trí của mô hình ngôn ngữ trong đồ án. Mô hình chỉ tạo lời cho phản hồi và nằm giữa mô-đun sư phạm và giao diện. Nét đứt: phần do mô hình ngôn ngữ thực hiện.}
+\label{fig:its-modules}
+\end{figure}
+
+VanLehn phân biệt các hệ gia sư theo độ mịn của hỗ trợ: theo câu trả lời cuối, theo từng bước hoặc theo từng ý trong một bước, và hỗ trợ càng mịn thì hiệu quả càng gần gia sư người~\cite{vanlehn2011}. AutoTutor dẫn dắt học sinh bằng hội thoại có cấu trúc gồm các nước đi gợi ý, thúc đẩy và sửa sai~\cite{graesser2005}. Đồ án giữ bốn mô-đun cổ điển và hỗ trợ ở mức từng lượt tương tác; quyết định sư phạm không rời mô-đun sư phạm, còn mô hình ngôn ngữ chỉ diễn đạt kết quả của quyết định đó.
+
+\subsection{Phương pháp Socratic}\label{sec:socratic-ref}
+Phương pháp Socratic dùng câu hỏi để dẫn học sinh tự phát hiện kiến thức thay vì trình bày đáp án. Nguyên tắc này khó kiểm chứng nếu chỉ phát biểu ở mức triết lý, vì một phản hồi có thể vừa đặt câu hỏi vừa để lộ đáp án. Đồ án vì vậy tách phương pháp thành sáu ràng buộc hành vi kiểm tra được. Gia sư không nói đáp án cuối trước khi học sinh tự giải được, trừ nước đi giải thích đầy đủ sau khi cùng làm từng bước đã thất bại. Mỗi lượt chỉ có một câu hỏi, đặt ở cuối lượt. Gia sư hỏi cách làm và lý do trước khi sửa. Mức trợ giúp bắt đầu từ bậc nhẹ nhất rồi tăng dần, và được rút lại khi học sinh làm được một bước. Lượt không phải một lần thử, chẳng hạn lạc đề hoặc hỏi lại, không bị tính là sai. Hai ràng buộc đầu đo được hoàn toàn bằng luật; các ràng buộc còn lại phụ thuộc trạng thái buổi học nên được thực thi ở chính sách dạy.
+
+\subsection{Giàn giáo, tự giải thích và lỗi quan niệm}
+Giàn giáo là sự hỗ trợ tạm thời giúp người học làm điều chưa tự làm được, và được rút dần khi người học làm chủ nhiệm vụ~\cite{wood1976}. Khái niệm này gắn với vùng phát triển gần của Vygotsky, tức khoảng giữa điều học sinh tự làm được và điều làm được khi có người giúp~\cite{vygotsky1978}. Koedinger và Aleven gọi mâu thuẫn khi quyết định mức hỗ trợ là nghịch lý hỗ trợ: giúp quá nhiều làm học sinh mất cơ hội tự nghĩ, giúp quá ít làm học sinh bế tắc~\cite{koedinger2007}; học sinh còn thường lạm dụng hoặc né tránh gợi ý, nên hệ thống cần quy tắc rõ về thời điểm và mức hỗ trợ~\cite{aleven2016}. Đồ án dùng thang tám bậc H0--H7 để lượng hóa mức hỗ trợ (Mục~\ref{sec:policy-design}).
+
+Học sinh tự giải thích các bước và lý do của mình thì hiểu sâu và nhớ lâu hơn~\cite{chi1989,chi1994,chi2001}; đây là cơ sở của hai nước đi ``hỏi vì sao'' và ``mời giảng lại''. Hiệu ứng đảo ngược chuyên môn đặt giới hạn cho việc này: kiểu hỗ trợ có ích với người mới có thể cản trở người đã thành thạo~\cite{kalyuga2003}, nên gia sư hỏi ``vì sao'' ít đi khi học sinh đã vững.
+
+Lỗi quan niệm là cách hiểu sai có hệ thống chứ không phải sai ngẫu nhiên. Ở số thập phân, học sinh hay cho rằng số nào dài hơn thì lớn hơn (viết $0{,}25>0{,}3$) do chuyển cách nghĩ của số tự nhiên sang~\cite{resnick1989}, hoặc nhầm hàng phần mười với hàng phần trăm (viết $9/10$ thành $0{,}09$). Xung đột nhận thức, bắt nguồn từ lý thuyết thay đổi khái niệm, đưa cho học sinh một phản ví dụ để học sinh tự thấy mâu thuẫn thay vì bị báo là sai~\cite{posner1982}. Đồ án gắn mỗi lỗi quan niệm do giáo viên khai báo với một phản ví dụ và nhận diện lỗi bằng luật tất định dựa trên dạng sai đặc trưng. Về lời khen, khen trí thông minh làm trẻ ngại thử thách còn khen nỗ lực thì không~\cite{mueller1998}, nên bộ kiểm chứng chặn lời khen trí thông minh và lời khen đặt trước một câu trả lời sai.
+
+\section{Mô hình ngôn ngữ lớn và các mô hình được dùng}
+
+\subsection{Nguyên lý và giới hạn}
+Mô hình ngôn ngữ lớn hiện nay là mô hình tự hồi quy trên kiến trúc Transformer~\cite{vaswani2017}: mô hình dự đoán token tiếp theo rồi lặp lại để sinh văn bản. Sau tiền huấn luyện trên khối văn bản lớn, bước tinh chỉnh theo chỉ dẫn và học tăng cường từ phản hồi của người dạy mô hình làm theo yêu cầu~\cite{ouyang2022}. Mô hình làm theo chỉ dẫn và ví dụ đặt trong lời nhắc mà không cần huấn luyện lại~\cite{brown2020}. Tiếng Việt có dấu tốn nhiều token hơn tiếng Anh cho cùng một ý, nên chi phí và giới hạn độ dài bị ảnh hưởng trực tiếp.
+
+Năm giới hạn của mô hình liên quan tới dạy học. Ảo giác là việc nói tự tin điều không có căn cứ~\cite{ji2023}. Xu hướng chiều người dùng làm mô hình dễ đồng ý với học sinh kể cả khi học sinh sai. Việc được tối ưu để hữu ích khiến mô hình hay giải hộ và để lộ đáp án~\cite{macina2023}. Tấn công chèn lời nhắc làm mô hình đổi hành vi khi lời người dùng hoặc dữ liệu ngoài chứa chỉ thị~\cite{perez2022,greshake2023}. Cuối cùng, cùng một đầu vào có thể cho đầu ra khác nhau và mô hình không giải thích được vì sao chọn một cách dạy. Bảng~\ref{tab:llm-limits} đối chiếu từng giới hạn với cách ứng phó của đồ án. Các giới hạn này là lý do đồ án không giao cho mô hình việc chọn nước đi, chấm điểm hay ghi mức hiểu.
+
+\begin{table}[H]
+\centering
+\caption{Giới hạn của mô hình ngôn ngữ lớn trong dạy học và cơ chế ứng phó của đồ án.}
+\label{tab:llm-limits}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.7cm}XX@{}}
+\toprule
+Giới hạn & Biểu hiện trong dạy học & Cơ chế ứng phó \\
+\midrule
+Ảo giác & Khẳng định kiến thức hoặc số liệu không có căn cứ & Truy xuất có ràng buộc theo đồ thị; kiểm số và thuật ngữ so với nguồn \\
+Chiều người dùng & Đồng ý với đáp án sai của học sinh & Bộ chấm tất định quyết định đúng sai \\
+Lộ đáp án & Giải hộ khi học sinh nhờ & Đáp án câu kiểm tra không có trong lời nhắc; bộ kiểm chứng quét đáp án \\
+Chèn lời nhắc & Phản hồi học sinh làm đổi vai và quy tắc & Phản hồi học sinh và đoạn nguồn chỉ là dữ liệu; chính sách nằm ngoài mô hình \\
+Không tất định & Mức hiểu bài khó tái lập & Mô hình không ghi điểm; mức hiểu là phép chiếu từ sổ sự kiện \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Các mô hình và hạ tầng suy luận}
+Gia sư dùng một chuỗi mô hình cấu hình được. Qwen là họ mô hình mã nguồn mở của Alibaba Cloud với Qwen3 hỗ trợ khoảng 119 ngôn ngữ trong đó có tiếng Việt và có hai chế độ suy nghĩ, nên được chọn làm bộ não ở giai đoạn đầu qua dịch vụ Groq~\cite{qwen3,groqdocs}. Hai mô hình gpt-oss-120b và gpt-oss-20b của OpenAI, theo kiến trúc hỗn hợp chuyên gia và giấy phép Apache 2.0, làm dự phòng~\cite{gptoss2025}; gpt-oss-120b còn làm giám khảo vì giám khảo cần khác họ với mô hình được chấm. Gemini đọc ảnh và nhận dạng ký tự trên tài liệu quét, đồng thời tạo vector nhúng \texttt{gemini-embedding-001} 768 chiều cho truy xuất~\cite{gemini2023}.
+
+Đồ án dùng gói miễn phí của Groq, với hạn mức khoảng 30 lần gọi và 8\,000 token mỗi phút. Đo thực tế cho thấy Groq từ chối khi token đầu vào vượt khoảng 7\,000 trong một phút, và một lần gọi Qwen tốn trung bình 1\,126 token, nên một ngày chỉ đủ cho vài buổi học dùng hết trần gọi. Hệ quả thiết kế là mỗi lời nhắc không quá 3\,000 token, mỗi buổi có trần số lần gọi mô hình, và hệ thống phải chịu được lúc mô hình tạm hết hạn mức mà không làm gián đoạn buổi học.
+
+\section{Truy xuất và sinh văn bản tăng cường truy xuất}\label{sec:rag-theory}
+Sinh văn bản tăng cường truy xuất (RAG) tìm các đoạn tài liệu liên quan rồi đưa vào lời nhắc trước khi mô hình trả lời, để câu trả lời dựa trên nguồn thay vì trí nhớ của mô hình~\cite{lewis2020,gao2023survey}. Với gia sư, RAG có hai tác dụng: neo lời giảng vào tài liệu của giáo viên và giới hạn phạm vi, vì gia sư không được trả lời bằng nội dung học sinh chưa học.
+
+BM25 là hàm xếp hạng theo từ khóa chuẩn~\cite{robertson2009}: điểm của đoạn $c$ với câu hỏi $q$ tăng theo số lần từ của $q$ xuất hiện trong $c$, có bão hòa theo tần suất và chuẩn hóa theo độ dài đoạn (đồ án dùng $k_1=1{,}2$, $b=0{,}75$). BM25 mạnh với thuật ngữ và con số chính xác, hai loại thông tin chiếm phần lớn nội dung Toán. Truy xuất dày so độ gần cosine giữa vector nhúng của câu hỏi và của đoạn~\cite{karpukhin2020}, nên bắt được câu hỏi diễn đạt khác tài liệu, chẳng hạn trẻ hỏi ``số có phẩy'' trong khi tài liệu viết ``số thập phân'', nhưng kém nhạy với số và ký hiệu. Hợp nhất theo hạng nghịch đảo (RRF) kết hợp hai bảng xếp hạng mà không cần chuẩn hóa điểm~\cite{cormack2009}:
+\begin{equation}
+\mathrm{RRF}(c)=\sum_{r\in R}\frac{1}{k+\mathrm{rank}_r(c)},\qquad k=60.
+\label{eq:rrf}
+\end{equation}
+Kết quả của BEIR cho thấy không hệ truy xuất nào thắng ở mọi miền và truy xuất từ khóa thường rất mạnh với văn bản chuyên ngành~\cite{thakur2021}, nên kết hợp hai cách là lựa chọn an toàn. Chất lượng truy xuất đo bằng Hit@$k$ (đoạn đúng đầu tiên nằm trong $k$ kết quả đầu) và hạng nghịch đảo trung bình $\mathrm{MRR}=\frac{1}{|Q|}\sum_{q}1/r_q$ với $r_q$ là hạng của đoạn đúng đầu tiên. Độ bám nguồn đòi hỏi câu trả lời chỉ khẳng định điều có trong đoạn nguồn~\cite{rashkin2023,es2024}. GraphRAG dùng đồ thị để tổng hợp thông tin trên cả kho~\cite{edge2024}, còn đồ án dùng đồ thị để giới hạn phạm vi truy xuất.
+
+\section{Đồ thị tri thức và mô hình người học}
+
+\subsection{Đồ thị tri thức}
+Đồ thị tri thức biểu diễn đơn vị kiến thức là đỉnh và quan hệ giữa chúng là cạnh; quan hệ quan trọng nhất trong giáo dục là quan hệ tiên quyết, tức học $u$ trước $v$~\cite{doignon1999}. Mô hình 2T-KT kết hợp mô hình ngôn ngữ với hai đồ thị, một chung của môn học và một riêng của từng học sinh~\cite{li2026}; đồ án kế thừa từ đó năm ý tưởng: đồ thị có kiểm chứng, ngưỡng tin cậy cho nhãn do mô hình đề xuất, khởi động nguội từ điểm của bài tiên quyết, kiểm khẳng định với bằng chứng và thí nghiệm bỏ từng thành phần. Một chương học là đồ thị có hướng $G=(V,E)$ với đỉnh là tiết học và cạnh là quan hệ tiên quyết hoặc vận dụng. Đồ thị quyết định đồng thời thứ tự dạy và phạm vi truy xuất, nên đồ thị sai cấu trúc kéo theo cả dạy sai lẫn truy xuất sai.
+
+\subsection{Truy vết tri thức và cập nhật Beta--Bernoulli}\label{sec:beta-ref}
+Truy vết tri thức ước lượng học sinh nắm từng kỹ năng đến đâu từ lịch sử làm bài. Mô hình Bayes coi mỗi kỹ năng là biến ẩn hai trạng thái với bốn tham số~\cite{corbett1995}; phân tích yếu tố hiệu năng dùng hồi quy logistic~\cite{pavlik2009}; truy vết tri thức sâu học trực tiếp từ chuỗi bài làm bằng mạng nơ-ron hồi quy~\cite{piech2015}. Pelánek chỉ ra sự đánh đổi giữa độ chính xác dự đoán và khả năng diễn giải~\cite{pelanek2017}. Đồ án chọn khả năng diễn giải và phát lại thay vì độ chính xác dự đoán, vì chưa có đủ dữ liệu học sinh thật để huấn luyện và vì giáo viên cần nhìn được bằng chứng đằng sau mỗi con số.
+
+Cách chọn đó dẫn tới mô hình Beta--Bernoulli. Phân phối $\mathrm{Beta}(\alpha,\beta)$ là tiên nghiệm liên hợp của xác suất thành công; với một bằng chứng có điểm $s\in[0,1]$ và trọng số $w$, phép cập nhật là
+\begin{equation}
+\alpha\leftarrow\alpha+w\,s,\qquad \beta\leftarrow\beta+w\,(1-s),\qquad \mu=\frac{\alpha}{\alpha+\beta}.
+\label{eq:beta}
+\end{equation}
+Phép cập nhật có tính giao hoán nên mức hiểu tính lại được từ sổ sự kiện theo thứ tự bất kỳ, và giải thích được vì mỗi bằng chứng đóng góp một lượng rõ ràng vào $\alpha$ và $\beta$. Đồ án giữ một phân phối Beta cho mỗi tiết và mỗi chiều của khung đánh giá.
+
+\section{Bandit ngữ cảnh}\label{sec:bandit-theory}
+Bài toán bandit mô tả một tác nhân lặp lại việc chọn một trong các cánh tay và chỉ quan sát phần thưởng của cánh tay đã chọn~\cite{auer2002}. Bandit ngữ cảnh bổ sung vector ngữ cảnh $x_t$ quan sát được trước mỗi lượt và tập cánh tay cho phép $\mathcal{A}_t$, nên lựa chọn tốt nhất đổi theo ngữ cảnh. Gia sư chỉ thấy học sinh trả lời ra sao sau nước đi đã chơi, chứ không thấy học sinh sẽ trả lời ra sao nếu chơi nước khác; đó là phản hồi bán phần. Khác với học tăng cường, nước đi ở bandit chỉ ảnh hưởng tới phần thưởng của chính lượt đó chứ không quyết định trạng thái kế tiếp, nên bài toán đơn giản và đảm bảo được về mặt lý thuyết hơn. Chất lượng của thuật toán đo bằng hối tiếc tích lũy~\cite{lattimore2020}:
+\begin{equation}
+R_T=\sum_{t=1}^{T}\Big(\max_{a\in\mathcal{A}_t}\mu(x_t,a)-\mu(x_t,a_t)\Big),\qquad \mu(x,a)=\mathbb{E}[r\mid x,a],
+\label{eq:regret}
+\end{equation}
+và thuật toán tốt có $R_T/T\to0$.
+
+LinUCB giả định $\mu(x,a)=\theta_a^{\top}x$ và ước lượng $\hat\theta_a=A_a^{-1}b_a$ bằng hồi quy ridge, với $A_a=\lambda I+\sum_{t\in S_a}x_tx_t^{\top}$ và $b_a=\sum_{t\in S_a}r_tx_t$ cộng trên các lượt đã chọn cánh tay $a$~\cite{abbasi2011}. Các tổng này cộng được nên một lượt mới chỉ cộng thêm $xx^{\top}$ và $rx$, thứ tự lượt không ảnh hưởng và trạng thái dựng lại được từ sổ sự kiện. Nguyên tắc lạc quan khi bất định chọn cánh tay có cận trên tin cậy lớn nhất:
+\begin{equation}
+a_t=\arg\max_{a\in\mathcal{A}_t}\ \hat\theta_a^{\top}x_t+\alpha\sqrt{x_t^{\top}A_a^{-1}x_t}.
+\label{eq:linucb}
+\end{equation}
+Số hạng đầu khai thác điều đã biết, số hạng sau thăm dò cánh tay còn bất định. Thăm dò $\varepsilon$-tham lam đặt trên công thức này chọn cánh tay tham lam với xác suất $1-\varepsilon$ và chọn đều với xác suất $\varepsilon$, nên xác suất chọn $p_t(a)=\varepsilon/|\mathcal{A}_t|+(1-\varepsilon)\mathbb{1}[a=a^{\mathrm g}_t]$ luôn dương. Xác suất này cho phép đánh giá một chính sách chưa từng chạy từ nhật ký bằng ước lượng theo nghịch đảo xác suất~\cite{horvitz1952,li2011replay}:
+\begin{equation}
+\hat V(\pi)=\frac{1}{T}\sum_{t=1}^{T}\frac{\mathbb{1}[\pi(x_t,\mathcal{A}_t)=a_t]\,r_t}{p_t}.
+\label{eq:ips}
+\end{equation}
+Ước lượng này không chệch khi $p_t(a)>0$ với mọi cánh tay mà $\pi$ có thể chọn, nhưng phương sai tăng khi chính sách đích khác xa chính sách đã ghi nhật ký. Thompson sampling là lựa chọn thay thế thường cho kết quả thực nghiệm tốt~\cite{thompson1933,chapelle2011}, nhưng xác suất chọn của nó khó tính chính xác, nên đồ án chọn LinUCB.
+
+Đồ án dùng LinUCB với $\alpha=0{,}5$ và $\varepsilon=0{,}1$ trên đúng thực đơn tối đa ba nước đi do chính sách đưa ra (Bảng~\ref{tab:bandit-mapping}). Phần thưởng kết hợp kết quả của câu trả lời có chấm kế tiếp $o$ với chi phí của sự giúp đỡ theo mức giúp $h\in\{0,\dots,7\}$ của nước đi:
+\begin{equation}
+r=\beta(o)-c\,\frac{h}{7},\qquad \beta(\text{đúng})=1,\ \beta(\text{một phần})=\tfrac12,\ \beta(\text{sai})=0,\ c=0{,}3.
+\label{eq:reward}
+\end{equation}
+Hệ số $c$ khiến bandit ưa nước giúp ít nhưng vẫn có tác dụng, phù hợp với nguyên tắc Socratic ở Mục~\ref{sec:socratic-ref}.
+
+\begin{table}[H]
+\centering
+\caption{Đối chiếu khái niệm bandit ngữ cảnh với hiện thực trong hệ thống.}
+\label{tab:bandit-mapping}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.0cm}X@{}}
+\toprule
+Khái niệm & Hiện thực trong hệ thống \\
+\midrule
+Ngữ cảnh $x_t$ & Chín số trong $[0,1]$ về tình hình của học sinh trên câu đang làm; không có đáp án hay phản hồi học sinh \\
+Tập cánh tay $\mathcal{A}_t$ & Thực đơn tối đa ba nước đi do chính sách đưa ra, không nước nào giúp nhiều hơn nước của chính sách \\
+Phần thưởng $r_t$ & Công thức~\eqref{eq:reward}, đến muộn vì phải chờ câu trả lời có chấm kế tiếp \\
+Cập nhật & Cộng $xx^{\top}$ và $rx$ vào kho trạng thái theo sự kiện phần thưởng \\
+Xác suất $p_t$ & Ghi vào nhật ký cho mỗi lượt chọn, dùng cho ước lượng~\eqref{eq:ips} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Tiếng nói, đánh giá và kỹ thuật phần mềm nền}
+Nhận dạng tiếng nói dùng \texttt{whisper-large-v3} trên Groq, một mô hình Transformer huấn luyện có giám sát yếu trên khoảng 680\,000 giờ âm thanh nhiều ngôn ngữ~\cite{radford2023}. Tổng hợp tiếng nói dùng VieNeu-TTS, hệ mã nguồn mở theo giấy phép Apache 2.0 chạy trên CPU, với giọng nữ miền Bắc vì gia sư xưng ``cô''~\cite{vieneu}. Chữ Toán phải được chuẩn hóa trước khi đọc, chẳng hạn ``3,05'' thành ``ba phẩy không năm''. Tài liệu của giáo viên gồm trang có lớp chữ được trích trực tiếp và trang quét được đọc bằng mô hình thị giác--ngôn ngữ; vì mô hình có thể đọc sai số, đồ án đòi mọi số đọc được phải khớp giữa các nguồn và đánh dấu chỗ lệch cho giáo viên quyết định.
+
+Về đánh giá, giám khảo là mô hình ngôn ngữ có tương quan khá cao với người chấm~\cite{zheng2023} nhưng có thiên lệch, chẳng hạn thích câu dài hoặc văn phong giống mình, nên đồ án dùng giám khảo khác họ với mô hình gia sư và ưu tiên chỉ số tất định mỗi khi có thể. Phần thống kê dùng khoảng Wilson cho tỉ lệ~\cite{wilson1927}, bootstrap cho chênh lệch theo cặp~\cite{efron1993} và kiểm định McNemar cho các cặp bất đồng~\cite{mcnemar1947,dror2018}.
+
+Về kỹ thuật phần mềm, nhật ký sự kiện chỉ ghi thêm lưu trạng thái bằng chuỗi sự kiện thay vì ghi đè; mức hiểu là phép chiếu tất định của chuỗi đó nên cùng chuỗi luôn cho cùng kết quả. Chính sách dạy là hệ luật có thứ tự: luật đầu tiên thỏa điều kiện quyết định nước đi và mã luật được ghi lại để giải thích. Điều khiển đồng thời lạc quan gắn mỗi buổi học với số phiên bản trạng thái, và mọi dữ liệu người học mang định danh trường với truy vấn bắt buộc lọc theo định danh đó vì MongoDB không có bảo mật mức dòng.
+
+\section{Tổng kết chương}
+Phương pháp Socratic, giàn giáo, tự giải thích và xung đột nhận thức cho các ràng buộc hành vi mà gia sư phải giữ. Năm giới hạn của mô hình ngôn ngữ giải thích vì sao quyết định không được giao cho mô hình. Truy xuất lai, đồ thị tri thức, cập nhật Beta--Bernoulli và nhật ký sự kiện là các thành phần tất định thay thế cho những việc mô hình không được làm, còn bandit ngữ cảnh cho phép chọn nước đi theo kết quả quan sát được mà vẫn nằm trong tập nước đi hợp lệ. Chương~\ref{chap:design} dùng các cơ sở này để phân tích yêu cầu và đề xuất kiến trúc.

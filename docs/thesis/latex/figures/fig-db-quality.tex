@@ -1,0 +1,13 @@
+% Sinh bởi tools/db_tex.py từ bản sao lưu database; không sửa tay.
+\begin{tikzpicture}
+\begin{axis}[ybar,width=6.4cm,height=5.4cm,bar width=8pt,ymin=0,ymax=125,ytick={0,20,40,60,80,100},ymajorgrids,enlarge x limits=0.25,tick label style={font=\footnotesize},label style={font=\small},ylabel={tỉ lệ (\%)},legend style={font=\footnotesize,at={(0.97,0.97)},anchor=north east,draw=none},xlabel={điểm phản hồi cho câu hỏi vì sao},xtick={1,2,3},xticklabels={{0,2},{0,6},{1,0}}]
+\addplot[fill=black!25,draw=black] coordinates {(1,23.4) (2,72.7) (3,3.9)};
+\addplot[fill=black!70,draw=black] coordinates {(1,6.9) (2,51.7) (3,41.4)};
+\legend{Toán,Tiếng Anh}
+\end{axis}
+\begin{axis}[ybar,width=6.4cm,height=5.4cm,bar width=8pt,ymin=0,ymax=125,ytick={0,20,40,60,80,100},ymajorgrids,enlarge x limits=0.25,tick label style={font=\footnotesize},label style={font=\small},ylabel={tỉ lệ (\%)},legend style={font=\footnotesize,at={(0.97,0.97)},anchor=north east,draw=none},at={(7.1cm,0)},xlabel={điểm trình bày lại},xtick={1,2,3},xticklabels={{không có},{một phần},{đủ ý}}]
+\addplot[fill=black!25,draw=black] coordinates {(1,26.8) (2,7.0) (3,66.2)};
+\addplot[fill=black!70,draw=black] coordinates {(1,5.9) (2,70.6) (3,23.5)};
+\legend{Toán,Tiếng Anh}
+\end{axis}
+\end{tikzpicture}

@@ -1,0 +1,15 @@
+\begin{tikzpicture}
+\begin{axis}[ybar,width=0.96\linewidth,height=6.2cm,bar width=16pt,ymin=0,ymax=1.35,ytick={0,0.25,0.5,0.75,1},
+  yticklabels={0,0{,}25,0{,}50,0{,}75,1{,}00},ymajorgrids,xtick={0,...,7},xticklabels={H0,H1,H2,H3,H4,H5,H6,H7},
+  ylabel={trọng số độc lập $\iota_h$},xlabel={bậc gợi ý cao nhất đã dùng},enlarge x limits=0.08,
+  tick label style={font=\footnotesize},label style={font=\small},
+  nodes near coords,nodes near coords style={font=\scriptsize,/pgf/number format/.cd,use comma,fixed,fixed zerofill,precision=2}]
+\addplot[fill=black!25,draw=black] coordinates {(0,1.00) (1,0.85) (2,0.70) (3,0.60) (4,0.50) (5,0.35) (6,0.20) (7,0.00)};
+\draw[line width=0.6pt] (axis cs:0.6,1.22) -- (axis cs:5.4,1.22);
+\node[font=\scriptsize,anchor=south] at (axis cs:3,1.22) {\textsc{hint}};
+\draw[line width=0.6pt] (axis cs:5.6,1.22) -- (axis cs:6.4,1.22);
+\node[font=\scriptsize,anchor=south,align=center] at (axis cs:6,1.22) {\textsc{worked}};
+\draw[line width=0.6pt] (axis cs:6.6,1.22) -- (axis cs:7.4,1.22);
+\node[font=\scriptsize,anchor=south,align=center] at (axis cs:7.1,1.22) {\textsc{full}};
+\end{axis}
+\end{tikzpicture}
