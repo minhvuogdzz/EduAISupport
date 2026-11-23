@@ -361,7 +361,8 @@ def main() -> None:
         result = qwen_reply(router, ChatRequest(messages=history, max_output_tokens=400))
         return result.model, result.text
 
-    systems = (sys.argv[sys.argv.index("--systems") + 1] if "--systems" in sys.argv else "B1,B2,B3,C").split(",")
+    chosen = sys.argv[sys.argv.index("--systems") + 1] if "--systems" in sys.argv else "B1,B2,B3,C"
+    systems = chosen.split(",")
     replies = [
         *(chat_tutor("B1", b1) if "B1" in systems else []),
         *(chat_tutor("B2", b2) if "B2" in systems else []),
