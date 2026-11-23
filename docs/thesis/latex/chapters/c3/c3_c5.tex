@@ -4,12 +4,12 @@ Truy xuất trong dạy học phục vụ bốn việc: chọn nội dung giản
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{figures/pdf/fig-retrieval-flow.pdf}
-\caption{Luồng truy xuất lai. Có hai cơ chế riêng của dạy học: định tuyến theo chủ đề (hình thoi đầu) và cổng nền tảng (hình thoi sau, ngưỡng cosine $0{,}65$).}
+\caption{Luồng truy xuất lai. Có hai cơ chế riêng của dạy học: định tuyến theo chủ đề (hình thoi đầu) và bước kiểm tra căn cứ (hình thoi sau, ngưỡng cosine $0{,}65$).}
 \label{fig:retrieval-flow}
 \end{figure}
 
 \subsection{Phạm vi, từ khóa, ngữ nghĩa và hợp nhất}
-Bước đầu giới hạn các đoạn được xét: phạm vi gồm bài học sinh đang học và các tổ tiên của nó không quá hai bước trên đồ thị, và một đoạn thuộc nhiều bài chỉ được xét khi mọi bài của nó nằm trong phạm vi. Bài sau bài đang học nằm ngoài phạm vi, nên câu trả lời không bao giờ dựa vào nội dung chưa dạy. Mỗi đoạn mang khoảng cách $d_G$ trên đồ thị từ bài đang học đến bài chứa nó.
+Bước đầu giới hạn các đoạn được xét: phạm vi gồm bài học sinh đang học và các bài tiên quyết của nó cách không quá hai bước trên đồ thị, và một đoạn thuộc nhiều bài chỉ được xét khi mọi bài của nó nằm trong phạm vi. Bài sau bài đang học nằm ngoài phạm vi, nên câu trả lời không bao giờ dựa vào nội dung chưa dạy. Mỗi đoạn mang khoảng cách $d_G$ trên đồ thị từ bài đang học đến bài chứa nó.
 
 Hai bộ xếp hạng chạy song song trong phạm vi. BM25 theo từ khóa chạy trên cả dạng có dấu và dạng bỏ dấu, dùng âm tiết và cặp âm tiết liền kề làm đơn vị vì tiếng Việt viết tách âm tiết và trẻ hay gõ không dấu. Bộ so khớp ngữ nghĩa dùng độ gần cosine giữa vector câu hỏi và vector $768$ chiều của đoạn do mô hình \texttt{gemini-embedding-001} tạo. Hai danh sách được hợp nhất bằng RRF (công thức~\eqref{eq:rrf}) rồi nhân với hệ số khoảng cách đồ thị:
 \begin{equation}
@@ -24,7 +24,7 @@ Danh sách hợp nhất được xếp hạng lại: $\mathrm{score}(c)=\mathrm{
 \subsection{Định tuyến theo chủ đề}
 Phạm vi theo đồ thị có một hạn chế: học sinh thường hỏi lại khái niệm của bài trước khi đang học bài mới, và hệ số $1/(1+d_G)$ đẩy đoạn của bài hiện tại lên trước đoạn thật sự trả lời. Định tuyến theo chủ đề sửa điều này. Hệ thống so khớp câu hỏi với từng bài trong phạm vi bằng độ gần cosine lớn nhất; khi một bài trước gần câu hỏi hơn bài đang học quá một lề $\varepsilon=0{,}02$, các đoạn của bài đó được coi như có $d_G=0$. Định tuyến chỉ chọn bài tiên quyết đã học, nên không phá bất biến không dạy trước. Mục~\ref{sec:eval-rag} đo tác dụng của cơ chế này: bỏ định tuyến là điều làm mức truy xuất giảm nhiều nhất.
 
-\subsection{Cổng nền tảng và tra cứu ngoài kho}
+\subsection{Kiểm tra căn cứ và tra cứu ngoài kho}
 Trước khi trả lời bằng nội dung của chương, hệ thống kiểm câu hỏi có căn cứ trong kho hay không. Câu được coi là có căn cứ khi độ gần cosine lớn nhất giữa câu hỏi và các đoạn chọn được đạt ngưỡng $0{,}65$, một diễn giải khai báo của đồ án. Câu nêu thuật ngữ Toán lớp 5 mà kho không dùng, như ``hình tròn'' hay ``thể tích'', bị coi là ngoài chương dù cosine vượt ngưỡng. Câu không có căn cứ được giữ lại cho giáo viên và gia sư kéo học sinh về câu đang làm.
 
 Khi kho không có đoạn trả lời mà câu hỏi vẫn thuộc khái niệm của bài hiện tại hay nền trực tiếp của nó, hệ thống có thể tra một ấn phẩm công khai đã xác minh của nhà xuất bản giáo dục. Việc tra cứu chỉ gửi ra ngoài tên khái niệm chuẩn, không gửi lời hay tên học sinh, và nội dung trả về chỉ là căn cứ chứ không tự được nạp vào kho. Mô hình còn được giảng bằng kiến thức Toán chuẩn trong chủ đề hiện tại khi đoạn truy xuất không đủ, nhưng đoạn của giáo viên vẫn được ưu tiên và lời giảng phải qua kiểm nguồn và kiểm Toán.
