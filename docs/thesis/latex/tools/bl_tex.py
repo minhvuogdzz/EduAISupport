@@ -10,15 +10,15 @@ OUT = Path(__file__).resolve().parent.parent / "figures"
 NAMES = ["Chatbot thường", "Chatbot Socratic", "Chatbot Socratic + bộ lọc", "Gia sư CAVAT"]
 N = 31
 D = {
-    "leak": [18, 1, 0, 3],
-    "judge_leak": [23, 1, 0, 1],
+    "leak": [18, 1, 0, 1],
+    "judge_leak": [23, 1, 0, 0],
     "multi_q": [15, 6, 0, 0],
     "long": [27, 0, 0, 0],
     "words": [139, 30, 28, 29],
-    "fixed": [0, 0, 5, 5],
-    "intent": [3.19, 4.84, 5.00, 4.90],
-    "socratic": [2.39, 4.87, 5.00, 4.74],
-    "child": [4.45, 4.94, 4.94, 4.97],
+    "fixed": [0, 0, 5, 11],
+    "intent": [3.19, 4.84, 5.00, 5.00],
+    "socratic": [2.39, 4.87, 5.00, 4.87],
+    "child": [4.45, 4.94, 4.94, 5.00],
     "topic": [4.97, 5.00, 5.00, 4.97],
 }
 
@@ -62,7 +62,7 @@ def main():
     write(
         "tab-market.tex",
         "\\begin{table}[H]\n\\centering\n\\caption{Bốn hệ trả lời cùng một chuỗi phản hồi của $13$ vai học sinh gặp khó khăn ($31$ lượt mỗi hệ). "
-        "Thường: chatbot thường; Socratic: chatbot Socratic; Socratic + lọc: chatbot Socratic kèm bộ lọc đầu ra; CAVAT: gia sư CAVAT. Sáu dòng đầu là phép đếm tự động; bốn dòng cuối là điểm trung bình thang $1$ đến $5$ do một mô hình giám khảo chấm.}"
+        "Thường: chatbot thường; Socratic: chatbot Socratic; Socratic + lọc: chatbot Socratic kèm bộ lọc đầu ra; CAVAT: gia sư CAVAT. Ba hệ đầu đo ngày 22/11/2026; gia sư CAVAT đo lại ngày 26/11/2026 sau khi sửa bộ kiểm chứng, cùng vai, mô hình và giám khảo. Sáu dòng đầu là phép đếm tự động; bốn dòng cuối là điểm trung bình thang $1$ đến $5$ do một mô hình giám khảo chấm.}"
         "\\label{tab:market}\n\\small\n\\begin{tabular}{>{\\raggedright\\arraybackslash}p{5.0cm}rrrr}\n\\toprule\n"
         "Chỉ số & Thường & Socratic & Socratic + lọc & CAVAT \\\\\n" + body + "\\bottomrule\n\\end{tabular}\n\\end{table}\n",
     )
@@ -92,12 +92,12 @@ def main():
          "``0,9'' (đưa ngay đáp án)",
          "``Cô rất muốn giúp con tự khám phá\\ldots{} nhưng không thể đưa ra đáp án ngay. Con bắt đầu bằng cách chia 9 cho 10 nhé?''",
          "``Cô sẽ không đưa ra đáp án ngay. Con có thể bắt đầu bằng cách chia 9 cho 10 và xem kết quả là gì?''",
-         "``\\ldots{} Con chia 9 cho 10 sẽ được 0,9. Con viết số này ra giấy chưa?'' (\\textbf{lộ đáp án})"),
+         "``Mình cùng làm để con tự tìm ra nhé\\ldots{} Mẫu số 10 cho biết phần thập phân có mấy chữ số?'' (câu mẫu, sau khi lời nháp nêu đáp án bị chặn)"),
         ("``0,09 chứ cô, con đúng mà'' (sai, khăng giữ; đúng là $0{,}9$)",
          "Khen việc hỏi lại, giải thích dài và nêu \\textbf{0,9} (đưa đáp án)",
          "``Rất tốt! Khi chia 9 cho 10, con đã nhận được 0,9\\ldots{}'' (nói ra đáp án và khen câu sai)",
          "``Kết quả có vẻ chưa phản ánh đúng giá trị của 9/10. Con thử nhân 9/10 với 10 để kiểm tra nhé?''",
-         "``9/10 nghĩa là 9 phần của 10, tức 0,9 chứ không phải 0,09\\ldots{}'' (\\textbf{lộ đáp án khi sửa câu sai})"),
+         "``1 mét có 100 xăng-ti-mét. 7 xăng-ti-mét là 7/100 mét, còn 0,7 mét là 70 xăng-ti-mét. Hai độ dài đó có bằng nhau không?'' (phản ví dụ đã duyệt)"),
         ("``C'' (chọn $10/3$, sai)",
          "``Tuyệt vời! Bạn đã hiểu bài rất nhanh. Đáp án chính xác là \\textbf{7/10}.'' (khen câu sai và đưa đáp án)",
          "``Con thử xét mẫu số của mỗi phân số xem có thể viết thành 10, 100, 1000\\ldots{} không?''",
@@ -107,7 +107,7 @@ def main():
     body = "\\midrule\n".join(" & ".join(c) + " \\\\\n" for c in cases)
     write(
         "tab-cases.tex",
-        "\\begin{table}[H]\n\\centering\n\\caption{Ba tình huống cụ thể: cùng một phản hồi của học sinh và phản hồi của bốn hệ. Câu trích rút gọn.}\\label{tab:cases}\n\\scriptsize\n"
+        "\\begin{table}[H]\n\\centering\n\\caption{Ba tình huống cụ thể: cùng một phản hồi của học sinh và phản hồi của bốn hệ (CAVAT theo lần đo 26/11/2026). Câu trích rút gọn.}\\label{tab:cases}\n\\scriptsize\n"
         "\\begin{tabular}{>{\\raggedright\\arraybackslash}p{1.9cm}>{\\raggedright\\arraybackslash}p{3.0cm}>{\\raggedright\\arraybackslash}p{3.1cm}>{\\raggedright\\arraybackslash}p{3.1cm}>{\\raggedright\\arraybackslash}p{3.2cm}}\n\\toprule\n"
         "Học sinh nói & Chatbot thường & Chatbot Socratic & Chatbot Socratic + bộ lọc & Gia sư CAVAT \\\\\n\\midrule\n" + body + "\\bottomrule\n\\end{tabular}\n\\end{table}\n",
     )
