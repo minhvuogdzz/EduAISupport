@@ -13,7 +13,7 @@ from collections.abc import Callable
 from fractions import Fraction
 from itertools import combinations
 
-from cavat.core.pedagogy import MOVES_ALLOWED_TO_REVEAL, MOVES_REQUIRING_QUESTION, Move, Outcome
+from cavat.core.pedagogy import MOVES_ALLOWED_TO_REVEAL, MOVES_REQUIRING_QUESTION, HintLevel, Move, Outcome
 from cavat.core.vi_text import fold
 from cavat.modules.assessment.vi_numbers import extract_numbers, normalize_text, parse_literal, parse_number
 from cavat.modules.content.lesson_package import (
@@ -21,6 +21,7 @@ from cavat.modules.content.lesson_package import (
     ChoiceOption,
     CompareAnswer,
     Item,
+    LessonPackage,
     NumericAnswer,
     OpenAnswer,
     OrderAnswer,
@@ -218,6 +219,41 @@ def singles_out_choice(text: str, item: Item) -> bool:
     return any(_states_choice(s, item.answer) for s in _sentences(normalize_text(text)))
 
 
+def _sayable_texts(item: Item, pkg: LessonPackage) -> list[str]:
+    """Approved words the tutor says before the full explanation: the stem, hints below H7, the lesson's
+    generic hints and counter-examples. Not the explanation, the worked solution or the verify prompt, which
+    may state the key."""
+    hints = [h.text for h in [*item.hints, *pkg.generic_hints] if h.level < HintLevel.H7]
+    examples = [c for mis in pkg.misconceptions for c in mis.counter_examples]
+    return [item.stem, item.rephrase or "", *hints, *examples]
+
+
+def states_key(text: str, item: Item, pkg: LessonPackage) -> str | None:
+    """The key of a numeric item said in the form the item asks (DI-188).
+
+    "Con chia 9 cho 10 sẽ được 0,9", "9/10 nghĩa là 9 phần của 10, tức 0,9": no "đáp án là" in them, so
+    ``_ASSIGN_RE`` let them through in REV-ECIT (3/31 turns). The stem's "9/10" has the key's value but not
+    its form, so it stays sayable; so does any number the child wrote that is not the key ("con viết 0,09").
+    An approved sentence said word for word is not checked: GP-07b (key 7) has the counter-example
+    "0,07 mét là 7 xăng-ti-mét" (its leak patterns and "x = 7" still apply). Only the sentence, not the
+    number: KN-TR-01 (key 1,35) keeps the check although a counter-example of its lesson says "cao 1,35 m".
+    Until now only the LLM renderer ran this check, and only with ALLOW_TUTOR_KNOWLEDGE (DI-91)."""
+    if not isinstance(item.answer, NumericAnswer):
+        return None
+    key = parse_literal(item.answer.value)
+    form = item.answer.form or key.form
+    if any(n.value == key.value and n.form == form for n in extract_numbers(item.stem)):
+        return None  # the stem writes the key as asked: there is nothing to hide
+    said = normalize_text(text)
+    for approved in sorted(map(normalize_text, _sayable_texts(item, pkg)), key=len, reverse=True):
+        if approved.strip():
+            said = said.replace(approved, " ")
+    return next(
+        (f"states {n.text}" for n in extract_numbers(said) if n.value == key.value and n.form == form),
+        None,
+    )
+
+
 def _leak(text: str, ctx: RenderContext) -> str | None:
     item = ctx.item
     lowered = normalize_text(text)
@@ -229,6 +265,10 @@ def _leak(text: str, ctx: RenderContext) -> str | None:
         for m in _ASSIGN_RE.finditer(lowered):
             if _value(m.group(1)) == answer:
                 return f"states {m.group(0).strip()}"
+        if not ctx.solved:
+            stated = states_key(text, item, ctx.package)
+            if stated:
+                return stated
     pairs = _answer_pairs(item)
     for sentence in _sentences(lowered):
         # No exemption for questions: "0,25 bé hơn 0,3, đúng không?" tells the answer. "Số nào lớn hơn?"
