@@ -95,6 +95,9 @@ class Reply:
     judged: dict = field(default_factory=dict)
     # C only: TEMPLATE / GENERIC / LLM / FALLBACK, from TUTOR_MESSAGE_SENT; "" for a reply cached before FIX-1
     source: str = ""
+    # C only (DI-188): codes of the drafts refused before this reply (renderer trace and OUTPUT_REJECTED),
+    # None for a reply cached before DI-188
+    rejected: list[str] | None = None
 
     @property
     def questions(self) -> int:
@@ -210,6 +213,11 @@ def cavat_tutor(router) -> list[Reply]:
             turn = tutor.on_student(clean(said).text, 15)
             sent = [e.payload for e in turn.events if e.type == EventType.TUTOR_MESSAGE_SENT]
             source = sent[-1].get("source", "") if sent else ""
+            trace = renderer.last_trace
+            rejected = [c for group in (trace.rejected if trace else ()) for c in group]
+            refused = [e.payload["issue_codes"] for e in turn.events if e.type == EventType.OUTPUT_REJECTED]
+            rejected += [c for group in refused for c in group]
+            rejected = list(dict.fromkeys(getattr(c, "value", str(c)) for c in rejected))
             out.append(
                 Reply(
                     "C",
@@ -221,6 +229,7 @@ def cavat_tutor(router) -> list[Reply]:
                     # CFG-1: the brain configured in GROQ_MODEL (EVAL-4 ran gpt-oss-120b under a Qwen label)
                     model=f"{get_settings().groq_model} + policy",
                     source=source,
+                    rejected=rejected,
                 )
             )
             before = turn.text
@@ -316,6 +325,17 @@ def report(replies: list[Reply], graded: dict[str, list[bool]]) -> str:
             f"{fmean(r.words for r in rs):.0f} | {avg('follows_intent')} / {avg('socratic')} / "
             f"{avg('child_friendly')} / {avg('on_topic')} |"
         )
+    cavat = [r for r in replies if r.system == "C"]
+    if cavat and all(r.rejected is not None for r in cavat):
+        sources = {s: sum(r.source == s for r in cavat) for s in sorted({r.source for r in cavat})}
+        lines += [
+            "",
+            "Lời của C theo nguồn: "
+            + ", ".join(f"{s or 'không rõ'} {n}" for s, n in sources.items())
+            + f". Lượt có lời nháp bị trả lại (viết lại hoặc rơi về câu mẫu): "
+            f"{sum(bool(r.rejected) for r in cavat)}/{len(cavat)}, trong đó vì lộ đáp án (`ANSWER_LEAK`): "
+            f"{sum('ANSWER_LEAK' in r.rejected for r in cavat)}.",
+        ]
     lines += ["", "## Phần B: chấm câu trả lời của trẻ (bộ `grading-vi-v1`, gán nhãn tay)", ""]
     truth = graded["truth"]
     lines += ["| Người chấm | Đúng | Nhận câu sai (sai dương) | Bác câu đúng (sai âm) |", "|---|---|---|---|"]
