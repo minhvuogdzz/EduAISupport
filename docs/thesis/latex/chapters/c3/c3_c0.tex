@@ -1,7 +1,16 @@
 \section{Kiến trúc tổng thể}\label{sec:architecture}
 Hệ thống gồm hai phần: phần dựng nội dung chạy trước khi học và phần hội thoại chạy trong mỗi lượt. Phần dựng nội dung biến tài liệu của giáo viên thành gói giáo án có cấu trúc: hệ thống đọc từng trang PDF bằng lớp chữ và nhận dạng ký tự, cắt câu hỏi và đáp án bằng bộ phân tích tất định, trích nội dung từng tiết kèm kiểm đáp án bằng cách tính lại từ đề, rồi dựng đồ thị tri thức gồm $19$ tiết và $28$ quan hệ (mục~\ref{sec:content-design}). Phần còn thiếu của tài liệu, như gợi ý ở bậc thấp hay ý chính của bài, do mô hình ngôn ngữ soạn nháp và chỉ được dùng sau khi qua kiểm chứng và được giáo viên duyệt. Nội dung cũng được cắt thành đoạn, lập chỉ mục từ khóa và vector để phục vụ truy xuất.
 
-Phần hội thoại xử lý mỗi lượt theo một chuỗi cố định (Hình~\ref{fig:turn-flow}). Bộ đọc nhận phản hồi của học sinh, nhận ý định và chuyển câu trả lời cho bộ chấm. Chính sách chọn nước đi và bậc gợi ý theo trạng thái câu hỏi và mức hiểu bài. Mô hình ngôn ngữ nhận nước đi, câu mẫu và đoạn nguồn trong một lời nhắc không quá $3\,000$ token rồi soạn lời nháp cho Gia sư AI. Bộ kiểm chứng đánh giá lời nháp: lời đạt được gửi cho học sinh, lời không đạt bị thay bằng câu mẫu đã duyệt. Mọi bước ghi sự kiện vào sổ chỉ ghi thêm, và phép chiếu mức hiểu đọc sổ này để cung cấp trạng thái hiểu bài cho lượt sau. Mô hình ngôn ngữ vì vậy là thành phần duy nhất không tất định, và nó không quyết định nước đi, không chấm điểm, không ghi mức hiểu.
+Hình~\ref{fig:architecture} trình bày toàn bộ kiến trúc với ba vùng. Vùng trên dựng đồ thị tri thức từ tài liệu của giáo viên. Vùng giữa là một lượt dạy: bộ điều phối, chính sách Socratic, bộ chấm, sổ sự kiện và mô hình người học đều tất định, còn mô hình ngôn ngữ chỉ diễn đạt nước đi và câu mẫu, và lời của nó chỉ đến học sinh khi qua bộ kiểm chứng. Vùng dưới dựng chỉ mục truy xuất lai từ kho học liệu.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/fig-architecture.pdf}
+\caption{Kiến trúc tổng thể của CAVAT. Đầu vào của một lượt là phản hồi của học sinh (chữ hoặc giọng nói), đầu ra là phản hồi đã qua bộ kiểm chứng gửi lại học sinh; hai vùng ở trên và dưới là các quy trình chạy trước, nhận tài liệu của giáo viên và cho ra đồ thị tri thức và chỉ mục truy xuất. Biểu tượng mô hình ngôn ngữ đại diện cho chuỗi mô hình do cổng AI điều phối (gpt-oss-120b, Qwen, gpt-oss-20b, Gemini), và bộ chọn nước đi bằng bandit (mục~\ref{sec:bandit-design}) nằm trong khối chính sách Socratic.}
+\label{fig:architecture}
+\end{figure}
+
+Trong vùng giữa, mỗi lượt được xử lý theo một chuỗi cố định (Hình~\ref{fig:turn-flow}). Bộ đọc nhận phản hồi của học sinh, nhận ý định và chuyển câu trả lời cho bộ chấm. Chính sách chọn nước đi và bậc gợi ý theo trạng thái câu hỏi và mức hiểu bài. Mô hình ngôn ngữ nhận nước đi, câu mẫu và đoạn nguồn trong một lời nhắc không quá $3\,000$ token rồi soạn lời nháp cho Gia sư AI. Bộ kiểm chứng đánh giá lời nháp: lời đạt được gửi cho học sinh, lời không đạt bị thay bằng câu mẫu đã duyệt. Mọi bước ghi sự kiện vào sổ chỉ ghi thêm, và phép chiếu mức hiểu đọc sổ này để cung cấp trạng thái hiểu bài cho lượt sau. Mô hình ngôn ngữ vì vậy là thành phần duy nhất không tất định, và nó không quyết định nước đi, không chấm điểm, không ghi mức hiểu.
 
 \begin{figure}[H]
 \centering
